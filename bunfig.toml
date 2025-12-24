@@ -1,0 +1,7 @@
+[install]
+# Configure package installation
+auto = "auto"
+
+[test]
+# Test configuration
+preload = []

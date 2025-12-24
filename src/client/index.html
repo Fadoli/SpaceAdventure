@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Adventure - OGame-like Strategy Game</title>
+    <link rel="stylesheet" href="/src/client/css/main.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="auth-screen" class="screen active">
+            <div class="auth-container">
+                <h1>🚀 Space Adventure</h1>
+                <p class="tagline">Build your empire among the stars</p>
+                
+                <div class="auth-tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form active">
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div class="error-message" id="login-error"></div>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required minlength="3" maxlength="20" autocomplete="username">
+                        <small>3-20 characters, letters, numbers, _ and - only</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required minlength="8" autocomplete="new-password">
+                        <small>Minimum 8 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email (optional)</label>
+                        <input type="email" id="register-email" autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <div class="error-message" id="register-error"></div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Header -->
+            <header class="game-header">
+                <div class="header-left">
+                    <h1>🚀 Space Adventure</h1>
+                    <span id="player-name" class="player-name"></span>
+                </div>
+                <div class="header-center">
+                    <div class="resource-display">
+                        <div class="resource">
+                            <span class="resource-icon">⚙️</span>
+                            <span id="metal-amount">0</span>
+                            <small>(+<span id="metal-production">0</span>/h)</small>
+                        </div>
+                        <div class="resource">
+                            <span class="resource-icon">💎</span>
+                            <span id="crystal-amount">0</span>
+                            <small>(+<span id="crystal-production">0</span>/h)</small>
+                        </div>
+                        <div class="resource">
+                            <span class="resource-icon">🛢️</span>
+                            <span id="deuterium-amount">0</span>
+                            <small>(+<span id="deuterium-production">0</span>/h)</small>
+                        </div>
+                        <div class="resource">
+                            <span class="resource-icon">⚡</span>
+                            <span id="energy-amount">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button id="logout-btn" class="btn btn-small">Logout</button>
+                </div>
+            </header>
+            
+            <!-- Navigation -->
+            <nav class="game-nav">
+                <button class="nav-btn active" data-view="overview">Overview</button>
+                <button class="nav-btn" data-view="buildings">Buildings</button>
+                <button class="nav-btn" data-view="research">Research</button>
+                <button class="nav-btn" data-view="shipyard">Shipyard</button>
+                <button class="nav-btn" data-view="fleet">Fleet</button>
+                <button class="nav-btn" data-view="galaxy">Galaxy</button>
+            </nav>
+            
+            <!-- Content Area -->
+            <main class="game-content">
+                <!-- Overview View -->
+                <div id="overview-view" class="view active">
+                    <h2>Planet Overview</h2>
+                    <div class="planet-info">
+                        <h3 id="planet-name">Homeworld</h3>
+                        <p id="planet-coords">[1:1:1]</p>
+                    </div>
+                    
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <h3>Resources</h3>
+                            <div class="resource-list">
+                                <div>Metal: <span id="overview-metal">0</span> / <span id="overview-metal-storage">10,000</span></div>
+                                <div>Crystal: <span id="overview-crystal">0</span> / <span id="overview-crystal-storage">10,000</span></div>
+                                <div>Deuterium: <span id="overview-deuterium">0</span> / <span id="overview-deuterium-storage">10,000</span></div>
+                            </div>
+                        </div>
+                    
+                    <div class="overview-card">
+                        <h3>Energy</h3>
+                        <div id="energy-overview" class="resource-list"></div>
+                    </div>
+                            <div id="activity-list">
+                                <p class="empty">No current activities</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Buildings View -->
+                <div id="buildings-view" class="view">
+                    <h2>Buildings</h2>
+                    <div id="buildings-grid" class="buildings-grid">
+                        <!-- Buildings will be dynamically loaded -->
+                    </div>
+                </div>
+                
+                <!-- Research View -->
+                <div id="research-view" class="view">
+                    <h2>Research Lab</h2>
+                    <p>Research system coming soon...</p>
+                </div>
+                
+                <!-- Shipyard View -->
+                <div id="shipyard-view" class="view">
+                    <h2>Shipyard</h2>
+                    <p>Shipyard coming soon...</p>
+                </div>
+                
+                <!-- Fleet View -->
+                <div id="fleet-view" class="view">
+                    <h2>Fleet</h2>
+                    <p>Fleet management coming soon...</p>
+                </div>
+                
+                <!-- Galaxy View -->
+                <div id="galaxy-view" class="view">
+                    <h2>Galaxy</h2>
+                    <p>Galaxy view coming soon...</p>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script type="module" src="/src/client/js/main.js"></script>
+</body>
+</html>

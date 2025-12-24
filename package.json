@@ -1,0 +1,24 @@
+{
+  "name": "space-adventure",
+  "version": "0.1.0",
+  "description": "An OGame-like space strategy game with PVE AI opponents",
+  "main": "src/server/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/server/index.js",
+    "start": "bun run src/server/index.js",
+    "test": "bun test"
+  },
+  "keywords": [
+    "game",
+    "strategy",
+    "space",
+    "ogame",
+    "bun"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^5.1.1"
+  }
+}

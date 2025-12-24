@@ -1,0 +1,126 @@
+// JSON file storage utilities with backup support
+import { existsSync } from 'fs';
+import { readFile, writeFile, mkdir, rename } from 'fs/promises';
+import { dirname } from 'path';
+
+const DATA_DIR = './data';
+
+/**
+ * Ensure data directory exists
+ */
+async function ensureDataDir() {
+  if (!existsSync(DATA_DIR)) {
+    await mkdir(DATA_DIR, { recursive: true });
+  }
+}
+
+/**
+ * Read JSON file with backup fallback
+ */
+export async function readJsonFile(filename) {
+  await ensureDataDir();
+  const filepath = `${DATA_DIR}/${filename}`;
+  const backupPath = `${DATA_DIR}/${filename}.backup`;
+  
+  // Try reading main file first
+  if (existsSync(filepath)) {
+    try {
+      const content = await readFile(filepath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      console.error(`Error reading ${filename}, trying backup:`, error.message);
+      
+      // Fall back to backup if main file is corrupted
+      if (existsSync(backupPath)) {
+        try {
+          const backupContent = await readFile(backupPath, 'utf-8');
+          console.log(`Successfully restored from backup: ${filename}.backup`);
+          return JSON.parse(backupContent);
+        } catch (backupError) {
+          console.error(`Error reading backup ${filename}.backup:`, backupError.message);
+          return null;
+        }
+      }
+      return null;
+    }
+  }
+  
+  // If main file doesn't exist, try backup
+  if (existsSync(backupPath)) {
+    try {
+      const backupContent = await readFile(backupPath, 'utf-8');
+      console.log(`Main file not found, using backup: ${filename}.backup`);
+      return JSON.parse(backupContent);
+    } catch (error) {
+      console.error(`Error reading backup ${filename}.backup:`, error.message);
+      return null;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Write JSON file with atomic backup strategy
+ */
+export async function writeJsonFile(filename, data) {
+  await ensureDataDir();
+  const filepath = `${DATA_DIR}/${filename}`;
+  const backupPath = `${DATA_DIR}/${filename}.backup`;
+  const tempPath = `${DATA_DIR}/${filename}.tmp`;
+  
+  try {
+    // Step 1: Write to temporary file
+    await writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    
+    // Step 2: If main file exists, rename it to backup (overwrites old backup)
+    if (existsSync(filepath)) {
+      await rename(filepath, backupPath);
+    }
+    
+    // Step 3: Rename temporary file to main file
+    await rename(tempPath, filepath);
+    
+    return true;
+  } catch (error) {
+    console.error(`Error writing ${filename}:`, error.message);
+    
+    // Cleanup: try to remove temp file if it exists
+    if (existsSync(tempPath)) {
+      try {
+        await rename(tempPath, tempPath + '.failed');
+      } catch (cleanupError) {
+        // Ignore cleanup errors
+      }
+    }
+    
+    return false;
+  }
+}
+
+/**
+ * Initialize storage files with default data
+ */
+export async function initializeStorage() {
+  await ensureDataDir();
+  
+  // Initialize users.json if it doesn't exist
+  const users = await readJsonFile('users.json');
+  if (!users) {
+    await writeJsonFile('users.json', { users: [] });
+  }
+  
+  // Initialize players.json if it doesn't exist
+  const players = await readJsonFile('players.json');
+  if (!players) {
+    await writeJsonFile('players.json', { players: [] });
+  }
+  
+  // Initialize ai.json if it doesn't exist
+  const ai = await readJsonFile('ai.json');
+  if (!ai) {
+    await writeJsonFile('ai.json', { aiPlayers: [] });
+  }
+  
+  console.log('Storage initialized');
+}

@@ -1,0 +1,128 @@
+{
+  "players": [
+    {
+      "userId": "76e06013-e8ad-4194-91cd-5478ba97f76f",
+      "username": "fadoli03",
+      "planets": [
+        {
+          "id": "7038bff6-53ac-44d6-8253-39bf5a7665b1",
+          "name": "Homeworld",
+          "coordinates": [
+            1,
+            1,
+            7
+          ],
+          "resources": {
+            "metal": 560.3380333333154,
+            "crystal": 280.1690166666577,
+            "deuterium": 0,
+            "energy": 0
+          },
+          "buildings": {
+            "metalMine": 1,
+            "crystalMine": 1,
+            "deuteriumSynthesizer": 0,
+            "solarPlant": 1,
+            "fusionReactor": 0,
+            "roboticsFactory": 0,
+            "shipyard": 0,
+            "researchLab": 0,
+            "storage": 0,
+            "naniteFactory": 0
+          },
+          "production": {
+            "metal": 30,
+            "crystal": 15,
+            "deuterium": 0,
+            "energy": 0
+          },
+          "storage": {
+            "metal": 10000,
+            "crystal": 10000,
+            "deuterium": 10000
+          },
+          "buildQueue": [],
+          "ships": {},
+          "defenses": {},
+          "lastUpdate": 1766580097581
+        }
+      ],
+      "research": {
+        "energyTech": 0,
+        "computerTech": 0,
+        "weaponsTech": 0,
+        "shieldingTech": 0,
+        "armorTech": 0,
+        "combustionDrive": 0,
+        "impulseDrive": 0,
+        "hyperspaceDrive": 0,
+        "espionageTech": 0,
+        "astrophysics": 0
+      },
+      "researchQueue": [],
+      "fleets": []
+    },
+    {
+      "userId": "2e11504e-79d3-42e0-9672-1e01e0a946e2",
+      "username": "fadoli",
+      "planets": [
+        {
+          "id": "7a2b9004-c09c-453c-900d-f7b44e1f9178",
+          "name": "Homeworld",
+          "coordinates": [
+            1,
+            1,
+            2
+          ],
+          "resources": {
+            "metal": 211.3251375000001,
+            "crystal": 154.9011327777817,
+            "deuterium": 0,
+            "energy": 0
+          },
+          "buildings": {
+            "metalMine": 2,
+            "crystalMine": 1,
+            "deuteriumSynthesizer": 0,
+            "solarPlant": 2,
+            "fusionReactor": 0,
+            "roboticsFactory": 0,
+            "shipyard": 0,
+            "researchLab": 0,
+            "storage": 0,
+            "naniteFactory": 0
+          },
+          "production": {
+            "metal": 72,
+            "crystal": 22,
+            "deuterium": 0,
+            "energy": 13
+          },
+          "storage": {
+            "metal": 10000,
+            "crystal": 10000,
+            "deuterium": 10000
+          },
+          "buildQueue": [],
+          "ships": {},
+          "defenses": {},
+          "lastUpdate": 1766580097581
+        }
+      ],
+      "research": {
+        "energyTech": 0,
+        "computerTech": 0,
+        "weaponsTech": 0,
+        "shieldingTech": 0,
+        "armorTech": 0,
+        "combustionDrive": 0,
+        "impulseDrive": 0,
+        "hyperspaceDrive": 0,
+        "espionageTech": 0,
+        "astrophysics": 0
+      },
+      "researchQueue": [],
+      "fleets": []
+    }
+  ]
+}
