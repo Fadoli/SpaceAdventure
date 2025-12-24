@@ -13,8 +13,8 @@
             7
           ],
           "resources": {
-            "metal": 560.3380333333154,
-            "crystal": 280.1690166666577,
+            "metal": 622.7243749999757,
+            "crystal": 311.36218749998784,
             "deuterium": 0,
             "energy": 0
           },
@@ -44,7 +44,7 @@
           "buildQueue": [],
           "ships": {},
           "defenses": {},
-          "lastUpdate": 1766580097581
+          "lastUpdate": 1766587583942
         }
       ],
       "research": {
@@ -75,13 +75,13 @@
             2
           ],
           "resources": {
-            "metal": 211.3251375000001,
-            "crystal": 154.9011327777817,
+            "metal": 160.45361749999913,
+            "crystal": 150.61775333333944,
             "deuterium": 0,
             "energy": 0
           },
           "buildings": {
-            "metalMine": 2,
+            "metalMine": 3,
             "crystalMine": 1,
             "deuteriumSynthesizer": 0,
             "solarPlant": 2,
@@ -93,10 +93,10 @@
             "naniteFactory": 0
           },
           "production": {
-            "metal": 72,
-            "crystal": 22,
+            "metal": 114,
+            "crystal": 21,
             "deuterium": 0,
-            "energy": 13
+            "energy": -2
           },
           "storage": {
             "metal": 10000,
@@ -106,7 +106,9 @@
           "buildQueue": [],
           "ships": {},
           "defenses": {},
-          "lastUpdate": 1766580097581
+          "lastUpdate": 1766587583942,
+          "energyConsumption": 50,
+          "energyEfficiency": 96
         }
       ],
       "research": {

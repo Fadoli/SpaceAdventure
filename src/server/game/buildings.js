@@ -8,6 +8,7 @@ import {
   checkRequirements 
 } from '../../shared/buildings.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
+import { getEnergyConsumptionMultiplier } from '../config.js';
 
 /**
  * Start building upgrade
@@ -167,7 +168,7 @@ export async function processCompletedBuildings(player) {
 /**
  * Update planet production based on buildings
  */
-export function updatePlanetProduction(planet) {
+export async function updatePlanetProduction(planet) {
   // Reset production
   planet.production = {
     metal: 0,
@@ -179,19 +180,21 @@ export function updatePlanetProduction(planet) {
   let energyConsumption = 0;
   
   // Calculate production from all buildings
-  for (const [buildingType, level] of Object.entries(planet.buildings)) {
+  for (const buildingType in planet.buildings) {
+    const level = planet.buildings[buildingType];
     if (level === 0) continue;
     
     const production = getProduction(buildingType, level);
     
-    for (const [resource, amount] of Object.entries(production)) {
-      planet.production[resource] = (planet.production[resource] || 0) + amount;
+    for (const resource in production) {
+      planet.production[resource] = (planet.production[resource] || 0) + production[resource];
     }
     
     // Calculate energy consumption
     const building = BUILDINGS[buildingType];
     if (building && building.energyConsumption) {
-      energyConsumption += Math.floor(building.energyConsumption * level * Math.pow(1.1, level));
+      const energyMultiplier = getEnergyConsumptionMultiplier();
+      energyConsumption += Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
     }
   }
   
@@ -230,13 +233,14 @@ export function updatePlanetStorage(planet) {
   };
   
   // Add storage from buildings
-  for (const [buildingType, level] of Object.entries(planet.buildings)) {
+  for (const buildingType in planet.buildings) {
+    const level = planet.buildings[buildingType];
     if (level === 0) continue;
     
     const storageIncrease = getStorageIncrease(buildingType, level);
     
-    for (const [resource, amount] of Object.entries(storageIncrease)) {
-      planet.storage[resource] = (planet.storage[resource] || 0) + amount;
+    for (const resource in storageIncrease) {
+      planet.storage[resource] = (planet.storage[resource] || 0) + storageIncrease[resource];
     }
   }
 }

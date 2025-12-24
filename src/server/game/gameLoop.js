@@ -4,6 +4,8 @@ import { processCompletedBuildings, updatePlanetProduction } from './buildings.j
 import { CONFIG } from '../../shared/constants.js';
 
 let gameLoopInterval = null;
+let lastSaveTime = 0;
+const SAVE_INTERVAL = 30000; // Save every 30 seconds
 
 /**
  * Start the game loop
@@ -76,9 +78,11 @@ async function gameTick() {
       }
     }
     
-    // Save if anything changed
-    if (updated) {
+    // Save if anything changed and enough time has passed
+    const now = Date.now();
+    if (updated && (now - lastSaveTime) >= SAVE_INTERVAL) {
       await writeJsonFile('players.json', playersData);
+      lastSaveTime = now;
     }
   } catch (error) {
     console.error('Error in game tick:', error);

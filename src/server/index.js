@@ -11,6 +11,10 @@ import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js'
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings } from './game/buildings.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS } from '../shared/buildings.js';
+import { loadConfig } from './config.js';
+
+// Load configuration
+await loadConfig();
 
 // Initialize storage on startup
 await initializeStorage();

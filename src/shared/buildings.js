@@ -1,4 +1,5 @@
 // Building definitions and configurations
+import { getResourceCostMultiplier, getBuildTimeMultiplier, getResourceProductionMultiplier, getEnergyConsumptionMultiplier, getStorageCapacityMultiplier } from '../server/config.js';
 
 export const BUILDING_TYPES = {
   METAL_MINE: 'metalMine',
@@ -218,11 +219,12 @@ export function getBuildingCost(buildingType, level) {
   if (!building) return null;
   
   const multiplier = Math.pow(1.5, level);
+  const costMultiplier = getResourceCostMultiplier();
   
   return {
-    metal: Math.floor(building.baseCost.metal * multiplier),
-    crystal: Math.floor(building.baseCost.crystal * multiplier),
-    deuterium: Math.floor(building.baseCost.deuterium * multiplier)
+    metal: Math.floor(building.baseCost.metal * multiplier * costMultiplier),
+    crystal: Math.floor(building.baseCost.crystal * multiplier * costMultiplier),
+    deuterium: Math.floor(building.baseCost.deuterium * multiplier * costMultiplier)
   };
 }
 
@@ -241,7 +243,10 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
   
-  const totalTime = baseTime / (roboticsMultiplier * naniteMultiplier);
+  // Apply config build time multiplier
+  const configMultiplier = getBuildTimeMultiplier();
+  
+  const totalTime = (baseTime / (roboticsMultiplier * naniteMultiplier)) * configMultiplier;
   
   return Math.max(1, Math.floor(totalTime)); // Minimum 1 second
 }
@@ -254,10 +259,11 @@ export function getProduction(buildingType, level) {
   if (!building || !building.production) return {};
   
   const production = {};
+  const productionMultiplier = getResourceProductionMultiplier();
   
   for (const [resource, baseAmount] of Object.entries(building.production)) {
-    // Production increases by 1.1^level
-    production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level));
+    // Production increases by 1.1^level, then apply config multiplier
+    production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
   }
   
   return production;
@@ -271,9 +277,10 @@ export function getStorageIncrease(buildingType, level) {
   if (!building || !building.storage) return {};
   
   const storage = {};
+  const storageMultiplier = getStorageCapacityMultiplier();
   
   for (const [resource, baseAmount] of Object.entries(building.storage)) {
-    storage[resource] = Math.floor(baseAmount * Math.pow(1.6, level - 1));
+    storage[resource] = Math.floor(baseAmount * Math.pow(1.6, level - 1) * storageMultiplier);
   }
   
   return storage;
