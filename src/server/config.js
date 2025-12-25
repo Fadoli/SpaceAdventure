@@ -124,3 +124,24 @@ export function getStorageCapacityMultiplier() {
 export function getStartingResourcesMultiplier() {
   return getConfig().gameplay.startingResourcesMultiplier || 1.0;
 }
+
+/**
+ * Get build queue size
+ */
+export function getBuildQueueSize() {
+  return getConfig().gameplay.buildQueueSize || 1;
+}
+
+/**
+ * Get research queue size
+ */
+export function getResearchQueueSize() {
+  return getConfig().gameplay.researchQueueSize || 1;
+}
+
+/**
+ * Get max planets per player
+ */
+export function getMaxPlanetsPerPlayer() {
+  return getConfig().gameplay.maxPlanetsPerPlayer || 9;
+}

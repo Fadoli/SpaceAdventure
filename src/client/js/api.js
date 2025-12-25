@@ -62,9 +62,10 @@ export const API = {
         });
     },
     
-    async cancelBuilding(planetId) {
+    async cancelBuilding(planetId, queuePosition = 1) {
         return await this.request(`/game/planet/${planetId}/build`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            body: JSON.stringify({ queuePosition })
         });
     },
     

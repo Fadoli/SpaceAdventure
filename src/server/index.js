@@ -257,9 +257,11 @@ async function handleRequest(req) {
       }
       
       const planetId = path.split('/')[4];
+      const body = await req.json().catch(() => ({}));
+      const queuePosition = body.queuePosition || 1;
       
       try {
-        const result = await cancelBuilding(user.id, planetId);
+        const result = await cancelBuilding(user.id, planetId, queuePosition);
         return successResponse(result);
       } catch (error) {
         return errorResponse(error.message, 400);

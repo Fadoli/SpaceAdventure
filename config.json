@@ -1,24 +1,24 @@
 {
   "gameSpeed": {
     "description": "Global multipliers for game speeds",
-    "resourceProduction": 1.0,
-    "buildTime": 1.0,
-    "researchTime": 1.0,
-    "shipBuildTime": 1.0,
-    "fleetSpeed": 1.0
+    "resourceProduction": 10.0,
+    "buildTime": 0.1,
+    "researchTime": 0.1,
+    "shipBuildTime": 0.1,
+    "fleetSpeed": 2.0
   },
   "balancing": {
     "description": "Fine-tuning for game balance",
-    "resourceCostMultiplier": 1.0,
-    "energyConsumptionMultiplier": 1.0,
-    "storageCapacityMultiplier": 1.0
+    "resourceCostMultiplier": 0.5,
+    "energyConsumptionMultiplier": 0.1,
+    "storageCapacityMultiplier": 2.0
   },
   "gameplay": {
     "description": "Gameplay mechanics settings",
-    "buildQueueSize": 1,
-    "researchQueueSize": 1,
+    "buildQueueSize": 5,
+    "researchQueueSize": 3,
     "maxPlanetsPerPlayer": 9,
-    "startingResourcesMultiplier": 1.0
+    "startingResourcesMultiplier": 5.0
   },
   "presets": {
     "description": "Quick configuration presets",

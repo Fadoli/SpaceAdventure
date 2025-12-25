@@ -2,19 +2,109 @@
 import { API } from './api.js';
 import { formatNumber, formatCountdown } from './utils.js';
 
-// Import buildings data
+// Import buildings data with complete stats
 const BUILDINGS_DATA = {
-    metalMine: { name: 'Metal Mine', icon: '⚙️', desc: 'Extracts metal from the planet' },
-    crystalMine: { name: 'Crystal Mine', icon: '💎', desc: 'Mines crystal from the planet' },
-    deuteriumSynthesizer: { name: 'Deuterium Synthesizer', icon: '🛢️', desc: 'Synthesizes deuterium' },
-    solarPlant: { name: 'Solar Plant', icon: '⚡', desc: 'Generates energy' },
-    roboticsFactory: { name: 'Robotics Factory', icon: '🤖', desc: 'Speeds up construction' },
-    shipyard: { name: 'Shipyard', icon: '🚀', desc: 'Build ships and defenses' },
-    researchLab: { name: 'Research Lab', icon: '🔬', desc: 'Research technologies' },
-    fusionReactor: { name: 'Fusion Reactor', icon: '⚛️', desc: 'Advanced energy production' },
-    metalStorage: { name: 'Metal Storage', icon: '📦', desc: 'Increases metal storage' },
-    crystalStorage: { name: 'Crystal Storage', icon: '📦', desc: 'Increases crystal storage' },
-    deuteriumTank: { name: 'Deuterium Tank', icon: '🛢️', desc: 'Increases deuterium storage' }
+    metalMine: { 
+        name: 'Metal Mine', 
+        icon: '⚙️', 
+        desc: 'Extracts metal from the planet',
+        baseCost: { metal: 60, crystal: 15, deuterium: 0 },
+        baseTime: 30,
+        baseProduction: { metal: 30 },
+        energyConsumption: 10
+    },
+    crystalMine: { 
+        name: 'Crystal Mine', 
+        icon: '💎', 
+        desc: 'Mines crystal from the planet',
+        baseCost: { metal: 48, crystal: 24, deuterium: 0 },
+        baseTime: 30,
+        baseProduction: { crystal: 20 },
+        energyConsumption: 10
+    },
+    deuteriumSynthesizer: { 
+        name: 'Deuterium Synthesizer', 
+        icon: '🛢️', 
+        desc: 'Synthesizes deuterium',
+        baseCost: { metal: 225, crystal: 75, deuterium: 0 },
+        baseTime: 45,
+        baseProduction: { deuterium: 10 },
+        energyConsumption: 20
+    },
+    solarPlant: { 
+        name: 'Solar Plant', 
+        icon: '⚡', 
+        desc: 'Generates energy',
+        baseCost: { metal: 75, crystal: 30, deuterium: 0 },
+        baseTime: 25,
+        baseProduction: { energy: 20 },
+        energyConsumption: 0
+    },
+    fusionReactor: { 
+        name: 'Fusion Reactor', 
+        icon: '⚛️', 
+        desc: 'Advanced energy production',
+        baseCost: { metal: 900, crystal: 360, deuterium: 180 },
+        baseTime: 120,
+        baseProduction: { energy: 50 },
+        energyConsumption: 0
+    },
+    roboticsFactory: { 
+        name: 'Robotics Factory', 
+        icon: '🤖', 
+        desc: 'Speeds up construction (5% per level)',
+        baseCost: { metal: 400, crystal: 120, deuterium: 200 },
+        baseTime: 60,
+        energyConsumption: 0
+    },
+    shipyard: { 
+        name: 'Shipyard', 
+        icon: '🚀', 
+        desc: 'Build ships and defenses',
+        baseCost: { metal: 400, crystal: 200, deuterium: 100 },
+        baseTime: 60,
+        energyConsumption: 0
+    },
+    researchLab: { 
+        name: 'Research Lab', 
+        icon: '🔬', 
+        desc: 'Research technologies',
+        baseCost: { metal: 200, crystal: 400, deuterium: 200 },
+        baseTime: 60,
+        energyConsumption: 0
+    },
+    naniteFactory: { 
+        name: 'Nanite Factory', 
+        icon: '🔧', 
+        desc: 'Dramatically speeds up construction (2x per level)',
+        baseCost: { metal: 1000000, crystal: 500000, deuterium: 100000 },
+        baseTime: 3600,
+        energyConsumption: 0
+    },
+    metalStorage: { 
+        name: 'Metal Storage', 
+        icon: '📦', 
+        desc: 'Increases metal storage',
+        baseCost: { metal: 1000, crystal: 0, deuterium: 0 },
+        baseTime: 30,
+        energyConsumption: 0
+    },
+    crystalStorage: { 
+        name: 'Crystal Storage', 
+        icon: '📦', 
+        desc: 'Increases crystal storage',
+        baseCost: { metal: 1000, crystal: 500, deuterium: 0 },
+        baseTime: 30,
+        energyConsumption: 0
+    },
+    deuteriumTank: { 
+        name: 'Deuterium Tank', 
+        icon: '🛢️', 
+        desc: 'Increases deuterium storage',
+        baseCost: { metal: 1000, crystal: 1000, deuterium: 0 },
+        baseTime: 30,
+        energyConsumption: 0
+    }
 };
 
 // State
@@ -251,64 +341,149 @@ function updateBuildingsView(planet) {
     const { buildings } = planet;
     const buildingsGrid = document.getElementById('buildings-grid');
     
+    // Helper to calculate cost
+    const calculateCost = (buildingData, level) => {
+        const multiplier = Math.pow(1.5, level);
+        const costMultiplier = 0.5; // From dev config
+        return {
+            metal: Math.floor(buildingData.baseCost.metal * multiplier * costMultiplier),
+            crystal: Math.floor(buildingData.baseCost.crystal * multiplier * costMultiplier),
+            deuterium: Math.floor(buildingData.baseCost.deuterium * multiplier * costMultiplier)
+        };
+    };
+    
+    // Helper to calculate build time
+    const calculateBuildTime = (buildingData, level) => {
+        const baseTime = buildingData.baseTime * Math.pow(1.5, level - 1);
+        const roboticsLevel = planet.buildings.roboticsFactory || 0;
+        const naniteLevel = planet.buildings.naniteFactory || 0;
+        const roboticsMultiplier = 1 + (roboticsLevel * 0.05);
+        const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
+        const configMultiplier = 0.1; // From dev config
+        return Math.max(1, Math.floor((baseTime / (roboticsMultiplier * naniteMultiplier)) * configMultiplier));
+    };
+    
+    // Helper to calculate production
+    const calculateProduction = (buildingData, level) => {
+        if (!buildingData.baseProduction) return null;
+        const production = {};
+        const productionMultiplier = 10.0; // From dev config
+        for (const [resource, baseAmount] of Object.entries(buildingData.baseProduction)) {
+            production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
+        }
+        return production;
+    };
+    
+    // Helper to calculate energy consumption
+    const calculateEnergyConsumption = (buildingData, level) => {
+        if (!buildingData.energyConsumption) return 0;
+        const energyMultiplier = 10.0; // Use same as production multiplier
+        return Math.floor(buildingData.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+    };
+    
     buildingsGrid.innerHTML = Object.entries(BUILDINGS_DATA)
         .map(([key, data]) => {
             const level = buildings[key] || 0;
             const nextLevel = level + 1;
             
-            // Simplified cost calculation (matches server)
-            let baseMetal = 60, baseCrystal = 15;
-            if (key === 'crystalMine') { baseMetal = 48; baseCrystal = 24; }
-            if (key === 'deuteriumSynthesizer') { baseMetal = 225; baseCrystal = 75; }
-            if (key === 'solarPlant') { baseMetal = 75; baseCrystal = 30; }
-            if (key === 'roboticsFactory') { baseMetal = 400; baseCrystal = 120; }
-            if (key === 'shipyard') { baseMetal = 400; baseCrystal = 200; }
-            if (key === 'researchLab') { baseMetal = 200; baseCrystal = 400; }
-            if (key === 'fusionReactor') { baseMetal = 900; baseCrystal = 360; }
-            if (key === 'metalStorage') { baseMetal = 1000; baseCrystal = 0; }
-            if (key === 'crystalStorage') { baseMetal = 1000; baseCrystal = 500; }
-            if (key === 'deuteriumTank') { baseMetal = 1000; baseCrystal = 1000; }
-            
-            const cost = {
-                metal: Math.floor(baseMetal * Math.pow(1.5, nextLevel)),
-                crystal: Math.floor(baseCrystal * Math.pow(1.5, nextLevel))
-            };
+            const cost = calculateCost(data, nextLevel);
+            const buildTime = calculateBuildTime(data, nextLevel);
+            const production = calculateProduction(data, nextLevel);
+            const energyConsumption = calculateEnergyConsumption(data, nextLevel);
             
             const canAfford = planet.resources.metal >= cost.metal && 
-                            planet.resources.crystal >= cost.crystal;
+                            planet.resources.crystal >= cost.crystal &&
+                            planet.resources.deuterium >= cost.deuterium;
             
-            const isBuilding = planet.buildQueue && planet.buildQueue.length > 0 && 
-                             planet.buildQueue[0].building === key;
+            // Check if this building is in queue
+            const queueItem = planet.buildQueue?.find(item => item.building === key);
+            const queuePosition = queueItem?.queuePosition;
             
-            const hasQueue = planet.buildQueue && planet.buildQueue.length > 0;
+            const maxQueueSize = 5; // From dev config
+            const queueFull = planet.buildQueue && planet.buildQueue.length >= maxQueueSize;
+            
+            // Show production info
+            let productionInfo = '';
+            if (production) {
+                productionInfo = '<div class="building-production">';
+                for (const [resource, amount] of Object.entries(production)) {
+                    const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
+                    productionInfo += `<div>${icon} +${formatNumber(amount)}/h</div>`;
+                }
+                productionInfo += '</div>';
+            }
+            
+            let energyInfo = '';
+            if (energyConsumption > 0) {
+                energyInfo = `<div class="building-energy">⚡ -${formatNumber(energyConsumption)}/h</div>`;
+            }
             
             return `
-                <div class="building-card">
-                    <h3>${data.icon} ${data.name}</h3>
+                <div class="building-card ${queueItem ? 'in-queue' : ''}">
+                    <div class="building-header">
+                        <h3>${data.icon} ${data.name}</h3>
+                        <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
+                    </div>
                     <div class="building-level">Level ${level}</div>
                     <p>${data.desc}</p>
-                    ${isBuilding ? `
+                    ${queueItem ? `
                         <div class="building-progress">
-                            <strong>🔨 Building to Level ${nextLevel}...</strong>
-                            <div class="timer" data-finish="${planet.buildQueue[0].finishTime}"></div>
-                            <button class="btn btn-danger" onclick="window.cancelBuilding()">Cancel</button>
+                            <strong>🔨 Queue Position ${queuePosition} - Building to Level ${queueItem.level}...</strong>
+                            <div class="timer" data-finish="${queueItem.finishTime}"></div>
+                            ${queuePosition === 1 ? '<div class="building-active">⚙️ Currently Building</div>' : '<div class="building-queued">⏳ Waiting in queue</div>'}
+                            <button class="btn btn-danger btn-small" onclick="window.cancelBuilding(${queuePosition})">Cancel</button>
                         </div>
                     ` : `
                         <div class="building-cost">
                             <strong>Cost for level ${nextLevel}:</strong>
-                            <div>Metal: ${formatNumber(cost.metal)}</div>
-                            <div>Crystal: ${formatNumber(cost.crystal)}</div>
+                            <div>⚙️ Metal: ${formatNumber(cost.metal)}</div>
+                            <div>💎 Crystal: ${formatNumber(cost.crystal)}</div>
+                            ${cost.deuterium > 0 ? `<div>🛢️ Deuterium: ${formatNumber(cost.deuterium)}</div>` : ''}
                         </div>
-                        <button class="btn ${canAfford ? 'btn-success' : ''}" 
-                                ${!canAfford || hasQueue ? 'disabled' : ''} 
+                        <div class="building-stats">
+                            <div class="build-time">🕐 Build time: ${formatCountdown(buildTime)}</div>
+                            ${productionInfo}
+                            ${energyInfo}
+                        </div>
+                        <button class="btn ${canAfford ? 'btn-success' : ''} btn-full" 
+                                ${!canAfford || queueFull || queueItem ? 'disabled' : ''} 
                                 onclick="window.upgradeBuilding('${key}')">
-                            Upgrade to Level ${nextLevel}
+                            ${queueFull && !queueItem ? 'Queue Full' : queueItem ? 'Already in Queue' : `Upgrade to Level ${nextLevel}`}
                         </button>
                     `}
                 </div>
             `;
         })
         .join('');
+    
+    // Show build queue summary
+    if (planet.buildQueue && planet.buildQueue.length > 0) {
+        const queueSummary = `
+            <div class="build-queue-summary">
+                <h3>🔨 Build Queue (${planet.buildQueue.length}/5)</h3>
+                <div class="queue-items">
+                    ${planet.buildQueue.map((item, index) => {
+                        const buildingData = BUILDINGS_DATA[item.building];
+                        const isActive = index === 0;
+                        return `
+                            <div class="queue-item ${isActive ? 'active' : ''}">
+                                <div class="queue-item-info">
+                                    <strong>${item.queuePosition}. ${buildingData.icon} ${buildingData.name}</strong>
+                                    <span>→ Level ${item.level}</span>
+                                </div>
+                                <div class="queue-item-time">
+                                    ${isActive ? '<span class="building-now">⚙️ Building</span>' : ''}
+                                    <span class="timer" data-finish="${item.finishTime}"></span>
+                                </div>
+                                <button class="btn-cancel" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">❌</button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+        buildingsGrid.insertAdjacentHTML('afterbegin', queueSummary);
+    }
     
     // Update timers
     updateTimers();
@@ -346,27 +521,128 @@ window.upgradeBuilding = async function(building) {
     try {
         await API.upgradeBuilding(planet.id, building);
         await loadGameState(); // Reload to see changes
-        alert('Building upgrade started!');
+        // alert('Building upgrade started!');
     } catch (error) {
         alert('Error: ' + error.message);
     }
 };
 
 // Cancel building (global for onclick)
-window.cancelBuilding = async function() {
+window.cancelBuilding = async function(queuePosition = 1) {
     if (!gameState || !gameState.planets[0]) return;
     
     const planet = gameState.planets[0];
     
-    if (confirm('Cancel building construction? You will get 50% resources back.')) {
+    if (confirm(`Cancel building at queue position ${queuePosition}? You will get 50% resources back.`)) {
         try {
-            await API.cancelBuilding(planet.id);
+            await API.cancelBuilding(planet.id, queuePosition);
             await loadGameState();
-            alert('Building cancelled');
         } catch (error) {
             alert('Error: ' + error.message);
         }
     }
+};
+
+// Show building details modal
+window.showBuildingDetails = function(buildingKey) {
+    const buildingData = BUILDINGS_DATA[buildingKey];
+    const planet = gameState?.planets[0];
+    const currentLevel = planet?.buildings[buildingKey] || 0;
+    
+    // Calculate stats for levels
+    const levels = [];
+    for (let level = 1; level <= Math.min(currentLevel + 10, 30); level++) {
+        const multiplier = Math.pow(1.5, level);
+        const costMultiplier = 0.5;
+        const cost = {
+            metal: Math.floor(buildingData.baseCost.metal * multiplier * costMultiplier),
+            crystal: Math.floor(buildingData.baseCost.crystal * multiplier * costMultiplier),
+            deuterium: Math.floor(buildingData.baseCost.deuterium * multiplier * costMultiplier)
+        };
+        
+        const baseTime = buildingData.baseTime * Math.pow(1.5, level - 1);
+        const roboticsLevel = planet?.buildings.roboticsFactory || 0;
+        const naniteLevel = planet?.buildings.naniteFactory || 0;
+        const roboticsMultiplier = 1 + (roboticsLevel * 0.05);
+        const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
+        const configMultiplier = 0.1;
+        const buildTime = Math.max(1, Math.floor((baseTime / (roboticsMultiplier * naniteMultiplier)) * configMultiplier));
+        
+        let production = null;
+        if (buildingData.baseProduction) {
+            production = {};
+            const productionMultiplier = 10.0;
+            for (const [resource, baseAmount] of Object.entries(buildingData.baseProduction)) {
+                production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
+            }
+        }
+        
+        let energyConsumption = 0;
+        if (buildingData.energyConsumption) {
+            const energyMultiplier = 10.0; // Use same as production multiplier
+            energyConsumption = Math.floor(buildingData.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+        }
+        
+        levels.push({ level, cost, buildTime, production, energyConsumption });
+    }
+    
+    const modal = document.getElementById('building-details-modal');
+    const modalTitle = document.getElementById('modal-building-title');
+    const modalBody = document.getElementById('modal-building-body');
+    
+    modalTitle.innerHTML = `${buildingData.icon} ${buildingData.name} <span class="current-level">(Current: Level ${currentLevel})</span>`;
+    
+    let tableRows = levels.map(l => {
+        const isCurrent = l.level === currentLevel;
+        let productionCells = '';
+        if (l.production) {
+            for (const [resource, amount] of Object.entries(l.production)) {
+                const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
+                productionCells += `<div>${icon}+${formatNumber(amount)}/h</div>`;
+            }
+        } else {
+            productionCells = '-';
+        }
+        
+        const energyCell = l.energyConsumption > 0 ? `⚡-${formatNumber(l.energyConsumption)}/h` : '-';
+        
+        return `
+            <tr class="${isCurrent ? 'current-level-row' : ''}">
+                <td>${l.level}${isCurrent ? ' ⭐' : ''}</td>
+                <td>⚙️${formatNumber(l.cost.metal)}<br>💎${formatNumber(l.cost.crystal)}${l.cost.deuterium > 0 ? `<br>🛢️${formatNumber(l.cost.deuterium)}` : ''}</td>
+                <td>${formatCountdown(l.buildTime)}</td>
+                <td>${productionCells}</td>
+                <td>${energyCell}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    modalBody.innerHTML = `
+        <div class="building-description">${buildingData.desc}</div>
+        <div class="stats-table-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Cost</th>
+                        <th>Build Time</th>
+                        <th>Production</th>
+                        <th>Energy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+};
+
+// Close modal
+window.closeModal = function() {
+    document.getElementById('building-details-modal').style.display = 'none';
 };
 
 // Start the app

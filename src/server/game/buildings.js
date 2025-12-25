@@ -8,7 +8,7 @@ import {
   checkRequirements 
 } from '../../shared/buildings.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
-import { getEnergyConsumptionMultiplier } from '../config.js';
+import { getBuildQueueSize, getResourceProductionMultiplier } from '../config.js';
 
 /**
  * Start building upgrade
@@ -38,9 +38,15 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
     throw new Error('Building is at maximum level');
   }
   
-  // Check if already building
-  if (planet.buildQueue && planet.buildQueue.length > 0) {
-    throw new Error('Already constructing a building');
+  // Check build queue size
+  const maxQueueSize = getBuildQueueSize();
+  if (planet.buildQueue && planet.buildQueue.length >= maxQueueSize) {
+    throw new Error(`Build queue is full (max ${maxQueueSize})`);
+  }
+  
+  // Check if this specific building is already in queue
+  if (planet.buildQueue && planet.buildQueue.some(item => item.building === buildingType)) {
+    throw new Error('This building is already in the queue');
   }
   
   // Check requirements
@@ -69,18 +75,30 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   planet.resources.deuterium -= cost.deuterium;
   
   // Add to build queue
-  const finishTime = Date.now() + (buildTime * 1000);
-  
   if (!planet.buildQueue) {
     planet.buildQueue = [];
+  }
+  
+  // Calculate start and finish time based on queue position
+  let startTime, finishTime;
+  if (planet.buildQueue.length === 0) {
+    // First item in queue starts immediately
+    startTime = Date.now();
+    finishTime = startTime + (buildTime * 1000);
+  } else {
+    // Subsequent items start when previous item finishes
+    const previousItem = planet.buildQueue[planet.buildQueue.length - 1];
+    startTime = previousItem.finishTime;
+    finishTime = startTime + (buildTime * 1000);
   }
   
   planet.buildQueue.push({
     building: buildingType,
     level: nextLevel,
-    startTime: Date.now(),
+    startTime: startTime,
     finishTime: finishTime,
-    cost: cost
+    cost: cost,
+    queuePosition: planet.buildQueue.length + 1
   });
   
   // Update player
@@ -98,7 +116,7 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
 /**
  * Cancel building construction (refunds 50% of resources)
  */
-export async function cancelBuilding(userId, planetId) {
+export async function cancelBuilding(userId, planetId, queuePosition = 1) {
   const player = await getPlayerByUserId(userId);
   if (!player) {
     throw new Error('Player not found');
@@ -113,7 +131,12 @@ export async function cancelBuilding(userId, planetId) {
     throw new Error('No building in progress');
   }
   
-  const buildItem = planet.buildQueue[0];
+  const queueIndex = queuePosition - 1;
+  if (queueIndex < 0 || queueIndex >= planet.buildQueue.length) {
+    throw new Error('Invalid queue position');
+  }
+  
+  const buildItem = planet.buildQueue[queueIndex];
   
   // Refund 50% of resources
   const refund = {
@@ -127,7 +150,42 @@ export async function cancelBuilding(userId, planetId) {
   planet.resources.deuterium += refund.deuterium;
   
   // Remove from queue
-  planet.buildQueue.shift();
+  planet.buildQueue.splice(queueIndex, 1);
+  
+  // Recalculate times for remaining items if we removed from the middle
+  if (queueIndex === 0 && planet.buildQueue.length > 0) {
+    // If we cancelled the first item, the next one starts now
+    const nextItem = planet.buildQueue[0];
+    const buildTime = (nextItem.finishTime - nextItem.startTime) / 1000; // in seconds
+    nextItem.startTime = Date.now();
+    nextItem.finishTime = nextItem.startTime + (buildTime * 1000);
+    
+    // Recalculate subsequent items
+    for (let i = 1; i < planet.buildQueue.length; i++) {
+      const item = planet.buildQueue[i];
+      const prevItem = planet.buildQueue[i - 1];
+      const itemBuildTime = (item.finishTime - item.startTime) / 1000;
+      item.startTime = prevItem.finishTime;
+      item.finishTime = item.startTime + (itemBuildTime * 1000);
+    }
+  } else if (queueIndex < planet.buildQueue.length) {
+    // Recalculate times for items after the cancelled one
+    for (let i = queueIndex; i < planet.buildQueue.length; i++) {
+      const item = planet.buildQueue[i];
+      const prevItem = i === 0 ? null : planet.buildQueue[i - 1];
+      const buildTime = (item.finishTime - item.startTime) / 1000;
+      
+      if (prevItem) {
+        item.startTime = prevItem.finishTime;
+        item.finishTime = item.startTime + (buildTime * 1000);
+      }
+    }
+  }
+  
+  // Update queue positions
+  planet.buildQueue.forEach((item, index) => {
+    item.queuePosition = index + 1;
+  });
   
   await updatePlayer(userId, player);
   
@@ -145,6 +203,7 @@ export async function processCompletedBuildings(player) {
       continue;
     }
     
+    // Only process the first item in queue (currently building)
     const buildItem = planet.buildQueue[0];
     
     // Check if building is complete
@@ -157,6 +216,14 @@ export async function processCompletedBuildings(player) {
       
       // Remove from queue
       planet.buildQueue.shift();
+      
+      // Update queue positions for remaining items
+      planet.buildQueue.forEach((item, index) => {
+        item.queuePosition = index + 1;
+      });
+      
+      // If there are more items in queue, they continue with their scheduled times
+      // (times were already calculated when added to queue)
       
       updated = true;
     }
@@ -193,7 +260,7 @@ export async function updatePlanetProduction(planet) {
     // Calculate energy consumption
     const building = BUILDINGS[buildingType];
     if (building && building.energyConsumption) {
-      const energyMultiplier = getEnergyConsumptionMultiplier();
+      const energyMultiplier = getResourceProductionMultiplier();
       energyConsumption += Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
     }
   }
