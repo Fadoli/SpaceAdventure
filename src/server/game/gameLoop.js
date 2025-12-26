@@ -1,6 +1,7 @@
 // Game tick system - processes game state periodically
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { processCompletedBuildings, updatePlanetProduction } from './buildings.js';
+import { calculatePopulationChange } from '../../shared/formulas.js';
 import { CONFIG } from '../../shared/constants.js';
 
 let gameLoopInterval = null;
@@ -75,21 +76,12 @@ async function gameTick() {
           const maxPopulation = planet.maxPopulation || 0;
           const foodAvailable = planet.resources.food > 0;
           
-          if (foodAvailable && currentPopulation < maxPopulation) {
-            // Grow population slowly (1% per hour when food available and under cap)
-            const growthRate = 0.01;
-            planet.resources.population = Math.min(
-              maxPopulation, 
-              currentPopulation + (currentPopulation * growthRate * hoursElapsed)
-            );
-          } else if (!foodAvailable) {
-            // Lose population when no food (2% per hour)
-            const decayRate = 0.02;
-            planet.resources.population = Math.max(
-              0, 
-              currentPopulation - (currentPopulation * decayRate * hoursElapsed)
-            );
-          }
+          planet.resources.population = calculatePopulationChange(
+            currentPopulation,
+            maxPopulation,
+            foodAvailable,
+            hoursElapsed
+          );
           
           // Prevent negative resources
           planet.resources.water = Math.max(0, planet.resources.water);

@@ -114,6 +114,39 @@ export function calculatePopulationEffectiveness(populationPercent) {
 }
 
 /**
+ * Calculate population growth/decay based on food availability
+ * Growth: max(1% per hour, 60 per hour) when food available and under max population
+ * Decay: 2% per hour when food unavailable
+ * Minimum: 10 population (never goes to 0)
+ * Maximum: maxPopulation
+ */
+export function calculatePopulationChange(currentPopulation, maxPopulation, foodAvailable, hoursElapsed) {
+  const minPopulation = 10;
+  const minGrowthPerHour = 60;
+  
+  if (foodAvailable && currentPopulation < maxPopulation) {
+    // Grow population (take max of 1% per hour or 60 per hour)
+    const percentGrowth = currentPopulation * 0.01 * hoursElapsed;
+    const flatGrowth = minGrowthPerHour * hoursElapsed;
+    const totalGrowth = Math.max(percentGrowth, flatGrowth);
+    
+    return Math.min(
+      maxPopulation,
+      currentPopulation + totalGrowth
+    );
+  } else if (!foodAvailable && currentPopulation > minPopulation) {
+    // Lose population when no food (2% per hour)
+    const decayRate = 0.02;
+    return Math.max(
+      minPopulation,
+      currentPopulation - (currentPopulation * decayRate * hoursElapsed)
+    );
+  }
+  
+  return currentPopulation;
+}
+
+/**
  * Calculate production bonus from planet position relative to sun
  * Position 1 = closest to sun (0.9x deut, 1.0x water, 1.3x farms)
  * Position 8 = mid distance (1.3x deut, 0.8x water, 0.9x farms)
@@ -142,4 +175,46 @@ export function calculatePositionMultiplier(position, resourceType) {
     default:
       return 1.0; // Metal and crystal are equal everywhere
   }
+}
+
+/**
+ * Get building energy consumption at a given level
+ * @param {string} buildingType - The building type key
+ * @param {number} level - The building level
+ * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, will import it.
+ */
+export async function getBuildingEnergyConsumption(buildingType, level, buildings) {
+  // If buildings not provided, import it
+  if (!buildings) {
+    const module = await import('./buildings.js');
+    buildings = module.BUILDINGS;
+  }
+  
+  const building = buildings[buildingType];
+  if (!building || !building.energyConsumption) return 0;
+  
+  // Energy consumption typically scales linearly with level
+  // Base energy * level
+  return building.energyConsumption * level;
+}
+
+/**
+ * Get building population requirement at a given level
+ * @param {string} buildingType - The building type key
+ * @param {number} level - The building level
+ * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, will import it.
+ */
+export async function getBuildingPopulationRequired(buildingType, level, buildings) {
+  // If buildings not provided, import it
+  if (!buildings) {
+    const module = await import('./buildings.js');
+    buildings = module.BUILDINGS;
+  }
+  
+  const building = buildings[buildingType];
+  if (!building || !building.populationRequired) return 0;
+  
+  // Population requirement typically scales linearly with level
+  // Base population * level
+  return building.populationRequired * level;
 }

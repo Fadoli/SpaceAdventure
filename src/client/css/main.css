@@ -810,10 +810,40 @@ body {
     gap: 8px;
 }
 
+.allocation-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
 .allocation-slider label {
     font-weight: bold;
     display: flex;
     justify-content: space-between;
+    flex: 1;
+}
+
+.priority-select {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.priority-select label {
+    font-weight: normal;
+    margin: 0;
+}
+
+.priority-select select {
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
 }
 
 .allocation-slider input[type="range"] {

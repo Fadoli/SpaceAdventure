@@ -1,6 +1,8 @@
 // Building allocation view - manage power and population allocation
 import { getCurrentPlanet } from '../main.js';
 import { API } from '../api.js';
+import { calculateAllocationEffectiveness, getBuildingEnergyConsumption, getBuildingPopulationRequired } from '../../../shared/formulas.js';
+import { BUILDINGS } from '../../../shared/buildings.js';
 
 // Track saved allocation state to avoid overwriting user input during updates
 let savedAllocations = {};
@@ -32,22 +34,23 @@ export async function renderAllocation() {
     if (level > 0) {
       const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0 };
       
-      // Calculate actual power consumption (simplified)
-      const building = getBuildingInfo(buildingType);
-      if (building?.energyConsumption) {
-        totalPowerAllocated += building.energyConsumption * level * allocation.power;
-      }
+      // Calculate actual power consumption using shared function
+      const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
+      totalPowerAllocated += baseEnergyRequired * allocation.power;
       
-      // Calculate actual population requirement (simplified)
-      if (building?.populationRequired) {
-        totalPopulationAllocated += building.populationRequired * level * allocation.population;
-      }
+      // Calculate actual population requirement using shared function
+      const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
+      totalPopulationAllocated += basePopulationRequired * allocation.population;
     }
   }
   
   const currentPopulation = planet.resources?.population || 0;
   const maxPopulation = planet.maxPopulation || 0;
-  const availableEnergy = planet.production?.energy || 0;
+  // Power: production.energy is actually the balance (produced - consumed)
+  // Actual produced = balance + consumed
+  const energyBalance = planet.production?.energy || 0;
+  const consumedPower = planet.energyConsumption || 0;
+  const producedPower = energyBalance + consumedPower;
   
   let html = `
     <div class="allocation-view">
@@ -57,9 +60,11 @@ export async function renderAllocation() {
         <div class="summary-card">
           <h3>⚡ Power Status</h3>
           <div class="resource-bar">
-            <div class="bar-fill" style="width: ${Math.min(100, (totalPowerAllocated / Math.max(1, availableEnergy)) * 100)}%"></div>
+            <div class="bar-fill" style="width: ${Math.min(100, Math.max(0, (consumedPower / Math.max(1, producedPower)) * 100))}%"></div>
           </div>
-          <p>${totalPowerAllocated.toFixed(0)} / ${availableEnergy.toFixed(0)} Energy</p>
+          <p><strong>Produced:</strong> ${producedPower.toFixed(0)}</p>
+          <p><strong>Consumed:</strong> ${consumedPower.toFixed(0)}</p>
+          <p><strong>Balance:</strong> <span style="color: ${energyBalance >= 0 ? '#5cb85c' : '#d9534f'}">${energyBalance.toFixed(0)}</span></p>
         </div>
         
         <div class="summary-card">
@@ -67,7 +72,8 @@ export async function renderAllocation() {
           <div class="resource-bar">
             <div class="bar-fill" style="width: ${Math.min(100, (totalPopulationAllocated / Math.max(1, currentPopulation)) * 100)}%"></div>
           </div>
-          <p>${totalPopulationAllocated.toFixed(0)} / ${currentPopulation.toFixed(0)} Workers</p>
+          <p><strong>Assigned:</strong> ${totalPopulationAllocated.toFixed(0)}</p>
+          <p><strong>Total Available:</strong> ${currentPopulation.toFixed(0)}</p>
           <small>Max Population: ${maxPopulation.toFixed(0)}</small>
         </div>
       </div>
@@ -90,12 +96,20 @@ export async function renderAllocation() {
     const level = planet.buildings[buildingType] || 0;
     if (level === 0) continue;
     
-    const building = getBuildingInfo(buildingType);
+    const building = BUILDINGS[buildingType];
     const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0 };
     
+    // Calculate base requirements for this building at current level using shared functions
+    const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
+    const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
+    
+    // Calculate actual requirements based on current allocation
+    const energyRequired = baseEnergyRequired * allocation.power;
+    const populationRequired = basePopulationRequired * allocation.population;
+    
     // Calculate effectiveness
-    const powerEffectiveness = calculateEffectiveness(allocation.power);
-    const populationEffectiveness = calculateEffectiveness(allocation.population);
+    const powerEffectiveness = calculateAllocationEffectiveness(allocation.power) / 100;
+    const populationEffectiveness = calculateAllocationEffectiveness(allocation.population) / 100;
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
     
     html += `
@@ -109,7 +123,17 @@ export async function renderAllocation() {
         
         <div class="allocation-controls">
           <div class="allocation-slider">
-            <label>⚡ Power: <span class="value">${(allocation.power * 100).toFixed(0)}%</span></label>
+            <div class="allocation-label-row">
+              <label>⚡ Power: <span class="value">${(allocation.power * 100).toFixed(0)}%</span></label>
+              <div class="priority-select">
+                <label>Priority:</label>
+                <select class="power-priority" data-building="${buildingType}">
+                  <option value="1" ${allocation.powerPriority === 1 ? 'selected' : ''}>High (1)</option>
+                  <option value="2" ${allocation.powerPriority === 2 ? 'selected' : ''}>Medium (2)</option>
+                  <option value="3" ${allocation.powerPriority === 3 ? 'selected' : ''}>Low (3)</option>
+                </select>
+              </div>
+            </div>
             <input 
               type="range" 
               class="power-slider" 
@@ -118,11 +142,21 @@ export async function renderAllocation() {
               value="${allocation.power * 100}"
               data-building="${buildingType}"
             >
-            <small>Effectiveness: ${(powerEffectiveness * 100).toFixed(0)}%</small>
+            <small>⚡ Required: ${energyRequired.toFixed(0)} / Effectiveness: ${(powerEffectiveness * 100).toFixed(0)}%</small>
           </div>
           
           <div class="allocation-slider">
-            <label>👥 Workers: <span class="value">${(allocation.population * 100).toFixed(0)}%</span></label>
+            <div class="allocation-label-row">
+              <label>👥 Workers: <span class="value">${(allocation.population * 100).toFixed(0)}%</span></label>
+              <div class="priority-select">
+                <label>Priority:</label>
+                <select class="population-priority" data-building="${buildingType}">
+                  <option value="1" ${allocation.populationPriority === 1 ? 'selected' : ''}>High (1)</option>
+                  <option value="2" ${allocation.populationPriority === 2 ? 'selected' : ''}>Medium (2)</option>
+                  <option value="3" ${allocation.populationPriority === 3 ? 'selected' : ''}>Low (3)</option>
+                </select>
+              </div>
+            </div>
             <input 
               type="range" 
               class="population-slider" 
@@ -131,7 +165,7 @@ export async function renderAllocation() {
               value="${allocation.population * 100}"
               data-building="${buildingType}"
             >
-            <small>Effectiveness: ${(populationEffectiveness * 100).toFixed(0)}%</small>
+            <small>👥 Required: ${populationRequired.toFixed(0)} / Effectiveness: ${(populationEffectiveness * 100).toFixed(0)}%</small>
           </div>
         </div>
       </div>
@@ -166,24 +200,35 @@ export function setupAllocationHandlers() {
   ];
   
   for (const buildingType of allocatableBuildings) {
-    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0 };
+    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 };
     savedAllocations[buildingType] = { ...allocation };
   }
   
   // Update slider value displays
   document.querySelectorAll('.power-slider, .population-slider').forEach(slider => {
-    slider.addEventListener('input', (e) => {
+    slider.addEventListener('input', async (e) => {
       const value = e.target.value;
       const label = e.target.parentElement.querySelector('.value');
       if (label) {
         label.textContent = `${value}%`;
       }
       
-      // Update effectiveness display
-      const effectiveness = calculateEffectiveness(value / 100);
+      // Update effectiveness display and required resources
+      const effectiveness = calculateAllocationEffectiveness(value / 100) / 100;
       const small = e.target.parentElement.querySelector('small');
       if (small) {
-        small.textContent = `Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        // Get building data
+        const buildingType = e.target.dataset.building;
+        const planet = getCurrentPlanet();
+        const level = planet.buildings[buildingType] || 0;
+        
+        if (e.target.classList.contains('power-slider')) {
+          const energyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS) * (value / 100);
+          small.textContent = `⚡ Required: ${energyRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        } else {
+          const populationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS) * (value / 100);
+          small.textContent = `👥 Required: ${populationRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        }
       }
       
       // Update combined effectiveness badge
@@ -202,8 +247,8 @@ export function setupAllocationHandlers() {
   // Undo changes
   const undoBtn = document.querySelector('.undo-allocations');
   if (undoBtn) {
-    undoBtn.addEventListener('click', () => {
-      undoAllAllocations();
+    undoBtn.addEventListener('click', async () => {
+      await undoAllAllocations();
     });
   }
 }
@@ -223,8 +268,8 @@ function updateEffectivenessBadge(buildingType) {
   const powerPercent = parseFloat(powerSlider.value) / 100;
   const populationPercent = parseFloat(populationSlider.value) / 100;
   
-  const powerEff = calculateEffectiveness(powerPercent);
-  const popEff = calculateEffectiveness(populationPercent);
+  const powerEff = calculateAllocationEffectiveness(powerPercent) / 100;
+  const popEff = calculateAllocationEffectiveness(populationPercent) / 100;
   const totalEff = powerEff * popEff;
   
   const badge = item.querySelector('.effectiveness-badge');
@@ -243,16 +288,20 @@ async function applyAllAllocations() {
   
   const allocations = {};
   
-  // Collect all allocations
+  // Collect all allocations with priorities
   document.querySelectorAll('.allocation-item').forEach(item => {
     const buildingType = item.dataset.building;
     const powerSlider = item.querySelector('.power-slider');
     const populationSlider = item.querySelector('.population-slider');
+    const powerPrioritySelect = item.querySelector('.power-priority');
+    const populationPrioritySelect = item.querySelector('.population-priority');
     
     if (powerSlider && populationSlider) {
       allocations[buildingType] = {
         power: parseFloat(powerSlider.value) / 100,
-        population: parseFloat(populationSlider.value) / 100
+        population: parseFloat(populationSlider.value) / 100,
+        powerPriority: parseInt(powerPrioritySelect.value),
+        populationPriority: parseInt(populationPrioritySelect.value)
       };
     }
   });
@@ -264,7 +313,9 @@ async function applyAllAllocations() {
         method: 'POST',
         body: JSON.stringify({
           power: allocation.power,
-          population: allocation.population
+          population: allocation.population,
+          powerPriority: allocation.powerPriority,
+          populationPriority: allocation.populationPriority
         })
       });
     }
@@ -284,23 +335,28 @@ async function applyAllAllocations() {
 /**
  * Undo allocation changes - reset to last saved state
  */
-function undoAllAllocations() {
-  document.querySelectorAll('.allocation-item').forEach(item => {
+async function undoAllAllocations() {
+  document.querySelectorAll('.allocation-item').forEach(async item => {
     const buildingType = item.dataset.building;
     const saved = savedAllocations[buildingType];
     
     if (saved) {
       const powerSlider = item.querySelector('.power-slider');
       const populationSlider = item.querySelector('.population-slider');
+      const powerPrioritySelect = item.querySelector('.power-priority');
+      const populationPrioritySelect = item.querySelector('.population-priority');
+      const planet = getCurrentPlanet();
+      const level = planet.buildings[buildingType] || 0;
       
       if (powerSlider) {
         powerSlider.value = saved.power * 100;
         const label = powerSlider.parentElement.querySelector('.value');
         if (label) label.textContent = `${saved.power * 100}%`;
         
-        const effectiveness = calculateEffectiveness(saved.power);
+        const effectiveness = calculateAllocationEffectiveness(saved.power) / 100;
+        const energyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS) * saved.power;
         const small = powerSlider.parentElement.querySelector('small');
-        if (small) small.textContent = `Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        if (small) small.textContent = `⚡ Required: ${energyRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
       }
       
       if (populationSlider) {
@@ -308,29 +364,24 @@ function undoAllAllocations() {
         const label = populationSlider.parentElement.querySelector('.value');
         if (label) label.textContent = `${saved.population * 100}%`;
         
-        const effectiveness = calculateEffectiveness(saved.population);
+        const effectiveness = calculateAllocationEffectiveness(saved.population) / 100;
+        const populationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS) * saved.population;
         const small = populationSlider.parentElement.querySelector('small');
-        if (small) small.textContent = `Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        if (small) small.textContent = `👥 Required: ${populationRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+      }
+      
+      if (powerPrioritySelect && saved.powerPriority) {
+        powerPrioritySelect.value = saved.powerPriority;
+      }
+      
+      if (populationPrioritySelect && saved.populationPriority) {
+        populationPrioritySelect.value = saved.populationPriority;
       }
       
       // Update combined effectiveness badge
       updateEffectivenessBadge(buildingType);
     }
   });
-}
-
-/**
- * Calculate effectiveness from allocation percentage
- */
-function calculateEffectiveness(allocationPercent) {
-  if (allocationPercent <= 0) return 0;
-  
-  if (allocationPercent <= 1.0) {
-    return Math.sqrt(allocationPercent);
-  } else {
-    const excess = allocationPercent - 1.0;
-    return 1.0 + (excess * 0.5 * Math.pow(0.5, excess));
-  }
 }
 
 /**
@@ -341,19 +392,4 @@ function getEffectivenessClass(effectiveness) {
   if (effectiveness >= 0.9) return 'good';
   if (effectiveness >= 0.6) return 'medium';
   return 'low';
-}
-
-/**
- * Get building info (simplified, should match server data)
- */
-function getBuildingInfo(buildingType) {
-  const buildings = {
-    metalMine: { name: 'Metal Mine', icon: '⚙️', energyConsumption: 10, populationRequired: 5 },
-    crystalMine: { name: 'Crystal Mine', icon: '💎', energyConsumption: 10, populationRequired: 5 },
-    deuteriumSynthesizer: { name: 'Deuterium Synthesizer', icon: '🛢️', energyConsumption: 20, populationRequired: 8 },
-    waterExtractor: { name: 'Water Extractor', icon: '💦', energyConsumption: 8, populationRequired: 5 },
-    farm: { name: 'Farm', icon: '🍞', energyConsumption: 5, populationRequired: 8 }
-  };
-  
-  return buildings[buildingType];
 }

@@ -8,9 +8,9 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation } from './game/buildings.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, getBuildingCost, getBuildTime, getProduction, getStorageIncrease } from './game/buildings.js';
 import { startGameLoop } from './game/gameLoop.js';
-import { BUILDINGS, getBuildingCost, getBuildTime, getProduction } from '../shared/buildings.js';
+import { BUILDINGS } from '../shared/buildings.js';
 import { loadConfig, getBuildQueueSize } from './config.js';
 
 // Load configuration

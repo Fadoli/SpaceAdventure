@@ -73,13 +73,13 @@ export async function createPlayer(userId, username) {
     buildQueue: [],
     ships: {},
     defenses: {},
-    // Building allocation: tracks power % and population % for each building
+    // Building allocation: tracks power % and population % for each building + priority
     buildingAllocations: {
-      metalMine: { power: 1.0, population: 1.0 },
-      crystalMine: { power: 1.0, population: 1.0 },
-      deuteriumSynthesizer: { power: 1.0, population: 1.0 },
-      waterExtractor: { power: 1.0, population: 1.0 },
-      farm: { power: 1.0, population: 1.0 }
+      metalMine: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
+      crystalMine: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
+      deuteriumSynthesizer: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
+      waterExtractor: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
+      farm: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 }
     },
     lastUpdate: Date.now()
   };
