@@ -34,20 +34,38 @@ export async function updateBuildingsView(planet, onStateChange) {
         .map(([key, building]) => {
             // All data now comes from server including icon and description
             
-            // Show production info
+            // Calculate current level production to show differences
+            const currentProd = {};
+            const nextProd = building.production || {};
+            
+            // Estimate current level production (approximate reverse calculation)
+            if (building.currentLevel > 0 && Object.keys(nextProd).length > 0) {
+                for (const [resource, nextAmount] of Object.entries(nextProd)) {
+                    const baseAmount = nextAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0);
+                    currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0);
+                }
+            }
+            
+            // Show production difference info
             let productionInfo = '';
-            if (building.production && Object.keys(building.production).length > 0) {
+            if (Object.keys(nextProd).length > 0) {
                 productionInfo = '<div class="building-production">';
-                for (const [resource, amount] of Object.entries(building.production)) {
+                for (const [resource, nextAmount] of Object.entries(nextProd)) {
+                    const currentAmount = currentProd[resource] || 0;
+                    const diff = nextAmount - currentAmount;
                     const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
-                    productionInfo += `<div>${icon} +${formatNumber(amount)}/h</div>`;
+                    productionInfo += `<div>${icon} +${formatNumber(diff)}/h</div>`;
                 }
                 productionInfo += '</div>';
             }
             
+            // Calculate current level energy consumption to show difference
             let energyInfo = '';
             if (building.energyConsumption > 0) {
-                energyInfo = `<div class="building-energy">⚡ -${formatNumber(building.energyConsumption)}/h</div>`;
+                const currentEnergy = building.currentLevel > 0 ? 
+                    Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0) : 0;
+                const energyDiff = building.energyConsumption - currentEnergy;
+                energyInfo = `<div class="building-energy">⚡ -${formatNumber(energyDiff)}/h</div>`;
             }
             
             return `
@@ -63,7 +81,6 @@ export async function updateBuildingsView(planet, onStateChange) {
                             <strong>🔨 Queue Position ${building.queuePosition} - Building to Level ${building.nextLevel}...</strong>
                             <div class="timer" data-finish="${building.queueFinishTime}"></div>
                             ${building.queuePosition === 1 ? '<div class="building-active">⚙️ Currently Building</div>' : '<div class="building-queued">⏳ Waiting in queue</div>'}
-                            <button class="btn btn-danger btn-small" onclick="window.cancelBuilding(${building.queuePosition})">Cancel</button>
                         </div>
                     ` : `
                         <div class="building-cost">
@@ -77,6 +94,10 @@ export async function updateBuildingsView(planet, onStateChange) {
                             ${productionInfo}
                             ${energyInfo}
                         </div>
+                    `}
+                    ${building.inQueue ? `
+                        <button class="btn btn-danger btn-full" onclick="window.cancelBuilding(${building.queuePosition})">Cancel Build</button>
+                    ` : `
                         <button class="btn ${building.canAfford ? 'btn-success' : ''} btn-full" 
                                 ${!building.canAfford || queueFull ? 'disabled' : ''} 
                                 onclick="window.upgradeBuilding('${key}')">
@@ -272,7 +293,7 @@ export async function showBuildingDetails(buildingKey) {
     }).join('');
     
     modalBody.innerHTML = `
-        <div class="building-description">${buildingData.desc}</div>
+        <div class="building-description">${building.description}</div>
         <div class="stats-table-container">
             <table class="stats-table">
                 <thead>
