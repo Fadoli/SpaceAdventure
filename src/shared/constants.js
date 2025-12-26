@@ -10,6 +10,16 @@ export const RESOURCES = {
   POPULATION: 'population'
 };
 
+export const RESOURCE_ICONS = {
+  metal: '⚙️',
+  crystal: '💎',
+  deuterium: '🛢️',
+  energy: '⚡',
+  water: '💦',
+  food: '🍞',
+  population: '👥'
+};
+
 export const BUILDINGS = {
   METAL_MINE: 'metalMine',
   CRYSTAL_MINE: 'crystalMine',

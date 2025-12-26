@@ -1,6 +1,7 @@
 // Buildings view logic
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
+import { RESOURCE_ICONS } from '../../../shared/constants.js';
 
 let currentGameState = null;
 
@@ -53,7 +54,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                 for (const [resource, nextAmount] of Object.entries(nextProd)) {
                     const currentAmount = currentProd[resource] || 0;
                     const diff = nextAmount - currentAmount;
-                    const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
+                    const icon = RESOURCE_ICONS[resource] || '❓';
                     productionInfo += `<div>${icon} +${formatNumber(diff)}/h</div>`;
                 }
                 productionInfo += '</div>';
@@ -289,7 +290,7 @@ export async function showBuildingDetails(buildingKey) {
         let productionCells = '';
         if (l.production) {
             for (const [resource, amount] of Object.entries(l.production)) {
-                const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
+                const icon = RESOURCE_ICONS[resource] || '❓';
                 productionCells += `<div>${icon}+${formatNumber(amount)}/h</div>`;
             }
         } else {
