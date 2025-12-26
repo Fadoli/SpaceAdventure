@@ -90,6 +90,7 @@ export const BUILDINGS = {
     production: {
       energy: 20 // Base energy production at level 1
     },
+    populationRequired: 5, // Population required to maintain
     requirements: {}
   },
   
@@ -125,6 +126,8 @@ export const BUILDINGS = {
     },
     baseTime: 60,
     maxLevel: 10,
+    energyConsumption: 25, // Energy required to operate
+    populationRequired: 50, // Population required to maintain
     requirements: {}
   },
   
@@ -155,6 +158,8 @@ export const BUILDINGS = {
     },
     baseTime: 60,
     maxLevel: 12,
+    energyConsumption: 15, // Energy required to operate
+    populationRequired: 30, // Population required to maintain
     requirements: {}
   },
   

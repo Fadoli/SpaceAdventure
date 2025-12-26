@@ -771,6 +771,32 @@ body {
     margin: 0;
 }
 
+.allocation-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.allocation-header .priority-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.allocation-header .priority-select label {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.allocation-header .priority-select select {
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
 .effectiveness-badge {
     padding: 6px 12px;
     border-radius: 6px;
@@ -879,11 +905,38 @@ body {
     font-size: 0.85rem;
 }
 
-.apply-allocations {
+.allocation-actions {
+    display: flex;
+    gap: 10px;
     margin-top: 20px;
-    width: 100%;
-    padding: 15px;
-    font-size: 1.1rem;
+    justify-content: center;
+}
+
+.allocation-actions button {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.allocation-actions .btn-primary {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.allocation-actions .btn-primary:hover {
+    background: #357abd;
+}
+
+.allocation-actions .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.allocation-actions .btn-secondary:hover {
+    background: #5a6268;
 }
 .allocation-badge {
     display: inline-block;

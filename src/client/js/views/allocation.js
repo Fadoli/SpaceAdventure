@@ -22,7 +22,10 @@ export async function renderAllocation() {
     'crystalMine',
     'deuteriumSynthesizer',
     'waterExtractor',
-    'farm'
+    'farm',
+    'solarPlant',
+    'roboticsFactory',
+    'researchLab'
   ];
   
   // Calculate totals
@@ -97,42 +100,57 @@ export async function renderAllocation() {
     if (level === 0) continue;
     
     const building = BUILDINGS[buildingType];
-    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0 };
+    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0, priority: 3 };
+    const actualAllocation = planet.actualAllocations?.[buildingType] || allocation;
     
     // Calculate base requirements for this building at current level using shared functions
     const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
     const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
     
-    // Calculate actual requirements based on current allocation
+    // Calculate desired requirements based on user-set allocation
     const energyRequired = baseEnergyRequired * allocation.power;
     const populationRequired = basePopulationRequired * allocation.population;
     
-    // Calculate effectiveness
+    // Calculate desired effectiveness
     const powerEffectiveness = calculateAllocationEffectiveness(allocation.power) / 100;
     const populationEffectiveness = calculateAllocationEffectiveness(allocation.population) / 100;
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
+    
+    // Calculate ACTUAL effectiveness (based on priority and available resources)
+    const actualPowerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power) / 100;
+    const actualPopulationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population) / 100;
+    const actualTotalEffectiveness = actualPowerEffectiveness * actualPopulationEffectiveness;
+    
+    // Check if building has energy consumption (skip power slider for solarPlant)
+    const hasEnergyConsumption = baseEnergyRequired > 0;
     
     html += `
       <div class="allocation-item" data-building="${buildingType}">
         <div class="allocation-header">
           <h4>${building.icon} ${building.name} (Level ${level})</h4>
-          <span class="effectiveness-badge ${getEffectivenessClass(totalEffectiveness)}">
-            ${(totalEffectiveness * 100).toFixed(0)}% Effective
-          </span>
+          <div class="header-right">
+            <div class="priority-select">
+              <label>Priority:</label>
+              <select class="building-priority" data-building="${buildingType}">
+                <option value="1" ${allocation.priority === 1 ? 'selected' : ''}>High (1)</option>
+                <option value="2" ${allocation.priority === 2 ? 'selected' : ''}>Medium (2)</option>
+                <option value="3" ${allocation.priority === 3 ? 'selected' : ''}>Low (3)</option>
+              </select>
+            </div>
+            <span class="effectiveness-badge ${getEffectivenessClass(totalEffectiveness)}">
+              Desired: ${(totalEffectiveness * 100).toFixed(0)}%
+            </span>
+            <span class="effectiveness-badge ${getEffectivenessClass(actualTotalEffectiveness)}" style="margin-left: 5px;">
+              Actual: ${(actualTotalEffectiveness * 100).toFixed(0)}%
+            </span>
+          </div>
         </div>
         
         <div class="allocation-controls">
+          ${hasEnergyConsumption ? `
           <div class="allocation-slider">
             <div class="allocation-label-row">
               <label>⚡ Power: <span class="value">${(allocation.power * 100).toFixed(0)}%</span></label>
-              <div class="priority-select">
-                <label>Priority:</label>
-                <select class="power-priority" data-building="${buildingType}">
-                  <option value="1" ${allocation.powerPriority === 1 ? 'selected' : ''}>High (1)</option>
-                  <option value="2" ${allocation.powerPriority === 2 ? 'selected' : ''}>Medium (2)</option>
-                  <option value="3" ${allocation.powerPriority === 3 ? 'selected' : ''}>Low (3)</option>
-                </select>
-              </div>
             </div>
             <input 
               type="range" 
@@ -144,18 +162,11 @@ export async function renderAllocation() {
             >
             <small>⚡ Required: ${energyRequired.toFixed(0)} / Effectiveness: ${(powerEffectiveness * 100).toFixed(0)}%</small>
           </div>
+          ` : ''}
           
           <div class="allocation-slider">
             <div class="allocation-label-row">
               <label>👥 Workers: <span class="value">${(allocation.population * 100).toFixed(0)}%</span></label>
-              <div class="priority-select">
-                <label>Priority:</label>
-                <select class="population-priority" data-building="${buildingType}">
-                  <option value="1" ${allocation.populationPriority === 1 ? 'selected' : ''}>High (1)</option>
-                  <option value="2" ${allocation.populationPriority === 2 ? 'selected' : ''}>Medium (2)</option>
-                  <option value="3" ${allocation.populationPriority === 3 ? 'selected' : ''}>Low (3)</option>
-                </select>
-              </div>
             </div>
             <input 
               type="range" 
@@ -175,8 +186,10 @@ export async function renderAllocation() {
   html += `
       </div>
       
-      <button class="btn-primary apply-allocations">Apply All Changes</button>
-      <button class="btn-secondary undo-allocations">↶ Undo Changes</button>
+      <div class="allocation-actions">
+        <button class="btn-primary btn-small apply-allocations">Apply All Changes</button>
+        <button class="btn-secondary btn-small undo-allocations">↶ Undo Changes</button>
+      </div>
     </div>
   `;
   
@@ -196,11 +209,14 @@ export function setupAllocationHandlers() {
     'crystalMine',
     'deuteriumSynthesizer',
     'waterExtractor',
-    'farm'
+    'farm',
+    'solarPlant',
+    'roboticsFactory',
+    'researchLab'
   ];
   
   for (const buildingType of allocatableBuildings) {
-    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 };
+    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0, priority: 3 };
     savedAllocations[buildingType] = { ...allocation };
   }
   
@@ -293,38 +309,28 @@ async function applyAllAllocations() {
     const buildingType = item.dataset.building;
     const powerSlider = item.querySelector('.power-slider');
     const populationSlider = item.querySelector('.population-slider');
-    const powerPrioritySelect = item.querySelector('.power-priority');
-    const populationPrioritySelect = item.querySelector('.population-priority');
+    const prioritySelect = item.querySelector('.building-priority');
     
-    if (powerSlider && populationSlider) {
+    if (populationSlider) {
       allocations[buildingType] = {
-        power: parseFloat(powerSlider.value) / 100,
+        power: powerSlider ? parseFloat(powerSlider.value) / 100 : 1.0,
         population: parseFloat(populationSlider.value) / 100,
-        powerPriority: parseInt(powerPrioritySelect.value),
-        populationPriority: parseInt(populationPrioritySelect.value)
+        priority: prioritySelect ? parseInt(prioritySelect.value) : 3
       };
     }
   });
   
   // Send to server
   try {
-    for (const [buildingType, allocation] of Object.entries(allocations)) {
-      await API.request(`/planet/${planet.id}/building/${buildingType}/allocation`, {
-        method: 'POST',
-        body: JSON.stringify({
-          power: allocation.power,
-          population: allocation.population,
-          powerPriority: allocation.powerPriority,
-          populationPriority: allocation.populationPriority
-        })
-      });
-    }
+    await API.request(`/planet/${planet.id}/allocations`, {
+      method: 'POST',
+      body: JSON.stringify({ allocations })
+    });
     
     // Save these allocations as the new baseline for undo
     savedAllocations = { ...allocations };
     
-    // Refresh the view
-    window.showView('allocation');
+    // Show success message without refreshing the view
     alert('Allocations updated successfully!');
   } catch (error) {
     console.error('Failed to update allocations:', error);
@@ -343,8 +349,7 @@ async function undoAllAllocations() {
     if (saved) {
       const powerSlider = item.querySelector('.power-slider');
       const populationSlider = item.querySelector('.population-slider');
-      const powerPrioritySelect = item.querySelector('.power-priority');
-      const populationPrioritySelect = item.querySelector('.population-priority');
+      const prioritySelect = item.querySelector('.building-priority');
       const planet = getCurrentPlanet();
       const level = planet.buildings[buildingType] || 0;
       
@@ -370,12 +375,8 @@ async function undoAllAllocations() {
         if (small) small.textContent = `👥 Required: ${populationRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
       }
       
-      if (powerPrioritySelect && saved.powerPriority) {
-        powerPrioritySelect.value = saved.powerPriority;
-      }
-      
-      if (populationPrioritySelect && saved.populationPriority) {
-        populationPrioritySelect.value = saved.populationPriority;
+      if (prioritySelect && saved.priority) {
+        prioritySelect.value = saved.priority;
       }
       
       // Update combined effectiveness badge

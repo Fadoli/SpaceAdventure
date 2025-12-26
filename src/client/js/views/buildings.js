@@ -73,16 +73,32 @@ export async function updateBuildingsView(planet, onStateChange) {
             const allocatableBuildings = ['metalMine', 'crystalMine', 'deuteriumSynthesizer', 'waterExtractor', 'farm'];
             const hasAllocation = allocatableBuildings.includes(key) && building.currentLevel > 0;
             const allocation = planet.buildingAllocations?.[key];
+            const actualAllocation = planet.actualAllocations?.[key];
             
             let allocationBadge = '';
             if (hasAllocation && allocation) {
-                // Calculate rough effectiveness (simplified client-side)
+                // Calculate desired effectiveness (simplified client-side)
                 const powerEff = allocation.power <= 1.0 ? Math.sqrt(allocation.power) : 1.0 + ((allocation.power - 1.0) * 0.5 * Math.pow(0.5, allocation.power - 1.0));
                 const popEff = allocation.population <= 1.0 ? Math.sqrt(allocation.population) : 1.0 + ((allocation.population - 1.0) * 0.5 * Math.pow(0.5, allocation.population - 1.0));
                 const totalEff = powerEff * popEff;
                 const effPercent = (totalEff * 100).toFixed(0);
+                
+                // Calculate ACTUAL effectiveness if available
+                let actualBadge = '';
+                if (actualAllocation) {
+                    const actualPowerEff = actualAllocation.power <= 1.0 ? Math.sqrt(actualAllocation.power) : 1.0 + ((actualAllocation.power - 1.0) * 0.5 * Math.pow(0.5, actualAllocation.power - 1.0));
+                    const actualPopEff = actualAllocation.population <= 1.0 ? Math.sqrt(actualAllocation.population) : 1.0 + ((actualAllocation.population - 1.0) * 0.5 * Math.pow(0.5, actualAllocation.population - 1.0));
+                    const actualTotalEff = actualPowerEff * actualPopEff;
+                    const actualEffPercent = (actualTotalEff * 100).toFixed(0);
+                    const actualEffClass = actualTotalEff >= 0.9 ? 'good' : actualTotalEff >= 0.6 ? 'medium' : 'low';
+                    actualBadge = `<div class="allocation-badge ${actualEffClass}" style="margin-top: 5px;" title="Actual allocation after priority-based distribution">⚙️ Actual: ${actualEffPercent}%</div>`;
+                }
+                
                 const effClass = totalEff >= 0.9 ? 'good' : totalEff >= 0.6 ? 'medium' : 'low';
-                allocationBadge = `<div class="allocation-badge ${effClass}" title="Power: ${(allocation.power * 100).toFixed(0)}%, Workers: ${(allocation.population * 100).toFixed(0)}%">⚙️ ${effPercent}% Effective</div>`;
+                allocationBadge = `
+                    <div class="allocation-badge ${effClass}" title="Desired: Power ${(allocation.power * 100).toFixed(0)}%, Workers ${(allocation.population * 100).toFixed(0)}%">⚙️ Desired: ${effPercent}%</div>
+                    ${actualBadge}
+                `;
             }
             
             return `

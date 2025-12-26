@@ -8,7 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, getBuildingCost, getBuildTime, getProduction, getStorageIncrease } from './game/buildings.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease } from './game/buildings.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS } from '../shared/buildings.js';
 import { loadConfig, getBuildQueueSize } from './config.js';
@@ -386,6 +386,31 @@ async function handleRequest(req) {
       });
     }
     
+    // POST /api/planet/:planetId/allocations - Update all building allocations at once
+    if (path.match(/^\/api\/planet\/[^\/]+\/allocations$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const parts = path.split('/');
+      const planetId = parts[3];
+      
+      const body = await req.json();
+      const { allocations } = body;
+      
+      if (!allocations || typeof allocations !== 'object') {
+        return errorResponse('Missing or invalid allocations in request', 400);
+      }
+      
+      try {
+        const result = await updatePlanetAllocations(user.id, planetId, allocations);
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
     // POST /api/planet/:planetId/building/:buildingType/allocation
     if (path.match(/^\/api\/planet\/[^\/]+\/building\/[^\/]+\/allocation$/) && method === 'POST') {
       const user = await requireAuth(req);
@@ -398,14 +423,14 @@ async function handleRequest(req) {
       const buildingType = parts[5];
       
       const body = await req.json();
-      const { power, population } = body;
+      const { power, population, priority } = body;
       
       if (power === undefined || population === undefined) {
         return errorResponse('Missing power or population in request', 400);
       }
       
       try {
-        const result = await updateBuildingAllocation(user.id, planetId, buildingType, power, population);
+        const result = await updateBuildingAllocation(user.id, planetId, buildingType, power, population, priority);
         return successResponse(result);
       } catch (error) {
         return errorResponse(error.message, 400);
