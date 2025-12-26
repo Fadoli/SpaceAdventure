@@ -7,6 +7,59 @@ import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 // In-memory session storage
 const sessions = new Map();
 
+// Session persistence for hot-reload
+let sessionsSaveTimeout = null;
+
+/**
+ * Load sessions from storage
+ */
+async function loadSessions() {
+  try {
+    const data = await readJsonFile('sessions.json');
+    if (data && data.sessions) {
+      // Clear existing sessions
+      sessions.clear();
+      
+      // Load sessions from file
+      const now = Date.now();
+      for (const [token, session] of Object.entries(data.sessions)) {
+        // Only load non-expired sessions
+        if (session.expiresAt > now) {
+          sessions.set(token, session);
+        }
+      }
+      console.log(`Loaded ${sessions.size} active sessions from storage`);
+    }
+  } catch (error) {
+    // File doesn't exist or error reading - that's ok, start fresh
+    console.log('No existing sessions to load');
+  }
+}
+
+/**
+ * Save sessions to storage (debounced)
+ */
+function scheduleSaveSessions() {
+  if (sessionsSaveTimeout) {
+    clearTimeout(sessionsSaveTimeout);
+  }
+  
+  sessionsSaveTimeout = setTimeout(async () => {
+    try {
+      const sessionsObj = {};
+      for (const [token, session] of sessions.entries()) {
+        sessionsObj[token] = session;
+      }
+      await writeJsonFile('sessions.json', { sessions: sessionsObj });
+    } catch (error) {
+      console.error('Failed to save sessions:', error);
+    }
+  }, 1000); // Wait 1 second before saving
+}
+
+// Load sessions on startup
+await loadSessions();
+
 /**
  * Get all users from storage
  */
@@ -132,6 +185,9 @@ export function createSession(userId) {
     expiresAt
   });
   
+  // Save sessions to file
+  scheduleSaveSessions();
+  
   return sessionToken;
 }
 
@@ -159,6 +215,9 @@ export function getSession(sessionToken) {
  */
 export function deleteSession(sessionToken) {
   sessions.delete(sessionToken);
+  
+  // Save sessions to file
+  scheduleSaveSessions();
 }
 
 /**
@@ -179,10 +238,17 @@ export async function getUserFromSession(sessionToken) {
  */
 export function cleanupSessions() {
   const now = Date.now();
+  let cleaned = false;
   for (const [token, session] of sessions.entries()) {
     if (session.expiresAt < now) {
       sessions.delete(token);
+      cleaned = true;
     }
+  }
+  
+  // Save if any sessions were cleaned up
+  if (cleaned) {
+    scheduleSaveSessions();
   }
 }
 

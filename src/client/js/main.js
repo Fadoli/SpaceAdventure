@@ -20,12 +20,44 @@ import { renderAllocation, setupAllocationHandlers } from './views/allocation.js
 let currentUser = null;
 let gameState = null;
 let currentView = 'overview';
+let currentPlanetId = null;
 let updateInterval = null;
+
+// URL State Management
+function getUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        planetId: params.get('planet'),
+        view: params.get('view') || 'overview'
+    };
+}
+
+function updateUrlParams(planetId, view) {
+    const params = new URLSearchParams();
+    if (planetId) {
+        params.set('planet', planetId);
+    }
+    if (view) {
+        params.set('view', view);
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ planetId, view }, '', newUrl);
+}
 
 // Initialize app
 async function init() {
     setupAuthListeners();
     setupGameListeners();
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (event) => {
+        if (event.state && gameState) {
+            const { planetId, view } = event.state;
+            currentPlanetId = planetId;
+            currentView = view || 'overview';
+            switchView(currentView, false); // false = don't push to history
+        }
+    });
     
     // Check if already logged in
     try {
@@ -48,6 +80,24 @@ async function showGameScreen() {
     document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     await loadGameState();
+    
+    // Restore state from URL if available
+    const urlParams = getUrlParams();
+    if (urlParams.planetId && gameState) {
+        currentPlanetId = urlParams.planetId;
+    } else if (gameState && gameState.planets && gameState.planets.length > 0) {
+        // Default to first planet
+        currentPlanetId = gameState.planets[0].id;
+    }
+    
+    if (urlParams.view) {
+        currentView = urlParams.view;
+        switchView(currentView, false); // false = don't push to history, we're restoring
+    } else {
+        // Update URL with current state
+        updateUrlParams(currentPlanetId, currentView);
+    }
+    
     startResourceUpdate();
 }
 
@@ -127,8 +177,13 @@ function setupGameListeners() {
     });
 }
 
-function switchView(view) {
+function switchView(view, updateHistory = true) {
     currentView = view;
+    
+    // Update URL if requested
+    if (updateHistory) {
+        updateUrlParams(currentPlanetId, view);
+    }
     
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -167,8 +222,17 @@ function updateUI() {
     // Update player name
     document.getElementById('player-name').textContent = currentUser.username;
     
-    // Get current planet (first planet for now)
-    const planet = gameState.planets[0];
+    // Get current planet by ID, or default to first planet
+    let planet = null;
+    if (currentPlanetId) {
+        planet = gameState.planets.find(p => p.id === currentPlanetId);
+    }
+    if (!planet && gameState.planets.length > 0) {
+        planet = gameState.planets[0];
+        currentPlanetId = planet.id;
+        // Update URL with the actual planet ID
+        updateUrlParams(currentPlanetId, currentView);
+    }
     
     if (planet) {
         // Update resources (always visible in header)
@@ -185,7 +249,15 @@ function updateUI() {
 }
 
 function updateCurrentView() {
-    const planet = gameState.planets[0];
+    let planet = null;
+    if (currentPlanetId) {
+        planet = gameState.planets.find(p => p.id === currentPlanetId);
+    }
+    if (!planet && gameState.planets.length > 0) {
+        planet = gameState.planets[0];
+    }
+    
+    if (!planet) return;
     
     switch (currentView) {
         case 'overview':
@@ -248,7 +320,10 @@ window.showView = function(view) {
 
 // Export getCurrentPlanet for allocation view
 export function getCurrentPlanet() {
-    return gameState?.planets?.[0] || null;
+    if (!gameState || !currentPlanetId) {
+        return gameState?.planets?.[0] || null;
+    }
+    return gameState.planets.find(p => p.id === currentPlanetId) || gameState.planets[0] || null;
 }
 
 // Start the app
