@@ -281,8 +281,8 @@ function getBuildingInfo(buildingType) {
     metalMine: { name: 'Metal Mine', icon: '⚙️', energyConsumption: 10, populationRequired: 5 },
     crystalMine: { name: 'Crystal Mine', icon: '💎', energyConsumption: 10, populationRequired: 5 },
     deuteriumSynthesizer: { name: 'Deuterium Synthesizer', icon: '🛢️', energyConsumption: 20, populationRequired: 8 },
-    waterExtractor: { name: 'Water Extractor', icon: '💧', energyConsumption: 8, populationRequired: 5 },
-    farm: { name: 'Farm', icon: '🌾', energyConsumption: 5, populationRequired: 8 }
+    waterExtractor: { name: 'Water Extractor', icon: '💦', energyConsumption: 8, populationRequired: 5 },
+    farm: { name: 'Farm', icon: '🍞', energyConsumption: 5, populationRequired: 8 }
   };
   
   return buildings[buildingType];

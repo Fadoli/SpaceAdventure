@@ -229,7 +229,7 @@ export const BUILDINGS = {
   
   waterExtractor: {
     name: 'Water Extractor',
-    icon: '💧',
+    icon: '💦',
     description: 'Extracts water from the planet. More effective on planets farther from the sun.',
     baseCost: {
       metal: 50,
@@ -248,7 +248,7 @@ export const BUILDINGS = {
   
   farm: {
     name: 'Farm',
-    icon: '🌾',
+    icon: '🍞',
     description: 'Grows food for your population. Requires water. More effective closer to the sun.',
     baseCost: {
       metal: 40,
@@ -286,7 +286,7 @@ export const BUILDINGS = {
   
   waterStorage: {
     name: 'Water Storage',
-    icon: '💧',
+    icon: '💦',
     description: 'Increases water storage capacity.',
     baseCost: {
       metal: 800,
@@ -305,7 +305,7 @@ export const BUILDINGS = {
   
   foodSilo: {
     name: 'Food Silo',
-    icon: '🌾',
+    icon: '🍞',
     description: 'Increases food storage capacity.',
     baseCost: {
       metal: 600,
