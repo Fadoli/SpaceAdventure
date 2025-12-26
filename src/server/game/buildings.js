@@ -231,49 +231,128 @@ export async function processCompletedBuildings(player) {
  * Update planet production based on buildings
  */
 export async function updatePlanetProduction(planet) {
-  // Reset production
+  const { calculateAllocationEffectiveness, calculatePositionMultiplier } = await import('../../shared/formulas.js');
+  const { CONFIG } = await import('../../shared/constants.js');
+  
+  // Get planet position (coordinates[2] is the position in the system)
+  const planetPosition = planet.coordinates ? planet.coordinates[2] : 8;
+  
+  // Initialize building allocations if not exists
+  if (!planet.buildingAllocations) {
+    planet.buildingAllocations = {};
+  }
+  
+  // Reset production and consumption
   planet.production = {
     metal: 0,
     crystal: 0,
     deuterium: 0,
-    energy: 0
+    energy: 0,
+    water: 0,
+    food: 0
   };
   
-  let energyConsumption = 0;
+  planet.consumption = {
+    energy: 0,
+    water: 0,
+    food: 0,
+    population: 0
+  };
+  
+  let totalEnergyConsumption = 0;
+  let totalWaterConsumption = 0;
+  let totalPopulationRequired = 0;
   
   // Calculate production from all buildings
   for (const buildingType in planet.buildings) {
     const level = planet.buildings[buildingType];
     if (level === 0) continue;
     
+    const building = BUILDINGS[buildingType];
+    if (!building) continue;
+    
+    // Get base production
     const production = getProduction(buildingType, level);
     
+    // Get allocation or default to 100%
+    const allocation = planet.buildingAllocations[buildingType] || { power: 1.0, population: 1.0 };
+    
+    // Calculate effectiveness from power allocation
+    const powerEffectiveness = calculateAllocationEffectiveness(allocation.power) / 100;
+    
+    // Calculate effectiveness from population allocation
+    const populationEffectiveness = calculateAllocationEffectiveness(allocation.population) / 100;
+    
+    // Combined effectiveness (multiplicative)
+    const totalEffectiveness = powerEffectiveness * populationEffectiveness;
+    
+    // Apply position multiplier for relevant resources
     for (const resource in production) {
-      planet.production[resource] = (planet.production[resource] || 0) + production[resource];
+      let amount = production[resource];
+      
+      // Apply position bonuses
+      if (resource === 'water') {
+        amount *= calculatePositionMultiplier(planetPosition, 'water');
+      } else if (resource === 'food') {
+        amount *= calculatePositionMultiplier(planetPosition, 'farm');
+      } else if (resource === 'deuterium') {
+        amount *= calculatePositionMultiplier(planetPosition, 'deuterium');
+      }
+      
+      // Apply effectiveness
+      amount *= totalEffectiveness;
+      
+      planet.production[resource] = (planet.production[resource] || 0) + Math.floor(amount);
     }
     
     // Calculate energy consumption
-    const building = BUILDINGS[buildingType];
-    if (building && building.energyConsumption) {
+    if (building.energyConsumption) {
       const energyMultiplier = getResourceProductionMultiplier();
-      energyConsumption += Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+      const baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+      // Energy consumption scales with power allocation
+      totalEnergyConsumption += Math.floor(baseConsumption * allocation.power);
+    }
+    
+    // Calculate water consumption (for farms)
+    if (building.waterConsumption) {
+      const baseWaterConsumption = Math.floor(building.waterConsumption * level * Math.pow(1.1, level));
+      totalWaterConsumption += Math.floor(baseWaterConsumption * totalEffectiveness);
+    }
+    
+    // Calculate population requirements
+    if (building.populationRequired) {
+      const basePopRequired = Math.floor(building.populationRequired * level * Math.pow(1.05, level));
+      totalPopulationRequired += Math.floor(basePopRequired * allocation.population);
     }
   }
   
-  // Store energy consumption separately for UI
-  planet.energyConsumption = energyConsumption;
+  // Store consumption
+  planet.energyConsumption = totalEnergyConsumption;
+  planet.consumption.energy = totalEnergyConsumption;
+  planet.consumption.water = totalWaterConsumption;
+  planet.consumption.population = totalPopulationRequired;
+  
+  // Calculate max population from housing
+  const housingLevel = planet.buildings.housing || 0;
+  planet.maxPopulation = CONFIG.POPULATION_HOUSING_RATIO * housingLevel * Math.pow(1.1, housingLevel);
+  
+  // Food consumption based on current population
+  const currentPopulation = planet.resources.population || 0;
+  planet.consumption.food = currentPopulation * CONFIG.FOOD_CONSUMPTION_PER_POPULATION;
   
   // Energy balance
-  const netEnergy = planet.production.energy - energyConsumption;
+  const netEnergy = planet.production.energy - totalEnergyConsumption;
   const originalEnergy = planet.production.energy;
   planet.production.energy = netEnergy;
   
   // If not enough energy, reduce production efficiency
-  if (netEnergy < 0) {
-    const efficiency = Math.max(0, originalEnergy / energyConsumption);
+  if (netEnergy < 0 && totalEnergyConsumption > 0) {
+    const efficiency = Math.max(0, originalEnergy / totalEnergyConsumption);
     planet.production.metal = Math.floor(planet.production.metal * efficiency);
     planet.production.crystal = Math.floor(planet.production.crystal * efficiency);
     planet.production.deuterium = Math.floor(planet.production.deuterium * efficiency);
+    planet.production.water = Math.floor(planet.production.water * efficiency);
+    planet.production.food = Math.floor(planet.production.food * efficiency);
     planet.energyEfficiency = Math.floor(efficiency * 100);
   } else {
     planet.energyEfficiency = 100;
@@ -291,7 +370,9 @@ export function updatePlanetStorage(planet) {
   planet.storage = {
     metal: 10000,
     crystal: 10000,
-    deuterium: 10000
+    deuterium: 10000,
+    water: 10000,
+    food: 10000
   };
   
   // Add storage from buildings
@@ -305,4 +386,47 @@ export function updatePlanetStorage(planet) {
       planet.storage[resource] = (planet.storage[resource] || 0) + storageIncrease[resource];
     }
   }
+}
+/**
+ * Update building allocation (power and population)
+ */
+export async function updateBuildingAllocation(userId, planetId, buildingType, powerPercent, populationPercent) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) {
+    throw new Error('Player not found');
+  }
+  
+  const planet = player.planets.find(p => p.id === planetId);
+  if (!planet) {
+    throw new Error('Planet not found');
+  }
+  
+  // Validate building exists
+  if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
+    throw new Error('Building not found or at level 0');
+  }
+  
+  // Validate percentages (allow 0-200% as per requirements)
+  if (powerPercent < 0 || powerPercent > 2 || populationPercent < 0 || populationPercent > 2) {
+    throw new Error('Allocation must be between 0% and 200%');
+  }
+  
+  // Initialize allocations if not exists
+  if (!planet.buildingAllocations) {
+    planet.buildingAllocations = {};
+  }
+  
+  // Update allocation
+  planet.buildingAllocations[buildingType] = {
+    power: powerPercent,
+    population: populationPercent
+  };
+  
+  // Recalculate production
+  await updatePlanetProduction(planet);
+  
+  // Update player
+  await updatePlayer(userId, player);
+  
+  return planet.buildingAllocations[buildingType];
 }

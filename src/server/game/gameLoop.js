@@ -57,14 +57,50 @@ async function gameTick() {
           // Add resources based on production per hour
           const hoursElapsed = timeDelta / 3600;
           
+          // Production
           planet.resources.metal += planet.production.metal * hoursElapsed;
           planet.resources.crystal += planet.production.crystal * hoursElapsed;
           planet.resources.deuterium += planet.production.deuterium * hoursElapsed;
+          planet.resources.water += (planet.production.water || 0) * hoursElapsed;
+          planet.resources.food += (planet.production.food || 0) * hoursElapsed;
+          
+          // Consumption
+          if (planet.consumption) {
+            planet.resources.water -= (planet.consumption.water || 0) * hoursElapsed;
+            planet.resources.food -= (planet.consumption.food || 0) * hoursElapsed;
+          }
+          
+          // Population growth/decay based on food availability
+          const currentPopulation = planet.resources.population || 0;
+          const maxPopulation = planet.maxPopulation || 0;
+          const foodAvailable = planet.resources.food > 0;
+          
+          if (foodAvailable && currentPopulation < maxPopulation) {
+            // Grow population slowly (1% per hour when food available and under cap)
+            const growthRate = 0.01;
+            planet.resources.population = Math.min(
+              maxPopulation, 
+              currentPopulation + (currentPopulation * growthRate * hoursElapsed)
+            );
+          } else if (!foodAvailable) {
+            // Lose population when no food (2% per hour)
+            const decayRate = 0.02;
+            planet.resources.population = Math.max(
+              0, 
+              currentPopulation - (currentPopulation * decayRate * hoursElapsed)
+            );
+          }
+          
+          // Prevent negative resources
+          planet.resources.water = Math.max(0, planet.resources.water);
+          planet.resources.food = Math.max(0, planet.resources.food);
           
           // Cap at storage
           planet.resources.metal = Math.min(planet.resources.metal, planet.storage.metal);
           planet.resources.crystal = Math.min(planet.resources.crystal, planet.storage.crystal);
           planet.resources.deuterium = Math.min(planet.resources.deuterium, planet.storage.deuterium);
+          planet.resources.water = Math.min(planet.resources.water, planet.storage.water || 10000);
+          planet.resources.food = Math.min(planet.resources.food, planet.storage.food || 10000);
           
           planet.lastUpdate = Date.now();
           updated = true;

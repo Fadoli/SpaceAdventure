@@ -51,18 +51,36 @@ export async function createPlayer(userId, username) {
       metal: 30,
       crystal: 15,
       deuterium: 0,
-      energy: 0
+      energy: 0,
+      water: 40,
+      food: 30
+    },
+    consumption: {
+      energy: 0,
+      water: 0,
+      food: 0
     },
     storage: {
       metal: 10000,
       crystal: 10000,
-      deuterium: 10000
+      deuterium: 10000,
+      water: 10000,
+      food: 10000
     },
+    maxPopulation: 100,
     energyConsumption: 0,
     energyEfficiency: 100,
     buildQueue: [],
     ships: {},
     defenses: {},
+    // Building allocation: tracks power % and population % for each building
+    buildingAllocations: {
+      metalMine: { power: 1.0, population: 1.0 },
+      crystalMine: { power: 1.0, population: 1.0 },
+      deuteriumSynthesizer: { power: 1.0, population: 1.0 },
+      waterExtractor: { power: 1.0, population: 1.0 },
+      farm: { power: 1.0, population: 1.0 }
+    },
     lastUpdate: Date.now()
   };
   

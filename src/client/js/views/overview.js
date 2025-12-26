@@ -55,7 +55,7 @@ export function updateOverview(planet) {
  * Update resource display in header
  */
 export function updateResources(planet) {
-    const { resources, production, energyConsumption, energyEfficiency } = planet;
+    const { resources, production, energyConsumption, energyEfficiency, maxPopulation } = planet;
     
     document.getElementById('metal-amount').textContent = formatNumber(resources.metal);
     document.getElementById('crystal-amount').textContent = formatNumber(resources.crystal);
@@ -83,4 +83,20 @@ export function updateResources(planet) {
     document.getElementById('metal-production').textContent = metalProd;
     document.getElementById('crystal-production').textContent = crystalProd;
     document.getElementById('deuterium-production').textContent = deutProd;
+    
+    // New resources
+    if (document.getElementById('water-amount')) {
+        document.getElementById('water-amount').textContent = formatNumber(resources.water || 0);
+        document.getElementById('water-production').textContent = production.water || 0;
+    }
+    
+    if (document.getElementById('food-amount')) {
+        document.getElementById('food-amount').textContent = formatNumber(resources.food || 0);
+        document.getElementById('food-production').textContent = production.food || 0;
+    }
+    
+    if (document.getElementById('population-amount')) {
+        document.getElementById('population-amount').textContent = formatNumber(resources.population || 0);
+        document.getElementById('population-max').textContent = formatNumber(maxPopulation || 0);
+    }
 }

@@ -4,7 +4,10 @@ export const RESOURCES = {
   METAL: 'metal',
   CRYSTAL: 'crystal',
   DEUTERIUM: 'deuterium',
-  ENERGY: 'energy'
+  ENERGY: 'energy',
+  WATER: 'water',
+  FOOD: 'food',
+  POPULATION: 'population'
 };
 
 export const BUILDINGS = {
@@ -17,7 +20,10 @@ export const BUILDINGS = {
   SHIPYARD: 'shipyard',
   RESEARCH_LAB: 'researchLab',
   STORAGE: 'storage',
-  NANITE_FACTORY: 'naniteFactory'
+  NANITE_FACTORY: 'naniteFactory',
+  WATER_EXTRACTOR: 'waterExtractor',
+  FARM: 'farm',
+  HOUSING: 'housing'
 };
 
 export const TECHNOLOGIES = {
@@ -66,7 +72,10 @@ export const STARTING_RESOURCES = {
   metal: 500,
   crystal: 250,
   deuterium: 0,
-  energy: 0
+  energy: 0,
+  water: 1000,
+  food: 1000,
+  population: 100
 };
 
 // Starting buildings for new players
@@ -80,7 +89,10 @@ export const STARTING_BUILDINGS = {
   shipyard: 0,
   researchLab: 0,
   storage: 0,
-  naniteFactory: 0
+  naniteFactory: 0,
+  waterExtractor: 1,
+  farm: 1,
+  housing: 1
 };
 
 // Game configuration
@@ -91,5 +103,7 @@ export const CONFIG = {
   MAX_BUILD_QUEUE: 1,
   MAX_RESEARCH_QUEUE: 1,
   DEBRIS_PERCENTAGE: 0.3,
-  MAX_PLANETS_PER_PLAYER: 9
+  MAX_PLANETS_PER_PLAYER: 9,
+  FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
+  POPULATION_HOUSING_RATIO: 10 // Population per housing level
 };

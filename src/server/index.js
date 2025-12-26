@@ -8,7 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings } from './game/buildings.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation } from './game/buildings.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, getBuildingCost, getBuildTime, getProduction } from '../shared/buildings.js';
 import { loadConfig, getBuildQueueSize } from './config.js';
@@ -363,6 +363,32 @@ async function handleRequest(req) {
         queue: planet.buildQueue || [],
         maxQueueSize
       });
+    }
+    
+    // POST /api/planet/:planetId/building/:buildingType/allocation
+    if (path.match(/^\/api\/planet\/[^\/]+\/building\/[^\/]+\/allocation$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const parts = path.split('/');
+      const planetId = parts[3];
+      const buildingType = parts[5];
+      
+      const body = await req.json();
+      const { power, population } = body;
+      
+      if (power === undefined || population === undefined) {
+        return errorResponse('Missing power or population in request', 400);
+      }
+      
+      try {
+        const result = await updateBuildingAllocation(user.id, planetId, buildingType, power, population);
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
     }
     
     // 404 for unknown API routes

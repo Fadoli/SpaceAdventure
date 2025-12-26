@@ -13,7 +13,12 @@ export const BUILDING_TYPES = {
   METAL_STORAGE: 'metalStorage',
   CRYSTAL_STORAGE: 'crystalStorage',
   DEUTERIUM_TANK: 'deuteriumTank',
-  NANITE_FACTORY: 'naniteFactory'
+  NANITE_FACTORY: 'naniteFactory',
+  WATER_EXTRACTOR: 'waterExtractor',
+  FARM: 'farm',
+  HOUSING: 'housing',
+  WATER_STORAGE: 'waterStorage',
+  FOOD_SILO: 'foodSilo'
 };
 
 // Building definitions
@@ -219,6 +224,101 @@ export const BUILDINGS = {
     requirements: {
       roboticsFactory: 10,
       computerTech: 10
+    }
+  },
+  
+  waterExtractor: {
+    name: 'Water Extractor',
+    icon: '💧',
+    description: 'Extracts water from the planet. More effective on planets farther from the sun.',
+    baseCost: {
+      metal: 50,
+      crystal: 25,
+      deuterium: 0
+    },
+    baseTime: 25,
+    maxLevel: 50,
+    production: {
+      water: 40 // Base production per hour at level 1
+    },
+    energyConsumption: 8,
+    populationRequired: 5, // Base population requirement
+    requirements: {}
+  },
+  
+  farm: {
+    name: 'Farm',
+    icon: '🌾',
+    description: 'Grows food for your population. Requires water. More effective closer to the sun.',
+    baseCost: {
+      metal: 40,
+      crystal: 10,
+      deuterium: 0
+    },
+    baseTime: 30,
+    maxLevel: 50,
+    production: {
+      food: 30 // Base production per hour at level 1
+    },
+    waterConsumption: 10, // Water consumed per hour
+    energyConsumption: 5,
+    populationRequired: 8, // Base population requirement
+    requirements: {
+      waterExtractor: 1
+    }
+  },
+  
+  housing: {
+    name: 'Housing',
+    icon: '🏘️',
+    description: 'Provides housing for population. Each level houses more people.',
+    baseCost: {
+      metal: 30,
+      crystal: 20,
+      deuterium: 0
+    },
+    baseTime: 20,
+    maxLevel: 50,
+    housingCapacity: 10, // Base population capacity per level
+    energyConsumption: 3,
+    requirements: {}
+  },
+  
+  waterStorage: {
+    name: 'Water Storage',
+    icon: '💧',
+    description: 'Increases water storage capacity.',
+    baseCost: {
+      metal: 800,
+      crystal: 400,
+      deuterium: 0
+    },
+    baseTime: 20,
+    maxLevel: 20,
+    storage: {
+      water: 5000 // Additional storage per level
+    },
+    requirements: {
+      waterExtractor: 1
+    }
+  },
+  
+  foodSilo: {
+    name: 'Food Silo',
+    icon: '🌾',
+    description: 'Increases food storage capacity.',
+    baseCost: {
+      metal: 600,
+      crystal: 300,
+      deuterium: 0
+    },
+    baseTime: 20,
+    maxLevel: 20,
+    storage: {
+      food: 5000 // Additional storage per level
+    },
+    requirements: {
+      farm: 1
     }
   }
 };

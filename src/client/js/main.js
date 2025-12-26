@@ -14,6 +14,7 @@ import { updateResearchView } from './views/research.js';
 import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateGalaxyView } from './views/galaxy.js';
+import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 
 // State
 let currentUser = null;
@@ -197,6 +198,12 @@ function updateCurrentView() {
         case 'galaxy':
             updateGalaxyView();
             break;
+        case 'allocation':
+            renderAllocation().then(html => {
+                document.getElementById('allocation-view').innerHTML = html;
+                setupAllocationHandlers();
+            });
+            break;
     }
 }
 
@@ -228,6 +235,15 @@ window.showBuildingDetails = function(buildingKey) {
 window.closeModal = function() {
     closeBuildingModal();
 };
+
+window.showView = function(view) {
+    switchView(view);
+};
+
+// Export getCurrentPlanet for allocation view
+export function getCurrentPlanet() {
+    return gameState?.planets?.[0] || null;
+}
 
 // Start the app
 init();

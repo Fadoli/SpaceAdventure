@@ -84,6 +84,21 @@
                             <span class="resource-icon">⚡</span>
                             <span id="energy-amount">0</span>
                         </div>
+                        <div class="resource">
+                            <span class="resource-icon">💧</span>
+                            <span id="water-amount">0</span>
+                            <small>(+<span id="water-production">0</span>/h)</small>
+                        </div>
+                        <div class="resource">
+                            <span class="resource-icon">🌾</span>
+                            <span id="food-amount">0</span>
+                            <small>(+<span id="food-production">0</span>/h)</small>
+                        </div>
+                        <div class="resource">
+                            <span class="resource-icon">👥</span>
+                            <span id="population-amount">0</span>
+                            <small>/<span id="population-max">0</span></small>
+                        </div>
                     </div>
                 </div>
                 <div class="header-right">
@@ -95,6 +110,7 @@
             <nav class="game-nav">
                 <button class="nav-btn active" data-view="overview">Overview</button>
                 <button class="nav-btn" data-view="buildings">Buildings</button>
+                <button class="nav-btn" data-view="allocation">Allocation</button>
                 <button class="nav-btn" data-view="research">Research</button>
                 <button class="nav-btn" data-view="shipyard">Shipyard</button>
                 <button class="nav-btn" data-view="fleet">Fleet</button>
@@ -138,6 +154,11 @@
                     <div id="buildings-grid" class="buildings-grid">
                         <!-- Buildings will be dynamically loaded -->
                     </div>
+                </div>
+                
+                <!-- Allocation View -->
+                <div id="allocation-view" class="view">
+                    <!-- Allocation management will be dynamically loaded -->
                 </div>
                 
                 <!-- Research View -->

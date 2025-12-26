@@ -68,6 +68,22 @@ export async function updateBuildingsView(planet, onStateChange) {
                 energyInfo = `<div class="building-energy">⚡ -${formatNumber(energyDiff)}/h</div>`;
             }
             
+            // Check if building has allocation settings (production buildings)
+            const allocatableBuildings = ['metalMine', 'crystalMine', 'deuteriumSynthesizer', 'waterExtractor', 'farm'];
+            const hasAllocation = allocatableBuildings.includes(key) && building.currentLevel > 0;
+            const allocation = planet.buildingAllocations?.[key];
+            
+            let allocationBadge = '';
+            if (hasAllocation && allocation) {
+                // Calculate rough effectiveness (simplified client-side)
+                const powerEff = allocation.power <= 1.0 ? Math.sqrt(allocation.power) : 1.0 + ((allocation.power - 1.0) * 0.5 * Math.pow(0.5, allocation.power - 1.0));
+                const popEff = allocation.population <= 1.0 ? Math.sqrt(allocation.population) : 1.0 + ((allocation.population - 1.0) * 0.5 * Math.pow(0.5, allocation.population - 1.0));
+                const totalEff = powerEff * popEff;
+                const effPercent = (totalEff * 100).toFixed(0);
+                const effClass = totalEff >= 0.9 ? 'good' : totalEff >= 0.6 ? 'medium' : 'low';
+                allocationBadge = `<div class="allocation-badge ${effClass}" title="Power: ${(allocation.power * 100).toFixed(0)}%, Workers: ${(allocation.population * 100).toFixed(0)}%">⚙️ ${effPercent}% Effective</div>`;
+            }
+            
             return `
                 <div class="building-card ${building.inQueue ? 'in-queue' : ''}">
                     <div class="building-header">
@@ -75,6 +91,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                         <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
                     </div>
                     <div class="building-level">Level ${building.currentLevel}</div>
+                    ${allocationBadge}
                     <p>${building.description}</p>
                     ${building.inQueue ? `
                         <div class="building-progress">

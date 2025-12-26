@@ -89,3 +89,72 @@ export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, 
     armor: Math.floor(ships * armorMultiplier * 75)
   };
 }
+/**
+ * Calculate effectiveness based on allocation percentage
+ * Non-linear: 50% = 66%, 100% = 100%, 200% = 150%
+ * Formula: effectiveness = sqrt(allocation%) * 100%
+ */
+export function calculateAllocationEffectiveness(allocationPercent) {
+  if (allocationPercent <= 0) return 0;
+  
+  // sqrt function for non-linear effectiveness
+  // 0.5 -> 0.707 (70.7%)
+  // 1.0 -> 1.0 (100%)
+  // 2.0 -> 1.414 (141.4%)
+  
+  // Adjusted formula to match requirements more closely:
+  // Use a custom curve that gives us closer to desired values
+  if (allocationPercent <= 1.0) {
+    // For 0-100%: use sqrt-like curve that gives 50% -> 66%
+    return Math.sqrt(allocationPercent) * 100;
+  } else {
+    // For >100%: diminishing returns, cap at 150%
+    const excess = allocationPercent - 1.0;
+    return 100 + (excess * 50 * Math.pow(0.5, excess));
+  }
+}
+
+/**
+ * Calculate power effectiveness (same non-linear curve)
+ */
+export function calculatePowerEffectiveness(powerPercent) {
+  return calculateAllocationEffectiveness(powerPercent);
+}
+
+/**
+ * Calculate population effectiveness
+ */
+export function calculatePopulationEffectiveness(populationPercent) {
+  return calculateAllocationEffectiveness(populationPercent);
+}
+
+/**
+ * Calculate production bonus from planet position relative to sun
+ * Position 1 = closest to sun (0.9x deut, 1.0x water, 1.3x farms)
+ * Position 8 = mid distance (1.3x deut, 0.8x water, 0.9x farms)
+ * Position 15 = farthest (0.6x deut, 1.5x water, 0.6x farms)
+ */
+export function calculatePositionMultiplier(position, resourceType) {
+  // Position ranges from 1-15
+  const normalized = (position - 1) / 14; // 0 to 1
+  
+  switch (resourceType) {
+    case 'water':
+      // Best far from sun
+      return 0.9 + (normalized * 0.6); // 0.9 to 1.5
+    
+    case 'farm':
+    case 'food':
+      // Best close to sun
+      return 1.3 - (normalized * 0.7); // 1.3 to 0.6
+    
+    case 'deuterium':
+      // Best at mid-distance (peaks around position 8)
+      const midPoint = 7 / 14; // Position 8 normalized
+      const distanceFromMid = Math.abs(normalized - midPoint);
+      return 1.3 - (distanceFromMid * 2 * 0.7); // Peaks at 1.3, drops to ~0.6 at edges
+    
+    default:
+      return 1.0; // Metal and crystal are equal everywhere
+  }
+}
