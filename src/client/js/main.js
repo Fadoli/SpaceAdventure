@@ -79,24 +79,37 @@ function showAuthScreen() {
 async function showGameScreen() {
     document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
+    
+    // Load game state first
     await loadGameState();
     
     // Restore state from URL if available
     const urlParams = getUrlParams();
+    
     if (urlParams.planetId && gameState) {
-        currentPlanetId = urlParams.planetId;
+        const planet = gameState.planets.find(p => p.id === urlParams.planetId);
+        if (planet) {
+            currentPlanetId = urlParams.planetId;
+        } else {
+            // Planet not found, use first planet
+            currentPlanetId = gameState.planets[0]?.id;
+        }
     } else if (gameState && gameState.planets && gameState.planets.length > 0) {
         // Default to first planet
         currentPlanetId = gameState.planets[0].id;
     }
     
+    // Restore view from URL or use default
     if (urlParams.view) {
         currentView = urlParams.view;
-        switchView(currentView, false); // false = don't push to history, we're restoring
-    } else {
-        // Update URL with current state
-        updateUrlParams(currentPlanetId, currentView);
     }
+    
+    // Update UI first to ensure planet info is shown
+    updateUI();
+    
+    // Now switch to the restored/default view
+    // Use false to not push to history since we're just restoring state
+    switchView(currentView, false);
     
     startResourceUpdate();
 }
@@ -188,8 +201,11 @@ function switchView(view, updateHistory = true) {
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     
-    document.querySelector(`[data-view="${view}"]`).classList.add('active');
-    document.getElementById(`${view}-view`).classList.add('active');
+    const navBtn = document.querySelector(`[data-view="${view}"]`);
+    const viewEl = document.getElementById(`${view}-view`);
+    
+    if (navBtn) navBtn.classList.add('active');
+    if (viewEl) viewEl.classList.add('active');
     
     // Update view if needed
     if (gameState) {
@@ -230,8 +246,7 @@ function updateUI() {
     if (!planet && gameState.planets.length > 0) {
         planet = gameState.planets[0];
         currentPlanetId = planet.id;
-        // Update URL with the actual planet ID
-        updateUrlParams(currentPlanetId, currentView);
+        // Don't update URL here - it would overwrite URL params during page load
     }
     
     if (planet) {
