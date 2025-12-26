@@ -118,7 +118,7 @@ export const BUILDINGS = {
   roboticsFactory: {
     name: 'Robotics Factory',
     icon: '🤖',
-    description: 'Produces construction robots that speed up building construction.',
+    description: 'Produces construction robots that speed up building construction. Each level reduces construction time by 20%.',
     baseCost: {
       metal: 400,
       crystal: 120,

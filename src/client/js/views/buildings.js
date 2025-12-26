@@ -275,10 +275,10 @@ export async function showBuildingDetails(buildingKey) {
         const baseTime = baseTimeEstimate * Math.pow(1.5, level - 1);
         const roboticsLevel = planet?.buildings.roboticsFactory || 0;
         const naniteLevel = planet?.buildings.naniteFactory || 0;
-        const roboticsMultiplier = 1 + (roboticsLevel * 0.05);
+        const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
         const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
         const configMultiplier = 0.1;
-        const buildTime = Math.max(1, Math.floor((baseTime / (roboticsMultiplier * naniteMultiplier)) * configMultiplier));
+        const buildTime = Math.max(1, Math.floor((baseTime * roboticsMultiplier / naniteMultiplier) * configMultiplier));
         
         let production = null;
         if (building.production && Object.keys(building.production).length > 0) {
@@ -326,8 +326,22 @@ export async function showBuildingDetails(buildingKey) {
         `;
     }).join('');
     
+    // Generate special effects info for certain buildings
+    let effectsSection = '';
+    if (buildingKey === 'roboticsFactory' && currentLevel > 0) {
+        const reductionFactor = Math.pow(0.8, currentLevel);
+        const reductionPercent = ((1 - reductionFactor) * 100).toFixed(1);
+        effectsSection = `
+            <div class="building-effects">
+                <strong>⚙️ Current Effect:</strong>
+                <div>Construction time reduced to ${(reductionFactor * 100).toFixed(1)}% (${reductionPercent}% faster)</div>
+            </div>
+        `;
+    }
+    
     modalBody.innerHTML = `
         <div class="building-description">${building.description}</div>
+        ${effectsSection}
         <div class="stats-table-container">
             <table class="stats-table">
                 <thead>

@@ -2,6 +2,7 @@
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { processCompletedBuildings, updatePlanetProduction } from './buildings.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
+import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
 
 let gameLoopInterval = null;
@@ -75,12 +76,14 @@ async function gameTick() {
           const currentPopulation = planet.resources.population || 0;
           const maxPopulation = planet.maxPopulation || 0;
           const foodAvailable = planet.resources.food > 0;
+          const productionMultiplier = getResourceProductionMultiplier();
           
           planet.resources.population = calculatePopulationChange(
             currentPopulation,
             maxPopulation,
             foodAvailable,
-            hoursElapsed
+            hoursElapsed,
+            productionMultiplier
           );
           
           // Prevent negative resources

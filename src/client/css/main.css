@@ -628,6 +628,21 @@ body {
     border-left: 4px solid var(--accent-blue);
 }
 
+.building-effects {
+    color: var(--text-primary);
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-green);
+}
+
+.building-effects strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--accent-green);
+}
+
 .stats-table-container {
     overflow-x: auto;
     margin-top: 20px;

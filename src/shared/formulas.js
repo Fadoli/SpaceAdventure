@@ -16,10 +16,10 @@ export function calculateBuildingCost(baseCost, level) {
  */
 export function calculateBuildTime(baseTime, level, roboticsLevel = 0, naniteLevel = 0) {
   const time = baseTime * Math.pow(1.5, level);
-  const roboticsMultiplier = 1 + (roboticsLevel * 0.05);
+  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
   
-  return Math.floor(time / (roboticsMultiplier * naniteMultiplier));
+  return Math.floor(time * roboticsMultiplier * naniteMultiplier);
 }
 
 /**
@@ -120,14 +120,14 @@ export function calculatePopulationEffectiveness(populationPercent) {
  * Minimum: 10 population (never goes to 0)
  * Maximum: maxPopulation
  */
-export function calculatePopulationChange(currentPopulation, maxPopulation, foodAvailable, hoursElapsed) {
+export function calculatePopulationChange(currentPopulation, maxPopulation, foodAvailable, hoursElapsed, productionMultiplier = 1.0) {
   const minPopulation = 10;
   const minGrowthPerHour = 60;
   
   if (foodAvailable && currentPopulation < maxPopulation) {
     // Grow population (take max of 1% per hour or 60 per hour)
-    const percentGrowth = currentPopulation * 0.01 * hoursElapsed;
-    const flatGrowth = minGrowthPerHour * hoursElapsed;
+    const percentGrowth = currentPopulation * 0.01 * hoursElapsed * productionMultiplier;
+    const flatGrowth = minGrowthPerHour * hoursElapsed * productionMultiplier;
     const totalGrowth = Math.max(percentGrowth, flatGrowth);
     
     return Math.min(
