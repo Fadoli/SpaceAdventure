@@ -2,6 +2,9 @@
 import { getCurrentPlanet } from '../main.js';
 import { API } from '../api.js';
 
+// Track saved allocation state to avoid overwriting user input during updates
+let savedAllocations = {};
+
 /**
  * Render allocation management view
  */
@@ -139,6 +142,7 @@ export async function renderAllocation() {
       </div>
       
       <button class="btn-primary apply-allocations">Apply All Changes</button>
+      <button class="btn-secondary undo-allocations">↶ Undo Changes</button>
     </div>
   `;
   
@@ -149,6 +153,23 @@ export async function renderAllocation() {
  * Setup allocation event handlers
  */
 export function setupAllocationHandlers() {
+  const planet = getCurrentPlanet();
+  if (!planet) return;
+  
+  // Save current allocations as the baseline for undo
+  const allocatableBuildings = [
+    'metalMine',
+    'crystalMine',
+    'deuteriumSynthesizer',
+    'waterExtractor',
+    'farm'
+  ];
+  
+  for (const buildingType of allocatableBuildings) {
+    const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0 };
+    savedAllocations[buildingType] = { ...allocation };
+  }
+  
   // Update slider value displays
   document.querySelectorAll('.power-slider, .population-slider').forEach(slider => {
     slider.addEventListener('input', (e) => {
@@ -175,6 +196,14 @@ export function setupAllocationHandlers() {
   if (applyBtn) {
     applyBtn.addEventListener('click', async () => {
       await applyAllAllocations();
+    });
+  }
+  
+  // Undo changes
+  const undoBtn = document.querySelector('.undo-allocations');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', () => {
+      undoAllAllocations();
     });
   }
 }
@@ -240,6 +269,9 @@ async function applyAllAllocations() {
       });
     }
     
+    // Save these allocations as the new baseline for undo
+    savedAllocations = { ...allocations };
+    
     // Refresh the view
     window.showView('allocation');
     alert('Allocations updated successfully!');
@@ -247,6 +279,44 @@ async function applyAllAllocations() {
     console.error('Failed to update allocations:', error);
     alert('Failed to update allocations: ' + error.message);
   }
+}
+
+/**
+ * Undo allocation changes - reset to last saved state
+ */
+function undoAllAllocations() {
+  document.querySelectorAll('.allocation-item').forEach(item => {
+    const buildingType = item.dataset.building;
+    const saved = savedAllocations[buildingType];
+    
+    if (saved) {
+      const powerSlider = item.querySelector('.power-slider');
+      const populationSlider = item.querySelector('.population-slider');
+      
+      if (powerSlider) {
+        powerSlider.value = saved.power * 100;
+        const label = powerSlider.parentElement.querySelector('.value');
+        if (label) label.textContent = `${saved.power * 100}%`;
+        
+        const effectiveness = calculateEffectiveness(saved.power);
+        const small = powerSlider.parentElement.querySelector('small');
+        if (small) small.textContent = `Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+      }
+      
+      if (populationSlider) {
+        populationSlider.value = saved.population * 100;
+        const label = populationSlider.parentElement.querySelector('.value');
+        if (label) label.textContent = `${saved.population * 100}%`;
+        
+        const effectiveness = calculateEffectiveness(saved.population);
+        const small = populationSlider.parentElement.querySelector('small');
+        if (small) small.textContent = `Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+      }
+      
+      // Update combined effectiveness badge
+      updateEffectivenessBadge(buildingType);
+    }
+  });
 }
 
 /**

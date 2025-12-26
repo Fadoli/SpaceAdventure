@@ -96,22 +96,7 @@ export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, 
  */
 export function calculateAllocationEffectiveness(allocationPercent) {
   if (allocationPercent <= 0) return 0;
-  
-  // sqrt function for non-linear effectiveness
-  // 0.5 -> 0.707 (70.7%)
-  // 1.0 -> 1.0 (100%)
-  // 2.0 -> 1.414 (141.4%)
-  
-  // Adjusted formula to match requirements more closely:
-  // Use a custom curve that gives us closer to desired values
-  if (allocationPercent <= 1.0) {
-    // For 0-100%: use sqrt-like curve that gives 50% -> 66%
-    return Math.sqrt(allocationPercent) * 100;
-  } else {
-    // For >100%: diminishing returns, cap at 150%
-    const excess = allocationPercent - 1.0;
-    return 100 + (excess * 50 * Math.pow(0.5, excess));
-  }
+  return Math.sqrt(allocationPercent) * 100;
 }
 
 /**

@@ -138,7 +138,15 @@ function switchView(view) {
     
     // Update view if needed
     if (gameState) {
-        updateCurrentView();
+        // For allocation view, render it when explicitly switched
+        if (view === 'allocation') {
+            renderAllocation().then(html => {
+                document.getElementById('allocation-view').innerHTML = html;
+                setupAllocationHandlers();
+            });
+        } else {
+            updateCurrentView();
+        }
     }
 }
 
@@ -199,10 +207,8 @@ function updateCurrentView() {
             updateGalaxyView();
             break;
         case 'allocation':
-            renderAllocation().then(html => {
-                document.getElementById('allocation-view').innerHTML = html;
-                setupAllocationHandlers();
-            });
+            // Don't re-render allocation view during auto-updates to preserve user input
+            // Only re-render when user explicitly switches to this view
             break;
     }
 }
