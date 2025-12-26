@@ -1,6 +1,6 @@
 // Building allocation view - manage power and population allocation
 import { getCurrentPlanet } from '../main.js';
-import { makeRequest } from '../api.js';
+import { API } from '../api.js';
 
 /**
  * Render allocation management view
@@ -231,9 +231,12 @@ async function applyAllAllocations() {
   // Send to server
   try {
     for (const [buildingType, allocation] of Object.entries(allocations)) {
-      await makeRequest(`/api/planet/${planet.id}/building/${buildingType}/allocation`, 'POST', {
-        power: allocation.power,
-        population: allocation.population
+      await API.request(`/planet/${planet.id}/building/${buildingType}/allocation`, {
+        method: 'POST',
+        body: JSON.stringify({
+          power: allocation.power,
+          population: allocation.population
+        })
       });
     }
     

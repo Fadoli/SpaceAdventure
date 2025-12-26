@@ -268,6 +268,27 @@ async function handleRequest(req) {
       }
     }
     
+    // POST /api/planet/:planetId/building/:buildingType/allocation
+    if (path.match(/^\/api\/planet\/[^/]+\/building\/[^/]+\/allocation$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const pathParts = path.split('/');
+      const planetId = pathParts[3];
+      const buildingType = pathParts[5];
+      const body = await req.json();
+      const { power, population } = body;
+      
+      try {
+        const result = await updateBuildingAllocation(user.id, planetId, buildingType, power, population);
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
     // GET /api/game/buildings
     if (path === '/api/game/buildings' && method === 'GET') {
       const user = await requireAuth(req);
