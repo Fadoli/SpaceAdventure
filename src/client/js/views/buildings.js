@@ -1,0 +1,302 @@
+// Buildings view logic
+import { API } from '../api.js';
+import { formatNumber, formatCountdown } from '../utils.js';
+
+let currentGameState = null;
+
+/**
+ * Set the current game state (called from main)
+ */
+export function setGameState(gameState) {
+    currentGameState = gameState;
+}
+
+/**
+ * Update buildings view with planet data
+ */
+export async function updateBuildingsView(planet, onStateChange) {
+    const buildingsGrid = document.getElementById('buildings-grid');
+    
+    // Fetch building details from server (all calculations done server-side)
+    let buildingDetails;
+    try {
+        buildingDetails = await API.getBuildingDetails(planet.id);
+    } catch (error) {
+        console.error('Failed to load building details:', error);
+        buildingsGrid.innerHTML = '<p class="error">Failed to load building information</p>';
+        return;
+    }
+    
+    const { buildings, queue, maxQueueSize } = buildingDetails;
+    const queueFull = queue.length >= maxQueueSize;
+    
+    buildingsGrid.innerHTML = Object.entries(buildings)
+        .map(([key, building]) => {
+            // All data now comes from server including icon and description
+            
+            // Show production info
+            let productionInfo = '';
+            if (building.production && Object.keys(building.production).length > 0) {
+                productionInfo = '<div class="building-production">';
+                for (const [resource, amount] of Object.entries(building.production)) {
+                    const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
+                    productionInfo += `<div>${icon} +${formatNumber(amount)}/h</div>`;
+                }
+                productionInfo += '</div>';
+            }
+            
+            let energyInfo = '';
+            if (building.energyConsumption > 0) {
+                energyInfo = `<div class="building-energy">⚡ -${formatNumber(building.energyConsumption)}/h</div>`;
+            }
+            
+            return `
+                <div class="building-card ${building.inQueue ? 'in-queue' : ''}">
+                    <div class="building-header">
+                        <h3>${building.icon} ${building.name}</h3>
+                        <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
+                    </div>
+                    <div class="building-level">Level ${building.currentLevel}</div>
+                    <p>${building.description}</p>
+                    ${building.inQueue ? `
+                        <div class="building-progress">
+                            <strong>🔨 Queue Position ${building.queuePosition} - Building to Level ${building.nextLevel}...</strong>
+                            <div class="timer" data-finish="${building.queueFinishTime}"></div>
+                            ${building.queuePosition === 1 ? '<div class="building-active">⚙️ Currently Building</div>' : '<div class="building-queued">⏳ Waiting in queue</div>'}
+                            <button class="btn btn-danger btn-small" onclick="window.cancelBuilding(${building.queuePosition})">Cancel</button>
+                        </div>
+                    ` : `
+                        <div class="building-cost">
+                            <strong>Cost for level ${building.nextLevel}:</strong>
+                            <div>⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
+                            <div>💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
+                            ${building.cost.deuterium > 0 ? `<div>🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
+                        </div>
+                        <div class="building-stats">
+                            <div class="build-time">🕐 Build time: ${formatCountdown(building.buildTime)}</div>
+                            ${productionInfo}
+                            ${energyInfo}
+                        </div>
+                        <button class="btn ${building.canAfford ? 'btn-success' : ''} btn-full" 
+                                ${!building.canAfford || queueFull ? 'disabled' : ''} 
+                                onclick="window.upgradeBuilding('${key}')">
+                            ${queueFull ? 'Queue Full' : `Upgrade to Level ${building.nextLevel}`}
+                        </button>
+                    `}
+                </div>
+            `;
+        })
+        .join('');
+    
+    // Show build queue summary
+    if (queue.length > 0) {
+        const queueSummary = `
+            <div class="build-queue-summary">
+                <h3>🔨 Build Queue (${queue.length}/${maxQueueSize})</h3>
+                <div class="queue-items">
+                    ${queue.map((item, index) => {
+                        const isActive = index === 0;
+                        return `
+                            <div class="queue-item ${isActive ? 'active' : ''}">
+                                <div class="queue-item-info">
+                                    <strong>${item.queuePosition}. ${buildings[item.building]?.icon || ''} ${buildings[item.building]?.name || item.building}</strong>
+                                    <span>→ Level ${item.level}</span>
+                                </div>
+                                <div class="queue-item-time">
+                                    ${isActive ? '<span class="building-now">⚙️ Building</span>' : ''}
+                                    <span class="timer" data-finish="${item.finishTime}"></span>
+                                </div>
+                                <button class="btn-cancel" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">❌</button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+        buildingsGrid.insertAdjacentHTML('afterbegin', queueSummary);
+    }
+    
+    // Update timers
+    updateTimers();
+}
+
+/**
+ * Update countdown timers
+ */
+export function updateTimers() {
+    document.querySelectorAll('.timer').forEach(timer => {
+        const finishTime = parseInt(timer.dataset.finish);
+        const remaining = Math.max(0, finishTime - Date.now());
+        timer.textContent = formatCountdown(remaining / 1000);
+        
+        if (remaining === 0) {
+            timer.textContent = 'Complete!';
+        }
+    });
+}
+
+/**
+ * Upgrade building (exposed globally)
+ */
+export async function upgradeBuilding(buildingKey, onStateChange) {
+    if (!currentGameState || !currentGameState.planets[0]) return;
+    
+    const planet = currentGameState.planets[0];
+    
+    try {
+        await API.upgradeBuilding(planet.id, buildingKey);
+        if (onStateChange) await onStateChange();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+/**
+ * Cancel building (exposed globally)
+ */
+export async function cancelBuilding(queuePosition, onStateChange) {
+    if (!currentGameState || !currentGameState.planets[0]) return;
+    
+    const planet = currentGameState.planets[0];
+    
+    if (confirm(`Cancel building at queue position ${queuePosition}? You will get 50% resources back.`)) {
+        try {
+            await API.cancelBuilding(planet.id, queuePosition);
+            if (onStateChange) await onStateChange();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+}
+
+/**
+ * Show building details modal
+ */
+export async function showBuildingDetails(buildingKey) {
+    const planet = currentGameState?.planets[0];
+    
+    if (!planet) return;
+    
+    // Fetch detailed stats from server
+    let buildingDetails;
+    try {
+        buildingDetails = await API.getBuildingDetails(planet.id);
+    } catch (error) {
+        console.error('Failed to load building details:', error);
+        return;
+    }
+    
+    const building = buildingDetails.buildings[buildingKey];
+    const currentLevel = building.currentLevel;
+    
+    const modal = document.getElementById('building-details-modal');
+    const modalTitle = document.getElementById('modal-building-title');
+    const modalBody = document.getElementById('modal-building-body');
+    
+    modalTitle.innerHTML = `${building.icon} ${building.name} <span class="current-level">(Current: Level ${currentLevel})</span>`;
+    
+    // For the table, we still need to calculate future levels
+    // This could be optimized by having the server provide this data too
+    const levels = [];
+    
+    // Estimate base costs from current level costs
+    const baseCostEstimate = {
+        metal: Math.round(building.cost.metal / (Math.pow(1.5, building.nextLevel) * 0.5)),
+        crystal: Math.round(building.cost.crystal / (Math.pow(1.5, building.nextLevel) * 0.5)),
+        deuterium: Math.round(building.cost.deuterium / (Math.pow(1.5, building.nextLevel) * 0.5))
+    };
+    
+    for (let level = 1; level <= Math.min(currentLevel + 10, 30); level++) {
+        const multiplier = Math.pow(1.5, level);
+        const costMultiplier = 0.5;
+        const cost = {
+            metal: Math.floor(baseCostEstimate.metal * multiplier * costMultiplier),
+            crystal: Math.floor(baseCostEstimate.crystal * multiplier * costMultiplier),
+            deuterium: Math.floor(baseCostEstimate.deuterium * multiplier * costMultiplier)
+        };
+        
+        // Use the building.buildTime as a reference point
+        const baseTimeEstimate = building.buildTime / (Math.pow(1.5, building.nextLevel - 1) * 0.1);
+        const baseTime = baseTimeEstimate * Math.pow(1.5, level - 1);
+        const roboticsLevel = planet?.buildings.roboticsFactory || 0;
+        const naniteLevel = planet?.buildings.naniteFactory || 0;
+        const roboticsMultiplier = 1 + (roboticsLevel * 0.05);
+        const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
+        const configMultiplier = 0.1;
+        const buildTime = Math.max(1, Math.floor((baseTime / (roboticsMultiplier * naniteMultiplier)) * configMultiplier));
+        
+        let production = null;
+        if (building.production && Object.keys(building.production).length > 0) {
+            production = {};
+            const productionMultiplier = 10.0;
+            for (const [resource, currentAmount] of Object.entries(building.production)) {
+                // Estimate base amount from next level's production
+                const baseAmount = currentAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * productionMultiplier);
+                production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
+            }
+        }
+        
+        let energyConsumption = 0;
+        if (building.energyConsumption > 0) {
+            const energyMultiplier = 10.0;
+            const baseEnergy = building.energyConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * energyMultiplier);
+            energyConsumption = Math.floor(baseEnergy * level * Math.pow(1.1, level) * energyMultiplier);
+        }
+        
+        levels.push({ level, cost, buildTime, production, energyConsumption });
+    }
+    
+    let tableRows = levels.map(l => {
+        const isCurrent = l.level === currentLevel;
+        let productionCells = '';
+        if (l.production) {
+            for (const [resource, amount] of Object.entries(l.production)) {
+                const icon = resource === 'metal' ? '⚙️' : resource === 'crystal' ? '💎' : resource === 'deuterium' ? '🛢️' : '⚡';
+                productionCells += `<div>${icon}+${formatNumber(amount)}/h</div>`;
+            }
+        } else {
+            productionCells = '-';
+        }
+        
+        const energyCell = l.energyConsumption > 0 ? `⚡-${formatNumber(l.energyConsumption)}/h` : '-';
+        
+        return `
+            <tr class="${isCurrent ? 'current-level-row' : ''}">
+                <td>${l.level}${isCurrent ? ' ⭐' : ''}</td>
+                <td>⚙️${formatNumber(l.cost.metal)}<br>💎${formatNumber(l.cost.crystal)}${l.cost.deuterium > 0 ? `<br>🛢️${formatNumber(l.cost.deuterium)}` : ''}</td>
+                <td>${formatCountdown(l.buildTime)}</td>
+                <td>${productionCells}</td>
+                <td>${energyCell}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    modalBody.innerHTML = `
+        <div class="building-description">${buildingData.desc}</div>
+        <div class="stats-table-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Cost</th>
+                        <th>Build Time</th>
+                        <th>Production</th>
+                        <th>Energy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+/**
+ * Close modal
+ */
+export function closeModal() {
+    document.getElementById('building-details-modal').style.display = 'none';
+}

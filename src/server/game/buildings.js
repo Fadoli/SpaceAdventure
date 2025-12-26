@@ -44,11 +44,6 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
     throw new Error(`Build queue is full (max ${maxQueueSize})`);
   }
   
-  // Check if this specific building is already in queue
-  if (planet.buildQueue && planet.buildQueue.some(item => item.building === buildingType)) {
-    throw new Error('This building is already in the queue');
-  }
-  
   // Check requirements
   if (!checkRequirements(buildingType, planet.buildings, player.research)) {
     throw new Error('Requirements not met');

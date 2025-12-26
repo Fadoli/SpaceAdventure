@@ -71,5 +71,9 @@ export const API = {
     
     async getBuildings() {
         return await this.request('/game/buildings');
+    },
+    
+    async getBuildingDetails(planetId) {
+        return await this.request(`/game/planet/${planetId}/buildings-details`);
     }
 };

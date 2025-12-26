@@ -10,8 +10,8 @@ import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js';
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings } from './game/buildings.js';
 import { startGameLoop } from './game/gameLoop.js';
-import { BUILDINGS } from '../shared/buildings.js';
-import { loadConfig } from './config.js';
+import { BUILDINGS, getBuildingCost, getBuildTime, getProduction } from '../shared/buildings.js';
+import { loadConfig, getBuildQueueSize } from './config.js';
 
 // Load configuration
 await loadConfig();
@@ -286,6 +286,83 @@ async function handleRequest(req) {
       }
       
       return successResponse(buildingInfo);
+    }
+    
+    // GET /api/game/planet/:planetId/buildings-details
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/buildings-details$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      // Calculate building details for each building type
+      const buildingsDetails = {};
+      const maxQueueSize = getBuildQueueSize();
+      
+      for (const [buildingType, buildingDef] of Object.entries(BUILDINGS)) {
+        const currentLevel = planet.buildings[buildingType] || 0;
+        const nextLevel = currentLevel + 1;
+        
+        // Calculate cost for next level
+        const cost = getBuildingCost(buildingType, nextLevel);
+        
+        // Calculate build time
+        const roboticsLevel = planet.buildings.roboticsFactory || 0;
+        const naniteLevel = planet.buildings.naniteFactory || 0;
+        const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel);
+        
+        // Calculate production for next level
+        const production = getProduction(buildingType, nextLevel);
+        
+        // Calculate energy consumption for next level
+        let energyConsumption = 0;
+        if (buildingDef.energyConsumption) {
+          const productionMultiplier = 10.0; // From config
+          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier);
+        }
+        
+        // Check if in queue
+        const queueItem = planet.buildQueue?.find(item => item.building === buildingType);
+        
+        // Check if can afford
+        const canAfford = planet.resources.metal >= cost.metal &&
+                         planet.resources.crystal >= cost.crystal &&
+                         planet.resources.deuterium >= cost.deuterium;
+        
+        buildingsDetails[buildingType] = {
+          name: buildingDef.name,
+          description: buildingDef.description,
+          icon: buildingDef.icon || '',
+          currentLevel,
+          nextLevel,
+          maxLevel: buildingDef.maxLevel,
+          cost,
+          buildTime,
+          production,
+          energyConsumption,
+          canAfford,
+          inQueue: !!queueItem,
+          queuePosition: queueItem?.queuePosition,
+          queueFinishTime: queueItem?.finishTime
+        };
+      }
+      
+      return successResponse({
+        buildings: buildingsDetails,
+        queue: planet.buildQueue || [],
+        maxQueueSize
+      });
     }
     
     // 404 for unknown API routes

@@ -20,6 +20,7 @@ export const BUILDING_TYPES = {
 export const BUILDINGS = {
   metalMine: {
     name: 'Metal Mine',
+    icon: '⚙️',
     description: 'Extracts metal from the planet. Each level increases production.',
     baseCost: {
       metal: 60,
@@ -37,6 +38,7 @@ export const BUILDINGS = {
   
   crystalMine: {
     name: 'Crystal Mine',
+    icon: '💎',
     description: 'Mines crystal from the planet. Each level increases production.',
     baseCost: {
       metal: 48,
@@ -54,6 +56,7 @@ export const BUILDINGS = {
   
   deuteriumSynthesizer: {
     name: 'Deuterium Synthesizer',
+    icon: '🛢️',
     description: 'Synthesizes deuterium from heavy water. Each level increases production.',
     baseCost: {
       metal: 225,
@@ -71,6 +74,7 @@ export const BUILDINGS = {
   
   solarPlant: {
     name: 'Solar Plant',
+    icon: '⚡',
     description: 'Provides energy through solar panels. Required to power other buildings.',
     baseCost: {
       metal: 75,
@@ -87,6 +91,7 @@ export const BUILDINGS = {
   
   fusionReactor: {
     name: 'Fusion Reactor',
+    icon: '⚛️',
     description: 'Advanced energy production through nuclear fusion. Consumes deuterium.',
     baseCost: {
       metal: 900,
@@ -107,6 +112,7 @@ export const BUILDINGS = {
   
   roboticsFactory: {
     name: 'Robotics Factory',
+    icon: '🤖',
     description: 'Produces construction robots that speed up building construction.',
     baseCost: {
       metal: 400,
@@ -120,6 +126,7 @@ export const BUILDINGS = {
   
   shipyard: {
     name: 'Shipyard',
+    icon: '🚀',
     description: 'Constructs ships and defenses for your empire.',
     baseCost: {
       metal: 400,
@@ -135,6 +142,7 @@ export const BUILDINGS = {
   
   researchLab: {
     name: 'Research Lab',
+    icon: '🔬',
     description: 'Enables research of new technologies. Higher levels unlock advanced research.',
     baseCost: {
       metal: 200,
@@ -148,6 +156,7 @@ export const BUILDINGS = {
   
   metalStorage: {
     name: 'Metal Storage',
+    icon: '📦',
     description: 'Increases metal storage capacity.',
     baseCost: {
       metal: 1000,
@@ -164,6 +173,7 @@ export const BUILDINGS = {
   
   crystalStorage: {
     name: 'Crystal Storage',
+    icon: '📦',
     description: 'Increases crystal storage capacity.',
     baseCost: {
       metal: 1000,
@@ -180,6 +190,7 @@ export const BUILDINGS = {
   
   deuteriumTank: {
     name: 'Deuterium Tank',
+    icon: '🛢️',
     description: 'Increases deuterium storage capacity.',
     baseCost: {
       metal: 1000,
@@ -196,6 +207,7 @@ export const BUILDINGS = {
   
   naniteFactory: {
     name: 'Nanite Factory',
+    icon: '🔧',
     description: 'Produces nanomachines that dramatically speed up construction.',
     baseCost: {
       metal: 1000000,
