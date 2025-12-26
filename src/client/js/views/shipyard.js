@@ -5,6 +5,7 @@ import { RESOURCE_ICONS } from '../../../shared/constants.js';
 
 let currentShipyardData = null;
 let currentPlanetId = null;
+let collapsedSections = {}; // Track collapsed state
 
 /**
  * Update shipyard view with planet data
@@ -24,7 +25,7 @@ export async function updateShipyardView(planet) {
             <div class="shipyard-header">
                 <h3>⚙️ Shipyard Level ${shipyardLevel}</h3>
                 ${shipyardLevel < 12 ? `
-                    <p>Upgrade to Level ${shipyardLevel + 1} to improve production speed</p>
+                    <p>Upgrade to Level ${shipyardLevel + 1} to improve production speed and unlock ships</p>
                 ` : '<p>Maximum level reached</p>'}
             </div>
         `;
@@ -57,14 +58,14 @@ export async function updateShipyardView(planet) {
 }
 
 /**
- * Render ships list
+ * Render ships list with foldable categories
  */
 function renderShipsList(planet, shipyardData) {
-    const { ships, availableShips } = shipyardData;
+    const { ships, availableShips, shipyardLevel } = shipyardData;
     
     const shipCategories = {
-        civilian: { label: '📦 Civilian Ships', ships: {} },
-        military: { label: '⚔️ Military Ships', ships: {} }
+        civilian: { label: '📦 Civilian Ships', minLevel: 1, ships: {} },
+        military: { label: '⚔️ Military Ships', minLevel: 2, ships: {} }
     };
     
     // Organize ships by category
@@ -81,49 +82,64 @@ function renderShipsList(planet, shipyardData) {
     for (const [category, data] of Object.entries(shipCategories)) {
         if (Object.keys(data.ships).length === 0) continue;
         
-        html += `<div class="ships-category">
-            <h4>${data.label}</h4>
-            <div class="ships-grid">`;
+        const isCollapsed = collapsedSections[`ships-${category}`] || false;
+        const isLocked = shipyardLevel < data.minLevel;
         
-        for (const [shipKey, ship] of Object.entries(data.ships)) {
-            const count = ships[shipKey] || 0;
-            const cost = calculateShipCost(shipKey, 1, shipyardData.shipyardLevel);
-            const buildTime = calculateShipBuildTime(shipKey, 1, shipyardData.shipyardLevel);
-            
-            const canBuild = planet.resources.metal >= cost.metal &&
-                           planet.resources.crystal >= cost.crystal &&
-                           planet.resources.deuterium >= cost.deuterium;
-            
-            html += `
-                <div class="ship-card">
-                    <div class="ship-header">
-                        <h5>${ship.icon} ${ship.name}</h5>
-                        <span class="ship-count">${count}</span>
+        html += `<div class="ships-category">
+            <div class="category-header" onclick="window.toggleCategory('ships-${category}')">
+                <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+                <h4>${data.label}</h4>
+                ${isLocked ? `<span class="lock-icon">🔒 Requires Level ${data.minLevel}</span>` : ''}
+            </div>`;
+        
+        if (!isCollapsed) {
+            html += '<div class="ships-grid">';
+            for (const [shipKey, ship] of Object.entries(data.ships)) {
+                const count = ships[shipKey] || 0;
+                const cost = calculateShipCost(shipKey, 1, shipyardLevel);
+                const buildTime = calculateShipBuildTime(shipKey, 1, shipyardLevel);
+                
+                const canBuild = !isLocked &&
+                               planet.resources.metal >= cost.metal &&
+                               planet.resources.crystal >= cost.crystal &&
+                               planet.resources.deuterium >= cost.deuterium;
+                
+                html += `
+                    <div class="ship-card ${isLocked ? 'locked' : ''}">
+                        <div class="ship-header">
+                            <h5>${ship.icon} ${ship.name}</h5>
+                            <span class="ship-count">${count}</span>
+                        </div>
+                        <p class="ship-description">${ship.description}</p>
+                        <div class="ship-stats">
+                            <div>⚔️ Attack: ${ship.attack}</div>
+                            <div>🛡️ Shield: ${ship.shield}</div>
+                            <div>❤️ Hull: ${ship.hull}</div>
+                            ${ship.cargoCapacity > 0 ? `<div>📦 Cargo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
+                        </div>
+                        <div class="ship-cost">
+                            <div>⚙️${formatNumber(cost.metal)}</div>
+                            <div>💎${formatNumber(cost.crystal)}</div>
+                            ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+                        </div>
+                        <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
+                        ${isLocked ? `
+                            <div class="locked-message">🔒 Unlock at Shipyard Level ${data.minLevel}</div>
+                        ` : `
+                            <input type="number" class="ship-quantity" id="qty-${shipKey}" value="1" min="1" max="100">
+                            <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                                    ${!canBuild ? 'disabled' : ''} 
+                                    onclick="window.buildShip('${shipKey}')">
+                                Build
+                            </button>
+                        `}
                     </div>
-                    <p class="ship-description">${ship.description}</p>
-                    <div class="ship-stats">
-                        <div>⚔️ Attack: ${ship.attack}</div>
-                        <div>🛡️ Shield: ${ship.shield}</div>
-                        <div>❤️ Hull: ${ship.hull}</div>
-                        ${ship.cargoCapacity > 0 ? `<div>📦 Cargo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
-                    </div>
-                    <div class="ship-cost">
-                        <div>⚙️${formatNumber(cost.metal)}</div>
-                        <div>💎${formatNumber(cost.crystal)}</div>
-                        ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
-                    </div>
-                    <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
-                    <input type="number" class="ship-quantity" id="qty-${shipKey}" value="1" min="1" max="100">
-                    <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                            ${!canBuild ? 'disabled' : ''} 
-                            onclick="window.buildShip('${shipKey}')">
-                        Build
-                    </button>
-                </div>
-            `;
+                `;
+            }
+            html += '</div>';
         }
         
-        html += '</div></div>';
+        html += '</div>';
     }
     
     html += '</div>';
@@ -131,53 +147,71 @@ function renderShipsList(planet, shipyardData) {
 }
 
 /**
- * Render defenses list
+ * Render defenses list with foldable section
  */
 function renderDefensesList(planet, shipyardData) {
-    const { defenses, availableDefenses } = shipyardData;
+    const { defenses, availableDefenses, shipyardLevel } = shipyardData;
+    
+    const minLevel = 1;
+    const isCollapsed = collapsedSections['defenses'] || false;
+    const isLocked = shipyardLevel < minLevel;
     
     let html = '<div class="shipyard-section">';
-    html += '<h3>🛡️ Planetary Defenses</h3>';
-    html += '<div class="defenses-grid">';
+    html += `<div class="category-header" onclick="window.toggleCategory('defenses')">
+        <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+        <h3>🛡️ Planetary Defenses</h3>
+        ${isLocked ? `<span class="lock-icon">🔒 Requires Level ${minLevel}</span>` : ''}
+    </div>`;
     
-    for (const [defenseKey, defense] of Object.entries(availableDefenses)) {
-        const count = defenses[defenseKey] || 0;
-        const cost = calculateDefenseCost(defenseKey, 1);
-        const buildTime = calculateDefenseBuildTime(defenseKey, 1);
+    if (!isCollapsed) {
+        html += '<div class="defenses-grid">';
         
-        const canBuild = planet.resources.metal >= cost.metal &&
-                       planet.resources.crystal >= cost.crystal &&
-                       planet.resources.deuterium >= cost.deuterium;
+        for (const [defenseKey, defense] of Object.entries(availableDefenses)) {
+            const count = defenses[defenseKey] || 0;
+            const cost = calculateDefenseCost(defenseKey, 1);
+            const buildTime = calculateDefenseBuildTime(defenseKey, 1);
+            
+            const canBuild = !isLocked &&
+                           planet.resources.metal >= cost.metal &&
+                           planet.resources.crystal >= cost.crystal &&
+                           planet.resources.deuterium >= cost.deuterium;
+            
+            html += `
+                <div class="defense-card ${isLocked ? 'locked' : ''}">
+                    <div class="defense-header">
+                        <h5>${defense.icon} ${defense.name}</h5>
+                        <span class="defense-count">${count}</span>
+                    </div>
+                    <p class="defense-description">${defense.description}</p>
+                    <div class="defense-stats">
+                        <div>⚔️ Attack: ${defense.attack}</div>
+                        <div>🛡️ Shield: ${defense.shield}</div>
+                        <div>❤️ Hull: ${defense.hull}</div>
+                    </div>
+                    <div class="defense-cost">
+                        <div>⚙️${formatNumber(cost.metal)}</div>
+                        <div>💎${formatNumber(cost.crystal)}</div>
+                        ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+                    </div>
+                    <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
+                    ${isLocked ? `
+                        <div class="locked-message">🔒 Unlock at Shipyard Level ${minLevel}</div>
+                    ` : `
+                        <input type="number" class="defense-quantity" id="qty-${defenseKey}" value="1" min="1" max="100">
+                        <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                                ${!canBuild ? 'disabled' : ''} 
+                                onclick="window.buildDefense('${defenseKey}')">
+                            Build
+                        </button>
+                    `}
+                </div>
+            `;
+        }
         
-        html += `
-            <div class="defense-card">
-                <div class="defense-header">
-                    <h5>${defense.icon} ${defense.name}</h5>
-                    <span class="defense-count">${count}</span>
-                </div>
-                <p class="defense-description">${defense.description}</p>
-                <div class="defense-stats">
-                    <div>⚔️ Attack: ${defense.attack}</div>
-                    <div>🛡️ Shield: ${defense.shield}</div>
-                    <div>❤️ Hull: ${defense.hull}</div>
-                </div>
-                <div class="defense-cost">
-                    <div>⚙️${formatNumber(cost.metal)}</div>
-                    <div>💎${formatNumber(cost.crystal)}</div>
-                    ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
-                </div>
-                <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
-                <input type="number" class="defense-quantity" id="qty-${defenseKey}" value="1" min="1" max="100">
-                <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                        ${!canBuild ? 'disabled' : ''} 
-                        onclick="window.buildDefense('${defenseKey}')">
-                    Build
-                </button>
-            </div>
-        `;
+        html += '</div>';
     }
     
-    html += '</div></div>';
+    html += '</div>';
     return html;
 }
 
@@ -189,53 +223,63 @@ function renderBuildQueue(shipyardData) {
     const availableShips = shipyardData.availableShips || {};
     const availableDefenses = shipyardData.availableDefenses || {};
     
+    const isCollapsed = collapsedSections['queue'] || false;
+    
     if (allQueue.length === 0) {
         return '<div class="shipyard-section"><p>No items in build queue</p></div>';
     }
     
     let html = '<div class="shipyard-section">';
-    html += '<h3>📋 Build Queue</h3>';
-    html += '<div class="queue-items">';
+    html += `<div class="category-header" onclick="window.toggleCategory('queue')">
+        <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+        <h3>📋 Build Queue</h3>
+    </div>`;
     
-    for (const item of allQueue) {
-        const isActive = item.queuePosition === 1;
-        const timeRemaining = Math.max(0, item.timeRemaining || 0) / 1000; // Convert to seconds
+    if (!isCollapsed) {
+        html += '<div class="queue-items">';
         
-        let itemName = '';
-        let itemDetails = '';
-        
-        if (item.ships && Object.keys(item.ships).length > 0) {
-            itemDetails = Object.entries(item.ships)
-                .map(([key, qty]) => `${qty}x ${availableShips[key]?.name || key}`)
-                .join(', ');
-        }
-        
-        if (item.defenses && Object.keys(item.defenses).length > 0) {
-            itemDetails = Object.entries(item.defenses)
-                .map(([key, qty]) => `${qty}x ${availableDefenses[key]?.name || key}`)
-                .join(', ');
-        }
-        
-        html += `
-            <div class="queue-item ${isActive ? 'active' : ''}">
-                <div class="queue-position">${item.queuePosition}</div>
-                <div class="queue-content">
-                    <div class="queue-name">${itemDetails}</div>
-                    <div class="queue-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
+        for (const item of allQueue) {
+            const isActive = item.queuePosition === 1;
+            const timeRemaining = Math.max(0, item.timeRemaining || 0) / 1000; // Convert to seconds
+            
+            let itemName = '';
+            let itemDetails = '';
+            
+            if (item.ships && Object.keys(item.ships).length > 0) {
+                itemDetails = Object.entries(item.ships)
+                    .map(([key, qty]) => `${qty}x ${availableShips[key]?.name || key}`)
+                    .join(', ');
+            }
+            
+            if (item.defenses && Object.keys(item.defenses).length > 0) {
+                itemDetails = Object.entries(item.defenses)
+                    .map(([key, qty]) => `${qty}x ${availableDefenses[key]?.name || key}`)
+                    .join(', ');
+            }
+            
+            html += `
+                <div class="queue-item ${isActive ? 'active' : ''}">
+                    <div class="queue-position">${item.queuePosition}</div>
+                    <div class="queue-content">
+                        <div class="queue-name">${itemDetails}</div>
+                        <div class="queue-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
+                            </div>
                         </div>
                     </div>
+                    <div class="queue-time">
+                        ${isActive ? `⏳ ${formatCountdown(timeRemaining)}` : '⏳ Waiting'}
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>
                 </div>
-                <div class="queue-time">
-                    ${isActive ? `⏳ ${formatCountdown(timeRemaining)}` : '⏳ Waiting'}
-                </div>
-                <button class="btn btn-danger btn-sm" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>
-            </div>
-        `;
+            `;
+        }
+        
+        html += '</div>';
     }
     
-    html += '</div></div>';
+    html += '</div>';
     return html;
 }
 
@@ -281,6 +325,11 @@ function attachShipyardListeners(planet, shipyardData) {
         } catch (error) {
             alert(`Failed to cancel build: ${error.message}`);
         }
+    };
+    
+    window.toggleCategory = function(categoryId) {
+        collapsedSections[categoryId] = !collapsedSections[categoryId];
+        updateShipyardView(planet);
     };
 }
 
