@@ -9,8 +9,11 @@ import {
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js';
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease } from './game/buildings.js';
+import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS } from '../shared/buildings.js';
+import { SHIPS } from '../shared/ships.js';
+import { DEFENSES } from '../shared/defenses.js';
 import { loadConfig, getBuildQueueSize } from './config.js';
 
 // Load configuration
@@ -435,6 +438,207 @@ async function handleRequest(req) {
       } catch (error) {
         return errorResponse(error.message, 400);
       }
+    }
+    
+    // GET /api/game/planet/:planetId/shipyard
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      // Process any completed production
+      processCompletedProduction(planet);
+      
+      const shipyardDetails = getShipyardDetails(planet);
+      
+      // Add available ships and defenses to the response
+      const ships = {};
+      const defenses = {};
+      
+      for (const [shipKey, ship] of Object.entries(SHIPS)) {
+        ships[shipKey] = {
+          name: ship.name,
+          icon: ship.icon,
+          type: ship.type,
+          description: ship.description,
+          attack: ship.attack,
+          shield: ship.shield,
+          hull: ship.hull,
+          cargoCapacity: ship.cargoCapacity,
+          baseCost: ship.baseCost,
+          buildTime: ship.buildTime
+        };
+      }
+      
+      for (const [defenseKey, defense] of Object.entries(DEFENSES)) {
+        defenses[defenseKey] = {
+          name: defense.name,
+          icon: defense.icon,
+          description: defense.description,
+          attack: defense.attack,
+          shield: defense.shield,
+          hull: defense.hull,
+          baseCost: defense.baseCost,
+          buildTime: defense.buildTime
+        };
+      }
+      
+      return successResponse({
+        ...shipyardDetails,
+        availableShips: ships,
+        availableDefenses: defenses
+      });
+    }
+    
+    // POST /api/game/planet/:planetId/shipyard/ships
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard\/ships$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      const body = await req.json();
+      const { ships } = body;
+      
+      try {
+        const shipyardLevel = planet.buildings?.shipyard || 0;
+        const roboticsLevel = planet.buildings?.roboticsFactory || 0;
+        const naniteLevel = planet.buildings?.naniteFactory || 0;
+        
+        const result = buildShips(planet, ships, shipyardLevel, roboticsLevel, naniteLevel);
+        
+        // Save player
+        await updatePlayer(player);
+        
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
+    // POST /api/game/planet/:planetId/shipyard/defenses
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard\/defenses$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      const body = await req.json();
+      const { defenses } = body;
+      
+      try {
+        const roboticsLevel = planet.buildings?.roboticsFactory || 0;
+        const naniteLevel = planet.buildings?.naniteFactory || 0;
+        
+        const result = buildDefenses(planet, defenses, roboticsLevel, naniteLevel);
+        
+        // Save player
+        await updatePlayer(player);
+        
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
+    // DELETE /api/game/planet/:planetId/shipyard/:queueId
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard\/[^\/]+$/) && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const parts = path.split('/');
+      const planetId = parts[4];
+      const queueId = parts[6];
+      const body = await req.json().catch(() => ({}));
+      const type = body.type || 'ships';
+      
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      try {
+        const result = cancelProduction(planet, queueId, type);
+        
+        if (!result) {
+          return errorResponse('Queue item not found', 404);
+        }
+        
+        // Save player
+        await updatePlayer(player);
+        
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
+    // GET /api/game/planet/:planetId/fleet
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/fleet$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      // Process any completed production
+      processCompletedProduction(planet);
+      
+      return successResponse({
+        ships: planet.ships || {},
+        defenses: planet.defenses || {}
+      });
     }
     
     // 404 for unknown API routes

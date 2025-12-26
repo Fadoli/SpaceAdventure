@@ -962,6 +962,308 @@ body {
     margin-bottom: 8px;
 }
 
+/* Shipyard View */
+.shipyard-header {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.shipyard-header h3 {
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+}
+
+.shipyard-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.shipyard-section {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.shipyard-section h3 {
+    color: var(--accent-blue);
+    margin-bottom: 15px;
+}
+
+.shipyard-section h4 {
+    color: var(--text-primary);
+    margin: 15px 0 10px;
+    font-size: 1.1rem;
+}
+
+.ships-category {
+    margin-bottom: 20px;
+}
+
+.ships-grid,
+.defenses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.ship-card,
+.defense-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ship-header,
+.defense-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.ship-header h5,
+.defense-header h5 {
+    margin: 0;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.ship-count,
+.defense-count {
+    background: var(--accent-blue);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.ship-description,
+.defense-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 5px 0;
+}
+
+.ship-stats,
+.defense-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.ship-cost,
+.defense-cost {
+    display: flex;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+
+.ship-cost div,
+.defense-cost div {
+    background: var(--bg-primary);
+    padding: 5px 8px;
+    border-radius: 4px;
+    flex: 1;
+    text-align: center;
+}
+
+.build-time {
+    font-size: 0.9rem;
+    color: var(--accent-yellow);
+    font-weight: bold;
+}
+
+.ship-quantity,
+.defense-quantity {
+    padding: 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Build Queue */
+.queue-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.queue-item {
+    background: var(--bg-tertiary);
+    border-left: 4px solid var(--border-color);
+    padding: 12px;
+    border-radius: 6px;
+    display: grid;
+    grid-template-columns: 40px 1fr 120px 40px;
+    gap: 12px;
+    align-items: center;
+}
+
+.queue-item.active {
+    border-left-color: var(--accent-green);
+    background: rgba(92, 184, 92, 0.1);
+}
+
+.queue-position {
+    background: var(--accent-blue);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.queue-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.queue-name {
+    color: var(--text-primary);
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.queue-progress {
+    width: 100%;
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+    transition: width 0.3s ease;
+}
+
+.queue-time {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* Fleet View */
+.fleet-summary {
+    margin-bottom: 20px;
+}
+
+.fleet-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-card span {
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    color: var(--accent-blue);
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.fleets-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.fleet-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.fleet-card h3 {
+    color: var(--accent-blue);
+    margin: 0 0 15px 0;
+}
+
+.fleet-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.fleet-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fleet-section h4 {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 1rem;
+}
+
+.ship-list,
+.defense-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fleet-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.fleet-item-name {
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.fleet-item-count {
+    color: var(--accent-green);
+    font-weight: bold;
+    font-size: 1.1rem;
+    min-width: 80px;
+    text-align: right;
+}
+
 .allocation-badge.good {
     background: var(--accent-green);
     color: white;

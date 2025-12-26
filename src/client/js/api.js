@@ -75,5 +75,34 @@ export const API = {
     
     async getBuildingDetails(planetId) {
         return await this.request(`/game/planet/${planetId}/buildings-details`);
+    },
+    
+    async getShipyardDetails(planetId) {
+        return await this.request(`/game/planet/${planetId}/shipyard`);
+    },
+    
+    async buildShips(planetId, ships) {
+        return await this.request(`/game/planet/${planetId}/shipyard/ships`, {
+            method: 'POST',
+            body: JSON.stringify({ ships })
+        });
+    },
+    
+    async buildDefenses(planetId, defenses) {
+        return await this.request(`/game/planet/${planetId}/shipyard/defenses`, {
+            method: 'POST',
+            body: JSON.stringify({ defenses })
+        });
+    },
+    
+    async cancelShipyardProduction(planetId, queueId) {
+        return await this.request(`/game/planet/${planetId}/shipyard/${queueId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ type: 'ships' })
+        });
+    },
+    
+    async getFleetDetails(planetId) {
+        return await this.request(`/game/planet/${planetId}/fleet`);
     }
 };
