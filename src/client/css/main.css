@@ -839,6 +839,35 @@ body {
     color: white;
 }
 
+.limiting-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    cursor: help;
+    display: inline-block;
+}
+
+.limiting-badge.limiting-power {
+    background: rgba(240, 173, 78, 0.2);
+    border-color: var(--energy-color);
+    color: var(--energy-color);
+}
+
+.limiting-badge.limiting-population {
+    background: rgba(76, 110, 245, 0.2);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.limiting-badge.limiting-balanced {
+    background: rgba(92, 184, 92, 0.2);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
 .allocation-controls {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

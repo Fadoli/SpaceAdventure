@@ -3,6 +3,10 @@ import {
   BUILDINGS,
   checkRequirements
 } from '../../shared/buildings.js';
+import {
+  getBuildingEnergyConsumption,
+  getBuildingPopulationRequired
+} from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { 
   getBuildQueueSize, 
@@ -334,7 +338,7 @@ function calculateTotalEnergyProduction(planet) {
  * Apply priority-based allocation when resources are scarce
  * Returns actual allocations based on available resources and priorities
  */
-function applyPriorityBasedAllocation(planet, availablePopulation, availableEnergy) {
+async function applyPriorityBasedAllocation(planet, availablePopulation, availableEnergy) {
   // Initialize actual allocations object
   const actualAllocations = {};
   
@@ -354,17 +358,14 @@ function applyPriorityBasedAllocation(planet, availablePopulation, availableEner
       priority: 3
     };
     
-    // Calculate base demands using DESIRED allocation
+    // Calculate base demands using DESIRED allocation and shared functions
     let energyDemand = 0;
-    if (building.energyConsumption) {
-      const energyMultiplier = getResourceProductionMultiplier();
-      energyDemand = Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier * desiredAllocation.power);
-    }
+    const baseEnergyConsumption = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
+    energyDemand = baseEnergyConsumption * desiredAllocation.power;
     
     let populationDemand = 0;
-    if (building.populationRequired) {
-      populationDemand = Math.floor(building.populationRequired * level * Math.pow(1.05, level) * desiredAllocation.population);
-    }
+    const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
+    populationDemand = basePopulationRequired * desiredAllocation.population;
     
     buildings.push({
       type: buildingType,
@@ -463,7 +464,7 @@ export async function updatePlanetProduction(planet) {
   const currentPopulation = planet.resources?.population || 0;
   const totalEnergyProduced = calculateTotalEnergyProduction(planet);
   
-  const actualAllocations = applyPriorityBasedAllocation(planet, currentPopulation, totalEnergyProduced);
+  const actualAllocations = await applyPriorityBasedAllocation(planet, currentPopulation, totalEnergyProduced);
   
   // Store actual allocations for display purposes
   if (!planet.actualAllocations) {

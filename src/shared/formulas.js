@@ -193,9 +193,10 @@ export async function getBuildingEnergyConsumption(buildingType, level, building
   const building = buildings[buildingType];
   if (!building || !building.energyConsumption) return 0;
   
-  // Energy consumption typically scales linearly with level
-  // Base energy * level
-  return building.energyConsumption * level;
+  // Energy consumption scales exponentially: base * level * (1.1 ^ level) * 10
+  // This matches the buildings view calculation
+  const energyMultiplier = 10.0;
+  return Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
 }
 
 /**
@@ -214,7 +215,8 @@ export async function getBuildingPopulationRequired(buildingType, level, buildin
   const building = buildings[buildingType];
   if (!building || !building.populationRequired) return 0;
   
-  // Population requirement typically scales linearly with level
-  // Base population * level
-  return building.populationRequired * level;
+  // Population requirement scales exponentially: base * level * (1.05 ^ level)
+  // This matches the buildings view calculation
+  const populationMultiplier = 1.05;
+  return Math.floor(building.populationRequired * level * Math.pow(populationMultiplier, level));
 }
