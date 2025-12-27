@@ -692,7 +692,7 @@ async function handleRequest(req) {
               player: player.username,
               playerType: 'ai', // Could be enhanced to track player vs AI
               planetName: planet.name,
-              activity: planet.lastUpdate ? getActivityString(planet.lastUpdate) : 'Unknown',
+              activity: planet.lastActivity ? getActivityString(planet.lastActivity) : 'Unknown',
               moon: planet.moon || false
             });
           }

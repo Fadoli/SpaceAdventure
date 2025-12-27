@@ -81,7 +81,8 @@ export async function createPlayer(userId, username) {
       waterExtractor: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
       farm: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 }
     },
-    lastUpdate: Date.now()
+    lastUpdate: Date.now(),
+    lastActivity: Date.now()
   };
   
   // Calculate proper production based on starting buildings

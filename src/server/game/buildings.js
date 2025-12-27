@@ -306,6 +306,9 @@ export async function processCompletedBuildings(player) {
       // If there are more items in queue, they continue with their scheduled times
       // (times were already calculated when added to queue)
       
+      // Update activity timestamp when building completes
+      planet.lastActivity = Date.now();
+      
       updated = true;
     }
   }

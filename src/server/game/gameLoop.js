@@ -1,6 +1,7 @@
 // Game tick system - processes game state periodically
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { processCompletedBuildings, updatePlanetProduction } from './buildings.js';
+import { processCompletedProduction } from './shipyard.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
 import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
@@ -106,6 +107,14 @@ async function gameTick() {
       const buildingsUpdated = await processCompletedBuildings(player);
       if (buildingsUpdated) {
         updated = true;
+      }
+      
+      // Process completed ship and defense production
+      for (const planet of player.planets) {
+        const productionUpdated = processCompletedProduction(planet);
+        if (productionUpdated) {
+          updated = true;
+        }
       }
     }
     

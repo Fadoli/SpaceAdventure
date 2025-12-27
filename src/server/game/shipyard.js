@@ -210,6 +210,9 @@ export function processCompletedProduction(planet) {
         item.queuePosition = index + 1;
       });
 
+      // Update activity timestamp when ships complete
+      planet.lastActivity = Date.now();
+
       // Recursively process next items
       return processCompletedProduction(planet);
     }
@@ -236,6 +239,9 @@ export function processCompletedProduction(planet) {
       planet.defenseQueue.forEach((item, index) => {
         item.queuePosition = index + 1;
       });
+
+      // Update activity timestamp when defenses complete
+      planet.lastActivity = Date.now();
 
       // Recursively process next items
       return processCompletedProduction(planet);
