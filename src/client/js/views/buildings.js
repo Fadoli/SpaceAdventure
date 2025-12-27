@@ -101,43 +101,40 @@ export async function updateBuildingsView(planet, onStateChange) {
                 `;
             }
             
+            // Count how many times this building is in the queue
+            const queueCount = queue.filter(item => item.building === key).length;
+            
+            let queueBadge = '';
+            if (queueCount > 0) {
+                queueBadge = `<div class="queue-count-badge">📋 In queue: ${queueCount} time${queueCount > 1 ? 's' : ''}</div>`;
+            }
+            
             return `
-                <div class="building-card ${building.inQueue ? 'in-queue' : ''}">
+                <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}">
                     <div class="building-header">
                         <h3>${building.icon} ${building.name}</h3>
                         <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
                     </div>
                     <div class="building-level">Level ${building.currentLevel}</div>
                     ${allocationBadge}
+                    ${queueBadge}
                     <p>${building.description}</p>
-                    ${building.inQueue ? `
-                        <div class="building-progress">
-                            <strong>🔨 Queue Position ${building.queuePosition} - Building to Level ${building.nextLevel}...</strong>
-                            <div class="timer" data-finish="${building.queueFinishTime}"></div>
-                            ${building.queuePosition === 1 ? '<div class="building-active">⚙️ Currently Building</div>' : '<div class="building-queued">⏳ Waiting in queue</div>'}
-                        </div>
-                    ` : `
-                        <div class="building-cost">
-                            <strong>Cost for level ${building.nextLevel}:</strong>
-                            <div>⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
-                            <div>💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
-                            ${building.cost.deuterium > 0 ? `<div>🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
-                        </div>
-                        <div class="building-stats">
-                            <div class="build-time">🕐 Build time: ${formatCountdown(building.buildTime)}</div>
-                            ${productionInfo}
-                            ${energyInfo}
-                        </div>
-                    `}
-                    ${building.inQueue ? `
-                        <button class="btn btn-danger btn-full" onclick="window.cancelBuilding(${building.queuePosition})">Cancel Build</button>
-                    ` : `
-                        <button class="btn ${building.canAfford ? 'btn-success' : ''} btn-full" 
-                                ${!building.canAfford || queueFull ? 'disabled' : ''} 
-                                onclick="window.upgradeBuilding('${key}')">
-                            ${queueFull ? 'Queue Full' : `Upgrade to Level ${building.nextLevel}`}
-                        </button>
-                    `}
+                    <div class="building-cost">
+                        <strong>Cost for level ${building.nextLevel}:</strong>
+                        <div>⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
+                        <div>💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
+                        ${building.cost.deuterium > 0 ? `<div>🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
+                    </div>
+                    <div class="building-stats">
+                        <div class="build-time">🕐 Build time: ${formatCountdown(building.buildTime)}</div>
+                        ${productionInfo}
+                        ${energyInfo}
+                    </div>
+                    <button class="btn ${building.canAfford ? 'btn-success' : ''} btn-full" 
+                            ${!building.canAfford || queueFull ? 'disabled' : ''} 
+                            onclick="window.upgradeBuilding('${key}')">
+                        ${queueFull ? 'Queue Full' : `Upgrade to Level ${building.nextLevel}`}
+                    </button>
                 </div>
             `;
         })

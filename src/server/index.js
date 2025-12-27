@@ -356,9 +356,6 @@ async function handleRequest(req) {
           energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier);
         }
         
-        // Check if in queue
-        const queueItem = planet.buildQueue?.find(item => item.building === buildingType);
-        
         // Check if can afford
         const canAfford = planet.resources.metal >= cost.metal &&
                          planet.resources.crystal >= cost.crystal &&
@@ -375,10 +372,7 @@ async function handleRequest(req) {
           buildTime,
           production,
           energyConsumption,
-          canAfford,
-          inQueue: !!queueItem,
-          queuePosition: queueItem?.queuePosition,
-          queueFinishTime: queueItem?.finishTime
+          canAfford
         };
       }
       
