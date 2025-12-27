@@ -37,6 +37,7 @@ export const BUILDINGS = {
       metal: 30 // Base production per hour at level 1
     },
     energyConsumption: 10, // Base energy consumption
+    populationRequired: 3, // Base population requirement
     requirements: {}
   },
   
@@ -55,6 +56,7 @@ export const BUILDINGS = {
       crystal: 20 // Base production per hour at level 1
     },
     energyConsumption: 10,
+    populationRequired: 3, // Base population requirement
     requirements: {}
   },
   
@@ -73,6 +75,7 @@ export const BUILDINGS = {
       deuterium: 10 // Base production per hour at level 1
     },
     energyConsumption: 20,
+    populationRequired: 4, // Base population requirement
     requirements: {}
   },
   
@@ -90,7 +93,7 @@ export const BUILDINGS = {
     production: {
       energy: 20 // Base energy production at level 1
     },
-    populationRequired: 5, // Population required to maintain
+    populationRequired: 2, // Population required to maintain
     requirements: {}
   },
   

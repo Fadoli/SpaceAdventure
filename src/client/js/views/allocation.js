@@ -70,9 +70,7 @@ export async function renderAllocation() {
   
   // Calculate totals
   let totalPowerAllocated = 0;
-  let totalEffectivePowerAllocated = 0;
   let totalPopulationAllocated = 0;
-  let totalEffectiveWorkersAssigned = 0;
   
   for (const buildingType of allocatableBuildings) {
     const level = planet.buildings[buildingType] || 0;
@@ -82,18 +80,10 @@ export async function renderAllocation() {
       // Calculate actual power consumption using shared function
       const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
       totalPowerAllocated += baseEnergyRequired * allocation.power;
-      // Account for effectiveness multiplier when calculating effective power
-      const powerEffectiveness = calculateAllocationEffectiveness(allocation.power) / 100;
-      const effectivePowerAllocated = baseEnergyRequired * allocation.power * powerEffectiveness;
-      totalEffectivePowerAllocated += effectivePowerAllocated;
       
       // Calculate actual population requirement using shared function
       const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
-      // Account for effectiveness multiplier when calculating effective workers assigned
-      const populationEffectiveness = calculateAllocationEffectiveness(allocation.population) / 100;
-      const effectiveWorkersAssigned = basePopulationRequired * allocation.population * populationEffectiveness;
       totalPopulationAllocated += basePopulationRequired * allocation.population;
-      totalEffectiveWorkersAssigned += effectiveWorkersAssigned;
     }
   }
   
@@ -104,9 +94,9 @@ export async function renderAllocation() {
   const consumedPowerTotal = planet.energyConsumption || 0;
   const producedPower = energyBalance + consumedPowerTotal;
   
-  // Note: totalEffectivePowerAllocated is only for allocatable buildings with workers
+  // Note: totalPowerAllocated is only for allocatable buildings with workers
   // The actual planet may consume more energy from non-allocatable buildings
-  const allocatableEnergyConsumption = totalEffectivePowerAllocated;
+  const allocatableEnergyConsumption = totalPowerAllocated;
   const otherEnergyConsumption = Math.max(0, consumedPowerTotal - allocatableEnergyConsumption);
   
   let html = `
@@ -132,7 +122,6 @@ export async function renderAllocation() {
             <div class="bar-fill" style="width: ${Math.min(100, (totalPopulationAllocated / Math.max(1, currentPopulation)) * 100)}%"></div>
           </div>
           <p><strong>Assigned (Base):</strong> ${totalPopulationAllocated.toFixed(0)}</p>
-          <p><strong>Assigned (Effective):</strong> ${totalEffectiveWorkersAssigned.toFixed(0)}</p>
           <p><strong>Total Available:</strong> ${currentPopulation.toFixed(0)}</p>
           <small>Max Population: ${maxPopulation.toFixed(0)}</small>
         </div>
@@ -173,10 +162,6 @@ export async function renderAllocation() {
     const populationEffectiveness = calculateAllocationEffectiveness(allocation.population) / 100;
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
     
-    // Calculate effective requirements after applying effectiveness multiplier
-    const effectiveEnergyRequired = energyRequired * powerEffectiveness;
-    const effectivePopulationRequired = populationRequired * populationEffectiveness;
-    
     // Calculate ACTUAL effectiveness (based on priority and available resources)
     const actualPowerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power) / 100;
     const actualPopulationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population) / 100;
@@ -212,7 +197,7 @@ export async function renderAllocation() {
           ${hasEnergyConsumption ? `
           <div class="allocation-slider">
             <div class="allocation-label-row">
-              <label>⚡ Power: <span class="value">${(allocation.power * 100).toFixed(0)}%</span></label>
+              <label>⚡ Energy <span class="allocation-display">${(allocation.power * 100).toFixed(0)}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${(powerEffectiveness * 100) >= 100 ? '#5cb85c' : '#d9534f'}">(${((powerEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((powerEffectiveness * 100) - 100).toFixed(0)}%)</span></label>
             </div>
             <input 
               type="range" 
@@ -222,13 +207,12 @@ export async function renderAllocation() {
               value="${allocation.power * 100}"
               data-building="${buildingType}"
             >
-            <small>⚡ Required: ${energyRequired.toFixed(0)} (Base) / ${effectiveEnergyRequired.toFixed(0)} (Effective) / Effectiveness: ${(powerEffectiveness * 100).toFixed(0)}%</small>
           </div>
           ` : ''}
           
           <div class="allocation-slider">
             <div class="allocation-label-row">
-              <label>👥 Workers: <span class="value">${(allocation.population * 100).toFixed(0)}%</span></label>
+              <label>👥 Workers <span class="allocation-display">${(allocation.population * 100).toFixed(0)}%</span> : <span class="base-requirement">${populationRequired.toFixed(0)}</span> <span style="color: ${(populationEffectiveness * 100) >= 100 ? '#5cb85c' : '#d9534f'}">(${((populationEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((populationEffectiveness * 100) - 100).toFixed(0)}%)</span></label>
             </div>
             <input 
               type="range" 
@@ -238,7 +222,6 @@ export async function renderAllocation() {
               value="${allocation.population * 100}"
               data-building="${buildingType}"
             >
-            <small>👥 Required: ${populationRequired.toFixed(0)} (Base) / ${effectivePopulationRequired.toFixed(0)} (Effective) / Effectiveness: ${(populationEffectiveness * 100).toFixed(0)}%</small>
           </div>
         </div>
       </div>
@@ -286,15 +269,13 @@ export function setupAllocationHandlers() {
   document.querySelectorAll('.power-slider, .population-slider').forEach(slider => {
     slider.addEventListener('input', async (e) => {
       const value = e.target.value;
-      const label = e.target.parentElement.querySelector('.value');
-      if (label) {
-        label.textContent = `${value}%`;
-      }
+      const labelRow = e.target.parentElement.querySelector('.allocation-label-row');
       
       // Update effectiveness display and required resources
       const effectiveness = calculateAllocationEffectiveness(value / 100) / 100;
-      const small = e.target.parentElement.querySelector('small');
-      if (small) {
+      const effectivenessPercent = effectiveness * 100;
+      
+      if (labelRow) {
         // Get building data
         const buildingType = e.target.dataset.building;
         const planet = getCurrentPlanet();
@@ -303,13 +284,17 @@ export function setupAllocationHandlers() {
         if (e.target.classList.contains('power-slider')) {
           const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
           const energyRequired = baseEnergyRequired * (value / 100);
-          const effectiveEnergyRequired = energyRequired * effectiveness;
-          small.textContent = `⚡ Required: ${energyRequired.toFixed(0)} (Base) / ${effectiveEnergyRequired.toFixed(0)} (Effective) / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+          const deltaPercent = (effectivenessPercent - 100).toFixed(0);
+          const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
+          const sign = effectivenessPercent >= 100 ? '+' : '';
+          labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${value}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         } else {
           const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
           const populationRequired = basePopulationRequired * (value / 100);
-          const effectivePopulationRequired = populationRequired * effectiveness;
-          small.textContent = `👥 Required: ${populationRequired.toFixed(0)} (Base) / ${effectivePopulationRequired.toFixed(0)} (Effective) / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+          const deltaPercent = (effectivenessPercent - 100).toFixed(0);
+          const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
+          const sign = effectivenessPercent >= 100 ? '+' : '';
+          labelRow.innerHTML = `<label>👥 Workers <span class="allocation-display">${value}%</span> : <span class="base-requirement">${populationRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         }
       }
       
@@ -421,24 +406,32 @@ async function undoAllAllocations() {
       
       if (powerSlider) {
         powerSlider.value = saved.power * 100;
-        const label = powerSlider.parentElement.querySelector('.value');
-        if (label) label.textContent = `${saved.power * 100}%`;
-        
-        const effectiveness = calculateAllocationEffectiveness(saved.power) / 100;
-        const energyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS) * saved.power;
-        const small = powerSlider.parentElement.querySelector('small');
-        if (small) small.textContent = `⚡ Required: ${energyRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        const labelRow = powerSlider.parentElement.querySelector('.allocation-label-row');
+        if (labelRow) {
+          const effectiveness = calculateAllocationEffectiveness(saved.power) / 100;
+          const effectivenessPercent = effectiveness * 100;
+          const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
+          const energyRequired = baseEnergyRequired * saved.power;
+          const deltaPercent = (effectivenessPercent - 100).toFixed(0);
+          const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
+          const sign = effectivenessPercent >= 100 ? '+' : '';
+          labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${(saved.power * 100).toFixed(0)}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
+        }
       }
       
       if (populationSlider) {
         populationSlider.value = saved.population * 100;
-        const label = populationSlider.parentElement.querySelector('.value');
-        if (label) label.textContent = `${saved.population * 100}%`;
-        
-        const effectiveness = calculateAllocationEffectiveness(saved.population) / 100;
-        const populationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS) * saved.population;
-        const small = populationSlider.parentElement.querySelector('small');
-        if (small) small.textContent = `👥 Required: ${populationRequired.toFixed(0)} / Effectiveness: ${(effectiveness * 100).toFixed(0)}%`;
+        const labelRow = populationSlider.parentElement.querySelector('.allocation-label-row');
+        if (labelRow) {
+          const effectiveness = calculateAllocationEffectiveness(saved.population) / 100;
+          const effectivenessPercent = effectiveness * 100;
+          const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
+          const populationRequired = basePopulationRequired * saved.population;
+          const deltaPercent = (effectivenessPercent - 100).toFixed(0);
+          const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
+          const sign = effectivenessPercent >= 100 ? '+' : '';
+          labelRow.innerHTML = `<label>👥 Workers <span class="allocation-display">${(saved.population * 100).toFixed(0)}%</span> : <span class="base-requirement">${populationRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
+        }
       }
       
       if (prioritySelect && saved.priority) {
