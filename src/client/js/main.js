@@ -10,7 +10,7 @@ import {
     showBuildingDetails as showBuildingInfo,
     closeModal as closeBuildingModal
 } from './views/buildings.js';
-import { updateResearchView, initializeResearch } from './views/research.js';
+import { updateResearchView, initializeResearch, updateResearchTimers } from './views/research.js';
 import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateGalaxyView } from './views/galaxy.js';
@@ -290,6 +290,7 @@ function updateCurrentView() {
         case 'research':
             // Update research timers without full re-render
             updateTimers();
+            updateResearchTimers();
             break;
         case 'shipyard':
             updateShipyardView(planet);

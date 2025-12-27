@@ -1,10 +1,34 @@
 // Overview view logic
 import { formatNumber } from '../utils.js';
 
+let lastOverviewStateHash = null;
+
+/**
+ * Calculate a hash of the overview state to detect changes
+ */
+function calculateOverviewStateHash(planet) {
+    const state = {
+        resources: planet.resources,
+        storage: planet.storage,
+        buildings: planet.buildings,
+        production: planet.production,
+        energyConsumption: planet.energyConsumption,
+        energyEfficiency: planet.energyEfficiency
+    };
+    return JSON.stringify(state);
+}
+
 /**
  * Update overview view with planet data
  */
 export function updateOverview(planet) {
+    // Check if state has changed
+    const currentHash = calculateOverviewStateHash(planet);
+    if (currentHash === lastOverviewStateHash) {
+        // State hasn't changed, skip re-render
+        return;
+    }
+    lastOverviewStateHash = currentHash;
     const { resources, storage, buildings, production, energyConsumption, energyEfficiency } = planet;
     
     document.getElementById('overview-metal').textContent = formatNumber(resources.metal);

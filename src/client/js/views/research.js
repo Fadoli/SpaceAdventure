@@ -4,6 +4,42 @@ import { formatNumber } from '../utils.js';
 
 let currentPlanetId = null;
 let researchData = null;
+let lastResearchStateHash = null;
+
+/**
+ * Calculate theoretical research cost for a given level
+ * Cost doubles with each level: cost = baseCost * 2^level
+ */
+function calculateTheoreticalResearchCost(baseCost, level) {
+  const multiplier = Math.pow(2, level);
+  return {
+    metal: Math.floor(baseCost.metal * multiplier),
+    crystal: Math.floor(baseCost.crystal * multiplier),
+    deuterium: Math.floor(baseCost.deuterium * multiplier)
+  };
+}
+
+/**
+ * Calculate theoretical research time
+ * baseTime * (1 / (1.1^researchLabLevel)) * (1.1^level)
+ */
+function calculateTheoreticalResearchTime(baseTime, level, researchLabLevel) {
+  const labMultiplier = Math.pow(0.8, researchLabLevel);
+  const levelMultiplier = Math.pow(1.1, level);
+  return Math.max(1, Math.floor((baseTime * levelMultiplier) / (1 - labMultiplier + 0.1)));
+}
+
+/**
+ * Calculate a hash of the research state to detect changes
+ */
+function calculateResearchStateHash(data) {
+  const state = {
+    progress: data.progress,
+    theoretical: data.theoretical,
+    practical: data.practical
+  };
+  return JSON.stringify(state);
+}
 
 /**
  * Initialize research view
@@ -24,7 +60,17 @@ async function loadResearchData() {
     const response = await fetch('/api/game/research');
     const result = await response.json();
     // Extract data from response wrapper
-    researchData = result.data || result;
+    const newResearchData = result.data || result;
+    
+    // Check if state has changed
+    const currentHash = calculateResearchStateHash(newResearchData);
+    if (currentHash === lastResearchStateHash && researchData !== null) {
+      // State hasn't changed, skip re-render
+      return;
+    }
+    lastResearchStateHash = currentHash;
+    
+    researchData = newResearchData;
     console.log('Research data loaded:', researchData);
   } catch (error) {
     console.error('Failed to load research data:', error);
@@ -138,6 +184,44 @@ function renderTheoreticalResearch() {
 
   let html = '<div class="theory-research-list">';
 
+  // Show research queue at the top if there are items
+  if (queue.length > 0) {
+    html += '<div class="research-queue-section">';
+    html += `<h3>🔬 Research Queue (${queue.length})</h3>`;
+    html += '<div class="queue-list">';
+    
+    for (const queueItem of queue) {
+      const tech = theoryResearch[queueItem.techKey];
+      if (!tech) continue;
+      
+      const isActive = queue.indexOf(queueItem) === 0;
+      const timeRemaining = Math.max(0, queueItem.endTime - Date.now());
+      const progressPercent = queueItem.progress || 0;
+      
+      html += `
+        <div class="queue-item ${isActive ? 'active' : ''}">
+          <div class="queue-item-info">
+            <strong>${queue.indexOf(queueItem) + 1}. ${tech.icon} ${tech.name}</strong>
+            <span>→ Level ${queueItem.level}</span>
+          </div>
+          <div class="queue-item-progress">
+            ${isActive ? `
+              <div class="progress-bar" style="width: 200px;">
+                <div class="progress-fill" style="width: ${progressPercent}%"></div>
+              </div>
+              <span class="progress-text">${progressPercent}%</span>
+              <span class="building-now">⚗️ Researching</span>
+            ` : ''}
+            <span class="timer" data-finish="${queueItem.endTime}"></span>
+          </div>
+          <button class="btn-cancel" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Cancel">❌</button>
+        </div>
+      `;
+    }
+    
+    html += '</div></div>';
+  }
+
   for (const [category, techs] of Object.entries(grouped)) {
     html += `<div class="research-category">
       <h3>${category}</h3>
@@ -145,41 +229,28 @@ function renderTheoreticalResearch() {
 
     for (const tech of techs) {
       const level = playerTech[tech.key] || 0;
-      const isResearching = queue.some(q => q.techKey === tech.key);
-      const queueItem = queue.find(q => q.techKey === tech.key);
+      const queuedItems = queue.filter(q => q.techKey === tech.key);
+      const isQueued = queuedItems.length > 0;
+      const queuedCount = queuedItems.length;
+      const nextLevelToQueue = level + 1 + queuedCount;
 
       html += `
-        <div class="tech-card ${isResearching ? 'researching' : ''} ${level >= 10 ? 'maxed' : ''}">
+        <div class="tech-card ${isQueued ? 'queued' : ''} ${level >= 10 ? 'maxed' : ''}">
           <div class="tech-header">
             <span class="tech-icon">${tech.icon}</span>
             <div class="tech-name">
               <h4>${tech.name}</h4>
-              <p class="tech-desc">${tech.description}</p>
+              <span class="tech-level">Level: ${level}</span>
             </div>
-            <span class="tech-level">Level: ${level}</span>
+            <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="View detailed information">ℹ️</button>
           </div>
 
-          ${isResearching ? `
-            <div class="research-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${queueItem.progress}%"></div>
-              </div>
-              <p class="progress-text">${queueItem.progress}% - ${formatTime(queueItem.timeRemaining)}</p>
-              <button class="btn btn-danger btn-small" onclick="cancelTheoreticalResearch('${queueItem.id}')">Cancel</button>
-            </div>
-          ` : `
-            <div class="tech-info">
-              <div class="cost-info">
-                <span>Metal: ${formatNumber(tech.baseCost.metal)}</span>
-                <span>Crystal: ${formatNumber(tech.baseCost.crystal)}</span>
-                <span>Deuterium: ${formatNumber(tech.baseCost.deuterium)}</span>
-              </div>
-              <p class="time-estimate">Time: ~${formatTime(tech.baseTime * 1000)}</p>
-              <button class="btn btn-primary btn-small" onclick="startTheoreticalResearch('${tech.key}')" ${level >= 10 ? 'disabled' : ''}>
-                Research Level ${level + 1}
-              </button>
-            </div>
-          `}
+          <div class="tech-actions">
+            ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
+            <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')" ${level >= 10 ? 'disabled' : ''}>
+              Level ${nextLevelToQueue}
+            </button>
+          </div>
         </div>
       `;
     }
@@ -189,6 +260,27 @@ function renderTheoreticalResearch() {
 
   html += '</div>';
   container.innerHTML = html;
+  updateResearchQueueTimers();
+}
+
+/**
+ * Update research queue timers
+ */
+function updateResearchQueueTimers() {
+  document.querySelectorAll('.research-queue-section .timer').forEach(timer => {
+    const finishTime = parseInt(timer.dataset.finish);
+    const remaining = Math.max(0, finishTime - Date.now());
+    
+    const hours = Math.floor(remaining / 3600000);
+    const minutes = Math.floor((remaining % 3600000) / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    
+    if (remaining === 0) {
+      timer.textContent = 'Complete!';
+    } else {
+      timer.textContent = `${hours}h ${minutes}m ${seconds}s`;
+    }
+  });
 }
 
 /**
@@ -734,23 +826,142 @@ function capitalize(str) {
  */
 window.startTheoreticalResearch = async function(techKey) {
   try {
-    const response = await fetch(`/api/game/planet/${currentPlanetId}/research/theoretical`, {
+    console.log('Starting theoretical research for tech:', techKey);
+    console.log('Current Planet ID:', currentPlanetId);
+    
+    if (!currentPlanetId) {
+      alert('Error: Planet ID not set. Please refresh the page.');
+      console.error('Planet ID is not set!');
+      return;
+    }
+
+    const url = `/api/game/planet/${currentPlanetId}/research/theoretical`;
+    const body = { techKey };
+    
+    console.log('Making request to:', url);
+    console.log('Request body:', body);
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ techKey })
+      body: JSON.stringify(body)
     });
+
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('Server error response:', error);
       alert(`Error: ${error.message}`);
       return;
     }
 
+    const data = await response.json();
+    console.log('Success response:', data);
+
     await loadResearchData();
     renderTheoreticalResearch();
   } catch (error) {
+    console.error('Failed to start research:', error);
     alert(`Failed to start research: ${error.message}`);
   }
+};
+
+/**
+ * Show research details modal
+ */
+window.showResearchDetails = function(techKey) {
+  const theoryResearch = getTheoreticalResearch();
+  const tech = theoryResearch[techKey];
+  const playerTech = researchData?.theoretical || {};
+  const currentLevel = playerTech[techKey] || 0;
+  
+  if (!tech) return;
+  
+  const modal = document.getElementById('research-details-modal');
+  const modalTitle = document.getElementById('modal-research-title');
+  const modalBody = document.getElementById('modal-research-body');
+  
+  modalTitle.innerHTML = `${tech.icon} ${tech.name} <span class="current-level">(Current: Level ${currentLevel})</span>`;
+  
+  // Build a progression table showing costs and benefits for multiple levels
+  let html = `<div class="research-details">`;
+  html += `<p class="research-description">${tech.description}</p>`;
+  
+  // Show bonuses/effects
+  if (tech.bonuses && Object.keys(tech.bonuses).length > 0) {
+    html += `<div class="research-effects">
+      <h3>Benefits:</h3>
+      <ul>`;
+    for (const [bonus, value] of Object.entries(tech.bonuses)) {
+      const displayName = bonus
+        .replace(/([A-Z])/g, ' $1')
+        .toLowerCase()
+        .trim()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      const displayValue = (value * 100).toFixed(0);
+      html += `<li>+${displayValue}% ${displayName}</li>`;
+    }
+    html += `</ul></div>`;
+  }
+  
+  // Show unlocks
+  if (tech.unlocks && tech.unlocks.length > 0) {
+    html += `<div class="research-unlocks">
+      <h3>Unlocks:</h3>
+      <ul>`;
+    for (const unlock of tech.unlocks) {
+      html += `<li>${unlock}</li>`;
+    }
+    html += `</ul></div>`;
+  }
+  
+  // Show progression table for next 5 levels
+  html += `<div class="progression-table">
+    <h3>Progression</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>⚙️ Metal</th>
+          <th>💎 Crystal</th>
+          <th>🛢️ Deuterium</th>
+          <th>⏱️ Time</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 10); level++) {
+    const cost = calculateTheoreticalResearchCost(tech.baseCost, level - 1);
+    const timeInSeconds = calculateTheoreticalResearchTime(tech.baseTime, level - 1, 6); // Assume research lab level 6
+    const timeStr = formatTime(timeInSeconds * 1000);
+    
+    html += `<tr>
+      <td>Level ${level}</td>
+      <td>${formatNumber(cost.metal)}</td>
+      <td>${formatNumber(cost.crystal)}</td>
+      <td>${formatNumber(cost.deuterium)}</td>
+      <td>${timeStr}</td>
+    </tr>`;
+  }
+  
+  html += `</tbody>
+    </table>
+    <p style="font-size: 0.9em; color: #999; margin-top: 10px;">* Time estimate assumes Research Lab level 6</p>
+  </div></div>`;
+  
+  modalBody.innerHTML = html;
+  modal.style.display = 'flex';
+};
+
+/**
+ * Close research details modal
+ */
+window.closeResearchModal = function() {
+  document.getElementById('research-details-modal').style.display = 'none';
 };
 
 /**
@@ -783,6 +994,11 @@ window.cancelTheoreticalResearch = async function(queueId) {
  */
 window.startPracticalResearch = async function(baseType, type, focus) {
   try {
+    if (!currentPlanetId) {
+      alert('Error: Planet ID not set. Please refresh the page.');
+      return;
+    }
+
     const response = await fetch(`/api/game/planet/${currentPlanetId}/research/practical`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -839,5 +1055,16 @@ window.editVariant = function(baseType, type) {
  */
 export function updateResearchView(player) {
     // Called when player data updates during gameplay
+    // Need to ensure currentPlanetId is set from the player's first planet
+    if (!currentPlanetId && player?.planets?.[0]) {
+        currentPlanetId = player.planets[0].id;
+    }
     loadResearchData();
+}
+
+/**
+ * Update research timers (exported for main loop)
+ */
+export function updateResearchTimers() {
+    updateResearchQueueTimers();
 }

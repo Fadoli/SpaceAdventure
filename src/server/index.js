@@ -28,7 +28,7 @@ import {
   getAvailablePracticalResearchForPlayer
 } from './game/researchLogic.js';
 import { startGameLoop } from './game/gameLoop.js';
-import { BUILDINGS } from '../shared/buildings.js';
+import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
 import { SHIPS } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
 import { loadConfig, getBuildQueueSize } from './config.js';
@@ -444,10 +444,21 @@ async function handleRequest(req) {
           energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier);
         }
         
+        // Calculate deuterium consumption for next level
+        let deuteriumConsumption = 0;
+        if (buildingDef.deuteriumConsumption) {
+          const productionMultiplier = 10.0; // From config
+          deuteriumConsumption = Math.floor(buildingDef.deuteriumConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier);
+        }
+        
         // Check if can afford
         const canAfford = planet.resources.metal >= cost.metal &&
                          planet.resources.crystal >= cost.crystal &&
                          planet.resources.deuterium >= cost.deuterium;
+        
+        // Check requirements
+        const requirementsMet = checkRequirements(buildingType, planet.buildings, player.research || {});
+        const requirementsList = getRequirementsList(buildingType);
         
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
@@ -461,7 +472,10 @@ async function handleRequest(req) {
           production,
           storage,
           energyConsumption,
-          canAfford
+          deuteriumConsumption,
+          canAfford,
+          requirementsMet,
+          requirementsList
         };
       }
       
@@ -616,7 +630,7 @@ async function handleRequest(req) {
         const result = buildShips(planet, ships, shipyardLevel, roboticsLevel, naniteLevel);
         
         // Save player
-        await updatePlayer(player);
+        await updatePlayer(user.id, player);
         
         return successResponse(result);
       } catch (error) {
@@ -652,7 +666,7 @@ async function handleRequest(req) {
         const result = buildDefenses(planet, defenses, roboticsLevel, naniteLevel);
         
         // Save player
-        await updatePlayer(player);
+        await updatePlayer(user.id, player);
         
         return successResponse(result);
       } catch (error) {
@@ -691,7 +705,7 @@ async function handleRequest(req) {
         }
         
         // Save player
-        await updatePlayer(player);
+        await updatePlayer(user.id, player);
         
         return successResponse(result);
       } catch (error) {
@@ -800,12 +814,15 @@ async function handleRequest(req) {
 
     // POST /api/game/planet/:planetId/research/theoretical - Start theoretical research
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/theoretical$/) && method === 'POST') {
+      console.log('POST /api/game/planet/:planetId/research/theoretical');
       const user = await requireAuth(req);
       if (!user) {
         return errorResponse('Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
+      console.log('Planet ID:', planetId);
+      
       const player = await getPlayerByUserId(user.id);
       if (!player) {
         return errorResponse('Player not found', 404);
@@ -818,13 +835,21 @@ async function handleRequest(req) {
 
       const body = await req.json();
       const { techKey } = body;
+      console.log('Request body:', body);
+      console.log('Tech key:', techKey);
 
       try {
+        console.log('Starting theoretical research for tech:', techKey);
         const queueItem = startTheoreticalResearch(player, techKey, planetId);
-        await updatePlayer(player);
+        console.log('Queue item created:', queueItem);
+        
+        await updatePlayer(user.id, player);
+        console.log('Player updated successfully');
 
         return successResponse(queueItem);
       } catch (error) {
+        console.error('Error starting theoretical research:', error);
+        console.error('Error message:', error.message);
         return errorResponse(error.message, 400);
       }
     }
@@ -847,7 +872,7 @@ async function handleRequest(req) {
 
       try {
         const refund = cancelTheoreticalResearch(player, queueId, planetId);
-        await updatePlayer(player);
+        await updatePlayer(user.id, player);
 
         return successResponse({ refund, cancelled: true });
       } catch (error) {
@@ -963,7 +988,7 @@ async function handleRequest(req) {
 
       try {
         const variant = selectCustomBuildingVariant(player, planetId, baseType, focusLevels);
-        await updatePlayer(player);
+        await updatePlayer(user.id, player);
 
         return successResponse(variant);
       } catch (error) {
@@ -988,7 +1013,7 @@ async function handleRequest(req) {
 
       try {
         const variant = selectCustomShipVariant(player, baseType, focusLevels);
-        await updatePlayer(player);
+        await updatePlayer(user.id, player);
 
         return successResponse(variant);
       } catch (error) {

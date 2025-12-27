@@ -7,6 +7,20 @@ import { isEmpty } from '../../../shared/utils.js';
 let currentShipyardData = null;
 let currentPlanetId = null;
 let collapsedSections = {}; // Track collapsed state
+let lastShipyardStateHash = null;
+
+/**
+ * Calculate a hash of the shipyard state to detect changes
+ */
+function calculateShipyardStateHash(shipyardData, planet) {
+    const state = {
+        ships: shipyardData.ships,
+        queue: shipyardData.queue,
+        shipyardLevel: shipyardData.shipyardLevel,
+        resources: planet.resources
+    };
+    return JSON.stringify(state);
+}
 
 /**
  * Update shipyard view with planet data
@@ -16,6 +30,15 @@ export async function updateShipyardView(planet) {
     
     try {
         const shipyardData = await API.getShipyardDetails(planet.id);
+        
+        // Check if state has changed
+        const currentHash = calculateShipyardStateHash(shipyardData, planet);
+        if (currentHash === lastShipyardStateHash) {
+            // State hasn't changed, skip re-render
+            return;
+        }
+        lastShipyardStateHash = currentHash;
+        
         currentShipyardData = shipyardData;
         
         const container = document.getElementById('shipyard-view');

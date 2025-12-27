@@ -6,6 +6,28 @@ import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness } from '../../../shared/formulas.js';
 
 let currentGameState = null;
+let lastBuildingStateHash = null;
+let lastQueueStateHash = null;
+
+/**
+ * Calculate a hash of the building state to detect changes
+ */
+function calculateBuildingStateHash(buildings, planet) {
+    const state = {
+        buildings: buildings,
+        resources: planet.resources,
+        buildingAllocations: planet.buildingAllocations,
+        actualAllocations: planet.actualAllocations
+    };
+    return JSON.stringify(state);
+}
+
+/**
+ * Calculate a hash of the queue state to detect changes
+ */
+function calculateQueueStateHash(queue) {
+    return JSON.stringify(queue.map(q => ({ building: q.building, level: q.level, finishTime: q.finishTime })));
+}
 
 /**
  * Set the current game state (called from main)
@@ -31,6 +53,23 @@ export async function updateBuildingsView(planet, onStateChange) {
     }
     
     const { buildings, queue, maxQueueSize } = buildingDetails;
+    
+    // Check if building state has changed
+    const currentBuildingHash = calculateBuildingStateHash(buildings, planet);
+    if (currentBuildingHash === lastBuildingStateHash) {
+        // Building state hasn't changed, but check if queue changed
+        const currentQueueHash = calculateQueueStateHash(queue);
+        if (currentQueueHash === lastQueueStateHash) {
+            // Both states unchanged, skip re-render entirely
+            return;
+        }
+        // Queue changed but buildings didn't, only re-render queue
+        updateQueueView(queue, maxQueueSize, buildings);
+        lastQueueStateHash = currentQueueHash;
+        return;
+    }
+    lastBuildingStateHash = currentBuildingHash;
+    
     const queueFull = queue.length >= maxQueueSize;
     
     const buildingHtmls = [];
@@ -95,9 +134,15 @@ export async function updateBuildingsView(planet, onStateChange) {
                 statsInfo = `<div class="building-special">🚀 Production: ${speedMult}x speed</div>`;
             }
             
-            // Calculate current level energy consumption to show difference
+            // Calculate current level energy consumption or deuterium consumption to show difference
             let energyInfo = '';
-            if (building.energyConsumption > 0) {
+            if (key === 'fusionReactor' && building.deuteriumConsumption > 0) {
+                // For Fusion Reactor, show deuterium consumption instead
+                const currentDeuterium = building.currentLevel > 0 ? 
+                    Math.floor((building.deuteriumConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0) : 0;
+                const deuteriumDiff = building.deuteriumConsumption - currentDeuterium;
+                energyInfo = `<div class="building-energy">🛢️ -${formatNumber(deuteriumDiff)}/h</div>`;
+            } else if (building.energyConsumption > 0) {
                 const currentEnergy = building.currentLevel > 0 ? 
                     Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0) : 0;
                 const energyDiff = building.energyConsumption - currentEnergy;
@@ -144,6 +189,19 @@ export async function updateBuildingsView(planet, onStateChange) {
                 queueBadge = `<div class="queue-count-badge">📋 In queue: ${queueCount} time${queueCount > 1 ? 's' : ''}</div>`;
             }
             
+            // Build tooltip message for button
+            let buttonTooltip = 'Upgrade to next level';
+            let buttonDisabled = !building.canAfford || queueFull || !building.requirementsMet;
+            
+            if (queueFull) {
+                buttonTooltip = 'Build queue is full';
+            } else if (!building.requirementsMet && building.requirementsList && building.requirementsList.length > 0) {
+                const reqs = building.requirementsList.map(r => `${r.name} Level ${r.level}`).join(', ');
+                buttonTooltip = `Requirements not met: ${reqs}`;
+            } else if (!building.canAfford) {
+                buttonTooltip = 'Insufficient resources';
+            }
+            
         buildingHtmls.push(`
                 <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}">
                     <div class="building-header">
@@ -165,17 +223,31 @@ export async function updateBuildingsView(planet, onStateChange) {
                         ${statsInfo}
                         ${energyInfo}
                     </div>
-                    <button class="btn ${building.canAfford ? 'btn-success' : ''} btn-full" 
-                            ${!building.canAfford || queueFull ? 'disabled' : ''} 
+                    <button class="btn ${building.canAfford && building.requirementsMet ? 'btn-success' : ''} btn-full" 
+                            ${buttonDisabled ? 'disabled' : ''} 
+                            title="${buttonTooltip}"
                             onclick="window.upgradeBuilding('${key}')">
-                        ${queueFull ? 'Queue Full' : `Upgrade to Level ${building.nextLevel}`}
+                        ${queueFull ? 'Queue Full' : !building.requirementsMet ? 'Requirements Not Met' : `Upgrade to Level ${building.nextLevel}`}
                     </button>
                 </div>
             `);
     }
     buildingsGrid.innerHTML = buildingHtmls.join('');
     
-    // Show build queue summary
+    // Update queue
+    updateQueueView(queue, maxQueueSize, buildings);
+    lastQueueStateHash = calculateQueueStateHash(queue);
+    
+    // Update timers
+    updateTimers();
+}
+
+/**
+ * Update the queue view independently
+ */
+function updateQueueView(queue, maxQueueSize, buildings) {
+    const queueContainer = document.getElementById('buildings-queue-container');
+    
     if (queue.length > 0) {
         const queueSummary = `
             <div class="build-queue-summary">
@@ -200,11 +272,10 @@ export async function updateBuildingsView(planet, onStateChange) {
                 </div>
             </div>
         `;
-        buildingsGrid.insertAdjacentHTML('afterbegin', queueSummary);
+        queueContainer.innerHTML = queueSummary;
+    } else {
+        queueContainer.innerHTML = '';
     }
-    
-    // Update timers
-    updateTimers();
 }
 
 /**
@@ -336,13 +407,19 @@ export async function showBuildingDetails(buildingKey) {
         }
         
         let energyConsumption = 0;
+        let deuteriumConsumption = 0;
         if (building.energyConsumption > 0) {
             const energyMultiplier = 10.0;
             const baseEnergy = building.energyConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * energyMultiplier);
             energyConsumption = Math.floor(baseEnergy * level * Math.pow(1.1, level) * energyMultiplier);
         }
+        if (building.deuteriumConsumption > 0) {
+            const deuteriumMultiplier = 10.0;
+            const baseDeuterium = building.deuteriumConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * deuteriumMultiplier);
+            deuteriumConsumption = Math.floor(baseDeuterium * level * Math.pow(1.1, level) * deuteriumMultiplier);
+        }
         
-        levels.push({ level, cost, buildTime, production, storage, energyConsumption });
+        levels.push({ level, cost, buildTime, production, storage, energyConsumption, deuteriumConsumption });
     }
     
     let tableRows = levels.map(l => {
@@ -381,7 +458,12 @@ export async function showBuildingDetails(buildingKey) {
             dataCell = '-';
         }
         
-        const energyCell = l.energyConsumption > 0 ? `⚡-${formatNumber(l.energyConsumption)}/h` : '-';
+        let consumptionCell = '-';
+        if (buildingKey === 'fusionReactor' && l.deuteriumConsumption > 0) {
+            consumptionCell = `🛢️-${formatNumber(l.deuteriumConsumption)}/h`;
+        } else if (l.energyConsumption > 0) {
+            consumptionCell = `⚡-${formatNumber(l.energyConsumption)}/h`;
+        }
         
         return `
             <tr class="${isCurrent ? 'current-level-row' : ''}">
@@ -389,7 +471,7 @@ export async function showBuildingDetails(buildingKey) {
                 <td>⚙️${formatNumber(l.cost.metal)}<br>💎${formatNumber(l.cost.crystal)}${l.cost.deuterium > 0 ? `<br>🛢️${formatNumber(l.cost.deuterium)}` : ''}</td>
                 <td>${formatCountdown(l.buildTime)}</td>
                 <td>${dataCell}</td>
-                <td>${energyCell}</td>
+                <td>${consumptionCell}</td>
             </tr>
         `;
     }).join('');
@@ -440,7 +522,7 @@ export async function showBuildingDetails(buildingKey) {
                             buildingKey === 'shipyard' ? 'Production Speed' :
                             'Production'
                         }</th>
-                        <th>Energy</th>
+                        <th>${buildingKey === 'fusionReactor' ? 'Deuterium' : 'Energy'}</th>
                     </tr>
                 </thead>
                 <tbody>

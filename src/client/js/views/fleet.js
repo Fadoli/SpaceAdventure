@@ -3,6 +3,22 @@ import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
 
+let lastFleetStateHash = null;
+
+/**
+ * Calculate a hash of the fleet state to detect changes
+ */
+function calculateFleetStateHash(gameState) {
+    const state = {
+        planets: gameState.planets.map(p => ({
+            id: p.id,
+            ships: p.ships,
+            defenses: p.defenses
+        }))
+    };
+    return JSON.stringify(state);
+}
+
 /**
  * Update fleet view with player data
  */
@@ -13,6 +29,14 @@ export async function updateFleetView(gameState) {
         container.innerHTML = '<p>No planets available</p>';
         return;
     }
+    
+    // Check if state has changed
+    const currentHash = calculateFleetStateHash(gameState);
+    if (currentHash === lastFleetStateHash) {
+        // State hasn't changed, skip re-render
+        return;
+    }
+    lastFleetStateHash = currentHash;
     
     try {
         const fleetData = await Promise.all(

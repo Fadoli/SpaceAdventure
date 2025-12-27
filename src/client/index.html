@@ -151,6 +151,9 @@
                 <!-- Buildings View -->
                 <div id="buildings-view" class="view">
                     <h2>Buildings</h2>
+                    <div id="buildings-queue-container">
+                        <!-- Queue will be dynamically loaded -->
+                    </div>
                     <div id="buildings-grid" class="buildings-grid">
                         <!-- Buildings will be dynamically loaded -->
                     </div>
@@ -194,6 +197,14 @@
                 <span class="modal-close" onclick="window.closeModal()">&times;</span>
                 <h2 id="modal-building-title"></h2>
                 <div id="modal-building-body"></div>
+            </div>
+        </div>
+        
+        <div id="research-details-modal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="window.closeResearchModal()">&times;</span>
+                <h2 id="modal-research-title"></h2>
+                <div id="modal-research-body"></div>
             </div>
         </div>
     </div>
