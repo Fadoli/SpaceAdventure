@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { startGameLoop } from './game/gameLoop.js';
@@ -82,6 +82,26 @@ function successResponse(data) {
     data,
     timestamp: Date.now()
   });
+}
+
+// Helper to format activity time
+function getActivityString(lastActiveTimestamp) {
+  if (!lastActiveTimestamp) return 'Unknown';
+  const now = Date.now();
+  const diff = now - lastActiveTimestamp;
+  const minutes = Math.floor(diff / 60000);
+  
+  if (minutes < 1) return 'Now';
+  if (minutes < 60) return `${minutes}m`;
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  
+  const weeks = Math.floor(days / 7);
+  return `${weeks}w`;
 }
 
 // Request handler
@@ -645,6 +665,47 @@ async function handleRequest(req) {
       return successResponse({
         ships: planet.ships || {},
         defenses: planet.defenses || {}
+      });
+    }
+    
+    // GET /api/game/galaxy/:galaxy/:system
+    if (path.match(/^\/api\/game\/galaxy\/\d+\/\d+$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const pathParts = path.split('/');
+      const galaxy = parseInt(pathParts[4], 10);
+      const system = parseInt(pathParts[5], 10);
+      
+      // Get all players to scan for planets in this system
+      const allPlayers = await getPlayers();
+      const planetsInSystem = [];
+      
+      for (const player of allPlayers) {
+        for (const planet of player.planets) {
+          const [pGalaxy, pSystem, pPosition] = planet.coordinates;
+          if (pGalaxy === galaxy && pSystem === system) {
+            planetsInSystem.push({
+              position: pPosition,
+              player: player.username,
+              playerType: 'ai', // Could be enhanced to track player vs AI
+              planetName: planet.name,
+              activity: planet.lastUpdate ? getActivityString(planet.lastUpdate) : 'Unknown',
+              moon: planet.moon || false
+            });
+          }
+        }
+      }
+      
+      // Sort by position
+      planetsInSystem.sort((a, b) => a.position - b.position);
+      
+      return successResponse({
+        galaxy,
+        system,
+        planets: planetsInSystem
       });
     }
     

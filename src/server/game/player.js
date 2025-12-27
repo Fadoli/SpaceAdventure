@@ -7,7 +7,7 @@ import { updatePlanetProduction } from './buildings.js';
 /**
  * Get all players from storage
  */
-async function getPlayers() {
+export async function getPlayers() {
   const data = await readJsonFile('players.json');
   return data?.players || [];
 }

@@ -104,5 +104,9 @@ export const API = {
     
     async getFleetDetails(planetId) {
         return await this.request(`/game/planet/${planetId}/fleet`);
+    },
+    
+    async getGalaxyView(galaxy, system) {
+        return await this.request(`/game/galaxy/${galaxy}/${system}`);
     }
 };
