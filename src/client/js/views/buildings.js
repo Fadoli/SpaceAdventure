@@ -38,31 +38,61 @@ export async function updateBuildingsView(planet, onStateChange) {
         const building = buildings[key];
             // All data now comes from server including icon and description
             
-            // Calculate current level production to show differences
-            const currentProd = {};
-            const nextProd = building.production || {};
+            // Determine what stats to show based on building type
+            let statsInfo = '';
             
-            // Estimate current level production (approximate reverse calculation)
-            if (building.currentLevel > 0 && !isEmpty(nextProd)) {
-                for (const resource in nextProd) {
-                    const nextAmount = nextProd[resource];
-                    const baseAmount = nextAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0);
-                    currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0);
+            if (building.storage && !isEmpty(building.storage)) {
+                // Storage building - show storage capacity increase
+                statsInfo = '<div class="building-storage">';
+                for (const resource in building.storage) {
+                    const nextAmount = building.storage[resource];
+                    // Calculate current level storage
+                    let currentAmount = 0;
+                    if (building.currentLevel > 0) {
+                        const baseAmount = nextAmount / Math.pow(1.6, building.nextLevel - 1);
+                        currentAmount = Math.floor(baseAmount * Math.pow(1.6, building.currentLevel - 1));
+                    }
+                    const diff = nextAmount - currentAmount;
+                    const icon = RESOURCE_ICONS[resource] || '❓';
+                    statsInfo += `<div>${icon} +${formatNumber(diff)}</div>`;
                 }
-            }
-            
-            // Show production difference info
-            let productionInfo = '';
-            if (!isEmpty(nextProd)) {
-                productionInfo = '<div class="building-production">';
+                statsInfo += '</div>';
+            } else if (building.production && !isEmpty(building.production)) {
+                // Production building - show production increase
+                const currentProd = {};
+                const nextProd = building.production || {};
+                
+                // Estimate current level production (approximate reverse calculation)
+                if (building.currentLevel > 0 && !isEmpty(nextProd)) {
+                    for (const resource in nextProd) {
+                        const nextAmount = nextProd[resource];
+                        const baseAmount = nextAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0);
+                        currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0);
+                    }
+                }
+                
+                statsInfo = '<div class="building-production">';
                 for (const resource in nextProd) {
                     const nextAmount = nextProd[resource];
                     const currentAmount = currentProd[resource] || 0;
                     const diff = nextAmount - currentAmount;
                     const icon = RESOURCE_ICONS[resource] || '❓';
-                    productionInfo += `<div>${icon} +${formatNumber(diff)}/h</div>`;
+                    statsInfo += `<div>${icon} +${formatNumber(diff)}/h</div>`;
                 }
-                productionInfo += '</div>';
+                statsInfo += '</div>';
+            } else if (key === 'roboticsFactory' && building.currentLevel > 0) {
+                // Robotics factory - show construction speed improvement
+                const multiplier = Math.pow(0.8, building.currentLevel);
+                const improvement = ((1 - multiplier) * 100).toFixed(0);
+                statsInfo = `<div class="building-special">⏱️ Construction: ${improvement}% faster</div>`;
+            } else if (key === 'researchLab' && building.currentLevel > 0) {
+                // Research lab - show research speed
+                const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
+                statsInfo = `<div class="building-special">🔬 Research: ${speedMult}x speed</div>`;
+            } else if (key === 'shipyard' && building.currentLevel > 0) {
+                // Shipyard - show production speed
+                const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
+                statsInfo = `<div class="building-special">🚀 Production: ${speedMult}x speed</div>`;
             }
             
             // Calculate current level energy consumption to show difference
@@ -132,7 +162,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                     </div>
                     <div class="building-stats">
                         <div class="build-time">🕐 Build time: ${formatCountdown(building.buildTime)}</div>
-                        ${productionInfo}
+                        ${statsInfo}
                         ${energyInfo}
                     </div>
                     <button class="btn ${building.canAfford ? 'btn-success' : ''} btn-full" 
@@ -277,10 +307,10 @@ export async function showBuildingDetails(buildingKey) {
         const baseTime = baseTimeEstimate * Math.pow(1.5, level - 1);
         const roboticsLevel = planet?.buildings.roboticsFactory || 0;
         const naniteLevel = planet?.buildings.naniteFactory || 0;
-        const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
+        const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(0.8, roboticsLevel) : 1;
         const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
         const configMultiplier = 0.1;
-        const buildTime = Math.max(1, Math.floor((baseTime * roboticsMultiplier / naniteMultiplier) * configMultiplier));
+        const buildTime = Math.max(1, Math.floor((baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier));
         
         let production = null;
         if (building.production && !isEmpty(building.production)) {
@@ -294,6 +324,17 @@ export async function showBuildingDetails(buildingKey) {
             }
         }
         
+        let storage = null;
+        if (building.storage && !isEmpty(building.storage)) {
+            storage = {};
+            for (const resource in building.storage) {
+                const currentAmount = building.storage[resource];
+                // Estimate base amount from next level's storage
+                const baseAmount = currentAmount / Math.pow(1.6, building.nextLevel - 1);
+                storage[resource] = Math.floor(baseAmount * Math.pow(1.6, level - 1));
+            }
+        }
+        
         let energyConsumption = 0;
         if (building.energyConsumption > 0) {
             const energyMultiplier = 10.0;
@@ -301,20 +342,43 @@ export async function showBuildingDetails(buildingKey) {
             energyConsumption = Math.floor(baseEnergy * level * Math.pow(1.1, level) * energyMultiplier);
         }
         
-        levels.push({ level, cost, buildTime, production, energyConsumption });
+        levels.push({ level, cost, buildTime, production, storage, energyConsumption });
     }
     
     let tableRows = levels.map(l => {
         const isCurrent = l.level === currentLevel;
-        let productionCells = '';
-        if (l.production) {
+        
+        // Determine what data to display based on building type
+        let dataCell = '';
+        if (l.storage) {
+            // Storage building - show storage amounts
+            for (const resource in l.storage) {
+                const amount = l.storage[resource];
+                const icon = RESOURCE_ICONS[resource] || '❓';
+                dataCell += `<div>${icon}+${formatNumber(amount)}</div>`;
+            }
+        } else if (l.production) {
+            // Production building - show production amounts
             for (const resource in l.production) {
                 const amount = l.production[resource];
                 const icon = RESOURCE_ICONS[resource] || '❓';
-                productionCells += `<div>${icon}+${formatNumber(amount)}/h</div>`;
+                dataCell += `<div>${icon}+${formatNumber(amount)}/h</div>`;
             }
+        } else if (buildingKey === 'roboticsFactory') {
+            // Robotics factory - show construction time multiplier
+            const multiplier = Math.pow(0.8, l.level);
+            const reductionPercent = ((1 - multiplier) * 100).toFixed(1);
+            dataCell = `<div>⏱️ 0.8^${l.level} = ${(multiplier * 100).toFixed(1)}%<br><span style="font-size: 0.9em;">(${reductionPercent}% faster)</span></div>`;
+        } else if (buildingKey === 'researchLab') {
+            // Research lab - show research speed multiplier (inverse robotics)
+            const multiplier = 1 / Math.pow(0.8, l.level);
+            dataCell = `<div>🔬 ${formatNumber(multiplier.toFixed(2))}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+        } else if (buildingKey === 'shipyard') {
+            // Shipyard - show production multiplier (inverse robotics)
+            const multiplier = 1 / Math.pow(0.8, l.level);
+            dataCell = `<div>🚀 ${formatNumber(multiplier.toFixed(2))}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
         } else {
-            productionCells = '-';
+            dataCell = '-';
         }
         
         const energyCell = l.energyConsumption > 0 ? `⚡-${formatNumber(l.energyConsumption)}/h` : '-';
@@ -324,7 +388,7 @@ export async function showBuildingDetails(buildingKey) {
                 <td>${l.level}${isCurrent ? ' ⭐' : ''}</td>
                 <td>⚙️${formatNumber(l.cost.metal)}<br>💎${formatNumber(l.cost.crystal)}${l.cost.deuterium > 0 ? `<br>🛢️${formatNumber(l.cost.deuterium)}` : ''}</td>
                 <td>${formatCountdown(l.buildTime)}</td>
-                <td>${productionCells}</td>
+                <td>${dataCell}</td>
                 <td>${energyCell}</td>
             </tr>
         `;
@@ -338,7 +402,23 @@ export async function showBuildingDetails(buildingKey) {
         effectsSection = `
             <div class="building-effects">
                 <strong>⚙️ Current Effect:</strong>
-                <div>Construction time reduced to ${(reductionFactor * 100).toFixed(1)}% (${reductionPercent}% faster)</div>
+                <div>Construction time multiplier: 0.8^${currentLevel} = ${(reductionFactor * 100).toFixed(1)}% (${reductionPercent}% faster)</div>
+            </div>
+        `;
+    } else if (buildingKey === 'researchLab' && currentLevel > 0) {
+        const speedMult = (1 / Math.pow(0.8, currentLevel)).toFixed(2);
+        effectsSection = `
+            <div class="building-effects">
+                <strong>🔬 Current Effect:</strong>
+                <div>Research speed multiplier: ${speedMult}x (1 / 0.8^${currentLevel})</div>
+            </div>
+        `;
+    } else if (buildingKey === 'shipyard' && currentLevel > 0) {
+        const speedMult = (1 / Math.pow(0.8, currentLevel)).toFixed(2);
+        effectsSection = `
+            <div class="building-effects">
+                <strong>🚀 Current Effect:</strong>
+                <div>Ship production speed multiplier: ${speedMult}x (1 / 0.8^${currentLevel})</div>
             </div>
         `;
     }
@@ -353,7 +433,13 @@ export async function showBuildingDetails(buildingKey) {
                         <th>Level</th>
                         <th>Cost</th>
                         <th>Build Time</th>
-                        <th>Production</th>
+                        <th>${
+                            buildingKey.includes('Storage') ? 'Capacity' :
+                            buildingKey === 'roboticsFactory' ? 'Time Factor' :
+                            buildingKey === 'researchLab' ? 'Research Speed' :
+                            buildingKey === 'shipyard' ? 'Production Speed' :
+                            'Production'
+                        }</th>
                         <th>Energy</th>
                     </tr>
                 </thead>

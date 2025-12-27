@@ -10,7 +10,7 @@ import {
     showBuildingDetails as showBuildingInfo,
     closeModal as closeBuildingModal
 } from './views/buildings.js';
-import { updateResearchView } from './views/research.js';
+import { updateResearchView, initializeResearch } from './views/research.js';
 import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateGalaxyView } from './views/galaxy.js';
@@ -218,6 +218,9 @@ function switchView(view, updateHistory = true) {
         } else if (view === 'galaxy') {
             // Render galaxy view when explicitly switched
             updateGalaxyView(gameState);
+        } else if (view === 'research') {
+            // Initialize research view when explicitly switched
+            initializeResearch(currentPlanetId);
         } else {
             updateCurrentView();
         }
@@ -285,7 +288,8 @@ function updateCurrentView() {
             updateBuildingsView(planet, loadGameState);
             break;
         case 'research':
-            updateResearchView(gameState);
+            // Update research timers without full re-render
+            updateTimers();
             break;
         case 'shipyard':
             updateShipyardView(planet);

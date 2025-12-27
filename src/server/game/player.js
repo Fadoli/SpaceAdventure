@@ -93,6 +93,7 @@ export async function createPlayer(userId, username) {
     userId,
     username,
     planets: [planet],
+    // Theoretical research: technology unlocks
     research: {
       energyTech: 0,
       computerTech: 0,
@@ -105,7 +106,17 @@ export async function createPlayer(userId, username) {
       espionageTech: 0,
       astrophysics: 0
     },
+    // Theoretical research queue
     researchQueue: [],
+    // Practical research: customization focuses per building/ship type
+    // Structure: { metalMine: { output: 5, manpower: 2, energy: 1, cost: 0 }, ... }
+    practicalResearch: {},
+    // Practical research queue
+    practicalResearchQueue: [],
+    // Selected custom variants per planet
+    // Structure: { planetId: { metalMine: { focusLevels: {...}, modifiers: {...} }, ... } }
+    customBuildingVariants: {},
+    customShipVariants: {},
     fleets: []
   };
   

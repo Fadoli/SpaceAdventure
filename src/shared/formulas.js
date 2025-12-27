@@ -212,3 +212,90 @@ export function getBuildingPopulationRequired(buildingType, level, buildingsObj 
   const populationMultiplier = 1.05;
   return Math.floor(building.populationRequired * level * Math.pow(populationMultiplier, level));
 }
+
+/**
+ * Calculate theoretical research cost at a given level
+ * Doubles with each level (exponential growth)
+ */
+export function calculateTheoreticalResearchCost(baseCost, level) {
+  return {
+    metal: Math.floor(baseCost.metal * Math.pow(2, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(2, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(2, level))
+  };
+}
+
+/**
+ * Calculate theoretical research time at a given level
+ * Time doubles with each level, affected by research lab level
+ */
+export function calculateTheoreticalResearchTime(baseTime, level, labLevel = 1) {
+  const time = baseTime * Math.pow(2, level);
+  const labMultiplier = 1 + (labLevel * 0.15); // 15% speedup per lab level
+  
+  return Math.floor(time / labMultiplier);
+}
+
+/**
+ * Calculate practical research (customization) cost at a given level
+ * Slower scaling than theoretical: 1.5x per level
+ */
+export function calculatePracticalResearchCost(baseCost, level) {
+  return {
+    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
+  };
+}
+
+/**
+ * Calculate practical research (customization) time at a given level
+ * Slower scaling than theoretical: 1.5x per level
+ */
+export function calculatePracticalResearchTime(baseTime, level, labLevel = 1) {
+  const time = baseTime * Math.pow(1.5, level);
+  const labMultiplier = 1 + (labLevel * 0.15);
+  
+  return Math.floor(time / labMultiplier);
+}
+
+/**
+ * Apply theoretical research bonuses to a stat
+ * Each level grants an incremental bonus
+ */
+export function applyTheoreticalBonus(baseValue, techLevel, bonusPerLevel) {
+  return baseValue * (1 + (techLevel * bonusPerLevel));
+}
+
+/**
+ * Calculate combined modifiers from all practical research focuses
+ * Used when retrieving a specific customized building/ship variant
+ */
+export function calculatePracticalModifiers(baseDefinition, focusLevels, researchConfig) {
+  const modifiers = {
+    productionMultiplier: 0,
+    costMultiplier: 0,
+    energyMultiplier: 0,
+    populationMultiplier: 0,
+    cargoMultiplier: 0,
+    fuelMultiplier: 0,
+    speedMultiplier: 0,
+    attackMultiplier: 0,
+    hullMultiplier: 0,
+    shieldMultiplier: 0
+  };
+  
+  // Sum modifiers from each focus
+  for (const [focus, level] of Object.entries(focusLevels)) {
+    if (level > 0 && researchConfig.focusModifiers && researchConfig.focusModifiers[focus]) {
+      const focusModifiers = researchConfig.focusModifiers[focus];
+      for (const [stat, modifier] of Object.entries(focusModifiers)) {
+        if (modifiers.hasOwnProperty(stat)) {
+          modifiers[stat] += modifier * level;
+        }
+      }
+    }
+  }
+  
+  return modifiers;
+}

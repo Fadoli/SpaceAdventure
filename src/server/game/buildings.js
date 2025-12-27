@@ -45,8 +45,8 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   
   const baseTime = building.baseTime * Math.pow(1.5, level - 1);
   
-  // Robotics factory speeds up construction (20% per level, 0.8^n)
-  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
+  // Robotics factory speeds up construction (inverse formula: 1 / 0.8^n)
+  const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(0.8, roboticsLevel) : 1;
   
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
@@ -54,7 +54,7 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   // Apply config build time multiplier
   const configMultiplier = getBuildTimeMultiplier();
   
-  const totalTime = (baseTime * roboticsMultiplier / naniteMultiplier) * configMultiplier;
+  const totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier;
   
   return Math.max(1, Math.floor(totalTime)); // Minimum 1 second
 }
@@ -117,10 +117,21 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   
   const building = BUILDINGS[buildingType];
   const currentLevel = planet.buildings[buildingType] || 0;
-  const nextLevel = currentLevel + 1;
+  
+  // Find the highest level of this building in the queue
+  let highestQueuedLevel = currentLevel;
+  if (planet.buildQueue) {
+    const queuedBuildings = planet.buildQueue.filter(item => item.building === buildingType);
+    if (queuedBuildings.length > 0) {
+      highestQueuedLevel = Math.max(...queuedBuildings.map(item => item.level));
+    }
+  }
+  
+  const nextLevel = highestQueuedLevel + 1;
+  console.log(`[upgradeBuilding] ${buildingType}: currentLevel=${currentLevel}, buildQueue=${planet.buildQueue?.length || 0}, highestQueuedLevel=${highestQueuedLevel}, nextLevel=${nextLevel}`);
   
   // Check max level
-  if (building.maxLevel && currentLevel >= building.maxLevel) {
+  if (building.maxLevel && nextLevel > building.maxLevel) {
     throw new Error('Building is at maximum level');
   }
   

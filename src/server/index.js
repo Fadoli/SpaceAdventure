@@ -10,6 +10,22 @@ import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
+import { 
+  startTheoreticalResearch, 
+  completeTheoreticalResearch, 
+  cancelTheoreticalResearch,
+  startPracticalResearch,
+  completePracticalResearch,
+  cancelPracticalResearch,
+  selectCustomBuildingVariant,
+  selectCustomShipVariant,
+  getResearchProgress,
+  getTheoreticalResearchLevels,
+  getPracticalResearchProgress,
+  getActiveCustomVariants,
+  getActiveShipCustomVariants,
+  getAvailablePracticalResearchForPlayer
+} from './game/researchLogic.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS } from '../shared/buildings.js';
 import { SHIPS } from '../shared/ships.js';
@@ -128,14 +144,38 @@ async function handleRequest(req) {
       const file = Bun.file(`.${filePath}`);
       
       if (await file.exists()) {
-        return new Response(file);
+        // Determine content type based on file extension
+        let contentType = 'text/html; charset=utf-8';
+        if (filePath.endsWith('.js')) {
+          contentType = 'application/javascript; charset=utf-8';
+        } else if (filePath.endsWith('.css')) {
+          contentType = 'text/css; charset=utf-8';
+        } else if (filePath.endsWith('.json')) {
+          contentType = 'application/json; charset=utf-8';
+        } else if (filePath.endsWith('.png')) {
+          contentType = 'image/png';
+        } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+          contentType = 'image/jpeg';
+        } else if (filePath.endsWith('.svg')) {
+          contentType = 'image/svg+xml';
+        }
+        
+        return new Response(file, {
+          headers: {
+            'Content-Type': contentType
+          }
+        });
       }
       
       // If not found and not an API route, serve index.html (SPA routing)
       if (!path.startsWith('/api/')) {
         const indexFile = Bun.file('./src/client/index.html');
         if (await indexFile.exists()) {
-          return new Response(indexFile);
+          return new Response(indexFile, {
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8'
+            }
+          });
         }
       }
       
@@ -367,7 +407,17 @@ async function handleRequest(req) {
       for (const buildingType in BUILDINGS) {
         const buildingDef = BUILDINGS[buildingType];
         const currentLevel = planet.buildings[buildingType] || 0;
-        const nextLevel = currentLevel + 1;
+        
+        // Find the highest level of this building in the queue
+        let highestQueuedLevel = currentLevel;
+        if (planet.buildQueue) {
+          const queuedBuildings = planet.buildQueue.filter(item => item.building === buildingType);
+          if (queuedBuildings.length > 0) {
+            highestQueuedLevel = Math.max(...queuedBuildings.map(item => item.level));
+          }
+        }
+        
+        const nextLevel = highestQueuedLevel + 1;
         
         // Calculate cost for next level
         const cost = getBuildingCost(buildingType, nextLevel);
@@ -379,6 +429,12 @@ async function handleRequest(req) {
         
         // Calculate production for next level
         const production = getProduction(buildingType, nextLevel);
+        
+        // Calculate storage for next level
+        let storage = null;
+        if (buildingDef.storage) {
+          storage = getStorageIncrease(buildingType, nextLevel);
+        }
         
         // Calculate energy consumption for next level
         let energyConsumption = 0;
@@ -402,6 +458,7 @@ async function handleRequest(req) {
           cost,
           buildTime,
           production,
+          storage,
           energyConsumption,
           canAfford
         };
@@ -707,6 +764,249 @@ async function handleRequest(req) {
         system,
         planets: planetsInSystem
       });
+    }
+
+    // ============================================
+    // RESEARCH ROUTES
+    // ============================================
+
+    // GET /api/game/research - Get all research info
+    if (path === '/api/game/research' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      try {
+        const progress = getResearchProgress(player);
+        const theoretical = getTheoreticalResearchLevels(player);
+        const practical = getPracticalResearchProgress(player);
+
+        return successResponse({
+          progress,
+          theoretical,
+          practical
+        });
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // POST /api/game/planet/:planetId/research/theoretical - Start theoretical research
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/theoretical$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+
+      const body = await req.json();
+      const { techKey } = body;
+
+      try {
+        const queueItem = startTheoreticalResearch(player, techKey, planetId);
+        await updatePlayer(player);
+
+        return successResponse(queueItem);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // DELETE /api/game/planet/:planetId/research/theoretical/:queueId - Cancel theoretical research
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/theoretical\/[^/]+$/) && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const parts = path.split('/');
+      const planetId = parts[4];
+      const queueId = parts[7];
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      try {
+        const refund = cancelTheoreticalResearch(player, queueId, planetId);
+        await updatePlayer(player);
+
+        return successResponse({ refund, cancelled: true });
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // POST /api/game/planet/:planetId/research/practical - Start practical research
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/practical$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+
+      const body = await req.json();
+      const { baseType, type, focus } = body;
+
+      try {
+        const queueItem = startPracticalResearch(player, baseType, type, focus, planetId);
+        await updatePlayer(player);
+
+        return successResponse(queueItem);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // DELETE /api/game/planet/:planetId/research/practical/:queueId - Cancel practical research
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/practical\/[^/]+$/) && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const parts = path.split('/');
+      const planetId = parts[4];
+      const queueId = parts[7];
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      try {
+        const refund = cancelPracticalResearch(player, queueId, planetId);
+        await updatePlayer(player);
+
+        return successResponse({ refund, cancelled: true });
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // GET /api/game/planet/:planetId/research/available - Get available practical research
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/available$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      try {
+        const available = getAvailablePracticalResearchForPlayer(player, planetId);
+        return successResponse(available);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // POST /api/game/planet/:planetId/research/building-variant - Set custom building variant
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/building-variant$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      const body = await req.json();
+      const { baseType, focusLevels } = body;
+
+      try {
+        const variant = selectCustomBuildingVariant(player, planetId, baseType, focusLevels);
+        await updatePlayer(player);
+
+        return successResponse(variant);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // POST /api/game/research/ship-variant - Set custom ship variant
+    if (path === '/api/game/research/ship-variant' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      const body = await req.json();
+      const { baseType, focusLevels } = body;
+
+      try {
+        const variant = selectCustomShipVariant(player, baseType, focusLevels);
+        await updatePlayer(player);
+
+        return successResponse(variant);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    // GET /api/game/planet/:planetId/research/variants - Get active custom variants
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/variants$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+
+      const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+
+      try {
+        const buildingVariants = getActiveCustomVariants(player, planetId);
+        const shipVariants = getActiveShipCustomVariants(player);
+
+        return successResponse({
+          building: buildingVariants,
+          ships: shipVariants
+        });
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
     }
     
     // 404 for unknown API routes
