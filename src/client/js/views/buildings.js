@@ -361,6 +361,22 @@ export async function showBuildingDetails(buildingKey) {
     `;
     
     modal.style.display = 'block';
+    
+    // Add click outside modal to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Add ESC key to close modal
+    const handleEscKey = (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    document.addEventListener('keydown', handleEscKey);
 }
 
 /**

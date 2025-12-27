@@ -15,7 +15,7 @@
   },
   "gameplay": {
     "description": "Gameplay mechanics settings",
-    "buildQueueSize": 5,
+    "buildQueueSize": 10,
     "researchQueueSize": 3,
     "maxPlanetsPerPlayer": 9,
     "startingResourcesMultiplier": 5.0
