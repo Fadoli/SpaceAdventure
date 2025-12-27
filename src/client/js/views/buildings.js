@@ -3,6 +3,7 @@ import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
+import { calculateAllocationEffectiveness } from '../../../shared/formulas.js';
 
 let currentGameState = null;
 
@@ -81,17 +82,17 @@ export async function updateBuildingsView(planet, onStateChange) {
             
             let allocationBadge = '';
             if (hasAllocation && allocation) {
-                // Calculate desired effectiveness (simplified client-side)
-                const powerEff = allocation.power <= 1.0 ? Math.sqrt(allocation.power) : 1.0 + ((allocation.power - 1.0) * 0.5 * Math.pow(0.5, allocation.power - 1.0));
-                const popEff = allocation.population <= 1.0 ? Math.sqrt(allocation.population) : 1.0 + ((allocation.population - 1.0) * 0.5 * Math.pow(0.5, allocation.population - 1.0));
+                // Calculate desired effectiveness using shared formula
+                const powerEff = calculateAllocationEffectiveness(allocation.power) / 100;
+                const popEff = calculateAllocationEffectiveness(allocation.population) / 100;
                 const totalEff = powerEff * popEff;
                 const effPercent = (totalEff * 100).toFixed(0);
                 
                 // Calculate ACTUAL effectiveness if available
                 let actualBadge = '';
                 if (actualAllocation) {
-                    const actualPowerEff = actualAllocation.power <= 1.0 ? Math.sqrt(actualAllocation.power) : 1.0 + ((actualAllocation.power - 1.0) * 0.5 * Math.pow(0.5, actualAllocation.power - 1.0));
-                    const actualPopEff = actualAllocation.population <= 1.0 ? Math.sqrt(actualAllocation.population) : 1.0 + ((actualAllocation.population - 1.0) * 0.5 * Math.pow(0.5, actualAllocation.population - 1.0));
+                    const actualPowerEff = calculateAllocationEffectiveness(actualAllocation.power) / 100;
+                    const actualPopEff = calculateAllocationEffectiveness(actualAllocation.population) / 100;
                     const actualTotalEff = actualPowerEff * actualPopEff;
                     const actualEffPercent = (actualTotalEff * 100).toFixed(0);
                     const actualEffClass = actualTotalEff >= 0.9 ? 'good' : actualTotalEff >= 0.6 ? 'medium' : 'low';
