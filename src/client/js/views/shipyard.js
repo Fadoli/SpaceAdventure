@@ -2,6 +2,7 @@
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
+import { isEmpty } from '../../../shared/utils.js';
 
 let currentShipyardData = null;
 let currentPlanetId = null;
@@ -80,7 +81,7 @@ function renderShipsList(planet, shipyardData) {
     html += '<h3>🛰️ Ships</h3>';
     
     for (const [category, data] of Object.entries(shipCategories)) {
-        if (Object.keys(data.ships).length === 0) continue;
+        if (isEmpty(data.ships)) continue;
         
         const isCollapsed = collapsedSections[`ships-${category}`] || false;
         const isLocked = shipyardLevel < data.minLevel;
@@ -245,13 +246,13 @@ function renderBuildQueue(shipyardData) {
             let itemName = '';
             let itemDetails = '';
             
-            if (item.ships && Object.keys(item.ships).length > 0) {
+            if (item.ships && !isEmpty(item.ships)) {
                 itemDetails = Object.entries(item.ships)
                     .map(([key, qty]) => `${qty}x ${availableShips[key]?.name || key}`)
                     .join(', ');
             }
             
-            if (item.defenses && Object.keys(item.defenses).length > 0) {
+            if (item.defenses && !isEmpty(item.defenses)) {
                 itemDetails = Object.entries(item.defenses)
                     .map(([key, qty]) => `${qty}x ${availableDefenses[key]?.name || key}`)
                     .join(', ');

@@ -2,6 +2,7 @@
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
+import { isEmpty } from '../../../shared/utils.js';
 
 let currentGameState = null;
 
@@ -40,7 +41,7 @@ export async function updateBuildingsView(planet, onStateChange) {
             const nextProd = building.production || {};
             
             // Estimate current level production (approximate reverse calculation)
-            if (building.currentLevel > 0 && Object.keys(nextProd).length > 0) {
+            if (building.currentLevel > 0 && !isEmpty(nextProd)) {
                 for (const [resource, nextAmount] of Object.entries(nextProd)) {
                     const baseAmount = nextAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0);
                     currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0);
@@ -49,7 +50,7 @@ export async function updateBuildingsView(planet, onStateChange) {
             
             // Show production difference info
             let productionInfo = '';
-            if (Object.keys(nextProd).length > 0) {
+            if (!isEmpty(nextProd)) {
                 productionInfo = '<div class="building-production">';
                 for (const [resource, nextAmount] of Object.entries(nextProd)) {
                     const currentAmount = currentProd[resource] || 0;
@@ -278,7 +279,7 @@ export async function showBuildingDetails(buildingKey) {
         const buildTime = Math.max(1, Math.floor((baseTime * roboticsMultiplier / naniteMultiplier) * configMultiplier));
         
         let production = null;
-        if (building.production && Object.keys(building.production).length > 0) {
+        if (building.production && !isEmpty(building.production)) {
             production = {};
             const productionMultiplier = 10.0;
             for (const [resource, currentAmount] of Object.entries(building.production)) {

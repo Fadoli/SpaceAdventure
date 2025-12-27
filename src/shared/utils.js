@@ -57,3 +57,13 @@ export function clamp(value, min, max) {
 export function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
+
+/**
+ * Check if an object is empty using for-in loop
+ */
+export function isEmpty(obj) {
+  for (const key in obj) {
+    return false;
+  }
+  return true;
+}
