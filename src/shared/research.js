@@ -188,7 +188,7 @@ export const THEORETICAL_RESEARCH = {
  */
 export const PRACTICAL_FOCUS_TYPES = {
   OUTPUT: 'output',          // Increases production/efficiency
-  MANPOWER: 'manpower',      // Reduces workforce requirement
+  AUTOMATION: 'automation',  // Reduces workforce requirement through automation
   ENERGY: 'energy',          // Improves energy efficiency
   COST: 'cost'               // Reduces construction cost
 };
@@ -220,7 +220,7 @@ export const PRACTICAL_RESEARCH = {
         energyMultiplier: 0.08,          // +8% energy per focus level
         populationMultiplier: -0.03      // -3% population requirement (improvement)
       },
-      manpower: {
+      automation: {
         populationMultiplier: -0.15,     // -15% workforce per focus level
         costMultiplier: 0.12,            // +12% cost per focus level (machinery)
         energyMultiplier: 0.15,          // +15% energy per focus level
@@ -262,7 +262,7 @@ export const PRACTICAL_RESEARCH = {
         energyMultiplier: 0.08,
         populationMultiplier: -0.03
       },
-      manpower: {
+      automation: {
         populationMultiplier: -0.15,
         costMultiplier: 0.12,
         energyMultiplier: 0.15,
@@ -304,7 +304,7 @@ export const PRACTICAL_RESEARCH = {
         energyMultiplier: 0.03,
         populationMultiplier: -0.02
       },
-      manpower: {
+      automation: {
         populationMultiplier: -0.12,
         costMultiplier: 0.1,
         energyMultiplier: 0.08,
@@ -347,7 +347,7 @@ export const PRACTICAL_RESEARCH = {
         fuelMultiplier: 0.1,
         speedMultiplier: -0.05           // -5% speed
       },
-      manpower: {
+      automation: {
         crewRequirement: -0.15,          // Not applicable to ships in same way
         costMultiplier: 0.12,
         fuelMultiplier: 0.15,
@@ -389,7 +389,7 @@ export const PRACTICAL_RESEARCH = {
         costMultiplier: 0.08,
         speedMultiplier: -0.08
       },
-      manpower: {
+      automation: {
         crewRequirement: -0.1,
         costMultiplier: 0.1,
         fuelMultiplier: 0.12,
@@ -465,7 +465,7 @@ export function getAvailablePracticalResearch(playerBuildings, playerShips) {
  * Returns modified stats based on the focus levels
  */
 export function getCustomVariant(baseType, type, focusLevels) {
-  // focusLevels = { output: 5, manpower: 3, energy: 2, cost: 0 }
+  // focusLevels = { output: 5, automation: 3, energy: 2, cost: 0 }
   const research = Object.values(PRACTICAL_RESEARCH).find(
     r => r.baseType === baseType && r.type === type
   );

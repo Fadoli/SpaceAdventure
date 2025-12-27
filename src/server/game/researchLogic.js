@@ -134,81 +134,128 @@ export function cancelTheoreticalResearch(player, queueItemId, planetId) {
  * Start practical research (building/ship customization)
  * Increments the focus level for a specific type and building/ship
  */
-export function startPracticalResearch(player, baseType, type, focus, planetId) {
-  const FOCUS_TYPES = ['output', 'manpower', 'energy', 'cost'];
-  
-  if (!FOCUS_TYPES.includes(focus)) {
-    throw new Error(`Invalid focus type: ${focus}`);
-  }
+export function startPracticalResearchWithAllocation(player, researchKey, allocation, planetId, strength = 0.5) {
+  console.log(`[RESEARCH] startPracticalResearchWithAllocation called with researchKey=${researchKey}, allocation=`, allocation, `strength=${strength}, planetId=${planetId}`);
   
   // Get the practical research config
-  const practicalResearchConfig = Object.values(getPracticalResearch()).find(
-    r => r.baseType === baseType && r.type === type
-  );
+  const PRACTICAL = getPracticalResearch();
+  const practicalResearchConfig = PRACTICAL[researchKey];
   
   if (!practicalResearchConfig) {
-    throw new Error(`No practical research available for ${type} ${baseType}`);
+    throw new Error(`No practical research available for ${researchKey}`);
+  }
+  
+  const baseType = practicalResearchConfig.baseType;
+  
+  // Validate allocation sums to approximately 1 (or 100%)
+  const allocationSum = Object.values(allocation).reduce((a, b) => a + b, 0);
+  console.log(`[RESEARCH] Allocation sum: ${allocationSum}`);
+  
+  if (Math.abs(allocationSum - 1) > 0.01) {  // Allow small rounding errors
+    throw new Error(`Allocation must sum to 100%, got ${Math.round(allocationSum * 100)}%`);
+  }
+  
+  // Validate strength
+  if (strength < 0 || strength > 1) {
+    throw new Error(`Strength must be between 0 and 1, got ${strength}`);
   }
   
   // Initialize if not exists
-  if (!player.practicalResearch[baseType]) {
+  if (!player.practicalResearch || !player.practicalResearch[baseType]) {
+    if (!player.practicalResearch) player.practicalResearch = {};
     player.practicalResearch[baseType] = {
       output: 0,
-      manpower: 0,
+      automation: 0,
       energy: 0,
       cost: 0
     };
   }
   
-  const currentFocusLevel = player.practicalResearch[baseType][focus] || 0;
-  
-  // Check max levels
-  if (currentFocusLevel >= practicalResearchConfig.maxLevels) {
-    throw new Error(`Max level reached for ${baseType} ${focus}`);
-  }
-  
-  // Check resources
-  const cost = calculatePracticalResearchCost(
-    practicalResearchConfig.baseCost,
-    currentFocusLevel
-  );
-  
   const planet = player.planets.find(p => p.id === planetId);
+  console.log(`[RESEARCH] Planet found:`, planet ? 'yes' : 'no');
+  
   if (!planet) {
     throw new Error('Planet not found');
   }
   
+  // Check for research lab
+  console.log(`[RESEARCH] Research lab level:`, planet.buildings.researchLab);
+  if (!planet.buildings.researchLab || planet.buildings.researchLab === 0) {
+    throw new Error('No research lab available');
+  }
+  
+  // Calculate weighted cost based on allocation
+  const baseCost = practicalResearchConfig.baseCost;
+  const costModifiers = {
+    output: 1.05,
+    automation: 1.12,
+    energy: 1.08,
+    cost: 0.88
+  };
+  
+  let totalCostMultiplier = 0;
+  for (const [focus, percentage] of Object.entries(allocation)) {
+    totalCostMultiplier += (costModifiers[focus] || 1) * percentage;
+  }
+  
+  // Apply level scaling
+  const currentLevel = player.practicalResearch[baseType];
+  const totalFocusLevel = Object.values(currentLevel).reduce((a, b) => a + b, 0);
+  const levelMultiplier = 1 + (totalFocusLevel * 0.3);
+  
+  // Apply non-linear strength multiplier (0 = 0.5x, 0.5 = 1x, 1 = 2.5x)
+  const strengthMultiplier = 0.5 + (strength * strength * 2);
+  
+  const finalCostMultiplier = totalCostMultiplier * levelMultiplier * strengthMultiplier;
+  const cost = {
+    metal: Math.ceil(baseCost.metal * finalCostMultiplier),
+    crystal: Math.ceil(baseCost.crystal * finalCostMultiplier),
+    deuterium: Math.ceil(baseCost.deuterium * finalCostMultiplier)
+  };
+  
+  console.log(`[RESEARCH] Cost calculation: allocation multiplier=${totalCostMultiplier}, level=${levelMultiplier}, strength=${strengthMultiplier}, final=${finalCostMultiplier}`)
+  console.log(`[RESEARCH] Required cost:`, cost);
+  console.log(`[RESEARCH] Planet resources:`, planet.resources);
+  
+  // Check resources
   for (const resource in cost) {
     if (planet.resources[resource] < cost[resource]) {
       throw new Error(`Insufficient ${resource}. Need ${cost[resource]}, have ${planet.resources[resource]}`);
     }
   }
   
-  // Check for research lab
-  if (!planet.buildings.researchLab || planet.buildings.researchLab === 0) {
-    throw new Error('No research lab available');
-  }
-  
   // Deduct resources
   for (const resource in cost) {
     planet.resources[resource] -= cost[resource];
   }
+  console.log(`[RESEARCH] Resources deducted, remaining:`, planet.resources);
   
-  // Calculate research time
-  const time = calculatePracticalResearchTime(
-    practicalResearchConfig.baseTime,
-    currentFocusLevel,
-    planet.buildings.researchLab || 0
-  );
+  // Calculate research time with strength and lab bonus
+  const baseTime = practicalResearchConfig.baseTime;
+  const researchLabLevel = planet.buildings.researchLab || 1;
+  const timeMultiplier = 1 + (totalFocusLevel * 0.2);
   
-  // Create queue item
+  // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 3.5x)
+  const strengthTimeMultiplier = 0.5 + (strength * strength * 3);
+  
+  let time = Math.floor((baseTime * timeMultiplier * strengthTimeMultiplier) / (1 + (researchLabLevel * 0.1)));
+  time = Math.max(60, time);  // Minimum 60 seconds
+  
+  // Max duration: 2 days (172800 seconds)
+  const maxDuration = 172800;
+  if (time > maxDuration) {
+    console.log(`[RESEARCH] Research time ${time}s exceeds max of ${maxDuration}s, capping to max`);
+    time = maxDuration;
+  }
+  
+  // Create queue item with allocation and strength
   const item = {
     id: generateId(),
     type: 'practical',
     baseType,
-    itemType: type, // 'building' or 'ship'
-    focus,
-    level: currentFocusLevel + 1,
+    itemType: practicalResearchConfig.type,
+    allocation,  // Store the allocation
+    strength,    // Store the strength
     startTime: Date.now(),
     duration: time * 1000,
     endTime: Date.now() + (time * 1000),
@@ -217,7 +264,138 @@ export function startPracticalResearch(player, baseType, type, focus, planetId) 
     progress: 0
   };
   
+  console.log(`[RESEARCH] Created queue item:`, item);
+  console.log(`[RESEARCH] Research time: ${time} seconds (${Math.floor(time / 60)} minutes)`);
+  
+  if (!player.practicalResearchQueue) {
+    player.practicalResearchQueue = [];
+  }
+  
   player.practicalResearchQueue.push(item);
+  console.log(`[RESEARCH] Added to queue, queue length now:`, player.practicalResearchQueue.length);
+  
+  return item;
+}
+
+/**
+ * Start practical research at the next level
+ * This is the simple system where players research the next level of a customization
+ */
+export function startPracticalResearchLevel(player, researchKey, planetId) {
+  console.log(`[RESEARCH] startPracticalResearchLevel called with researchKey=${researchKey}, planetId=${planetId}`);
+  
+  // Get the practical research config
+  const PRACTICAL = getPracticalResearch();
+  console.log(`[RESEARCH] Available practical research keys:`, Object.keys(PRACTICAL));
+  
+  const practicalResearchConfig = PRACTICAL[researchKey];
+  console.log(`[RESEARCH] Config for ${researchKey}:`, practicalResearchConfig);
+  
+  if (!practicalResearchConfig) {
+    throw new Error(`No practical research available for ${researchKey}`);
+  }
+  
+  const baseType = practicalResearchConfig.baseType;
+  const planet = player.planets.find(p => p.id === planetId);
+  console.log(`[RESEARCH] Planet found:`, planet ? 'yes' : 'no');
+  
+  if (!planet) {
+    throw new Error('Planet not found');
+  }
+  
+  // Ensure player has practical research structure
+  if (!player.practicalResearch) {
+    player.practicalResearch = {};
+    console.log(`[RESEARCH] Initialized player.practicalResearch`);
+  }
+  
+  if (!player.practicalResearchQueue) {
+    player.practicalResearchQueue = [];
+    console.log(`[RESEARCH] Initialized player.practicalResearchQueue`);
+  }
+  
+  // Check for research lab
+  console.log(`[RESEARCH] Research lab level:`, planet.buildings.researchLab);
+  if (!planet.buildings.researchLab || planet.buildings.researchLab === 0) {
+    throw new Error('No research lab available');
+  }
+  
+  // Get current research level
+  if (!player.practicalResearch[baseType]) {
+    player.practicalResearch[baseType] = {
+      output: 0,
+      automation: 0,
+      energy: 0,
+      cost: 0
+    };
+    console.log(`[RESEARCH] Initialized practical research for ${baseType}`);
+  }
+  
+  // Calculate the total level across all focuses to determine progression
+  const currentLevel = player.practicalResearch[baseType];
+  console.log(`[RESEARCH] Current focus levels for ${baseType}:`, currentLevel);
+  
+  const totalFocusLevel = Object.values(currentLevel).reduce((a, b) => a + b, 0);
+  const nextLevel = totalFocusLevel + 1;
+  console.log(`[RESEARCH] Total focus level: ${totalFocusLevel}, next level: ${nextLevel}`);
+  
+  // Calculate cost for this research level (scales exponentially)
+  const baseCost = practicalResearchConfig.baseCost;
+  const costMultiplier = 1 + (totalFocusLevel * 0.5);  // Cost increases with research
+  const cost = {
+    metal: Math.ceil(baseCost.metal * costMultiplier),
+    crystal: Math.ceil(baseCost.crystal * costMultiplier),
+    deuterium: Math.ceil(baseCost.deuterium * costMultiplier)
+  };
+  
+  // Check resources
+  console.log(`[RESEARCH] Required cost:`, cost);
+  console.log(`[RESEARCH] Planet resources:`, planet.resources);
+  
+  for (const resource in cost) {
+    if (planet.resources[resource] < cost[resource]) {
+      throw new Error(`Insufficient ${resource}. Need ${cost[resource]}, have ${planet.resources[resource]}`);
+    }
+  }
+  
+  // Deduct resources
+  for (const resource in cost) {
+    planet.resources[resource] -= cost[resource];
+  }
+  console.log(`[RESEARCH] Resources deducted, remaining:`, planet.resources);
+  
+  // Calculate research time based on research lab level
+  // Base time increases with research level
+  const baseTime = practicalResearchConfig.baseTime;
+  const researchLabLevel = planet.buildings.researchLab || 1;
+  const levelMultiplier = 1 + (totalFocusLevel * 0.2);  // 20% longer for each level
+  
+  // Time formula: base time adjusted by level and lab level
+  const time = Math.max(
+    60,  // Minimum 60 seconds
+    Math.floor((baseTime * levelMultiplier) / (1 + (researchLabLevel * 0.1)))
+  );
+  
+  // Create queue item for level-based research
+  const item = {
+    id: generateId(),
+    type: 'practical',
+    baseType,
+    itemType: practicalResearchConfig.type,  // 'building' or 'ship'
+    level: nextLevel,
+    startTime: Date.now(),
+    duration: time * 1000,  // Convert to milliseconds
+    endTime: Date.now() + (time * 1000),
+    planetId,
+    cost,
+    progress: 0
+  };
+  
+  console.log(`[RESEARCH] Created queue item:`, item);
+  console.log(`[RESEARCH] Research time: ${time} seconds (${Math.floor(time / 60)} minutes)`);
+  
+  player.practicalResearchQueue.push(item);
+  console.log(`[RESEARCH] Added to queue, queue length now:`, player.practicalResearchQueue.length);
   
   return item;
 }
@@ -226,40 +404,77 @@ export function startPracticalResearch(player, baseType, type, focus, planetId) 
  * Complete practical research
  */
 export function completePracticalResearch(player, queueItemId) {
+  console.log(`[RESEARCH] Completing research: ${queueItemId}`);
+  
   const index = player.practicalResearchQueue.findIndex(item => item.id === queueItemId);
   if (index === -1) {
     throw new Error('Practical research queue item not found');
   }
   
   const item = player.practicalResearchQueue[index];
-  
-  // Increment focus level
+  console.log(`[RESEARCH] Found queue item:`, item);
+
+  // Initialize if not exists
   if (!player.practicalResearch[item.baseType]) {
     player.practicalResearch[item.baseType] = {
       output: 0,
-      manpower: 0,
+      automation: 0,
       energy: 0,
       cost: 0
     };
   }
   
-  player.practicalResearch[item.baseType][item.focus] = item.level;
-  player.practicalResearchQueue.splice(index, 1);
+  // For allocation-based research, distribute improvements based on allocation
+  if (item.allocation) {
+    console.log(`[RESEARCH] Processing allocation-based research`);
+    for (const [focus, percentage] of Object.entries(item.allocation)) {
+      if (percentage > 0) {
+        // Each percentage point gives 0.2 levels (so 100% = 20 levels, 50% = 10 levels, 20% = 4 levels, etc)
+        const levelIncrease = Math.max(1, Math.floor(percentage * 20));
+        player.practicalResearch[item.baseType][focus] += levelIncrease;
+        console.log(`[RESEARCH] Added ${levelIncrease} levels to ${focus} (${Math.round(percentage * 100)}%)`);
+      }
+    }
+  } else if (item.level) {
+    // Level-based research - distribute using rotating pattern
+    console.log(`[RESEARCH] Processing level-based research`);
+    const focuses = ['output', 'automation', 'energy', 'cost'];
+    const focusIndex = (item.level - 1) % focuses.length;
+    const targetFocus = focuses[focusIndex];
+    console.log(`[RESEARCH] Level ${item.level} grants focus: ${targetFocus}`);
+    player.practicalResearch[item.baseType][targetFocus]++;
+    console.log(`[RESEARCH] Updated research state:`, player.practicalResearch[item.baseType]);
+  }
   
-  return item;
+  player.practicalResearchQueue.splice(index, 1);
+  console.log(`[RESEARCH] Research completion processed, queue length now:`, player.practicalResearchQueue.length);
+  
+  player.practicalResearchQueue.splice(index, 1);
 }
 
 /**
  * Cancel practical research
  */
 export function cancelPracticalResearch(player, queueItemId, planetId) {
+  console.log(`[RESEARCH] Cancelling research: queueItemId=${queueItemId}, planetId=${planetId}`);
+  console.log(`[RESEARCH] Queue length before cancel:`, player.practicalResearchQueue?.length || 0);
+  
+  if (!player.practicalResearchQueue || !Array.isArray(player.practicalResearchQueue)) {
+    throw new Error('Practical research queue not found');
+  }
+  
   const index = player.practicalResearchQueue.findIndex(item => item.id === queueItemId);
+  console.log(`[RESEARCH] Found queue item at index:`, index);
+  
   if (index === -1) {
     throw new Error('Practical research queue item not found');
   }
   
   const item = player.practicalResearchQueue[index];
+  console.log(`[RESEARCH] Queue item to cancel:`, item);
+  
   const planet = player.planets.find(p => p.id === planetId);
+  console.log(`[RESEARCH] Planet found:`, planet ? 'yes' : 'no');
   
   if (!planet) {
     throw new Error('Planet not found');
@@ -272,7 +487,11 @@ export function cancelPracticalResearch(player, queueItemId, planetId) {
     planet.resources[resource] += refund[resource];
   }
   
+  console.log(`[RESEARCH] Refund:`, refund);
+  console.log(`[RESEARCH] Planet resources after refund:`, planet.resources);
+  
   player.practicalResearchQueue.splice(index, 1);
+  console.log(`[RESEARCH] Queue length after cancel:`, player.practicalResearchQueue.length);
   
   return refund;
 }

@@ -192,7 +192,7 @@ function renderTheoreticalResearch() {
 }
 
 /**
- * Render practical research tab
+ * Render practical research tab - compact investment level system
  */
 async function renderPracticalResearch() {
   const container = document.querySelector('#practical-tab .research-content');
@@ -201,79 +201,400 @@ async function renderPracticalResearch() {
   try {
     // Load available practical research
     const response = await fetch(`/api/game/planet/${currentPlanetId}/research/available`);
-    const available = await response.json();
+    if (!response.ok) {
+      throw new Error(`Failed to load available research: ${response.statusText}`);
+    }
+    const result = await response.json();
+    const available = result.data || result || {};
 
     const practical = getPracticalResearch();
     const playerPractical = researchData?.practical || {};
     const queue = researchData?.progress?.practical || [];
 
-    let html = '<div class="practical-research-list">';
-
-    for (const [key, research] of Object.entries(practical)) {
-      if (!available[key]) continue; // Skip if not available
-
-      const focusLevels = playerPractical[research.baseType] || {
-        output: 0,
-        manpower: 0,
-        energy: 0,
-        cost: 0
-      };
-
-      html += `
-        <div class="practical-card">
-          <div class="practical-header">
-            <span class="icon">${research.icon}</span>
-            <div class="practical-info">
-              <h4>${research.name}</h4>
-              <p>${research.description}</p>
-            </div>
-          </div>
-
-          <div class="focus-controls">
-      `;
-
-      // Focus buttons
-      for (const focus of ['output', 'manpower', 'energy', 'cost']) {
-        const level = focusLevels[focus] || 0;
-        const isResearching = queue.some(q => q.baseType === research.baseType && q.focus === focus);
-        const queueItem = queue.find(q => q.baseType === research.baseType && q.focus === focus);
-
+    let html = '<div class="practical-research-view">';
+    
+    // Show active research queue
+    if (queue && queue.length > 0) {
+      html += '<div class="research-queue-section">';
+      html += '<h3>Research Queue</h3>';
+      html += '<div class="queue-list">';
+      for (const queueItem of queue) {
+        const research = Object.values(practical).find(r => r.baseType === queueItem.baseType);
+        if (!research) continue;
+        
+        const timeRemaining = Math.max(0, queueItem.endTime - Date.now());
+        const progressPercent = queueItem.progress || 0;
         html += `
-          <div class="focus-group">
-            <div class="focus-header">
-              <h5>${capitalize(focus)}</h5>
-              <span class="level-badge">Level ${level}</span>
+          <div class="queue-item">
+            <span class="queue-research">${research.icon} ${research.name} Lvl ${queueItem.level}</span>
+            <div class="queue-progress">
+              <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
+              <span class="time-text">${formatTime(timeRemaining)}</span>
             </div>
-
-            ${isResearching ? `
-              <div class="research-progress">
-                <div class="progress-bar">
-                  <div class="progress-fill" style="width: ${queueItem.progress}%"></div>
-                </div>
-                <p class="progress-text">${queueItem.progress}% - ${formatTime(queueItem.timeRemaining)}</p>
-                <button class="btn btn-danger btn-small" onclick="cancelPracticalResearch('${queueItem.id}')">Cancel</button>
-              </div>
-            ` : `
-              <div class="focus-benefits">
-                <p class="benefits-text">${getFocusBenefits(focus)}</p>
-              </div>
-              <button class="btn btn-primary btn-small" onclick="startPracticalResearch('${research.baseType}', '${research.type}', '${focus}')" ${level >= research.maxLevels ? 'disabled' : ''}>
-                Upgrade to Level ${level + 1}
-              </button>
-            `}
+            <button class="btn-icon" onclick="cancelPracticalResearch('${queueItem.id}')">✕</button>
           </div>
         `;
       }
-
       html += '</div></div>';
     }
 
-    html += '</div>';
+    // Show available research as clickable cards
+    let foundAny = false;
+    html += '<div class="research-cards-section"><h3>Available Customizations</h3>';
+    html += '<div class="research-cards">';
+
+    for (const [key, research] of Object.entries(practical)) {
+      if (!available[key]) continue;
+      foundAny = true;
+      
+      // Calculate total focus level for this research
+      const researchLevels = playerPractical[research.baseType];
+      const totalLevel = researchLevels 
+        ? Object.values(researchLevels).reduce((a, b) => a + b, 0)
+        : 0;
+
+      html += `
+        <div class="research-card" onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}')">
+          <div class="card-header">
+            <span class="icon">${research.icon}</span>
+            <span class="name">${research.name}</span>
+          </div>
+          <div class="card-body">
+            <p class="description">${research.description}</p>
+            <div class="current-level">
+              Current Level: <strong>${totalLevel}</strong>
+            </div>
+            <div class="focuses">
+              ${researchLevels ? `
+                <span class="focus output">📈 ${researchLevels.output}</span>
+                <span class="focus automation">🤖 ${researchLevels.automation}</span>
+                <span class="focus energy">⚡ ${researchLevels.energy}</span>
+                <span class="focus cost">💰 ${researchLevels.cost}</span>
+              ` : '<span class="focus">Not yet researched</span>'}
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-primary">Customize Research →</button>
+          </div>
+        </div>
+      `;
+    }
+
+    if (!foundAny) {
+      html += '<p class="info">No practical research available. Build more buildings and ships.</p>';
+    }
+
+    html += '</div></div></div>';
     container.innerHTML = html;
   } catch (error) {
+    console.error('Error loading practical research:', error);
     container.innerHTML = `<p class="error">Failed to load practical research: ${error.message}</p>`;
   }
 }
+
+/**
+ * Calculate research cost based on level
+ */
+function calculateResearchCost(baseCost, currentLevel) {
+  const multiplier = 1 + (currentLevel * 0.5);  // Cost scales with level
+  return {
+    metal: Math.ceil(baseCost.metal * multiplier),
+    crystal: Math.ceil(baseCost.crystal * multiplier),
+    deuterium: Math.ceil(baseCost.deuterium * multiplier)
+  };
+}
+
+/**
+ * Calculate research time in seconds
+ */
+function calculateResearchTime(baseTime) {
+  return baseTime;  // Can be adjusted based on research lab later
+}
+
+/**
+ * Start research at next level
+ */
+window.startResearchLevel = async function(researchKey) {
+  try {
+    const response = await fetch(`/api/game/planet/${currentPlanetId}/research/practical`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        researchKey
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      alert(`Error: ${error.message}`);
+      return;
+    }
+
+    await loadResearchData();
+    renderPracticalResearch();
+  } catch (error) {
+    alert(`Failed to start research: ${error.message}`);
+  }
+};
+
+/**
+ * Open allocation modal for practical research customization
+ */
+window.openAllocationModal = function(researchKey, researchName, baseType, icon) {
+  const practical = getPracticalResearch();
+  const research = practical[researchKey];
+  
+  if (!research) {
+    alert('Research not found');
+    return;
+  }
+  
+  // Create modal HTML
+  const modalHtml = `
+    <div class="modal-overlay" onclick="closeAllocationModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h2>${icon} ${researchName}</h2>
+          <button class="modal-close" onclick="closeAllocationModal()">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="allocation-intro">
+            <p>Customize your research by allocating focus across different aspects:</p>
+          </div>
+          
+          <div class="allocation-container">
+            <div class="allocation-sliders">
+              <div class="slider-group">
+                <label>📈 Output (Production/Efficiency)</label>
+                <div class="slider-row">
+                  <input type="range" min="0" max="100" value="0" id="slider-output" class="slider"
+                    oninput="updateAllocationSliders()">
+                  <span id="value-output" class="value">0%</span>
+                </div>
+                <p class="slider-hint">Increases production but costs more</p>
+              </div>
+              
+              <div class="slider-group">
+                <label>🤖 Automation (Reduce Workforce)</label>
+                <div class="slider-row">
+                  <input type="range" min="0" max="100" value="0" id="slider-automation" class="slider"
+                    oninput="updateAllocationSliders()">
+                  <span id="value-automation" class="value">0%</span>
+                </div>
+                <p class="slider-hint">Reduces workforce needs but uses more energy</p>
+              </div>
+              
+              <div class="slider-group">
+                <label>⚡ Energy (Efficiency)</label>
+                <div class="slider-row">
+                  <input type="range" min="0" max="100" value="0" id="slider-energy" class="slider"
+                    oninput="updateAllocationSliders()">
+                  <span id="value-energy" class="value">0%</span>
+                </div>
+                <p class="slider-hint">Reduces energy consumption but costs more</p>
+              </div>
+              
+              <div class="slider-group">
+                <label>💰 Cost (Economy)</label>
+                <div class="slider-row">
+                  <input type="range" min="0" max="100" value="0" id="slider-cost" class="slider"
+                    oninput="updateAllocationSliders()">
+                  <span id="value-cost" class="value">0%</span>
+                </div>
+                <p class="slider-hint">Reduces costs but less efficient</p>
+              </div>
+              
+              <div class="divider-line"></div>
+              
+              <div class="slider-group">
+                <label>💪 Research Strength</label>
+                <p class="slider-description">Affects how impactful the research is. Higher strength = more expensive & longer.</p>
+                <div class="slider-row">
+                  <input type="range" min="0" max="100" value="50" id="slider-strength" class="slider"
+                    oninput="updateAllocationSliders()">
+                  <span id="value-strength" class="value">50%</span>
+                </div>
+                <p class="slider-hint">Low strength = quick & cheap, High strength = powerful & costly</p>
+                <p class="strength-warning" id="strength-warning"></p>
+              </div>
+            </div>
+            
+            <div class="allocation-preview">
+              <div class="preview-section">
+                <h4>Investment Total</h4>
+                <div class="total-allocation">
+                  <span id="total-percent">0%</span>
+                </div>
+                <p class="allocation-note">Distribute 100% across focus areas</p>
+              </div>
+              
+              <div class="preview-section">
+                <h4>Estimated Cost</h4>
+                <div class="cost-breakdown" id="cost-breakdown">
+                  <span>⚙️ Metal: --</span>
+                  <span>💎 Crystal: --</span>
+                  <span>🔷 Deuterium: --</span>
+                </div>
+              </div>
+              
+              <div class="preview-section">
+                <h4>Research Time</h4>
+                <div id="time-estimate">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeAllocationModal()">Cancel</button>
+          <button class="btn btn-primary" id="start-research-btn" disabled
+            onclick="submitAllocationResearch('${researchKey}', '${baseType}')">
+            Start Research
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // Store research data for later use
+  window.currentResearch = {
+    researchKey,
+    research,
+    baseType
+  };
+};
+
+/**
+ * Close the allocation modal
+ */
+window.closeAllocationModal = function() {
+  const modal = document.querySelector('.modal-overlay');
+  if (modal) {
+    modal.remove();
+  }
+  window.currentResearch = null;
+};
+
+/**
+ * Update allocation sliders and show preview
+ */
+window.updateAllocationSliders = function() {
+  const output = parseInt(document.getElementById('slider-output').value);
+  const automation = parseInt(document.getElementById('slider-automation').value);
+  const energy = parseInt(document.getElementById('slider-energy').value);
+  const cost = parseInt(document.getElementById('slider-cost').value);
+  const strength = parseInt(document.getElementById('slider-strength').value);
+  
+  // Update display values
+  document.getElementById('value-output').textContent = output + '%';
+  document.getElementById('value-automation').textContent = automation + '%';
+  document.getElementById('value-energy').textContent = energy + '%';
+  document.getElementById('value-cost').textContent = cost + '%';
+  document.getElementById('value-strength').textContent = strength + '%';
+  
+  const total = output + automation + energy + cost;
+  document.getElementById('total-percent').textContent = total + '%';
+  
+  // Enable button only if total is exactly 100 and strength is valid
+  const isValid = (total === 100);
+  document.getElementById('start-research-btn').disabled = !isValid;
+  
+  // Update cost and time estimates
+  if (window.currentResearch) {
+    const research = window.currentResearch.research;
+    
+    // Calculate weighted cost based on allocation
+    const allocation = { output, automation, energy, cost };
+    const weightedMultiplier = (output * 1.05 + automation * 1.12 + energy * 1.08 + cost * 0.88) / 100;
+    
+    // Non-linear strength multiplier: 0% = 0.5x, 50% = 1x, 100% = 2.5x (quadratic)
+    const strengthNormalized = strength / 100;
+    const strengthMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 2);  // 0.5 to 3
+    
+    const costMultiplier = (1 + (weightedMultiplier - 1) * 0.5) * strengthMultiplier;
+    
+    const estimatedCost = {
+      metal: Math.ceil(research.baseCost.metal * costMultiplier),
+      crystal: Math.ceil(research.baseCost.crystal * costMultiplier),
+      deuterium: Math.ceil(research.baseCost.deuterium * costMultiplier)
+    };
+    
+    const costBreakdown = document.getElementById('cost-breakdown');
+    costBreakdown.innerHTML = `
+      <span>⚙️ Metal: ${formatNumber(estimatedCost.metal)}</span>
+      <span>💎 Crystal: ${formatNumber(estimatedCost.crystal)}</span>
+      <span>🔷 Deuterium: ${formatNumber(estimatedCost.deuterium)}</span>
+    `;
+    
+    // Calculate time estimate with strength and max 2 days constraint
+    const baseTime = research.baseTime;
+    const timeMultiplier = 1 + (weightedMultiplier - 1) * 0.2;
+    const strengthTimeMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 3);  // 0.5 to 3.5
+    
+    let estimatedTime = Math.ceil(baseTime * timeMultiplier * strengthTimeMultiplier);
+    
+    // Max duration is 2 days (172800 seconds)
+    const maxDuration = 172800;
+    let warningMsg = '';
+    
+    if (estimatedTime > maxDuration) {
+      estimatedTime = maxDuration;
+      warningMsg = '⚠️ Capped at 2 days maximum';
+    }
+    
+    document.getElementById('time-estimate').textContent = formatTime(estimatedTime * 1000);
+    
+    const warningEl = document.getElementById('strength-warning');
+    if (warningEl) {
+      warningEl.textContent = warningMsg;
+    }
+  }
+};
+
+/**
+ * Submit allocation-based research with strength
+ */
+window.submitAllocationResearch = async function(researchKey, baseType) {
+  const output = parseInt(document.getElementById('slider-output').value);
+  const automation = parseInt(document.getElementById('slider-automation').value);
+  const energy = parseInt(document.getElementById('slider-energy').value);
+  const cost = parseInt(document.getElementById('slider-cost').value);
+  const strength = parseInt(document.getElementById('slider-strength').value);
+  
+  const allocation = {
+    output: output / 100,
+    automation: automation / 100,
+    energy: energy / 100,
+    cost: cost / 100
+  };
+  
+  try {
+    const response = await fetch(`/api/game/planet/${currentPlanetId}/research/practical`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        researchKey,
+        allocation,
+        strength: strength / 100
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      alert(`Error: ${error.message}`);
+      return;
+    }
+
+    closeAllocationModal();
+    await loadResearchData();
+    renderPracticalResearch();
+  } catch (error) {
+    alert(`Failed to start research: ${error.message}`);
+  }
+};
 
 /**
  * Render custom variants tab

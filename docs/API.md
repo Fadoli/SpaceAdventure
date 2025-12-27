@@ -299,6 +299,104 @@ Cancel ongoing research.
 }
 ```
 
+### Start Practical Research (Customization)
+Begin researching a customization for a building or ship using the level-based system.
+
+**Endpoint**: `POST /api/game/planet/:planetId/research/practical`
+
+**Request Body**:
+```json
+{
+  "researchKey": "metalMine|crystalMine|solarPlant|smallCargo|lightFighter"
+}
+```
+
+**Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "id": "queue-123",
+    "type": "practical",
+    "baseType": "metalMine",
+    "itemType": "building",
+    "level": 2,
+    "startTime": 1703462400000,
+    "duration": 1800000,
+    "endTime": 1703464200000,
+    "planetId": "planet-1",
+    "cost": {
+      "metal": 150,
+      "crystal": 75,
+      "deuterium": 37
+    },
+    "progress": 0
+  },
+  "timestamp": 1703462400000
+}
+```
+
+**Notes**:
+- `researchKey` must be a valid key from the practical research definitions
+- Cost and time increase exponentially with total research level for that building/ship
+- Research lab level affects completion time (10% bonus per lab level)
+- When research completes, focus levels are distributed in rotating order (Output → Automation → Energy → Cost)
+
+**Errors**:
+- `400` - Invalid research key, insufficient resources, or no research lab
+- `404` - Planet not found
+
+### Get Practical Research Progress
+Get the current practical research progress for all buildings and ships.
+
+**Endpoint**: `GET /api/game/research/practical`
+
+**Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "metalMine": {
+      "output": 3,
+      "automation": 2,
+      "energy": 1,
+      "cost": 0
+    },
+    "crystalMine": {
+      "output": 2,
+      "automation": 1,
+      "energy": 2,
+      "cost": 1
+    }
+  },
+  "timestamp": 1703462400000
+}
+```
+
+### Cancel Practical Research
+Cancel an ongoing practical research queue item.
+
+**Endpoint**: `DELETE /api/game/planet/:planetId/research/practical/:queueId`
+
+**Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "refund": {
+      "metal": 120,
+      "crystal": 60,
+      "deuterium": 30
+    }
+  },
+  "timestamp": 1703462400000
+}
+```
+
+**Errors**:
+- `400` - Queue item not found or already completed
+- `404` - Planet not found
+
 ## Fleet
 
 ### Build Ships

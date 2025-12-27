@@ -14,7 +14,8 @@ import {
   startTheoreticalResearch, 
   completeTheoreticalResearch, 
   cancelTheoreticalResearch,
-  startPracticalResearch,
+  startPracticalResearchWithAllocation,
+  startPracticalResearchLevel,
   completePracticalResearch,
   cancelPracticalResearch,
   selectCustomBuildingVariant,
@@ -854,7 +855,7 @@ async function handleRequest(req) {
       }
     }
 
-    // POST /api/game/planet/:planetId/research/practical - Start practical research
+    // POST /api/game/planet/:planetId/research/practical - Start practical research level
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/practical$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
@@ -873,14 +874,24 @@ async function handleRequest(req) {
       }
 
       const body = await req.json();
-      const { baseType, type, focus } = body;
+      const { researchKey, allocation, strength } = body;
+      console.log(`[PRACTICAL_RESEARCH] Starting research: researchKey=${researchKey}, allocation=`, allocation, `strength=${strength}`);
 
       try {
-        const queueItem = startPracticalResearch(player, baseType, type, focus, planetId);
-        await updatePlayer(player);
+        let queueItem;
+        if (allocation) {
+          // Allocation-based research (customization)
+          queueItem = startPracticalResearchWithAllocation(player, researchKey, allocation, planetId, strength || 0.5);
+        } else {
+          // Simple level-based research (for backward compatibility)
+          queueItem = startPracticalResearchLevel(player, researchKey, planetId);
+        }
+        console.log(`[PRACTICAL_RESEARCH] Successfully started research:`, queueItem);
+        await updatePlayer(user.id, player);
 
         return successResponse(queueItem);
       } catch (error) {
+        console.error(`[PRACTICAL_RESEARCH] Error starting research:`, error.message);
         return errorResponse(error.message, 400);
       }
     }
@@ -903,10 +914,12 @@ async function handleRequest(req) {
 
       try {
         const refund = cancelPracticalResearch(player, queueId, planetId);
-        await updatePlayer(player);
+        console.log(`[PRACTICAL_RESEARCH] Cancelled research: ${queueId}, refund:`, refund);
+        await updatePlayer(user.id, player);
 
         return successResponse({ refund, cancelled: true });
       } catch (error) {
+        console.error(`[PRACTICAL_RESEARCH] Error cancelling research:`, error.message);
         return errorResponse(error.message, 400);
       }
     }

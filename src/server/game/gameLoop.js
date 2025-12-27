@@ -2,6 +2,7 @@
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { processCompletedBuildings, updatePlanetProduction } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
+import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
 import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
@@ -116,6 +117,12 @@ async function gameTick() {
           updated = true;
         }
       }
+      
+      // Process completed research
+      const researchUpdated = processCompletedResearch(player);
+      if (researchUpdated) {
+        updated = true;
+      }
     }
     
     // Save if anything changed and enough time has passed
@@ -127,6 +134,49 @@ async function gameTick() {
   } catch (error) {
     console.error('Error in game tick:', error);
   }
+}
+
+/**
+ * Process completed research items
+ */
+function processCompletedResearch(player) {
+  let updated = false;
+  
+  // Check theoretical research
+  const theoreticalCompleted = [];
+  if (player.researchQueue && Array.isArray(player.researchQueue)) {
+    for (let i = player.researchQueue.length - 1; i >= 0; i--) {
+      const item = player.researchQueue[i];
+      if (item.endTime <= Date.now()) {
+        theoreticalCompleted.push(i);
+      }
+    }
+  }
+  
+  // Process completed theoretical research in reverse order to maintain indices
+  for (const index of theoreticalCompleted) {
+    completeTheoreticalResearch(player, player.researchQueue[index].id);
+    updated = true;
+  }
+  
+  // Check practical research
+  const practicalCompleted = [];
+  if (player.practicalResearchQueue && Array.isArray(player.practicalResearchQueue)) {
+    for (let i = player.practicalResearchQueue.length - 1; i >= 0; i--) {
+      const item = player.practicalResearchQueue[i];
+      if (item.endTime <= Date.now()) {
+        practicalCompleted.push(i);
+      }
+    }
+  }
+  
+  // Process completed practical research in reverse order to maintain indices
+  for (const index of practicalCompleted) {
+    completePracticalResearch(player, player.practicalResearchQueue[index].id);
+    updated = true;
+  }
+  
+  return updated;
 }
 
 /**

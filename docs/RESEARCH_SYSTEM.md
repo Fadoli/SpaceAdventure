@@ -100,10 +100,10 @@ Research labs increase speed by 15% per level.
 
 ---
 
-## Practical Research (Customization System)
+## Practical Research (Level-Based Customization System)
 
 ### Definition
-Practical research allows players to customize buildings and ships by focusing on different aspects. Players invest research points in four focus areas, each modifying the building/ship in different ways.
+Practical research allows players to customize buildings and ships through an open-ended progression system. Players invest research levels into different focus areas, and each research completion distributes a level across the four focus areas in a rotating pattern for balanced growth.
 
 ### Four Focus Types
 
@@ -112,8 +112,8 @@ Practical research allows players to customize buildings and ships by focusing o
 - **Side Effects**: Increases cost and energy consumption
 - **Use Case**: When you want maximum resource production regardless of cost
 
-#### 2. Manpower (🤖)
-- **Effect**: Reduces workforce requirements through automation
+#### 2. Automation (🤖) [formerly Manpower]
+- **Effect**: Reduces workforce/automation requirements
 - **Side Effects**: Increases cost (machinery) and energy consumption
 - **Use Case**: When population is limited but resources are abundant
 
@@ -127,27 +127,109 @@ Practical research allows players to customize buildings and ships by focusing o
 - **Side Effects**: Decreases efficiency and increases workforce needs
 - **Use Case**: When you want to build quickly with limited resources
 
-### Modifiers for Each Focus
+### Research Mechanics
 
-#### Building Focus Modifiers (per level increase)
+#### Level Progression
+- Players can research the same building/ship multiple times
+- Each research completes one "level" of advancement
+- Total focus level = sum of all focus levels for that building/ship
+- Each successive level costs more and takes longer
+
+#### Cost Calculation
+```javascript
+costMultiplier = 1 + (totalFocusLevel * 0.5)  // Cost increases exponentially
+cost = baseCost * costMultiplier
+```
+
+When total focus level is 0: cost = baseCost × 1.0 (100%)
+When total focus level is 1: cost = baseCost × 1.5 (150%)
+When total focus level is 2: cost = baseCost × 2.0 (200%)
+
+#### Time Calculation
+```javascript
+levelMultiplier = 1 + (totalFocusLevel * 0.2)  // 20% longer per research level
+researchLabBonus = 1 + (researchLabLevel * 0.1)  // 10% faster per lab level
+time = Math.floor((baseTime * levelMultiplier) / researchLabBonus)
+Minimum: 60 seconds
+```
+
+#### Focus Distribution
+When a research completes, the focus level is distributed in a rotating pattern:
+- Level 1 → Output
+- Level 2 → Automation
+- Level 3 → Energy
+- Level 4 → Cost
+- Level 5 → Output (cycle repeats)
+
+This ensures balanced progression across all focus areas.
+
+### Available Practical Research
+
+#### Buildings
+- Metal Mine (⚙️) - baseType: metalMine
+- Crystal Mine (💎) - baseType: crystalMine  
+- Solar Plant (☀️) - baseType: solarPlant
+- (More buildings can be added following the same pattern)
+
+#### Ships
+- Small Cargo (📦) - baseType: smallCargo
+- Light Fighter (🛩️) - baseType: lightFighter
+- (More ships can be added following the same pattern)
+
+### Focus Modifiers (per focus level)
+
+#### Building Modifiers
 
 **Output Focus:**
-- Production: +15%
-- Cost: +5%
-- Energy: +8%
-- Population: -3%
+- Production: +15% per level
+- Cost: +5% per level
+- Energy: +8% per level
+- Population: -3% per level
 
-**Manpower Focus:**
-- Population: -15%
-- Cost: +12%
-- Energy: +15%
-- Production: -5%
+**Automation Focus:**
+- Population: -15% per level (reduces workforce needs)
+- Cost: +12% per level (machinery investment)
+- Energy: +15% per level (automation uses power)
+- Production: -5% per level (automation is less efficient)
 
 **Energy Focus:**
-- Energy consumption: -15%
-- Cost: +8%
-- Production: +2%
-- Population: +5%
+- Energy consumption: -15% per level (improved efficiency)
+- Cost: +8% per level (efficiency tech)
+- Production: +2% per level (better power = slight improvement)
+- Population: +5% per level (tech needs expertise)
+
+**Cost Focus:**
+- Cost: -12% per level (economical design)
+- Production: -8% per level (simpler design is less efficient)
+- Energy: +5% per level (older tech less efficient)
+- Population: +3% per level (simpler needs more workers)
+
+#### Ship Modifiers
+
+**Output Focus:**
+- Cargo: +15% per level (for cargo ships)
+- Attack: +15% per level (for military ships)
+- Hull: +10% per level
+- Cost: +8% per level
+- Speed: -8% per level (heavier payload)
+
+**Automation Focus:**
+- Crew requirement: -10% per level
+- Cost: +10% per level
+- Fuel: +12% per level
+- Cargo/Attack: -5% per level
+
+**Energy Focus:**
+- Fuel efficiency: -12% per level
+- Cost: +10% per level
+- Speed: +8% per level
+- Cargo/Attack: +3% per level
+
+**Cost Focus:**
+- Cost: -12% per level
+- Cargo/Attack: -8% per level
+- Fuel: +5% per level
+- Speed: +4% per level
 
 **Cost Focus:**
 - Cost: -12%
@@ -304,10 +386,9 @@ totalModifier = (outputMod * outputLevel) + (manpowerMod * manpowerLevel) + ...
       type: 'practical',
       baseType: 'metalMine',
       itemType: 'building',
-      focus: 'output',
-      level: 6,
+      level: 6,                    // Total research level (1-based, incremented each completion)
       startTime: 1640000000000,
-      duration: 2000000,
+      duration: 2000000,           // milliseconds
       endTime: 1640002000000,
       planetId: 'planet-1',
       cost: { metal: 300, crystal: 150, deuterium: 75 },

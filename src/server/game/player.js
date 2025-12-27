@@ -24,7 +24,15 @@ async function savePlayers(players) {
  */
 export async function getPlayerByUserId(userId) {
   const players = await getPlayers();
-  return players.find(p => p.userId === userId);
+  let player = players.find(p => p.userId === userId);
+  
+  // Initialize missing fields for backward compatibility
+  if (player && !player.practicalResearch) {
+    player.practicalResearch = {};
+    player.practicalResearchQueue = [];
+  }
+  
+  return player;
 }
 
 /**
@@ -109,7 +117,7 @@ export async function createPlayer(userId, username) {
     // Theoretical research queue
     researchQueue: [],
     // Practical research: customization focuses per building/ship type
-    // Structure: { metalMine: { output: 5, manpower: 2, energy: 1, cost: 0 }, ... }
+    // Structure: { metalMine: { output: 5, automation: 2, energy: 1, cost: 0 }, ... }
     practicalResearch: {},
     // Practical research queue
     practicalResearchQueue: [],
