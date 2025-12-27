@@ -16,7 +16,8 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
   let totalBuildTime = 0;
 
   // Validate and calculate costs
-  for (const [shipKey, quantity] of Object.entries(ships)) {
+  for (const shipKey in ships) {
+    const quantity = ships[shipKey];
     if (quantity <= 0) continue;
 
     const ship = getShip(shipKey);
@@ -81,7 +82,8 @@ export function buildDefenses(planet, defenses, roboticsLevel = 0, naniteLevel =
   let totalBuildTime = 0;
 
   // Validate and calculate costs
-  for (const [defenseKey, quantity] of Object.entries(defenses)) {
+  for (const defenseKey in defenses) {
+    const quantity = defenses[defenseKey];
     if (quantity <= 0) continue;
 
     const defense = getDefense(defenseKey);
@@ -150,7 +152,8 @@ export function cancelProduction(planet, queueId, type = 'ships') {
   const refundMultiplier = 0.9;
 
   if (item.ships) {
-    for (const [shipKey, quantity] of Object.entries(item.ships)) {
+    for (const shipKey in item.ships) {
+      const quantity = item.ships[shipKey];
       const cost = calculateShipCost(shipKey, quantity, 1);
       planet.resources.metal += Math.floor(cost.metal * refundMultiplier);
       planet.resources.crystal += Math.floor(cost.crystal * refundMultiplier);
@@ -159,7 +162,8 @@ export function cancelProduction(planet, queueId, type = 'ships') {
   }
 
   if (item.defenses) {
-    for (const [defenseKey, quantity] of Object.entries(item.defenses)) {
+    for (const defenseKey in item.defenses) {
+      const quantity = item.defenses[defenseKey];
       const cost = calculateDefenseCost(defenseKey, quantity);
       planet.resources.metal += Math.floor(cost.metal * refundMultiplier);
       planet.resources.crystal += Math.floor(cost.crystal * refundMultiplier);
@@ -193,7 +197,8 @@ export function processCompletedProduction(planet) {
         planet.ships = {};
       }
 
-      for (const [shipKey, quantity] of Object.entries(firstShip.ships)) {
+      for (const shipKey in firstShip.ships) {
+        const quantity = firstShip.ships[shipKey];
         planet.ships[shipKey] = (planet.ships[shipKey] || 0) + quantity;
       }
 
@@ -219,7 +224,8 @@ export function processCompletedProduction(planet) {
         planet.defenses = {};
       }
 
-      for (const [defenseKey, quantity] of Object.entries(firstDefense.defenses)) {
+      for (const defenseKey in firstDefense.defenses) {
+        const quantity = firstDefense.defenses[defenseKey];
         planet.defenses[defenseKey] = (planet.defenses[defenseKey] || 0) + quantity;
       }
 

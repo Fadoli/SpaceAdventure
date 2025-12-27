@@ -172,7 +172,8 @@ export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech =
   let totalShield = 0;
   let totalHull = 0;
 
-  for (const [defenseKey, count] of Object.entries(defenses)) {
+  for (const defenseKey in defenses) {
+    const count = defenses[defenseKey];
     if (count <= 0) continue;
 
     const defense = getDefense(defenseKey);

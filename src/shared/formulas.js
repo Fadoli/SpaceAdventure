@@ -63,7 +63,10 @@ export function calculateStorage(baseStorage, level) {
  */
 export function calculateFuelConsumption(distance, ships) {
   // Simplified calculation
-  const totalMass = Object.values(ships).reduce((sum, count) => sum + count, 0);
+  let totalMass = 0;
+  for (const key in ships) {
+    totalMass += ships[key];
+  }
   return Math.floor(distance * totalMass * 0.1);
 }
 

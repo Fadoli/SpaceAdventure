@@ -334,7 +334,8 @@ export function checkRequirements(buildingType, buildings, research = {}) {
   const building = BUILDINGS[buildingType];
   if (!building || !building.requirements) return true;
   
-  for (const [requirement, requiredLevel] of Object.entries(building.requirements)) {
+  for (const requirement in building.requirements) {
+    const requiredLevel = building.requirements[requirement];
     // Check if it's a building requirement
     if (buildings[requirement] !== undefined) {
       if ((buildings[requirement] || 0) < requiredLevel) {
@@ -359,9 +360,12 @@ export function getRequirementsList(buildingType) {
   const building = BUILDINGS[buildingType];
   if (!building || !building.requirements) return [];
   
-  return Object.entries(building.requirements).map(([req, level]) => {
+  const results = [];
+  for (const req in building.requirements) {
+    const level = building.requirements[req];
     const reqBuilding = BUILDINGS[req];
     const name = reqBuilding ? reqBuilding.name : req;
-    return { name, level };
-  });
+    results.push({ name, level });
+  }
+  return results;
 }

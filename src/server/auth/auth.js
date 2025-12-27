@@ -22,7 +22,8 @@ async function loadSessions() {
       
       // Load sessions from file
       const now = Date.now();
-      for (const [token, session] of Object.entries(data.sessions)) {
+      for (const token in data.sessions) {
+        const session = data.sessions[token];
         // Only load non-expired sessions
         if (session.expiresAt > now) {
           sessions.set(token, session);

@@ -69,7 +69,8 @@ export function getProduction(buildingType, level) {
   const production = {};
   const productionMultiplier = getResourceProductionMultiplier();
   
-  for (const [resource, baseAmount] of Object.entries(building.production)) {
+  for (const resource in building.production) {
+    const baseAmount = building.production[resource];
     // Production increases by 1.1^level, then apply config multiplier
     production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
   }
@@ -87,7 +88,8 @@ export function getStorageIncrease(buildingType, level) {
   const storage = {};
   const storageMultiplier = getStorageCapacityMultiplier();
   
-  for (const [resource, baseAmount] of Object.entries(building.storage)) {
+  for (const resource in building.storage) {
+    const baseAmount = building.storage[resource];
     storage[resource] = Math.floor(baseAmount * Math.pow(1.6, level - 1) * storageMultiplier);
   }
   
@@ -682,7 +684,8 @@ export async function updatePlanetAllocations(userId, planetId, allocations) {
   }
   
   // Update all allocations
-  for (const [buildingType, allocation] of Object.entries(allocations)) {
+  for (const buildingType in allocations) {
+    const allocation = allocations[buildingType];
     // Validate building exists
     if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
       continue;

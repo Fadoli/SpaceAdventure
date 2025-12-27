@@ -18,14 +18,16 @@ export function updateOverview(planet) {
     // Buildings list (only update if element exists)
     const buildingsList = document.getElementById('buildings-list');
     if (buildingsList) {
-        buildingsList.innerHTML = Object.entries(buildings)
-            .filter(([_, level]) => level > 0)
-            .map(([building, level]) => {
+        const buildingsHtml = [];
+        for (const building in buildings) {
+            const level = buildings[building];
+            if (level > 0) {
                 const name = building.replace(/([A-Z])/g, ' $1').trim();
                 const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-                return `<div>${capitalizedName}: Level ${level}</div>`;
-            })
-            .join('') || '<p class="empty">No buildings yet</p>';
+                buildingsHtml.push(`<div>${capitalizedName}: Level ${level}</div>`);
+            }
+        }
+        buildingsList.innerHTML = buildingsHtml.join('') || '<p class="empty">No buildings yet</p>';
     }
     
     // Energy overview (only update if element exists)

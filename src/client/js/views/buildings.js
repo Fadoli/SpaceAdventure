@@ -32,8 +32,9 @@ export async function updateBuildingsView(planet, onStateChange) {
     const { buildings, queue, maxQueueSize } = buildingDetails;
     const queueFull = queue.length >= maxQueueSize;
     
-    buildingsGrid.innerHTML = Object.entries(buildings)
-        .map(([key, building]) => {
+    const buildingHtmls = [];
+    for (const key in buildings) {
+        const building = buildings[key];
             // All data now comes from server including icon and description
             
             // Calculate current level production to show differences
@@ -42,7 +43,8 @@ export async function updateBuildingsView(planet, onStateChange) {
             
             // Estimate current level production (approximate reverse calculation)
             if (building.currentLevel > 0 && !isEmpty(nextProd)) {
-                for (const [resource, nextAmount] of Object.entries(nextProd)) {
+                for (const resource in nextProd) {
+                    const nextAmount = nextProd[resource];
                     const baseAmount = nextAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0);
                     currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0);
                 }
@@ -52,7 +54,8 @@ export async function updateBuildingsView(planet, onStateChange) {
             let productionInfo = '';
             if (!isEmpty(nextProd)) {
                 productionInfo = '<div class="building-production">';
-                for (const [resource, nextAmount] of Object.entries(nextProd)) {
+                for (const resource in nextProd) {
+                    const nextAmount = nextProd[resource];
                     const currentAmount = currentProd[resource] || 0;
                     const diff = nextAmount - currentAmount;
                     const icon = RESOURCE_ICONS[resource] || '❓';
@@ -110,7 +113,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                 queueBadge = `<div class="queue-count-badge">📋 In queue: ${queueCount} time${queueCount > 1 ? 's' : ''}</div>`;
             }
             
-            return `
+        buildingHtmls.push(`
                 <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}">
                     <div class="building-header">
                         <h3>${building.icon} ${building.name}</h3>
@@ -137,9 +140,9 @@ export async function updateBuildingsView(planet, onStateChange) {
                         ${queueFull ? 'Queue Full' : `Upgrade to Level ${building.nextLevel}`}
                     </button>
                 </div>
-            `;
-        })
-        .join('');
+            `);
+    }
+    buildingsGrid.innerHTML = buildingHtmls.join('');
     
     // Show build queue summary
     if (queue.length > 0) {
@@ -282,7 +285,8 @@ export async function showBuildingDetails(buildingKey) {
         if (building.production && !isEmpty(building.production)) {
             production = {};
             const productionMultiplier = 10.0;
-            for (const [resource, currentAmount] of Object.entries(building.production)) {
+            for (const resource in building.production) {
+                const currentAmount = building.production[resource];
                 // Estimate base amount from next level's production
                 const baseAmount = currentAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * productionMultiplier);
                 production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
@@ -303,7 +307,8 @@ export async function showBuildingDetails(buildingKey) {
         const isCurrent = l.level === currentLevel;
         let productionCells = '';
         if (l.production) {
-            for (const [resource, amount] of Object.entries(l.production)) {
+            for (const resource in l.production) {
+                const amount = l.production[resource];
                 const icon = RESOURCE_ICONS[resource] || '❓';
                 productionCells += `<div>${icon}+${formatNumber(amount)}/h</div>`;
             }

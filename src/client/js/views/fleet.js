@@ -31,8 +31,17 @@ export async function updateFleetView(gameState) {
         let totalDefenses = 0;
         
         for (const fleet of fleetData) {
-            totalShips += Object.values(fleet.ships || {}).reduce((a, b) => a + b, 0);
-            totalDefenses += Object.values(fleet.defenses || {}).reduce((a, b) => a + b, 0);
+            let shipsCount = 0;
+            for (const key in (fleet.ships || {})) {
+                shipsCount += fleet.ships[key];
+            }
+            totalShips += shipsCount;
+            
+            let defensesCount = 0;
+            for (const key in (fleet.defenses || {})) {
+                defensesCount += fleet.defenses[key];
+            }
+            totalDefenses += defensesCount;
         }
         
         html += `
@@ -68,8 +77,21 @@ export async function updateFleetView(gameState) {
  * Render a single planet's fleet
  */
 function renderPlanetFleet(fleet) {
-    const hasShips = Object.values(fleet.ships || {}).some(count => count > 0);
-    const hasDefenses = Object.values(fleet.defenses || {}).some(count => count > 0);
+    let hasShips = false;
+    for (const key in (fleet.ships || {})) {
+        if (fleet.ships[key] > 0) {
+            hasShips = true;
+            break;
+        }
+    }
+    
+    let hasDefenses = false;
+    for (const key in (fleet.defenses || {})) {
+        if (fleet.defenses[key] > 0) {
+            hasDefenses = true;
+            break;
+        }
+    }
     
     let html = `<div class="fleet-card">
         <h3>🪐 ${fleet.planetName}</h3>`;
@@ -84,7 +106,8 @@ function renderPlanetFleet(fleet) {
                 <h4>⚔️ Ships</h4>
                 <div class="ship-list">`;
             
-            for (const [shipKey, count] of Object.entries(fleet.ships || {})) {
+            for (const shipKey in (fleet.ships || {})) {
+                const count = fleet.ships[shipKey];
                 if (count > 0) {
                     // Get ship name from SHIPS constant (would need to import)
                     const shipNames = {
@@ -120,7 +143,8 @@ function renderPlanetFleet(fleet) {
                 <h4>🛡️ Defenses</h4>
                 <div class="defense-list">`;
             
-            for (const [defenseKey, count] of Object.entries(fleet.defenses || {})) {
+            for (const defenseKey in (fleet.defenses || {})) {
+                const count = fleet.defenses[defenseKey];
                 if (count > 0) {
                     // Get defense name from DEFENSES constant
                     const defenseNames = {

@@ -70,7 +70,8 @@ function renderShipsList(planet, shipyardData) {
     };
     
     // Organize ships by category
-    for (const [shipKey, ship] of Object.entries(availableShips)) {
+    for (const shipKey in availableShips) {
+        const ship = availableShips[shipKey];
         const category = ship.type;
         if (shipCategories[category]) {
             shipCategories[category].ships[shipKey] = ship;
@@ -80,7 +81,8 @@ function renderShipsList(planet, shipyardData) {
     let html = '<div class="shipyard-section">';
     html += '<h3>🛰️ Ships</h3>';
     
-    for (const [category, data] of Object.entries(shipCategories)) {
+    for (const category in shipCategories) {
+        const data = shipCategories[category];
         if (isEmpty(data.ships)) continue;
         
         const isCollapsed = collapsedSections[`ships-${category}`] || false;
@@ -95,7 +97,8 @@ function renderShipsList(planet, shipyardData) {
         
         if (!isCollapsed) {
             html += '<div class="ships-grid">';
-            for (const [shipKey, ship] of Object.entries(data.ships)) {
+            for (const shipKey in data.ships) {
+                const ship = data.ships[shipKey];
                 const count = ships[shipKey] || 0;
                 const cost = calculateShipCost(shipKey, 1, shipyardLevel);
                 const buildTime = calculateShipBuildTime(shipKey, 1, shipyardLevel);
@@ -167,7 +170,8 @@ function renderDefensesList(planet, shipyardData) {
     if (!isCollapsed) {
         html += '<div class="defenses-grid">';
         
-        for (const [defenseKey, defense] of Object.entries(availableDefenses)) {
+        for (const defenseKey in availableDefenses) {
+            const defense = availableDefenses[defenseKey];
             const count = defenses[defenseKey] || 0;
             const cost = calculateDefenseCost(defenseKey, 1);
             const buildTime = calculateDefenseBuildTime(defenseKey, 1);
@@ -247,15 +251,19 @@ function renderBuildQueue(shipyardData) {
             let itemDetails = '';
             
             if (item.ships && !isEmpty(item.ships)) {
-                itemDetails = Object.entries(item.ships)
-                    .map(([key, qty]) => `${qty}x ${availableShips[key]?.name || key}`)
-                    .join(', ');
+                const shipDetails = [];
+                for (const key in item.ships) {
+                    shipDetails.push(`${item.ships[key]}x ${availableShips[key]?.name || key}`);
+                }
+                itemDetails = shipDetails.join(', ');
             }
             
             if (item.defenses && !isEmpty(item.defenses)) {
-                itemDetails = Object.entries(item.defenses)
-                    .map(([key, qty]) => `${qty}x ${availableDefenses[key]?.name || key}`)
-                    .join(', ');
+                const defenseDetails = [];
+                for (const key in item.defenses) {
+                    defenseDetails.push(`${item.defenses[key]}x ${availableDefenses[key]?.name || key}`);
+                }
+                itemDetails = defenseDetails.join(', ');
             }
             
             html += `

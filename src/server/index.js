@@ -310,7 +310,8 @@ async function handleRequest(req) {
       
       // Return building definitions (without exposing internal structure)
       const buildingInfo = {};
-      for (const [key, building] of Object.entries(BUILDINGS)) {
+      for (const key in BUILDINGS) {
+        const building = BUILDINGS[key];
         buildingInfo[key] = {
           name: building.name,
           description: building.description,
@@ -343,7 +344,8 @@ async function handleRequest(req) {
       const buildingsDetails = {};
       const maxQueueSize = getBuildQueueSize();
       
-      for (const [buildingType, buildingDef] of Object.entries(BUILDINGS)) {
+      for (const buildingType in BUILDINGS) {
+        const buildingDef = BUILDINGS[buildingType];
         const currentLevel = planet.buildings[buildingType] || 0;
         const nextLevel = currentLevel + 1;
         
@@ -470,7 +472,8 @@ async function handleRequest(req) {
       const ships = {};
       const defenses = {};
       
-      for (const [shipKey, ship] of Object.entries(SHIPS)) {
+      for (const shipKey in SHIPS) {
+        const ship = SHIPS[shipKey];
         ships[shipKey] = {
           name: ship.name,
           icon: ship.icon,
@@ -485,7 +488,8 @@ async function handleRequest(req) {
         };
       }
       
-      for (const [defenseKey, defense] of Object.entries(DEFENSES)) {
+      for (const defenseKey in DEFENSES) {
+        const defense = DEFENSES[defenseKey];
         defenses[defenseKey] = {
           name: defense.name,
           icon: defense.icon,

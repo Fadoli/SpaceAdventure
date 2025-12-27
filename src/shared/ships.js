@@ -226,9 +226,14 @@ export function getShip(shipKey) {
  * Get all ships by type
  */
 export function getShipsByType(type) {
-  return Object.entries(SHIPS)
-    .filter(([_, ship]) => ship.type === type)
-    .reduce((acc, [key, ship]) => ({ ...acc, [key]: ship }), {});
+  const result = {};
+  for (const key in SHIPS) {
+    const ship = SHIPS[key];
+    if (ship.type === type) {
+      result[key] = ship;
+    }
+  }
+  return result;
 }
 
 /**
@@ -280,7 +285,8 @@ export function calculateFleetStats(ships, weaponsTech = 0, shieldingTech = 0, a
   let totalShield = 0;
   let totalHull = 0;
 
-  for (const [shipKey, count] of Object.entries(ships)) {
+  for (const shipKey in ships) {
+    const count = ships[shipKey];
     if (count <= 0) continue;
 
     const ship = getShip(shipKey);
@@ -309,7 +315,8 @@ export function calculateFleetStats(ships, weaponsTech = 0, shieldingTech = 0, a
 export function calculateCargoCapacity(ships) {
   let totalCapacity = 0;
 
-  for (const [shipKey, count] of Object.entries(ships)) {
+  for (const shipKey in ships) {
+    const count = ships[shipKey];
     const ship = getShip(shipKey);
     if (ship) {
       totalCapacity += ship.cargoCapacity * count;
@@ -325,7 +332,8 @@ export function calculateCargoCapacity(ships) {
 export function calculateFleetFuelCost(ships, distance) {
   let totalFuelCost = 0;
 
-  for (const [shipKey, count] of Object.entries(ships)) {
+  for (const shipKey in ships) {
+    const count = ships[shipKey];
     const ship = getShip(shipKey);
     if (ship) {
       // Fuel cost per unit per distance
