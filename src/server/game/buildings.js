@@ -5,8 +5,11 @@ import {
 } from '../../shared/buildings.js';
 import {
   getBuildingEnergyConsumption,
-  getBuildingPopulationRequired
+  getBuildingPopulationRequired,
+  calculateAllocationEffectiveness,
+  calculatePositionMultiplier
 } from '../../shared/formulas.js';
+import { CONFIG } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { 
   getBuildQueueSize, 
@@ -338,7 +341,7 @@ function calculateTotalEnergyProduction(planet) {
  * Apply priority-based allocation when resources are scarce
  * Returns actual allocations based on available resources and priorities
  */
-async function applyPriorityBasedAllocation(planet, availablePopulation, availableEnergy) {
+function applyPriorityBasedAllocation(planet, availablePopulation, availableEnergy) {
   // Initialize actual allocations object
   const actualAllocations = {};
   
@@ -360,11 +363,11 @@ async function applyPriorityBasedAllocation(planet, availablePopulation, availab
     
     // Calculate base demands using DESIRED allocation and shared functions
     let energyDemand = 0;
-    const baseEnergyConsumption = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
+    const baseEnergyConsumption = getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
     energyDemand = baseEnergyConsumption * desiredAllocation.power;
     
     let populationDemand = 0;
-    const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
+    const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, BUILDINGS);
     populationDemand = basePopulationRequired * desiredAllocation.population;
     
     buildings.push({
@@ -448,10 +451,7 @@ async function applyPriorityBasedAllocation(planet, availablePopulation, availab
 /**
  * Update planet production based on buildings
  */
-export async function updatePlanetProduction(planet) {
-  const { calculateAllocationEffectiveness, calculatePositionMultiplier } = await import('../../shared/formulas.js');
-  const { CONFIG } = await import('../../shared/constants.js');
-  
+export function updatePlanetProduction(planet) {
   // Get planet position (coordinates[2] is the position in the system)
   const planetPosition = planet.coordinates ? planet.coordinates[2] : 8;
   
@@ -464,7 +464,7 @@ export async function updatePlanetProduction(planet) {
   const currentPopulation = planet.resources?.population || 0;
   const totalEnergyProduced = calculateTotalEnergyProduction(planet);
   
-  const actualAllocations = await applyPriorityBasedAllocation(planet, currentPopulation, totalEnergyProduced);
+  const actualAllocations = applyPriorityBasedAllocation(planet, currentPopulation, totalEnergyProduced);
   
   // Store actual allocations for display purposes
   if (!planet.actualAllocations) {
@@ -654,7 +654,7 @@ export async function updateBuildingAllocation(userId, planetId, buildingType, p
   };
   
   // Recalculate production
-  await updatePlanetProduction(planet);
+  updatePlanetProduction(planet);
   
   // Update player
   await updatePlayer(userId, player);
@@ -701,7 +701,7 @@ export async function updatePlanetAllocations(userId, planetId, allocations) {
   }
   
   // Recalculate production
-  await updatePlanetProduction(planet);
+  updatePlanetProduction(planet);
   
   // Update player
   await updatePlayer(userId, player);

@@ -1,6 +1,6 @@
 // Player game state management
 import { generateId } from '../../shared/utils.js';
-import { STARTING_RESOURCES, STARTING_BUILDINGS } from '../../shared/constants.js';
+import { STARTING_RESOURCES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { updatePlanetProduction } from './buildings.js';
 
@@ -156,4 +156,62 @@ export async function updatePlanetResources(userId, planetId, resources) {
   
   await updatePlayer(userId, player);
   return planet;
+}
+
+/**
+ * Recompute all planets on startup (in-memory only, no persistence)
+ * This ensures all derived values are correctly calculated based on:
+ * - Current buildings and their levels
+ * - CONFIG constants (POPULATION_HOUSING_RATIO, etc)
+ * - Building allocations
+ * Recomputed values include: production, consumption, storage, maxPopulation, etc
+ */
+export async function recomputeAllPlanetsOnStartup() {
+  try {
+    const players = await getPlayers();
+    let recomputedCount = 0;
+    
+    for (const player of players) {
+      for (const planet of player.planets) {
+        // Initialize building allocations if missing
+        if (!planet.buildingAllocations) {
+          planet.buildingAllocations = {};
+        }
+        
+        // Initialize ships and defenses if missing
+        if (!planet.ships) {
+          planet.ships = {};
+        }
+        if (!planet.defenses) {
+          planet.defenses = {};
+        }
+        
+        // Initialize queues if missing
+        if (!planet.buildQueue) {
+          planet.buildQueue = [];
+        }
+        if (!planet.shipQueue) {
+          planet.shipQueue = [];
+        }
+        if (!planet.defenseQueue) {
+          planet.defenseQueue = [];
+        }
+        
+        // Recompute production values (includes storage, consumption, maxPopulation, etc)
+        // updatePlanetProduction handles:
+        // - Production calculations for all buildings
+        // - Storage capacity from storage buildings
+        // - Energy consumption and efficiency
+        // - Population requirements
+        // - maxPopulation calculation
+        await updatePlanetProduction(planet);
+        
+        recomputedCount++;
+      }
+    }
+    
+    console.log(`[Startup] Recomputed all planetary data for ${recomputedCount} planets`);
+  } catch (error) {
+    console.error('[Startup] Error recomputing planets:', error.message);
+  }
 }

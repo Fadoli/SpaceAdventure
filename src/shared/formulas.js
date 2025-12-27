@@ -1,4 +1,5 @@
 // Game formulas and calculations
+import { BUILDINGS } from './buildings.js';
 
 /**
  * Calculate building cost based on level
@@ -181,16 +182,10 @@ export function calculatePositionMultiplier(position, resourceType) {
  * Get building energy consumption at a given level
  * @param {string} buildingType - The building type key
  * @param {number} level - The building level
- * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, will import it.
+ * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, uses imported BUILDINGS.
  */
-export async function getBuildingEnergyConsumption(buildingType, level, buildings) {
-  // If buildings not provided, import it
-  if (!buildings) {
-    const module = await import('./buildings.js');
-    buildings = module.BUILDINGS;
-  }
-  
-  const building = buildings[buildingType];
+export function getBuildingEnergyConsumption(buildingType, level, buildingsObj = BUILDINGS) {
+  const building = buildingsObj[buildingType];
   if (!building || !building.energyConsumption) return 0;
   
   // Energy consumption scales exponentially: base * level * (1.1 ^ level) * 10
@@ -203,16 +198,10 @@ export async function getBuildingEnergyConsumption(buildingType, level, building
  * Get building population requirement at a given level
  * @param {string} buildingType - The building type key
  * @param {number} level - The building level
- * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, will import it.
+ * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, uses imported BUILDINGS.
  */
-export async function getBuildingPopulationRequired(buildingType, level, buildings) {
-  // If buildings not provided, import it
-  if (!buildings) {
-    const module = await import('./buildings.js');
-    buildings = module.BUILDINGS;
-  }
-  
-  const building = buildings[buildingType];
+export function getBuildingPopulationRequired(buildingType, level, buildingsObj = BUILDINGS) {
+  const building = buildingsObj[buildingType];
   if (!building || !building.populationRequired) return 0;
   
   // Population requirement scales exponentially: base * level * (1.05 ^ level)

@@ -7,8 +7,8 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease } from './game/buildings.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup } from './game/player.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS } from '../shared/buildings.js';
@@ -21,6 +21,9 @@ await loadConfig();
 
 // Initialize storage on startup
 await initializeStorage();
+
+// Recompute all planets on startup (in-memory, no persistence)
+await recomputeAllPlanetsOnStartup();
 
 // Start game loop
 startGameLoop();
@@ -222,6 +225,12 @@ async function handleRequest(req) {
       const player = await getPlayerByUserId(user.id);
       if (!player) {
         return errorResponse('Player not found', 404);
+      }
+      
+      // Recalculate production for all planets before returning
+      // This ensures derived values reflect current game constants
+      for (const planet of player.planets) {
+        updatePlanetProduction(planet);
       }
       
       // Process any completed buildings

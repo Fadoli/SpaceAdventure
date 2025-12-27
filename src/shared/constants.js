@@ -115,5 +115,5 @@ export const CONFIG = {
   DEBRIS_PERCENTAGE: 0.3,
   MAX_PLANETS_PER_PLAYER: 9,
   FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
-  POPULATION_HOUSING_RATIO: 10 // Population per housing level
+  POPULATION_HOUSING_RATIO: 15 // Population per housing level
 };
