@@ -4,4 +4,3 @@ auto = "auto"
 
 [test]
 # Test configuration
-preload = []
