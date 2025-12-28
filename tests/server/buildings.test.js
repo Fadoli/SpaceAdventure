@@ -4,8 +4,8 @@ import {
   getBuildTime, 
   getProduction,
   getStorageIncrease
-} from '../src/server/game/buildings.js';
-import { BUILDINGS } from '../src/shared/buildings.js';
+} from '../../src/server/game/buildings.js';
+import { BUILDINGS } from '../../src/shared/buildings.js';
 
 // Mock config module
 import.meta.env.NODE_ENV = 'test';

@@ -4,7 +4,7 @@ import {
   calculateTheoreticalResearchTime,
   calculatePracticalResearchCost,
   calculatePracticalResearchTime
-} from '../src/shared/formulas.js';
+} from '../../src/shared/formulas.js';
 
 describe('Research Cost Calculations', () => {
   describe('Theoretical Research Costs', () => {

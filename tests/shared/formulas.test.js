@@ -21,8 +21,8 @@ import {
   calculatePracticalResearchCost,
   calculatePracticalResearchTime,
   applyTheoreticalBonus
-} from '../src/shared/formulas.js';
-import { BUILDINGS } from '../src/shared/buildings.js';
+} from '../../src/shared/formulas.js';
+import { BUILDINGS } from '../../src/shared/buildings.js';
 
 // ============ Building Cost Tests ============
 describe('calculateBuildingCost', () => {

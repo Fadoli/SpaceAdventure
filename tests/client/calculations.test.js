@@ -4,8 +4,8 @@ import {
   calculatePositionMultiplier,
   getBuildingEnergyConsumption,
   getBuildingPopulationRequired
-} from '../src/shared/formulas.js';
-import { BUILDINGS } from '../src/shared/buildings.js';
+} from '../../src/shared/formulas.js';
+import { BUILDINGS } from '../../src/shared/buildings.js';
 
 describe('Client-Side Calculations - Allocation Effectiveness', () => {
   it('should provide non-linear effectiveness feedback', () => {
