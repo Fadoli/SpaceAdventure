@@ -8,7 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, switchBuildingVariant } from './game/buildings.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { 
   startTheoreticalResearch, 
@@ -406,9 +406,38 @@ async function handleRequest(req) {
       try {
         // Get available variants with their focus combinations
         const baseCost = getBuildingCost(buildingType, planet.buildings[buildingType] || 1);
+        const currentVariant = (planet.activeVariants && planet.activeVariants[buildingType]) || 'base';
+        
+        // Determine current variant cost
+        let currentVariantData = null;
+        let currentCost = baseCost;
+        
+        if (currentVariant === 'custom' && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+          const variant = player.customBuildingVariants[buildingType];
+          currentVariantData = variant;
+          if (variant.modifiers && variant.modifiers.costMultiplier !== 1) {
+            currentCost = {
+              metal: Math.floor(baseCost.metal * variant.modifiers.costMultiplier),
+              crystal: Math.floor(baseCost.crystal * variant.modifiers.costMultiplier),
+              deuterium: Math.floor(baseCost.deuterium * variant.modifiers.costMultiplier)
+            };
+          }
+        }
+        
         const availableVariants = [];
         
-        if (player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+        // Add base variant if not currently on it
+        if (currentVariant !== 'base') {
+          availableVariants.push({
+            isBase: true,
+            focusLevels: {},
+            modifiers: {},
+            cost: baseCost
+          });
+        }
+        
+        // Add custom variant if available and not currently on it
+        if (player.customBuildingVariants && player.customBuildingVariants[buildingType] && currentVariant !== 'custom') {
           const variant = player.customBuildingVariants[buildingType];
           
           // Calculate the actual custom cost by applying the cost modifier
@@ -430,7 +459,9 @@ async function handleRequest(req) {
         
         return successResponse({
           baseCost,
-          currentCost: baseCost,
+          currentCost,
+          currentVariant,
+          currentVariantData,
           availableVariants
         });
       } catch (error) {
@@ -452,8 +483,20 @@ async function handleRequest(req) {
       const { focusLevels } = body;
       
       try {
-        const result = await switchBuildingVariant(user.id, planetId, buildingType, true);
-        return successResponse(result);
+        // If focusLevels is empty, switch to base; otherwise switch to custom
+        const isSwitchingToBase = !focusLevels || Object.keys(focusLevels).length === 0;
+        
+        if (isSwitchingToBase) {
+          // Queue switch to base variant
+          const result = await queueVariantSwitch(user.id, planetId, buildingType, false);
+          return successResponse(result);
+        } else {
+          // Switch to custom variant with the specified focus levels
+          const player = await getPlayerByUserId(user.id);
+          selectCustomBuildingVariant(player, planetId, buildingType, focusLevels);
+          const result = await queueVariantSwitch(user.id, planetId, buildingType, true);
+          return successResponse(result);
+        }
       } catch (error) {
         return errorResponse(error.message, 400);
       }
@@ -526,7 +569,23 @@ async function handleRequest(req) {
         const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel);
         
         // Calculate production for next level
-        const production = getProduction(buildingType, nextLevel);
+        let production = getProduction(buildingType, nextLevel);
+        
+        // Apply variant modifiers if building is using custom variant
+        const currentVariant = (planet.activeVariants && planet.activeVariants[buildingType]) || 'base';
+        if (currentVariant === 'custom' && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+          const variantModifiers = player.customBuildingVariants[buildingType].modifiers;
+          const modifiedProduction = {};
+          for (const resource in production) {
+            const modifierKey = `${resource}Multiplier`;
+            if (variantModifiers[modifierKey]) {
+              modifiedProduction[resource] = Math.floor(production[resource] * variantModifiers[modifierKey]);
+            } else {
+              modifiedProduction[resource] = production[resource];
+            }
+          }
+          production = modifiedProduction;
+        }
         
         // Calculate storage for next level
         let storage = null;
@@ -561,9 +620,6 @@ async function handleRequest(req) {
         const hasCustomVariant = player.customBuildingVariants && player.customBuildingVariants[buildingType] ? true : false;
         const customVariant = (player.customBuildingVariants && player.customBuildingVariants[buildingType]) || null;
         
-        // Check which variant is currently active
-        const currentVariant = (planet.activeVariants && planet.activeVariants[buildingType]) || 'base';
-        
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
           description: buildingDef.description,
@@ -589,6 +645,7 @@ async function handleRequest(req) {
       return successResponse({
         buildings: buildingsDetails,
         queue: planet.buildQueue || [],
+        variantSwitchQueue: planet.variantSwitchQueue || [],
         maxQueueSize
       });
     }

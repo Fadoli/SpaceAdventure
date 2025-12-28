@@ -333,9 +333,9 @@ window.switchBuildingVariant = async function(buildingKey, toCustom) {
 };
 
 window.selectCustomVariant = async function(buildingKey, focusLevels) {
-    if (!currentGameState || !currentGameState.planets[0]) return;
+    if (!gameState || !gameState.planets[0]) return;
     
-    const planet = currentGameState.planets[0];
+    const planet = gameState.planets[0];
     
     try {
         const buildingsView = await import('./views/buildings.js');

@@ -108,17 +108,30 @@ describe('calculateBuildTime', () => {
 describe('calculateProduction', () => {
   it('should calculate production at level 0', () => {
     const result = calculateProduction(30, 0);
-    expect(result).toBe(30);
+    expect(result).toBe(0);
   });
 
-  it('should scale production with 1.05^level', () => {
+  it('should scale production with level * 1.1^level', () => {
     const result = calculateProduction(30, 5);
-    expect(result).toBe(Math.floor(30 * Math.pow(1.05, 5)));
+    expect(result).toBe(Math.floor(30 * 5 * Math.pow(1.1, 5)));
   });
 
   it('should handle high levels', () => {
     const result = calculateProduction(30, 20);
     expect(result).toBeGreaterThan(30);
+  });
+
+  it('should apply variant multiplier', () => {
+    const baseProduction = calculateProduction(30, 15);
+    const withVariant = calculateProduction(30, 15, 1.49);
+    expect(withVariant).toBe(Math.floor(baseProduction * 1.49));
+  });
+
+  it('should handle variant modifier of 1.49 for +49% production', () => {
+    const result = calculateProduction(30, 15, 1.49);
+    const expectedBase = Math.floor(30 * 15 * Math.pow(1.1, 15));
+    const expected = Math.floor(expectedBase * 1.49);
+    expect(result).toBe(expected);
   });
 });
 

@@ -25,9 +25,14 @@ export function calculateBuildTime(baseTime, level, roboticsLevel = 0, naniteLev
 
 /**
  * Calculate resource production per hour
+ * Formula: baseProduction * level * 1.1^level
+ * Optionally applies variant modifier (e.g., custom building variant with +49% production)
+ * @param {number} baseProduction - Base production amount
+ * @param {number} level - Building level
+ * @param {number} variantMultiplier - Optional variant modifier (default 1.0)
  */
-export function calculateProduction(baseProduction, level) {
-  return Math.floor(baseProduction * Math.pow(1.05, level));
+export function calculateProduction(baseProduction, level, variantMultiplier = 1.0) {
+  return Math.floor(baseProduction * level * Math.pow(1.1, level) * variantMultiplier);
 }
 
 /**

@@ -303,8 +303,8 @@ export async function processCompletedBuildings(player) {
       // Complete the building
       planet.buildings[buildItem.building] = buildItem.level;
       
-      // Recalculate production
-      updatePlanetProduction(planet);
+      // Recalculate production (pass player for variant modifier support)
+      updatePlanetProduction(planet, player);
       
       // Remove from queue
       planet.buildQueue.shift();
@@ -467,7 +467,7 @@ function applyPriorityBasedAllocation(planet, availablePopulation, availableEner
 /**
  * Update planet production based on buildings
  */
-export function updatePlanetProduction(planet) {
+export function updatePlanetProduction(planet, player = null) {
   // Get planet position (coordinates[2] is the position in the system)
   const planetPosition = planet.coordinates ? planet.coordinates[2] : 8;
   
@@ -532,6 +532,13 @@ export function updatePlanetProduction(planet) {
     // Combined effectiveness (multiplicative)
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
     
+    // Apply variant modifiers if building is using custom variant
+    let variantModifiers = null;
+    const currentVariant = planet.activeVariants && planet.activeVariants[buildingType];
+    if (currentVariant === 'custom' && player && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+      variantModifiers = player.customBuildingVariants[buildingType].modifiers;
+    }
+    
     // Apply position multiplier for relevant resources
     for (const resource in production) {
       let amount = production[resource];
@@ -548,13 +555,27 @@ export function updatePlanetProduction(planet) {
       // Apply effectiveness
       amount *= totalEffectiveness;
       
+      // Apply variant modifiers for production multiplier
+      if (variantModifiers) {
+        const modifierKey = `${resource}Multiplier`;
+        if (variantModifiers[modifierKey]) {
+          amount *= variantModifiers[modifierKey];
+        }
+      }
+      
       planet.production[resource] = (planet.production[resource] || 0) + Math.floor(amount);
     }
     
     // Calculate energy consumption using ACTUAL allocation
     if (building.energyConsumption) {
       const energyMultiplier = getResourceProductionMultiplier();
-      const baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+      let baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+      
+      // Apply variant energy multiplier if applicable
+      if (variantModifiers && variantModifiers.energyMultiplier) {
+        baseConsumption = Math.floor(baseConsumption * variantModifiers.energyMultiplier);
+      }
+      
       // Energy consumption scales with ACTUAL power allocation
       totalEnergyConsumption += Math.floor(baseConsumption * actualAllocation.power);
     }
@@ -567,7 +588,13 @@ export function updatePlanetProduction(planet) {
     
     // Calculate population requirements using ACTUAL allocation
     if (building.populationRequired) {
-      const basePopRequired = Math.floor(building.populationRequired * level * Math.pow(1.05, level));
+      let basePopRequired = Math.floor(building.populationRequired * level * Math.pow(1.05, level));
+      
+      // Apply variant population multiplier if applicable
+      if (variantModifiers && variantModifiers.populationMultiplier) {
+        basePopRequired = Math.floor(basePopRequired * variantModifiers.populationMultiplier);
+      }
+      
       totalPopulationRequired += Math.floor(basePopRequired * actualAllocation.population);
     }
   }
@@ -669,8 +696,8 @@ export async function updateBuildingAllocation(userId, planetId, buildingType, p
     priority: priority || 3
   };
   
-  // Recalculate production
-  updatePlanetProduction(planet);
+  // Recalculate production (pass player for variant modifier support)
+  updatePlanetProduction(planet, player);
   
   // Update player
   await updatePlayer(userId, player);
@@ -717,8 +744,8 @@ export async function updatePlanetAllocations(userId, planetId, allocations) {
     };
   }
   
-  // Recalculate production
-  updatePlanetProduction(planet);
+  // Recalculate production (pass player for variant modifier support)
+  updatePlanetProduction(planet, player);
   
   // Update player
   await updatePlayer(userId, player);
@@ -728,6 +755,235 @@ export async function updatePlanetAllocations(userId, planetId, allocations) {
 
 /**
  * Switch building variant (between base and custom)
+ */
+/**
+ * Calculate variant switch duration based on cost (similar to build time)
+ */
+function getVariantSwitchDuration(switchCost) {
+  // Base duration: 30 seconds per 100,000 total resources cost
+  const totalCost = switchCost.metal + switchCost.crystal + switchCost.deuterium;
+  const baseDuration = Math.max(10, Math.floor((totalCost / 100000) * 30)); // Minimum 10 seconds
+  return baseDuration * 1000; // Convert to milliseconds
+}
+
+export async function queueVariantSwitch(userId, planetId, buildingType, toCustom) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) {
+    throw new Error('Player not found');
+  }
+  
+  const planet = player.planets.find(p => p.id === planetId);
+  if (!planet) {
+    throw new Error('Planet not found');
+  }
+  
+  // Validate building exists
+  if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
+    throw new Error('Building not found or at level 0');
+  }
+  
+  // Check if custom variant exists
+  if (!player.customBuildingVariants || !player.customBuildingVariants[buildingType]) {
+    throw new Error('No custom variant available for this building');
+  }
+  
+  // Initialize active variants tracking if needed
+  if (!planet.activeVariants) {
+    planet.activeVariants = {};
+  }
+  
+  const currentVariant = planet.activeVariants[buildingType] || 'base';
+  const buildingDef = BUILDINGS[buildingType];
+  const customVariant = player.customBuildingVariants[buildingType];
+  
+  // Calculate costs
+  const baseCost = getBuildingCost(buildingType, planet.buildings[buildingType]);
+  
+  // Calculate custom cost by applying cost modifier
+  let customCost = { ...baseCost };
+  if (customVariant.modifiers && customVariant.modifiers.costMultiplier !== 1) {
+    customCost = {
+      metal: Math.floor(baseCost.metal * customVariant.modifiers.costMultiplier),
+      crystal: Math.floor(baseCost.crystal * customVariant.modifiers.costMultiplier),
+      deuterium: Math.floor(baseCost.deuterium * customVariant.modifiers.costMultiplier)
+    };
+  }
+  
+  // Calculate switch cost (twice the difference)
+  let switchCost = { metal: 0, crystal: 0, deuterium: 0 };
+  const baseTotalCost = baseCost.metal + baseCost.crystal + baseCost.deuterium;
+  const customTotalCost = customCost.metal + customCost.crystal + customCost.deuterium;
+  
+  if (toCustom) {
+    // Switching to custom
+    if (currentVariant === 'custom') {
+      throw new Error('Already using custom variant');
+    }
+    
+    if (customTotalCost > baseTotalCost) {
+      // Custom is more expensive, cost is twice the difference
+      const difference = {
+        metal: customCost.metal - baseCost.metal,
+        crystal: customCost.crystal - baseCost.crystal,
+        deuterium: customCost.deuterium - baseCost.deuterium
+      };
+      switchCost = {
+        metal: Math.max(0, difference.metal * 2),
+        crystal: Math.max(0, difference.crystal * 2),
+        deuterium: Math.max(0, difference.deuterium * 2)
+      };
+    } else {
+      // Custom is cheaper, refund half the difference
+      const difference = {
+        metal: baseCost.metal - customCost.metal,
+        crystal: baseCost.crystal - customCost.crystal,
+        deuterium: baseCost.deuterium - customCost.deuterium
+      };
+      // Refund is negative cost (we give back resources)
+      switchCost = {
+        metal: -Math.floor(difference.metal / 2),
+        crystal: -Math.floor(difference.crystal / 2),
+        deuterium: -Math.floor(difference.deuterium / 2)
+      };
+    }
+  } else {
+    // Switching to base
+    if (currentVariant === 'base') {
+      throw new Error('Already using base variant');
+    }
+    
+    if (baseTotalCost > customTotalCost) {
+      // Base is more expensive, cost is twice the difference
+      const difference = {
+        metal: baseCost.metal - customCost.metal,
+        crystal: baseCost.crystal - customCost.crystal,
+        deuterium: baseCost.deuterium - customCost.deuterium
+      };
+      switchCost = {
+        metal: Math.max(0, difference.metal * 2),
+        crystal: Math.max(0, difference.crystal * 2),
+        deuterium: Math.max(0, difference.deuterium * 2)
+      };
+    } else {
+      // Base is cheaper, refund half the difference
+      const difference = {
+        metal: customCost.metal - baseCost.metal,
+        crystal: customCost.crystal - baseCost.crystal,
+        deuterium: customCost.deuterium - baseCost.deuterium
+      };
+      // Refund is negative cost (we give back resources)
+      switchCost = {
+        metal: -Math.floor(difference.metal / 2),
+        crystal: -Math.floor(difference.crystal / 2),
+        deuterium: -Math.floor(difference.deuterium / 2)
+      };
+    }
+  }
+  
+  // Check if can afford the switch cost
+  if (switchCost.metal > 0 && planet.resources.metal < switchCost.metal) {
+    throw new Error('Insufficient metal for variant switch');
+  }
+  if (switchCost.crystal > 0 && planet.resources.crystal < switchCost.crystal) {
+    throw new Error('Insufficient crystal for variant switch');
+  }
+  if (switchCost.deuterium > 0 && planet.resources.deuterium < switchCost.deuterium) {
+    throw new Error('Insufficient deuterium for variant switch');
+  }
+  
+  // Deduct or add resources upfront
+  planet.resources.metal += switchCost.metal;
+  planet.resources.crystal += switchCost.crystal;
+  planet.resources.deuterium += switchCost.deuterium;
+  
+  // Initialize variant switch queue if needed
+  if (!planet.variantSwitchQueue) {
+    planet.variantSwitchQueue = [];
+  }
+  
+  // Calculate duration and timing
+  const duration = getVariantSwitchDuration(switchCost);
+  let startTime, finishTime;
+  
+  if (planet.variantSwitchQueue.length === 0) {
+    // First item starts immediately
+    startTime = Date.now();
+    finishTime = startTime + duration;
+  } else {
+    // Subsequent items start when previous item finishes
+    const previousItem = planet.variantSwitchQueue[planet.variantSwitchQueue.length - 1];
+    startTime = previousItem.finishTime;
+    finishTime = startTime + duration;
+  }
+  
+  // Queue the switch
+  planet.variantSwitchQueue.push({
+    buildingType,
+    toCustom,
+    startTime,
+    finishTime,
+    switchCost,
+    queuePosition: planet.variantSwitchQueue.length + 1
+  });
+  
+  // Update player
+  await updatePlayer(userId, player);
+  
+  return {
+    buildingType,
+    targetVariant: toCustom ? 'custom' : 'base',
+    switchCost,
+    duration: duration / 1000, // Duration in seconds
+    finishTime,
+    resources: planet.resources
+  };
+}
+
+/**
+ * Process completed variant switches in the game loop
+ */
+export async function processCompletedVariantSwitches(player) {
+  let updated = false;
+  
+  for (const planet of player.planets) {
+    if (!planet.variantSwitchQueue || planet.variantSwitchQueue.length === 0) {
+      continue;
+    }
+    
+    // Only process the first item in queue (currently switching)
+    const switchItem = planet.variantSwitchQueue[0];
+    
+    // Check if switch is complete
+    if (switchItem.finishTime <= Date.now()) {
+      // Complete the switch
+      if (!planet.activeVariants) {
+        planet.activeVariants = {};
+      }
+      planet.activeVariants[switchItem.buildingType] = switchItem.toCustom ? 'custom' : 'base';
+      
+      // Recalculate production after variant change (pass player for variant modifier support)
+      updatePlanetProduction(planet, player);
+      
+      // Remove from queue
+      planet.variantSwitchQueue.shift();
+      
+      // Update queue positions for remaining items
+      planet.variantSwitchQueue.forEach((item, index) => {
+        item.queuePosition = index + 1;
+      });
+      
+      // Update activity timestamp
+      planet.lastActivity = Date.now();
+      
+      updated = true;
+    }
+  }
+  
+  return updated;
+}
+
+/**
+ * Legacy function - switches variant immediately (kept for backwards compatibility)
  */
 export async function switchBuildingVariant(userId, planetId, buildingType, toCustom) {
   const player = await getPlayerByUserId(userId);

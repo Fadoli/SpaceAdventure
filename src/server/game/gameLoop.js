@@ -1,6 +1,6 @@
 // Game tick system - processes game state periodically
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
-import { processCompletedBuildings, updatePlanetProduction } from './buildings.js';
+import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
@@ -107,6 +107,12 @@ async function gameTick() {
       // Process completed buildings
       const buildingsUpdated = await processCompletedBuildings(player);
       if (buildingsUpdated) {
+        updated = true;
+      }
+      
+      // Process completed variant switches
+      const variantSwitchesUpdated = await processCompletedVariantSwitches(player);
+      if (variantSwitchesUpdated) {
         updated = true;
       }
       

@@ -102,6 +102,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                 const nextProd = building.production || {};
                 
                 // Estimate current level production (approximate reverse calculation)
+                // The server already applies variant modifiers, so we just reverse-calculate with the 10x config multiplier
                 if (building.currentLevel > 0 && !isEmpty(nextProd)) {
                     for (const resource in nextProd) {
                         const nextAmount = nextProd[resource];
@@ -518,42 +519,53 @@ export function closeCustomVariantModal() {
  * Render custom variant selection options
  */
 function renderCustomVariantOptions(container, buildingKey, building, variantDetails, planet, onStateChange) {
-    const { availableVariants, baseCost, currentCost } = variantDetails;
+    const { availableVariants, baseCost, currentCost, currentVariant, currentVariantData } = variantDetails;
+    
+    // Determine current variant title
+    const currentVariantTitle = currentVariant === 'custom' ? 'Custom Variant (Current)' : 'Base Variant (Current)';
     
     let html = `
         <div class="variant-selection">
             <div class="current-variant-info">
-                <h3>Base Variant (Current)</h3>
+                <h3>${currentVariantTitle}</h3>
                 <div class="cost-display">
                     <strong>Cost per level:</strong>
-                    <div>⚙️ ${formatNumber(baseCost.metal)}</div>
-                    <div>💎 ${formatNumber(baseCost.crystal)}</div>
-                    ${baseCost.deuterium > 0 ? `<div>🛢️ ${formatNumber(baseCost.deuterium)}</div>` : ''}
+                    <div>⚙️ ${formatNumber(currentCost.metal)}</div>
+                    <div>💎 ${formatNumber(currentCost.crystal)}</div>
+                    ${currentCost.deuterium > 0 ? `<div>🛢️ ${formatNumber(currentCost.deuterium)}</div>` : ''}
                 </div>
+    `;
+    
+    // Show focus levels if on custom variant
+    if (currentVariant === 'custom' && currentVariantData) {
+        const focusDisplay = Object.entries(currentVariantData.focusLevels || {})
+            .filter(([focus, level]) => level > 0)
+            .map(([focus, level]) => `<span class="focus-badge">${focus} <strong>${level}</strong></span>`)
+            .join('');
+        if (focusDisplay) {
+            html += `<div class="variant-focuses" style="margin-top: 10px;">${focusDisplay}</div>`;
+        }
+    }
+    
+    html += `
             </div>
             <div class="variant-options">
-                <h3>Available Customizations</h3>
+                <h3>Switch To</h3>
     `;
     
     if (!availableVariants || availableVariants.length === 0) {
-        html += `<p>No custom variants available yet. Research customization focuses first.</p>`;
+        html += `<p>No variants to switch to. </p>`;
     } else {
         for (const variant of availableVariants) {
-            const switchCost = calculateSwitchCost(baseCost, variant.cost);
+            const isBaseVariant = variant.isBase;
+            const switchCost = calculateSwitchCost(currentCost, variant.cost);
             const focusDisplay = Object.entries(variant.focusLevels || {})
                 .filter(([focus, level]) => level > 0)
                 .map(([focus, level]) => `<span class="focus-badge">${focus} <strong>${level}</strong></span>`)
                 .join('');
             
-            // Calculate cost difference
-            const costDiff = {
-                metal: variant.cost.metal - baseCost.metal,
-                crystal: variant.cost.crystal - baseCost.crystal,
-                deuterium: variant.cost.deuterium - baseCost.deuterium
-            };
-            
             const isCheaper = (variant.cost.metal + variant.cost.crystal + variant.cost.deuterium) < 
-                            (baseCost.metal + baseCost.crystal + baseCost.deuterium);
+                            (currentCost.metal + currentCost.crystal + currentCost.deuterium);
             
             const switchCostDisplay = `
                 <div class="switch-cost ${isCheaper ? 'refund' : 'cost'}">
@@ -582,16 +594,17 @@ function renderCustomVariantOptions(container, buildingKey, building, variantDet
                 `;
             }
             
+            const buttonText = isBaseVariant ? 'Switch to Base' : 'Select This Variant';
+            const focusLevels = isBaseVariant ? {} : variant.focusLevels;
+            
             html += `
                 <div class="variant-option">
-                    <div class="variant-focuses">
-                        ${focusDisplay}
-                    </div>
+                    ${focusDisplay ? `<div class="variant-focuses">${focusDisplay}</div>` : '<p><em>Standard Build</em></p>'}
                     ${switchCostDisplay}
                     ${outputDisplay}
                     <button class="btn btn-success btn-full" 
-                            onclick="window.selectCustomVariant('${buildingKey}', ${JSON.stringify(variant.focusLevels).replace(/"/g, '&quot;')})">
-                        Select This Variant
+                            onclick="window.selectCustomVariant('${buildingKey}', ${JSON.stringify(focusLevels).replace(/"/g, '&quot;')})">
+                        ${buttonText}
                     </button>
                 </div>
             `;
