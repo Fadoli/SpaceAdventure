@@ -326,6 +326,32 @@ window.upgradeBuilding = async function(buildingKey) {
     await buildingUpgrade(buildingKey, loadGameState);
 };
 
+window.switchBuildingVariant = async function(buildingKey, toCustom) {
+    // switchBuildingVariant is imported from views/buildings.js
+    const buildingsView = await import('./views/buildings.js');
+    await buildingsView.switchBuildingVariant(buildingKey, toCustom, loadGameState);
+};
+
+window.selectCustomVariant = async function(buildingKey, focusLevels) {
+    if (!currentGameState || !currentGameState.planets[0]) return;
+    
+    const planet = currentGameState.planets[0];
+    
+    try {
+        const buildingsView = await import('./views/buildings.js');
+        await API.selectCustomVariant(planet.id, buildingKey, focusLevels);
+        await buildingsView.closeCustomVariantModal();
+        await loadGameState();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+};
+
+window.closeCustomVariantModal = async function() {
+    const buildingsView = await import('./views/buildings.js');
+    buildingsView.closeCustomVariantModal();
+};
+
 window.cancelBuilding = async function(queuePosition = 1) {
     await buildingCancel(queuePosition, loadGameState);
 };

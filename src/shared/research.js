@@ -194,6 +194,63 @@ export const PRACTICAL_FOCUS_TYPES = {
 };
 
 /**
+ * Shared focus modifier templates for buildings and ships
+ */
+const PRODUCTION_BUILDING_MODIFIERS = {
+  output: {
+    productionMultiplier: 1.02,      // 1.02^level: +2% per focus level
+    costMultiplier: 1.01,            // 1.01^level: +1% cost per focus level
+    energyMultiplier: 1.015,         // 1.015^level: +1.5% energy per focus level
+    populationMultiplier: 1.005      // 1.005^level: +0.5% population (more workers needed for output)
+  },
+  automation: {
+    populationMultiplier: 0.98,      // 0.98^level: -2% workforce per focus level
+    costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level (machinery)
+    energyMultiplier: 1.025,         // 1.025^level: +2.5% energy per focus level
+    productionMultiplier: 0.99       // 0.99^level: -1% production (less efficient)
+  },
+  energy: {
+    energyMultiplier: 0.98,          // 0.98^level: -2% energy consumption per focus level
+    costMultiplier: 1.015,           // 1.015^level: +1.5% cost for efficiency tech
+    productionMultiplier: 1.005,     // 1.005^level: +0.5% production (better power = better output)
+    populationMultiplier: 1.008      // 1.008^level: +0.8% workforce needed for complex tech
+  },
+  cost: {
+    costMultiplier: 0.98,            // 0.98^level: -2% cost per focus level
+    productionMultiplier: 0.99,      // 0.99^level: -1% production (simpler = less effective)
+    energyMultiplier: 1.002,         // 1.002^level: minimal energy change
+    populationMultiplier: 1.001      // 1.001^level: minimal population change
+  }
+};
+
+const SHIP_MODIFIERS = {
+  output: {
+    cargoMultiplier: 1.02,           // 1.02^level: +2% capacity per level (or attack for military)
+    costMultiplier: 1.01,
+    fuelMultiplier: 1.015,
+    speedMultiplier: 0.99            // 0.99^level: -1% speed (tradeoff)
+  },
+  automation: {
+    crewRequirement: 0.98,
+    costMultiplier: 1.02,
+    fuelMultiplier: 1.025,
+    cargoMultiplier: 0.99            // or attackMultiplier for military
+  },
+  energy: {
+    fuelMultiplier: 0.98,            // 0.98^level: Better fuel efficiency
+    costMultiplier: 1.015,
+    speedMultiplier: 1.01,
+    cargoMultiplier: 1.005           // or attackMultiplier for military
+  },
+  cost: {
+    costMultiplier: 0.98,
+    cargoMultiplier: 0.99,           // or attackMultiplier for military
+    fuelMultiplier: 1.002,
+    speedMultiplier: 1.001
+  }
+};
+
+/**
  * Practical research definitions - one per base building/ship type
  * Each tracks which focuses a player has invested in
  */
@@ -213,32 +270,7 @@ export const PRACTICAL_RESEARCH = {
     },
     baseTime: 900,
     maxLevels: 30,
-    focusModifiers: {
-      output: {
-        productionMultiplier: 0.15,      // +15% per focus level
-        costMultiplier: 0.05,            // +5% cost per focus level
-        energyMultiplier: 0.08,          // +8% energy per focus level
-        populationMultiplier: -0.03      // -3% population requirement (improvement)
-      },
-      automation: {
-        populationMultiplier: -0.15,     // -15% workforce per focus level
-        costMultiplier: 0.12,            // +12% cost per focus level (machinery)
-        energyMultiplier: 0.15,          // +15% energy per focus level
-        productionMultiplier: -0.05      // -5% production (less efficient)
-      },
-      energy: {
-        energyMultiplier: -0.15,         // -15% energy consumption per focus level
-        costMultiplier: 0.08,            // +8% cost for efficiency tech
-        productionMultiplier: 0.02,      // +2% production (better power = better output)
-        populationMultiplier: 0.05       // +5% workforce needed for complex tech
-      },
-      cost: {
-        costMultiplier: -0.12,           // -12% cost per focus level
-        productionMultiplier: -0.08,     // -8% production (simpler = less effective)
-        energyMultiplier: 0.05,          // +5% energy (older tech less efficient)
-        populationMultiplier: 0.03       // +3% workforce (lower tech needs more workers)
-      }
-    }
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
 
   crystalMine: {
@@ -255,32 +287,7 @@ export const PRACTICAL_RESEARCH = {
     },
     baseTime: 900,
     maxLevels: 30,
-    focusModifiers: {
-      output: {
-        productionMultiplier: 0.15,
-        costMultiplier: 0.05,
-        energyMultiplier: 0.08,
-        populationMultiplier: -0.03
-      },
-      automation: {
-        populationMultiplier: -0.15,
-        costMultiplier: 0.12,
-        energyMultiplier: 0.15,
-        productionMultiplier: -0.05
-      },
-      energy: {
-        energyMultiplier: -0.15,
-        costMultiplier: 0.08,
-        productionMultiplier: 0.02,
-        populationMultiplier: 0.05
-      },
-      cost: {
-        costMultiplier: -0.12,
-        productionMultiplier: -0.08,
-        energyMultiplier: 0.05,
-        populationMultiplier: 0.03
-      }
-    }
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
 
   solarPlant: {
@@ -297,32 +304,7 @@ export const PRACTICAL_RESEARCH = {
     },
     baseTime: 900,
     maxLevels: 30,
-    focusModifiers: {
-      output: {
-        productionMultiplier: 0.15,
-        costMultiplier: 0.05,
-        energyMultiplier: 0.03,
-        populationMultiplier: -0.02
-      },
-      automation: {
-        populationMultiplier: -0.12,
-        costMultiplier: 0.1,
-        energyMultiplier: 0.08,
-        productionMultiplier: -0.03
-      },
-      energy: {
-        energyMultiplier: -0.2,          // Energy production itself
-        costMultiplier: 0.1,
-        productionMultiplier: 0.05,
-        populationMultiplier: 0.04
-      },
-      cost: {
-        costMultiplier: -0.15,
-        productionMultiplier: -0.05,
-        energyMultiplier: 0.03,
-        populationMultiplier: 0.02
-      }
-    }
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
 
   // Ship customizations
@@ -340,32 +322,7 @@ export const PRACTICAL_RESEARCH = {
     },
     baseTime: 900,
     maxLevels: 30,
-    focusModifiers: {
-      output: {
-        cargoMultiplier: 0.15,           // +15% cargo capacity
-        costMultiplier: 0.08,
-        fuelMultiplier: 0.1,
-        speedMultiplier: -0.05           // -5% speed
-      },
-      automation: {
-        crewRequirement: -0.15,          // Not applicable to ships in same way
-        costMultiplier: 0.12,
-        fuelMultiplier: 0.15,
-        cargoMultiplier: -0.05
-      },
-      energy: {
-        fuelMultiplier: -0.15,           // Better fuel efficiency
-        costMultiplier: 0.1,
-        speedMultiplier: 0.05,
-        cargoMultiplier: 0.02
-      },
-      cost: {
-        costMultiplier: -0.15,
-        cargoMultiplier: -0.08,
-        fuelMultiplier: 0.05,
-        speedMultiplier: 0.03
-      }
-    }
+    focusModifiers: SHIP_MODIFIERS
   },
 
   lightFighter: {
@@ -384,28 +341,28 @@ export const PRACTICAL_RESEARCH = {
     maxLevels: 30,
     focusModifiers: {
       output: {
-        attackMultiplier: 0.15,          // +15% attack power
-        hullMultiplier: 0.1,
-        costMultiplier: 0.08,
-        speedMultiplier: -0.08
+        attackMultiplier: 1.02,          // Military variant: attack instead of cargo
+        hullMultiplier: 1.015,
+        costMultiplier: 1.01,
+        speedMultiplier: 0.99
       },
       automation: {
-        crewRequirement: -0.1,
-        costMultiplier: 0.1,
-        fuelMultiplier: 0.12,
-        attackMultiplier: -0.05
+        crewRequirement: 0.98,
+        costMultiplier: 1.02,
+        fuelMultiplier: 1.025,
+        attackMultiplier: 0.99
       },
       energy: {
-        fuelMultiplier: -0.12,
-        costMultiplier: 0.1,
-        speedMultiplier: 0.08,
-        attackMultiplier: 0.03
+        fuelMultiplier: 0.98,
+        costMultiplier: 1.015,
+        speedMultiplier: 1.015,
+        attackMultiplier: 1.005
       },
       cost: {
-        costMultiplier: -0.12,
-        attackMultiplier: -0.06,
-        hullMultiplier: -0.05,
-        speedMultiplier: 0.04
+        costMultiplier: 0.98,
+        attackMultiplier: 0.99,
+        hullMultiplier: 0.99,
+        speedMultiplier: 1.001
       }
     }
   }
@@ -431,14 +388,14 @@ export function getPracticalResearch() {
 export function canResearchTheoretical(techKey, playerResearch) {
   const tech = THEORETICAL_RESEARCH[techKey];
   if (!tech) return false;
-  
+
   // Check prerequisites
   if (tech.prerequisites && Array.isArray(tech.prerequisites)) {
-    return tech.prerequisites.every(prereq => 
+    return tech.prerequisites.every(prereq =>
       playerResearch[prereq] && playerResearch[prereq] > 0
     );
   }
-  
+
   return true;
 }
 
@@ -447,7 +404,7 @@ export function canResearchTheoretical(techKey, playerResearch) {
  */
 export function getAvailablePracticalResearch(playerBuildings, playerShips) {
   const available = {};
-  
+
   // Check which buildings exist
   for (const [key, research] of Object.entries(PRACTICAL_RESEARCH)) {
     if (research.type === 'building' && playerBuildings[research.baseType]) {
@@ -456,7 +413,7 @@ export function getAvailablePracticalResearch(playerBuildings, playerShips) {
       available[key] = research;
     }
   }
-  
+
   return available;
 }
 
@@ -469,9 +426,9 @@ export function getCustomVariant(baseType, type, focusLevels) {
   const research = Object.values(PRACTICAL_RESEARCH).find(
     r => r.baseType === baseType && r.type === type
   );
-  
+
   if (!research) return null;
-  
+
   return {
     baseType,
     type,
@@ -481,35 +438,40 @@ export function getCustomVariant(baseType, type, focusLevels) {
 }
 
 /**
- * Calculate the aggregated modifiers from all focus levels
+ * Calculate the aggregated modifiers from all focus levels using exponential scaling
+ * Modifiers are base multipliers: 1.02 = 2% per level, 0.98 = 2% reduction per level
+ * Result is multiplier - 1: (1.02^level) - 1 = multiplicative bonus
  */
 export function calculateFocusModifiers(research, focusLevels) {
   const modifiers = {
-    productionMultiplier: 0,
-    costMultiplier: 0,
-    energyMultiplier: 0,
-    populationMultiplier: 0,
-    cargoMultiplier: 0,
-    fuelMultiplier: 0,
-    speedMultiplier: 0,
-    attackMultiplier: 0,
-    hullMultiplier: 0,
-    shieldMultiplier: 0,
-    crewRequirement: 0
+    productionMultiplier: 1,
+    costMultiplier: 1,
+    energyMultiplier: 1,
+    populationMultiplier: 1,
+    cargoMultiplier: 1,
+    fuelMultiplier: 1,
+    speedMultiplier: 1,
+    attackMultiplier: 1,
+    hullMultiplier: 1,
+    shieldMultiplier: 1,
+    crewRequirement: 1
   };
-  
-  // Sum modifiers from each focus
+
+  // Apply exponential modifiers from each focus
   for (const [focus, level] of Object.entries(focusLevels)) {
     if (level > 0 && research.focusModifiers[focus]) {
       const focusModifiers = research.focusModifiers[focus];
-      for (const [stat, modifier] of Object.entries(focusModifiers)) {
+      for (const [stat, baseMultiplier] of Object.entries(focusModifiers)) {
         if (modifiers.hasOwnProperty(stat)) {
-          modifiers[stat] += modifier * level;
+          // baseMultiplier is the base (e.g., 1.02 for +2% per level)
+          // Result is the multiplicative value: (1.02^level)
+          const multipliedValue = Math.pow(baseMultiplier, level);
+          modifiers[stat] *= multipliedValue;
         }
       }
     }
   }
-  
+
   return modifiers;
 }
 
@@ -518,55 +480,55 @@ export function calculateFocusModifiers(research, focusLevels) {
  */
 export function applyCustomization(baseDefinition, modifiers) {
   const customized = { ...baseDefinition };
-  
+
   // Apply production modifier
-  if (modifiers.productionMultiplier !== 0 && customized.production) {
+  if (modifiers.productionMultiplier !== 1 && customized.production) {
     for (const resource in customized.production) {
-      customized.production[resource] *= (1 + modifiers.productionMultiplier);
+      customized.production[resource] *= modifiers.productionMultiplier;
     }
   }
-  
+
   // Apply cost modifier
-  if (modifiers.costMultiplier !== 0 && customized.baseCost) {
+  if (modifiers.costMultiplier !== 1 && customized.baseCost) {
     for (const resource in customized.baseCost) {
-      customized.baseCost[resource] *= (1 + modifiers.costMultiplier);
+      customized.baseCost[resource] *= modifiers.costMultiplier;
     }
   }
-  
+
   // Apply energy modifier
-  if (modifiers.energyMultiplier !== 0 && customized.energyConsumption !== undefined) {
-    customized.energyConsumption *= (1 + modifiers.energyMultiplier);
+  if (modifiers.energyMultiplier !== 1 && customized.energyConsumption !== undefined) {
+    customized.energyConsumption *= modifiers.energyMultiplier;
   }
-  
+
   // Apply population modifier
-  if (modifiers.populationMultiplier !== 0 && customized.populationRequired !== undefined) {
-    customized.populationRequired *= (1 + modifiers.populationMultiplier);
+  if (modifiers.populationMultiplier !== 1 && customized.populationRequired !== undefined) {
+    customized.populationRequired *= modifiers.populationMultiplier;
   }
-  
+
   // Apply ship-specific modifiers
-  if (modifiers.cargoMultiplier !== 0 && customized.cargoCapacity !== undefined) {
-    customized.cargoCapacity *= (1 + modifiers.cargoMultiplier);
+  if (modifiers.cargoMultiplier !== 1 && customized.cargoCapacity !== undefined) {
+    customized.cargoCapacity *= modifiers.cargoMultiplier;
   }
-  
-  if (modifiers.fuelMultiplier !== 0 && customized.fuel !== undefined) {
-    customized.fuel *= (1 + modifiers.fuelMultiplier);
+
+  if (modifiers.fuelMultiplier !== 1 && customized.fuel !== undefined) {
+    customized.fuel *= modifiers.fuelMultiplier;
   }
-  
-  if (modifiers.speedMultiplier !== 0 && customized.speed !== undefined) {
-    customized.speed *= (1 + modifiers.speedMultiplier);
+
+  if (modifiers.speedMultiplier !== 1 && customized.speed !== undefined) {
+    customized.speed *= modifiers.speedMultiplier;
   }
-  
-  if (modifiers.attackMultiplier !== 0 && customized.attack !== undefined) {
-    customized.attack *= (1 + modifiers.attackMultiplier);
+
+  if (modifiers.attackMultiplier !== 1 && customized.attack !== undefined) {
+    customized.attack *= modifiers.attackMultiplier;
   }
-  
-  if (modifiers.hullMultiplier !== 0 && customized.hull !== undefined) {
-    customized.hull *= (1 + modifiers.hullMultiplier);
+
+  if (modifiers.hullMultiplier !== 1 && customized.hull !== undefined) {
+    customized.hull *= modifiers.hullMultiplier;
   }
-  
-  if (modifiers.shieldMultiplier !== 0 && customized.shield !== undefined) {
-    customized.shield *= (1 + modifiers.shieldMultiplier);
+
+  if (modifiers.shieldMultiplier !== 1 && customized.shield !== undefined) {
+    customized.shield *= modifiers.shieldMultiplier;
   }
-  
+
   return customized;
 }

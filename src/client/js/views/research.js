@@ -366,7 +366,10 @@ async function renderPracticalResearch() {
             </div>
           </div>
           <div class="card-footer">
-            <button class="btn btn-primary">Customize Research →</button>
+            ${totalLevel > 0 ? `
+              <button class="btn btn-success btn-small" onclick="window.buildCustomVariantFromResearch('${research.baseType}', 'building', event)">✓ Create Variant</button>
+            ` : ''}
+            <button class="btn btn-primary" onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}', event)">Customize Research →</button>
           </div>
         </div>
       `;
@@ -432,7 +435,12 @@ window.startResearchLevel = async function(researchKey) {
 /**
  * Open allocation modal for practical research customization
  */
-window.openAllocationModal = function(researchKey, researchName, baseType, icon) {
+window.openAllocationModal = function(researchKey, researchName, baseType, icon, event) {
+  // Stop propagation if called from a button
+  if (event) {
+    event.stopPropagation();
+  }
+  
   const practical = getPracticalResearch();
   const research = practical[researchKey];
   
@@ -697,7 +705,8 @@ async function renderCustomVariants() {
 
   try {
     const response = await fetch(`/api/game/planet/${currentPlanetId}/research/variants`);
-    const { building, ships } = await response.json();
+    const result = await response.json();
+    const { building, ships } = result.data || result;
 
     let html = '<div class="variants-container">';
 
@@ -756,28 +765,44 @@ function renderVariantCard(baseType, variant, type) {
 
   html += '</div><div class="modifiers-preview">';
 
-  // Show key modifiers
-  const keyModifiers = [
-    'productionMultiplier',
-    'costMultiplier',
-    'energyMultiplier',
-    'populationMultiplier',
-    'cargoMultiplier',
-    'speedMultiplier',
-    'attackMultiplier'
+  // Show only building-related modifiers that have changed
+  const buildingModifiers = [
+    { key: 'productionMultiplier', label: 'Production', isPositive: true },  // More production is good
+    { key: 'costMultiplier', label: 'Build Cost', isPositive: false },  // More cost is bad
+    { key: 'energyMultiplier', label: 'Energy', isPositive: false },  // More energy is bad
+    { key: 'populationMultiplier', label: 'Population', isPositive: false }  // More population needed is bad
   ];
 
-  for (const mod of keyModifiers) {
-    if (modifiers[mod] && modifiers[mod] !== 0) {
-      const value = (modifiers[mod] * 100).toFixed(0);
-      const sign = modifiers[mod] > 0 ? '+' : '';
-      html += `<p><small>${mod}: ${sign}${value}%</small></p>`;
+  // Show only ship-related modifiers if this is a ship variant
+  const shipModifiers = [
+    { key: 'cargoMultiplier', label: 'Cargo', isPositive: true },  // More cargo is good
+    { key: 'speedMultiplier', label: 'Speed', isPositive: true },  // More speed is good
+    { key: 'attackMultiplier', label: 'Attack', isPositive: true },  // More attack is good
+    { key: 'hullMultiplier', label: 'Hull', isPositive: true },  // More hull is good
+    { key: 'shieldMultiplier', label: 'Shield', isPositive: true },  // More shield is good
+    { key: 'fuelMultiplier', label: 'Fuel', isPositive: false }  // More fuel consumption is bad
+  ];
+
+  const modsToShow = type === 'building' ? buildingModifiers : shipModifiers;
+
+  for (const modInfo of modsToShow) {
+    const modValue = modifiers[modInfo.key];
+    // Only show if modifier is not 1 (which means no change)
+    if (modValue !== undefined && modValue !== 1) {
+      const percentChange = ((modValue - 1) * 100).toFixed(0);
+      const sign = modValue > 1 ? '+' : '';
+      
+      // Determine color: if the modifier change is positive for this stat, show green; otherwise red
+      const isGoodChange = (modValue > 1) === modInfo.isPositive;
+      const colorClass = isGoodChange ? 'positive' : 'negative';
+      
+      html += `<p class="${colorClass}" style="margin: 5px 0; color: ${isGoodChange ? 'var(--accent-green)' : 'var(--accent-red)'}"><small>${modInfo.label}: ${sign}${percentChange}%</small></p>`;
     }
   }
 
   html += `
       </div>
-      <button class="btn btn-secondary btn-small" onclick="editVariant('${baseType}', '${type}')">Edit</button>
+      <button class="btn btn-primary btn-small" onclick="buildCustomVariant('${baseType}', '${type}')">Build Custom Variant</button>
     </div>
   `;
 
@@ -1046,6 +1071,102 @@ window.cancelPracticalResearch = async function(queueId) {
 /**
  * Edit variant
  */
+/**
+ * Build a custom variant directly from existing research levels
+ */
+window.buildCustomVariantFromResearch = async function(baseType, type, event) {
+  if (event) {
+    event.stopPropagation();
+  }
+  
+  // Get the current practical research levels for this base type
+  const response = await fetch('/api/game/research');
+  const result = await response.json();
+  const practical = result.data?.practical || result.practical || {};
+  
+  const focusLevels = practical[baseType];
+  if (!focusLevels || !Object.values(focusLevels).some(level => level > 0)) {
+    alert(`No research available for ${baseType}`);
+    return;
+  }
+  
+  try {
+    // Determine the endpoint based on type (building or ship)
+    const endpoint = type === 'building' 
+      ? `/api/game/planet/${currentPlanetId}/research/building-variant`
+      : `/api/game/research/ship-variant`;
+    
+    const variantResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        baseType,
+        focusLevels
+      })
+    });
+    
+    if (!variantResponse.ok) {
+      const error = await variantResponse.json();
+      alert(`Error: ${error.message || 'Failed to create variant'}`);
+      return;
+    }
+    
+    alert(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
+    
+    // Reload research data to show the variant
+    await loadResearchData();
+    renderCustomVariants();
+  } catch (error) {
+    alert(`Failed to create variant: ${error.message}`);
+  }
+};
+
+/**
+ * Build a custom variant (activate it for building)
+ */
+window.buildCustomVariant = async function(baseType, type) {
+  // Get the current practical research levels for this base type
+  const response = await fetch('/api/game/research');
+  const researchData = await response.json();
+  const practical = researchData.data?.practical || researchData.practical || {};
+  
+  const focusLevels = practical[baseType];
+  if (!focusLevels) {
+    alert(`No research available for ${baseType}`);
+    return;
+  }
+  
+  try {
+    // Determine the endpoint based on type (building or ship)
+    const endpoint = type === 'building' 
+      ? `/api/game/planet/${currentPlanetId}/research/building-variant`
+      : `/api/game/research/ship-variant`;
+    
+    const variantResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        baseType,
+        focusLevels
+      })
+    });
+    
+    if (!variantResponse.ok) {
+      const error = await variantResponse.json();
+      alert(`Error: ${error.message || 'Failed to create variant'}`);
+      return;
+    }
+    
+    alert(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
+    
+    // Reload research data to show the variant
+    await loadResearchData();
+    renderCustomVariants();
+  } catch (error) {
+    alert(`Failed to create variant: ${error.message}`);
+  }
+};
+
 window.editVariant = function(baseType, type) {
   alert(`Edit variant for ${type} ${baseType} (coming soon)`);
 };

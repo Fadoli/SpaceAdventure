@@ -466,10 +466,22 @@ export function completePracticalResearch(player, queueItemId) {
     console.log(`[RESEARCH] Updated research state:`, player.practicalResearch[item.baseType]);
   }
   
-  player.practicalResearchQueue.splice(index, 1);
-  console.log(`[RESEARCH] Research completion processed, queue length now:`, player.practicalResearchQueue.length);
+  // Automatically create a custom building variant when practical research completes
+  // This allows the user to immediately build their customized version
+  if (item.type === 'building' && item.planetId) {
+    console.log(`[RESEARCH] Auto-creating building variant for ${item.baseType} on planet ${item.planetId}`);
+    try {
+      const focusLevels = player.practicalResearch[item.baseType];
+      selectCustomBuildingVariant(player, item.planetId, item.baseType, focusLevels);
+      console.log(`[RESEARCH] Successfully created variant for ${item.baseType}`);
+    } catch (error) {
+      console.error(`[RESEARCH] Failed to create variant: ${error.message}`);
+      // Don't throw - research completion shouldn't fail if variant creation fails
+    }
+  }
   
   player.practicalResearchQueue.splice(index, 1);
+  console.log(`[RESEARCH] Research completion processed, queue length now:`, player.practicalResearchQueue.length);
 }
 
 /**
@@ -530,8 +542,9 @@ export function getAvailablePracticalResearchForPlayer(player, planetId) {
 }
 
 /**
- * Select or update a custom building variant for a planet
+ * Select or update a custom building variant
  * Replaces or creates a new variant with specified focus levels
+ * Stored at account level, applies to all planets
  */
 export function selectCustomBuildingVariant(player, planetId, baseType, focusLevels) {
   const planet = player.planets.find(p => p.id === planetId);
@@ -561,9 +574,9 @@ export function selectCustomBuildingVariant(player, planetId, baseType, focusLev
     }
   }
   
-  // Initialize if needed
-  if (!player.customBuildingVariants[planetId]) {
-    player.customBuildingVariants[planetId] = {};
+  // Initialize if needed (account-level storage)
+  if (!player.customBuildingVariants) {
+    player.customBuildingVariants = {};
   }
   
   // Calculate modifiers and create variant
@@ -571,13 +584,13 @@ export function selectCustomBuildingVariant(player, planetId, baseType, focusLev
   const baseDefinition = BUILDINGS[baseType];
   const customized = applyCustomization(baseDefinition, modifiers);
   
-  player.customBuildingVariants[planetId][baseType] = {
+  player.customBuildingVariants[baseType] = {
     focusLevels,
     modifiers,
     customDefinition: customized
   };
   
-  return player.customBuildingVariants[planetId][baseType];
+  return player.customBuildingVariants[baseType];
 }
 
 /**
@@ -626,11 +639,11 @@ export function selectCustomShipVariant(player, baseType, focusLevels) {
 }
 
 /**
- * Get the active variant for a building on a planet
+ * Get the active variant for a building
  * Returns either custom variant or base definition
  */
 export function getActiveBuildingVariant(player, planetId, baseType) {
-  const variant = player.customBuildingVariants[planetId]?.[baseType];
+  const variant = player.customBuildingVariants?.[baseType];
   if (variant) {
     return variant.customDefinition;
   }
@@ -697,10 +710,13 @@ export function getPracticalResearchProgress(player) {
 }
 
 /**
- * Get active custom variants for a planet
+ * Get active custom variants for the account (applies to all planets)
  */
 export function getActiveCustomVariants(player, planetId) {
-  return player.customBuildingVariants[planetId] || {};
+  if (!player.customBuildingVariants) {
+    return {};
+  }
+  return player.customBuildingVariants;
 }
 
 /**

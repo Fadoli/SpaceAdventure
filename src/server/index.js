@@ -8,7 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction } from './game/buildings.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, switchBuildingVariant } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { 
   startTheoreticalResearch, 
@@ -362,6 +362,103 @@ async function handleRequest(req) {
       }
     }
     
+    // POST /api/game/planet/:planetId/building/:buildingType/variant
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/variant$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const pathParts = path.split('/');
+      const planetId = pathParts[4];
+      const buildingType = pathParts[6];
+      const body = await req.json();
+      const { toCustom } = body;
+      
+      try {
+        const result = await switchBuildingVariant(user.id, planetId, buildingType, toCustom);
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
+    // GET /api/game/planet/:planetId/building/:buildingType/variant-details
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/variant-details$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const pathParts = path.split('/');
+      const planetId = pathParts[4];
+      const buildingType = pathParts[6];
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse('Player not found', 404);
+      }
+      
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) {
+        return errorResponse('Planet not found', 404);
+      }
+      
+      try {
+        // Get available variants with their focus combinations
+        const baseCost = getBuildingCost(buildingType, planet.buildings[buildingType] || 1);
+        const availableVariants = [];
+        
+        if (player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+          const variant = player.customBuildingVariants[buildingType];
+          
+          // Calculate the actual custom cost by applying the cost modifier
+          let customCost = { ...baseCost };
+          if (variant.modifiers && variant.modifiers.costMultiplier !== 1) {
+            customCost = {
+              metal: Math.floor(baseCost.metal * variant.modifiers.costMultiplier),
+              crystal: Math.floor(baseCost.crystal * variant.modifiers.costMultiplier),
+              deuterium: Math.floor(baseCost.deuterium * variant.modifiers.costMultiplier)
+            };
+          }
+          
+          availableVariants.push({
+            focusLevels: variant.focusLevels,
+            modifiers: variant.modifiers,
+            cost: customCost
+          });
+        }
+        
+        return successResponse({
+          baseCost,
+          currentCost: baseCost,
+          availableVariants
+        });
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
+    // POST /api/game/planet/:planetId/building/:buildingType/select-variant
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/select-variant$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse('Not authenticated', 401);
+      }
+      
+      const pathParts = path.split('/');
+      const planetId = pathParts[4];
+      const buildingType = pathParts[6];
+      const body = await req.json();
+      const { focusLevels } = body;
+      
+      try {
+        const result = await switchBuildingVariant(user.id, planetId, buildingType, true);
+        return successResponse(result);
+      } catch (error) {
+        return errorResponse(error.message, 400);
+      }
+    }
+    
     // GET /api/game/buildings
     if (path === '/api/game/buildings' && method === 'GET') {
       const user = await requireAuth(req);
@@ -460,6 +557,13 @@ async function handleRequest(req) {
         const requirementsMet = checkRequirements(buildingType, planet.buildings, player.research || {});
         const requirementsList = getRequirementsList(buildingType);
         
+        // Check if this building has a custom variant
+        const hasCustomVariant = player.customBuildingVariants && player.customBuildingVariants[buildingType] ? true : false;
+        const customVariant = (player.customBuildingVariants && player.customBuildingVariants[buildingType]) || null;
+        
+        // Check which variant is currently active
+        const currentVariant = (planet.activeVariants && planet.activeVariants[buildingType]) || 'base';
+        
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
           description: buildingDef.description,
@@ -475,7 +579,10 @@ async function handleRequest(req) {
           deuteriumConsumption,
           canAfford,
           requirementsMet,
-          requirementsList
+          requirementsList,
+          hasCustomVariant,
+          customVariant,
+          currentVariant
         };
       }
       

@@ -725,3 +725,150 @@ export async function updatePlanetAllocations(userId, planetId, allocations) {
   
   return planet.buildingAllocations;
 }
+
+/**
+ * Switch building variant (between base and custom)
+ */
+export async function switchBuildingVariant(userId, planetId, buildingType, toCustom) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) {
+    throw new Error('Player not found');
+  }
+  
+  const planet = player.planets.find(p => p.id === planetId);
+  if (!planet) {
+    throw new Error('Planet not found');
+  }
+  
+  // Validate building exists
+  if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
+    throw new Error('Building not found or at level 0');
+  }
+  
+  // Check if custom variant exists
+  if (!player.customBuildingVariants || !player.customBuildingVariants[buildingType]) {
+    throw new Error('No custom variant available for this building');
+  }
+  
+  // Initialize active variants tracking if needed
+  if (!planet.activeVariants) {
+    planet.activeVariants = {};
+  }
+  
+  const currentVariant = planet.activeVariants[buildingType] || 'base';
+  const buildingDef = BUILDINGS[buildingType];
+  const customVariant = player.customBuildingVariants[buildingType];
+  
+  // Calculate costs
+  const baseCost = getBuildingCost(buildingType, planet.buildings[buildingType]);
+  
+  // Calculate custom cost by applying cost modifier
+  let customCost = { ...baseCost };
+  if (customVariant.modifiers && customVariant.modifiers.costMultiplier !== 1) {
+    customCost = {
+      metal: Math.floor(baseCost.metal * customVariant.modifiers.costMultiplier),
+      crystal: Math.floor(baseCost.crystal * customVariant.modifiers.costMultiplier),
+      deuterium: Math.floor(baseCost.deuterium * customVariant.modifiers.costMultiplier)
+    };
+  }
+  
+  // Calculate switch cost (twice the difference)
+  let switchCost = { metal: 0, crystal: 0, deuterium: 0 };
+  const baseTotalCost = baseCost.metal + baseCost.crystal + baseCost.deuterium;
+  const customTotalCost = customCost.metal + customCost.crystal + customCost.deuterium;
+  
+  if (toCustom) {
+    // Switching to custom
+    if (currentVariant === 'custom') {
+      throw new Error('Already using custom variant');
+    }
+    
+    if (customTotalCost > baseTotalCost) {
+      // Custom is more expensive, cost is twice the difference
+      const difference = {
+        metal: customCost.metal - baseCost.metal,
+        crystal: customCost.crystal - baseCost.crystal,
+        deuterium: customCost.deuterium - baseCost.deuterium
+      };
+      switchCost = {
+        metal: Math.max(0, difference.metal * 2),
+        crystal: Math.max(0, difference.crystal * 2),
+        deuterium: Math.max(0, difference.deuterium * 2)
+      };
+    } else {
+      // Custom is cheaper, refund half the difference
+      const difference = {
+        metal: baseCost.metal - customCost.metal,
+        crystal: baseCost.crystal - customCost.crystal,
+        deuterium: baseCost.deuterium - customCost.deuterium
+      };
+      // Refund is negative cost (we give back resources)
+      switchCost = {
+        metal: -Math.floor(difference.metal / 2),
+        crystal: -Math.floor(difference.crystal / 2),
+        deuterium: -Math.floor(difference.deuterium / 2)
+      };
+    }
+  } else {
+    // Switching to base
+    if (currentVariant === 'base') {
+      throw new Error('Already using base variant');
+    }
+    
+    if (baseTotalCost > customTotalCost) {
+      // Base is more expensive, cost is twice the difference
+      const difference = {
+        metal: baseCost.metal - customCost.metal,
+        crystal: baseCost.crystal - customCost.crystal,
+        deuterium: baseCost.deuterium - customCost.deuterium
+      };
+      switchCost = {
+        metal: Math.max(0, difference.metal * 2),
+        crystal: Math.max(0, difference.crystal * 2),
+        deuterium: Math.max(0, difference.deuterium * 2)
+      };
+    } else {
+      // Base is cheaper, refund half the difference
+      const difference = {
+        metal: customCost.metal - baseCost.metal,
+        crystal: customCost.crystal - baseCost.crystal,
+        deuterium: customCost.deuterium - baseCost.deuterium
+      };
+      // Refund is negative cost (we give back resources)
+      switchCost = {
+        metal: -Math.floor(difference.metal / 2),
+        crystal: -Math.floor(difference.crystal / 2),
+        deuterium: -Math.floor(difference.deuterium / 2)
+      };
+    }
+  }
+  
+  // Check if can afford the switch cost
+  if (switchCost.metal > 0 && planet.resources.metal < switchCost.metal) {
+    throw new Error('Insufficient metal for variant switch');
+  }
+  if (switchCost.crystal > 0 && planet.resources.crystal < switchCost.crystal) {
+    throw new Error('Insufficient crystal for variant switch');
+  }
+  if (switchCost.deuterium > 0 && planet.resources.deuterium < switchCost.deuterium) {
+    throw new Error('Insufficient deuterium for variant switch');
+  }
+  
+  // Deduct or add resources
+  planet.resources.metal += switchCost.metal;
+  planet.resources.crystal += switchCost.crystal;
+  planet.resources.deuterium += switchCost.deuterium;
+  
+  // Update active variant
+  planet.activeVariants[buildingType] = toCustom ? 'custom' : 'base';
+  
+  // Update player
+  await updatePlayer(userId, player);
+  
+  return {
+    buildingType,
+    variant: planet.activeVariants[buildingType],
+    switchCost,
+    resources: planet.resources
+  };
+}

@@ -202,6 +202,119 @@ export async function updateBuildingsView(planet, onStateChange) {
                 buttonTooltip = 'Insufficient resources';
             }
             
+            // Show custom variant info if available
+            let customVariantBadge = '';
+            let variantButtons = '';
+            if (building.hasCustomVariant && building.customVariant) {
+                const { focusLevels } = building.customVariant;
+                const focusesApplied = Object.entries(focusLevels)
+                    .filter(([focus, level]) => level > 0)
+                    .map(([focus, level]) => `${focus}:${level}`)
+                    .join(', ');
+                const isCustomActive = building.currentVariant === 'custom';
+                customVariantBadge = `<div class="custom-variant-badge" title="Custom variant available with focus: ${focusesApplied}">🔧 ${isCustomActive ? 'Custom Active' : 'Custom Available'}</div>`;
+                
+                // Calculate cost to switch variants
+                let baseCost = building.cost;
+                // Apply cost modifier to get custom cost
+                let customCost = { ...baseCost };
+                if (building.customVariant.modifiers && building.customVariant.modifiers.costMultiplier !== 1) {
+                    customCost = {
+                        metal: Math.floor(baseCost.metal * building.customVariant.modifiers.costMultiplier),
+                        crystal: Math.floor(baseCost.crystal * building.customVariant.modifiers.costMultiplier),
+                        deuterium: Math.floor(baseCost.deuterium * building.customVariant.modifiers.costMultiplier)
+                    };
+                }
+                let switchCost = null;
+                
+                if (isCustomActive) {
+                    // Currently custom, switching to base
+                    const difference = {
+                        metal: Math.abs(baseCost.metal - customCost.metal),
+                        crystal: Math.abs(baseCost.crystal - customCost.crystal),
+                        deuterium: Math.abs(baseCost.deuterium - customCost.deuterium)
+                    };
+                    const isCheaper = baseCost.metal + baseCost.crystal + baseCost.deuterium < 
+                                     customCost.metal + customCost.crystal + customCost.deuterium;
+                    
+                    // If switching to cheaper variant, refund half the difference (negative cost)
+                    if (isCheaper) {
+                        switchCost = {
+                            metal: -Math.floor(difference.metal / 2),
+                            crystal: -Math.floor(difference.crystal / 2),
+                            deuterium: -Math.floor(difference.deuterium / 2)
+                        };
+                    } else {
+                        // Switching to more expensive, cost is twice the difference
+                        switchCost = {
+                            metal: difference.metal * 2,
+                            crystal: difference.crystal * 2,
+                            deuterium: difference.deuterium * 2
+                        };
+                    }
+                } else {
+                    // Currently base, switching to custom
+                    const difference = {
+                        metal: Math.abs(customCost.metal - baseCost.metal),
+                        crystal: Math.abs(customCost.crystal - baseCost.crystal),
+                        deuterium: Math.abs(customCost.deuterium - baseCost.deuterium)
+                    };
+                    const isCheaper = customCost.metal + customCost.crystal + customCost.deuterium < 
+                                     baseCost.metal + baseCost.crystal + baseCost.deuterium;
+                    
+                    // If switching to cheaper variant, refund half the difference (negative cost)
+                    if (isCheaper) {
+                        switchCost = {
+                            metal: -Math.floor(difference.metal / 2),
+                            crystal: -Math.floor(difference.crystal / 2),
+                            deuterium: -Math.floor(difference.deuterium / 2)
+                        };
+                    } else {
+                        // Switching to more expensive, cost is twice the difference
+                        switchCost = {
+                            metal: difference.metal * 2,
+                            crystal: difference.crystal * 2,
+                            deuterium: difference.deuterium * 2
+                        };
+                    }
+                }
+                
+                let switchButtonLabel = isCustomActive ? '↩️ Switch to Base' : '🔧 Switch to Custom';
+                let canSwitchAfford = true;
+                
+                // Check if can afford the switch
+                if (switchCost.metal > 0 && planet.resources.metal < switchCost.metal) canSwitchAfford = false;
+                if (switchCost.crystal > 0 && planet.resources.crystal < switchCost.crystal) canSwitchAfford = false;
+                if (switchCost.deuterium > 0 && planet.resources.deuterium < switchCost.deuterium) canSwitchAfford = false;
+                
+                let switchTooltip = `Switch to ${isCustomActive ? 'base' : 'custom'} variant`;
+                if (!canSwitchAfford) {
+                    switchTooltip = 'Insufficient resources to switch';
+                }
+                
+                let switchCostDisplay = '';
+                if (switchCost.metal !== 0 || switchCost.crystal !== 0 || switchCost.deuterium !== 0) {
+                    switchCostDisplay = `
+                        <div class="building-cost" style="margin-top: 8px;">
+                            <strong>Switch cost:</strong>
+                            <div>⚙️ ${switchCost.metal > 0 ? '+' : ''}${formatNumber(switchCost.metal)}</div>
+                            <div>💎 ${switchCost.crystal > 0 ? '+' : ''}${formatNumber(switchCost.crystal)}</div>
+                            ${switchCost.deuterium !== 0 ? `<div>🛢️ ${switchCost.deuterium > 0 ? '+' : ''}${formatNumber(switchCost.deuterium)}</div>` : ''}
+                        </div>
+                    `;
+                }
+                
+                variantButtons = `
+                    ${switchCostDisplay}
+                    <button class="btn btn-full" 
+                            ${!canSwitchAfford ? 'disabled' : ''} 
+                            title="${switchTooltip}"
+                            onclick="window.switchBuildingVariant('${key}', ${isCustomActive ? 'false' : 'true'})">
+                        ${switchButtonLabel}
+                    </button>
+                `;
+            }
+            
         buildingHtmls.push(`
                 <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}">
                     <div class="building-header">
@@ -209,6 +322,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                         <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
                     </div>
                     <div class="building-level">Level ${building.currentLevel}</div>
+                    ${customVariantBadge}
                     ${allocationBadge}
                     ${queueBadge}
                     <p>${building.description}</p>
@@ -229,6 +343,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                             onclick="window.upgradeBuilding('${key}')">
                         ${queueFull ? 'Queue Full' : !building.requirementsMet ? 'Requirements Not Met' : `Upgrade to Level ${building.nextLevel}`}
                     </button>
+                    ${variantButtons}
                 </div>
             `);
     }
@@ -307,6 +422,281 @@ export async function upgradeBuilding(buildingKey, onStateChange) {
     } catch (error) {
         alert('Error: ' + error.message);
     }
+}
+
+/**
+ * Switch building variant (exposed globally)
+ */
+export async function switchBuildingVariant(buildingKey, toCustom, onStateChange) {
+    if (!currentGameState || !currentGameState.planets[0]) return;
+    
+    const planet = currentGameState.planets[0];
+    
+    if (!toCustom) {
+        // Switching to base - direct switch, no selection needed
+        try {
+            await API.switchBuildingVariant(planet.id, buildingKey, false);
+            if (onStateChange) await onStateChange();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+        return;
+    }
+    
+    // Switching to custom - show selection modal
+    let buildingDetails;
+    try {
+        buildingDetails = await API.getBuildingDetails(planet.id);
+    } catch (error) {
+        console.error('Failed to load building details:', error);
+        alert('Failed to load building details');
+        return;
+    }
+    
+    const building = buildingDetails.buildings[buildingKey];
+    if (!building || !building.customVariant) {
+        alert('No custom variant available');
+        return;
+    }
+    
+    showCustomVariantSelectionModal(buildingKey, building, planet, onStateChange);
+}
+
+/**
+ * Show modal for selecting custom variant details
+ */
+export async function showCustomVariantSelectionModal(buildingKey, building, planet, onStateChange) {
+    const modal = document.getElementById('custom-variant-modal') || createCustomVariantModal();
+    modal.style.display = 'block';
+    
+    const modalTitle = document.getElementById('modal-variant-title');
+    const modalBody = document.getElementById('modal-variant-body');
+    
+    modalTitle.innerHTML = `Select ${building.name} Customization`;
+    
+    // Get available custom variants for this building
+    try {
+        const variantDetails = await API.getCustomVariantDetails(planet.id, buildingKey);
+        renderCustomVariantOptions(modalBody, buildingKey, building, variantDetails, planet, onStateChange);
+    } catch (error) {
+        console.error('Failed to load variant details:', error);
+        modalBody.innerHTML = `<p class="error">Failed to load customization options: ${error.message}</p>`;
+    }
+}
+
+/**
+ * Create custom variant selection modal if it doesn't exist
+ */
+function createCustomVariantModal() {
+    const modal = document.createElement('div');
+    modal.id = 'custom-variant-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-variant-title">Select Customization</h2>
+                <button onclick="window.closeCustomVariantModal()" class="modal-close">&times;</button>
+            </div>
+            <div id="modal-variant-body"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    return modal;
+}
+
+/**
+ * Close custom variant modal
+ */
+export function closeCustomVariantModal() {
+    const modal = document.getElementById('custom-variant-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Render custom variant selection options
+ */
+function renderCustomVariantOptions(container, buildingKey, building, variantDetails, planet, onStateChange) {
+    const { availableVariants, baseCost, currentCost } = variantDetails;
+    
+    let html = `
+        <div class="variant-selection">
+            <div class="current-variant-info">
+                <h3>Base Variant (Current)</h3>
+                <div class="cost-display">
+                    <strong>Cost per level:</strong>
+                    <div>⚙️ ${formatNumber(baseCost.metal)}</div>
+                    <div>💎 ${formatNumber(baseCost.crystal)}</div>
+                    ${baseCost.deuterium > 0 ? `<div>🛢️ ${formatNumber(baseCost.deuterium)}</div>` : ''}
+                </div>
+            </div>
+            <div class="variant-options">
+                <h3>Available Customizations</h3>
+    `;
+    
+    if (!availableVariants || availableVariants.length === 0) {
+        html += `<p>No custom variants available yet. Research customization focuses first.</p>`;
+    } else {
+        for (const variant of availableVariants) {
+            const switchCost = calculateSwitchCost(baseCost, variant.cost);
+            const focusDisplay = Object.entries(variant.focusLevels || {})
+                .filter(([focus, level]) => level > 0)
+                .map(([focus, level]) => `<span class="focus-badge">${focus} <strong>${level}</strong></span>`)
+                .join('');
+            
+            // Calculate cost difference
+            const costDiff = {
+                metal: variant.cost.metal - baseCost.metal,
+                crystal: variant.cost.crystal - baseCost.crystal,
+                deuterium: variant.cost.deuterium - baseCost.deuterium
+            };
+            
+            const isCheaper = (variant.cost.metal + variant.cost.crystal + variant.cost.deuterium) < 
+                            (baseCost.metal + baseCost.crystal + baseCost.deuterium);
+            
+            const switchCostDisplay = `
+                <div class="switch-cost ${isCheaper ? 'refund' : 'cost'}">
+                    ${isCheaper ? '💰 Refund:' : '💰 Cost:'}
+                    <div>⚙️ ${formatNumber(switchCost.metal)}</div>
+                    <div>💎 ${formatNumber(switchCost.crystal)}</div>
+                    ${switchCost.deuterium !== 0 ? `<div>🛢️ ${formatNumber(switchCost.deuterium)}</div>` : ''}
+                </div>
+            `;
+            
+            const outputDiffs = getOutputDifferences(building, variant);
+            let outputDisplay = '';
+            if (outputDiffs.length > 0) {
+                outputDisplay = `
+                    <div class="output-changes">
+                        <strong>Output Changes:</strong>
+                        ${outputDiffs.map(diff => {
+                            const multiplier = diff.change.toFixed(2);
+                            const percentChange = ((diff.change - 1) * 100).toFixed(1);
+                            const isPositive = diff.change > 1;
+                            return `<div class="${isPositive ? 'positive' : 'negative'}">
+                                ${diff.icon} ${diff.label}: ${multiplier}x (${isPositive ? '+' : ''}${percentChange}%)
+                            </div>`;
+                        }).join('')}
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="variant-option">
+                    <div class="variant-focuses">
+                        ${focusDisplay}
+                    </div>
+                    ${switchCostDisplay}
+                    ${outputDisplay}
+                    <button class="btn btn-success btn-full" 
+                            onclick="window.selectCustomVariant('${buildingKey}', ${JSON.stringify(variant.focusLevels).replace(/"/g, '&quot;')})">
+                        Select This Variant
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
+    html += `
+            </div>
+            <div class="variant-actions">
+                <button class="btn btn-full" onclick="window.closeCustomVariantModal()">Cancel</button>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Calculate switch cost between base and custom
+ */
+function calculateSwitchCost(baseCost, customCost) {
+    const baseTotalCost = baseCost.metal + baseCost.crystal + baseCost.deuterium;
+    const customTotalCost = customCost.metal + customCost.crystal + customCost.deuterium;
+    
+    if (customTotalCost > baseTotalCost) {
+        // Custom is more expensive, cost is twice the difference
+        const difference = {
+            metal: customCost.metal - baseCost.metal,
+            crystal: customCost.crystal - baseCost.crystal,
+            deuterium: customCost.deuterium - baseCost.deuterium
+        };
+        return {
+            metal: Math.max(0, difference.metal * 2),
+            crystal: Math.max(0, difference.crystal * 2),
+            deuterium: Math.max(0, difference.deuterium * 2)
+        };
+    } else {
+        // Custom is cheaper, refund half the difference
+        const difference = {
+            metal: baseCost.metal - customCost.metal,
+            crystal: baseCost.crystal - customCost.crystal,
+            deuterium: baseCost.deuterium - customCost.deuterium
+        };
+        return {
+            metal: -Math.floor(difference.metal / 2),
+            crystal: -Math.floor(difference.crystal / 2),
+            deuterium: -Math.floor(difference.deuterium / 2)
+        };
+    }
+}
+
+/**
+ * Get output differences between base and custom variant
+ */
+function getOutputDifferences(building, variant) {
+    const diffs = [];
+    
+    if (!variant.modifiers) {
+        return diffs;
+    }
+    
+    // modifiers are stored as multiplicative values (e.g., 1.49 = ×1.49 = +49%, 0.7 = ×0.7 = -30%)
+    // productionMultiplier, costMultiplier, energyMultiplier, etc.
+    
+    // Production changes
+    if (variant.modifiers.productionMultiplier !== undefined && variant.modifiers.productionMultiplier !== 1) {
+        const change = variant.modifiers.productionMultiplier;
+        diffs.push({
+            label: 'Production',
+            change: change,
+            icon: '📈'
+        });
+    }
+    
+    // Energy consumption changes
+    if (variant.modifiers.energyMultiplier !== undefined && variant.modifiers.energyMultiplier !== 1) {
+        const change = variant.modifiers.energyMultiplier;
+        diffs.push({
+            label: 'Energy consumption',
+            change: change,
+            icon: '⚡'
+        });
+    }
+    
+    // Cost changes
+    if (variant.modifiers.costMultiplier !== undefined && variant.modifiers.costMultiplier !== 1) {
+        const change = variant.modifiers.costMultiplier;
+        diffs.push({
+            label: 'Build cost',
+            change: change,
+            icon: '💰'
+        });
+    }
+    
+    // Population changes
+    if (variant.modifiers.populationMultiplier !== undefined && variant.modifiers.populationMultiplier !== 1) {
+        const change = variant.modifiers.populationMultiplier;
+        diffs.push({
+            label: 'Population requirement',
+            change: change,
+            icon: '👥'
+        });
+    }
+    
+    return diffs;
 }
 
 /**

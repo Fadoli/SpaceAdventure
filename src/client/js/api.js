@@ -69,6 +69,24 @@ export const API = {
         });
     },
     
+    async switchBuildingVariant(planetId, buildingType, toCustom) {
+        return await this.request(`/game/planet/${planetId}/building/${buildingType}/variant`, {
+            method: 'POST',
+            body: JSON.stringify({ toCustom })
+        });
+    },
+    
+    async selectCustomVariant(planetId, buildingType, focusLevels) {
+        return await this.request(`/game/planet/${planetId}/building/${buildingType}/select-variant`, {
+            method: 'POST',
+            body: JSON.stringify({ focusLevels })
+        });
+    },
+    
+    async getCustomVariantDetails(planetId, buildingType) {
+        return await this.request(`/game/planet/${planetId}/building/${buildingType}/variant-details`);
+    },
+    
     async getBuildings() {
         return await this.request('/game/buildings');
     },
