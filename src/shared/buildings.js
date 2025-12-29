@@ -74,7 +74,7 @@ export const BUILDINGS = {
     production: {
       deuterium: 10 // Base production per hour at level 1
     },
-    energyConsumption: 20,
+    energyConsumption: 15, // Reduced from 20 to 15 for better early-game viability
     populationRequired: 4, // Base population requirement
     requirements: {}
   },
@@ -111,7 +111,7 @@ export const BUILDINGS = {
     production: {
       energy: 50 // Base energy production at level 1
     },
-    deuteriumConsumption: 10, // Per hour
+    deuteriumConsumption: 5, // Reduced from 10 to 5 for early levels, can scale with level
     requirements: {
       deuteriumSynthesizer: 5,
       energyTech: 3
@@ -130,7 +130,7 @@ export const BUILDINGS = {
     baseTime: 60,
     maxLevel: 10,
     energyConsumption: 25, // Energy required to operate
-    populationRequired: 50, // Population required to maintain
+    populationRequired: 30, // Reduced from 50 to 30 for better balance
     requirements: {}
   },
   

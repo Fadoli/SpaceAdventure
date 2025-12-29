@@ -11,6 +11,7 @@ Space Adventure is a browser-based space strategy game where players build and m
 3. **Fleet Building**: Construct ships for exploration and combat
 4. **PVE Combat**: Attack AI-controlled planets and defend against AI raids
 5. **Expansion**: Colonize new planets to increase production
+6. **Research**: Unlock new technologies and customize buildings/ships
 
 ## Resources
 
@@ -39,32 +40,21 @@ Space Adventure is a browser-based space strategy game where players build and m
 4. **Storage Facilities**: Increases resource storage capacity
 5. **Nanite Factory**: Dramatically speeds up construction (levels 1-5, very expensive)
 
-### Military
-1. **Missile Silo**: Planetary defense missiles
-2. **Defense Grid**: Various defensive structures
+## Research System
 
-## Research Technologies
+### Theoretical Research
+- Unlocks new technologies and capabilities
+- Provides permanent bonuses to game mechanics
+- Examples: Energy Technology, Weapons Technology
 
-### Economic
-1. **Energy Technology**: Improves energy efficiency
-2. **Mining Technology**: Increases mining output
-3. **Computer Technology**: Allows more fleet slots
+### Practical Research
+- Customizes buildings and ships with specific focuses
+- Examples: Increasing output, reducing manpower requirements
 
-### Military
-1. **Weapons Technology**: Increases ship attack power
-2. **Shielding Technology**: Improves ship and defense shields
-3. **Armor Technology**: Increases hull strength
-4. **Combat AI**: Improves fleet tactics and damage output
-
-### Propulsion
-1. **Combustion Drive**: Basic ship propulsion
-2. **Impulse Drive**: Medium-speed propulsion
-3. **Hyperspace Drive**: Fast travel for large ships
-
-### Advanced
-1. **Espionage Technology**: Intel gathering capabilities
-2. **Astrophysics**: Allows colonizing additional planets
-3. **Intergalactic Research Network**: Share research between planets
+### Integration
+- Research Lab required for all research activities
+- Research progress visible in the Research tab
+- Bonuses and customizations applied automatically upon completion
 
 ## Ships
 

@@ -244,132 +244,89 @@ Cancel ongoing construction.
 
 ## Research
 
-### Start Research
-Begin researching a technology.
+### Get Current Research Status
+Retrieve the current research progress for a player.
 
-**Endpoint**: `POST /api/game/research`
+**Endpoint**: `GET /api/game/research`
+
+**Response**:
+```json
+{
+  "progress": {
+    "theoretical": [
+      { "techKey": "energyTech", "level": 3, "progress": 75 },
+      { "techKey": "computerTech", "level": 2, "progress": 50 }
+    ],
+    "practical": [
+      { "baseType": "metalMine", "focus": "output", "level": 4, "progress": 60 }
+    ]
+  }
+}
+```
+
+### Start Theoretical Research
+Begin a new theoretical research project.
+
+**Endpoint**: `POST /api/game/planet/:planetId/research/theoretical`
 
 **Request Body**:
 ```json
 {
-  "technology": "energyTech|weaponsTech|shieldingTech|...",
-  "planetId": "string"
+  "techKey": "string"
 }
 ```
 
-**Response**: `200 OK`
+**Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "technology": "energyTech",
-    "level": 3,
-    "cost": {
-      "metal": 0,
-      "crystal": 800,
-      "deuterium": 400
-    },
-    "researchTime": 600,
-    "finishTime": 1703463000000
-  },
-  "timestamp": 1703462400000
+  "queueItem": {
+    "id": "queue-123",
+    "techKey": "energyTech",
+    "level": 4,
+    "startTime": 1703462400000,
+    "duration": 5000000,
+    "endTime": 1703467400000
+  }
 }
 ```
 
-**Errors**:
-- `400` - Requirements not met or insufficient resources
-- `409` - Research already in progress
-
-### Cancel Research
-Cancel ongoing research.
-
-**Endpoint**: `DELETE /api/game/research`
-
-**Response**: `200 OK`
-```json
-{
-  "success": true,
-  "data": {
-    "refund": {
-      "crystal": 640,
-      "deuterium": 320
-    }
-  },
-  "timestamp": 1703462400000
-}
-```
-
-### Start Practical Research (Customization)
-Begin researching a customization for a building or ship using the level-based system.
+### Start Practical Research
+Begin a new practical research project.
 
 **Endpoint**: `POST /api/game/planet/:planetId/research/practical`
 
 **Request Body**:
 ```json
 {
-  "researchKey": "metalMine|crystalMine|solarPlant|smallCargo|lightFighter"
+  "baseType": "string",
+  "focus": "string"
 }
 ```
 
-**Response**: `200 OK`
+**Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "queue-123",
-    "type": "practical",
+  "queueItem": {
+    "id": "queue-456",
     "baseType": "metalMine",
-    "itemType": "building",
-    "level": 2,
+    "focus": "output",
+    "level": 5,
     "startTime": 1703462400000,
-    "duration": 1800000,
-    "endTime": 1703464200000,
-    "planetId": "planet-1",
-    "cost": {
-      "metal": 150,
-      "crystal": 75,
-      "deuterium": 37
-    },
-    "progress": 0
-  },
-  "timestamp": 1703462400000
+    "duration": 3000000,
+    "endTime": 1703465400000
+  }
 }
 ```
 
-**Notes**:
-- `researchKey` must be a valid key from the practical research definitions
-- Cost and time increase exponentially with total research level for that building/ship
-- Research lab level affects completion time (10% bonus per lab level)
-- When research completes, focus levels are distributed in rotating order (Output → Automation → Energy → Cost)
+### Cancel Research
+Cancel an ongoing research project.
 
-**Errors**:
-- `400` - Invalid research key, insufficient resources, or no research lab
-- `404` - Planet not found
+**Endpoint**: `DELETE /api/game/planet/:planetId/research/:type/:queueId`
 
-### Get Practical Research Progress
-Get the current practical research progress for all buildings and ships.
-
-**Endpoint**: `GET /api/game/research/practical`
-
-**Response**: `200 OK`
+**Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "metalMine": {
-      "output": 3,
-      "automation": 2,
-      "energy": 1,
-      "cost": 0
-    },
-    "crystalMine": {
-      "output": 2,
-      "automation": 1,
-      "energy": 2,
-      "cost": 1
-    }
-  },
-  "timestamp": 1703462400000
+  "success": true
 }
 ```
 

@@ -6,32 +6,32 @@
 
 #### Week 1: Core Infrastructure
 - [x] Project documentation
-- [ ] Bun project setup
-- [ ] TypeScript configuration
-- [ ] Project structure creation
-- [ ] Authentication system
-  - [ ] User registration with bcrypt
-  - [ ] Login/logout
-  - [ ] Session management
-  - [ ] JSON storage for users
-- [ ] Basic API structure
-- [ ] Error handling middleware
+- [x] Bun project setup
+- [x] TypeScript configuration
+- [x] Project structure creation
+- [x] Authentication system
+  - [x] User registration with bcrypt
+  - [x] Login/logout
+  - [x] Session management
+  - [x] JSON storage for users
+- [x] Basic API structure
+- [x] Error handling middleware
 
 #### Week 2: Core Game Mechanics
-- [ ] Game state management
-- [ ] Resource system
-  - [ ] Resource production calculation
-  - [ ] Resource storage
-  - [ ] Resource updates per tick
-- [ ] Building system
-  - [ ] Building costs and requirements
-  - [ ] Construction queue
-  - [ ] Building upgrades
-- [ ] Basic UI
-  - [ ] Login/register pages
-  - [ ] Main dashboard
-  - [ ] Buildings view
-  - [ ] Resource display
+- [x] Game state management
+- [x] Resource system
+  - [x] Resource production calculation
+  - [x] Resource storage
+  - [x] Resource updates per tick
+- [x] Building system
+  - [x] Building costs and requirements
+  - [x] Construction queue
+  - [x] Building upgrades
+- [x] Basic UI
+  - [x] Login/register pages
+  - [x] Main dashboard
+  - [x] Buildings view
+  - [x] Resource display
 
 **Deliverable**: Playable prototype with auth, buildings, and resource production
 
@@ -40,20 +40,21 @@
 ### Phase 2: Research & Fleet Basics (Weeks 3-4)
 
 #### Week 3: Research System
-- [ ] Research technology tree
-- [ ] Research requirements
-- [ ] Research queue
-- [ ] Technology effects on gameplay
-- [ ] UI for research lab
+- [x] Theoretical research definitions
+- [x] Practical research definitions
+- [x] Research formulas
+- [x] Research queue management
+- [x] Research API endpoints
+- [x] Research UI integration
 
-#### Week 4: Fleet Foundation
-- [ ] Ship types and stats
-- [ ] Shipyard construction
-- [ ] Fleet storage
-- [ ] Basic fleet UI
-- [ ] Ship cost calculations
+#### Week 4: Fleet System
+- [x] Ship definitions
+- [x] Fleet management logic
+- [x] Fleet combat mechanics
+- [x] Fleet API endpoints
+- [x] Fleet UI integration
 
-**Deliverable**: Players can research tech and build ships
+**Deliverable**: Fully functional research and fleet systems integrated into the game loop
 
 ---
 

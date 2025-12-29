@@ -4,11 +4,11 @@
 
 | File | Purpose | Key Exports |
 |------|---------|-------------|
-| `src/shared/research.js` | Definitions & configs | `THEORETICAL_RESEARCH`, `PRACTICAL_RESEARCH`, utility functions |
+| `src/shared/research.js` | Definitions & configs | `THEORETICAL_RESEARCH`, `PRACTICAL_RESEARCH` |
 | `src/shared/formulas.js` | Calculations | Research cost/time formulas |
-| `src/server/game/researchLogic.js` | Server logic | Start/complete/cancel functions |
-| `src/server/index.js` | API routes | 8 new endpoints |
-| `src/client/js/views/research.js` | UI | `initializeResearch()` function |
+| `src/server/game/researchLogic.js` | Server logic | `startTheoreticalResearch`, `startPracticalResearchLevel`, `getActiveBuildingVariant`, `getActiveShipVariant` |
+| `src/server/index.js` | API routes | Research endpoints |
+| `src/client/js/views/research.js` | UI | `initializeResearch()` |
 | `src/client/css/main.css` | Styling | Research view classes |
 | `docs/RESEARCH_SYSTEM.md` | Full docs | Everything |
 

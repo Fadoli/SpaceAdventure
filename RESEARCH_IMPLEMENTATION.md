@@ -18,8 +18,8 @@ Core functions for research management:
 - `cancelTheoreticalResearch()` - Cancel with 90% resource refund
 - `startPracticalResearch()` - Start customization research on a focus
 - `completePracticalResearch()` - Finish customization research
-- `selectCustomBuildingVariant()` - Apply a custom variant to a building
-- `selectCustomShipVariant()` - Apply a custom variant to a ship
+- `getActiveBuildingVariant()` - Retrieve active building variant
+- `getActiveShipVariant()` - Retrieve active ship variant
 - Various getter functions for research progress and active variants
 
 ### 3. Research Formulas (`src/shared/formulas.js`)
@@ -40,12 +40,10 @@ Extended player object with:
 - `customShipVariants` - Custom ship variants (global)
 
 ### 5. API Endpoints (`src/server/index.js`)
-Eight new endpoints supporting the research system:
-- `GET /api/game/research` - Get research status
+- `GET /api/game/research` - Retrieve current research progress
 - `POST /api/game/planet/:planetId/research/theoretical` - Start theoretical research
-- `DELETE /api/game/planet/:planetId/research/theoretical/:queueId` - Cancel theoretical
 - `POST /api/game/planet/:planetId/research/practical` - Start practical research
-- `DELETE /api/game/planet/:planetId/research/practical/:queueId` - Cancel practical
+- `DELETE /api/game/planet/:planetId/research/:type/:queueId` - Cancel research
 - `GET /api/game/planet/:planetId/research/available` - Get available research
 - `POST /api/game/planet/:planetId/research/building-variant` - Select building variant
 - `POST /api/game/research/ship-variant` - Select ship variant

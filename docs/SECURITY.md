@@ -365,3 +365,18 @@ If you discover a security vulnerability:
 - Hardware security key support
 - Security audit logging
 - Intrusion detection system
+
+## Research System Security
+
+### Data Integrity
+- **Validation**: All research requests are validated server-side to prevent tampering.
+- **Queue Management**: Research queues are managed in-memory and written to disk to ensure consistency.
+
+### Resource Deduction
+- **Atomic Operations**: Resource deductions for research are performed atomically to prevent race conditions.
+- **Rollback Mechanism**: If a research operation fails, resources are refunded automatically.
+
+### API Security
+- **Authentication**: All research endpoints require a valid session token.
+- **Rate Limiting**: Research endpoints are rate-limited to prevent abuse.
+- **Input Sanitization**: All input data is sanitized to prevent injection attacks.
