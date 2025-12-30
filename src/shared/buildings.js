@@ -31,7 +31,6 @@ export const BUILDINGS = {
       crystal: 15,
       deuterium: 0
     },
-    baseTime: 30, // seconds
     maxLevel: 50,
     production: {
       metal: 30 // Base production per hour at level 1
@@ -50,7 +49,6 @@ export const BUILDINGS = {
       crystal: 24,
       deuterium: 0
     },
-    baseTime: 30,
     maxLevel: 50,
     production: {
       crystal: 20 // Base production per hour at level 1
@@ -69,7 +67,6 @@ export const BUILDINGS = {
       crystal: 75,
       deuterium: 0
     },
-    baseTime: 45,
     maxLevel: 50,
     production: {
       deuterium: 10 // Base production per hour at level 1
@@ -88,7 +85,6 @@ export const BUILDINGS = {
       crystal: 30,
       deuterium: 0
     },
-    baseTime: 25,
     maxLevel: 50,
     production: {
       energy: 20 // Base energy production at level 1
@@ -106,8 +102,7 @@ export const BUILDINGS = {
       crystal: 360,
       deuterium: 180
     },
-    baseTime: 120,
-    maxLevel: 30,
+    maxLevel: 50,
     production: {
       energy: 50 // Base energy production at level 1
     },
@@ -127,8 +122,7 @@ export const BUILDINGS = {
       crystal: 120,
       deuterium: 200
     },
-    baseTime: 60,
-    maxLevel: 10,
+    maxLevel: 50,
     energyConsumption: 25, // Energy required to operate
     populationRequired: 30, // Reduced from 50 to 30 for better balance
     requirements: {}
@@ -143,8 +137,7 @@ export const BUILDINGS = {
       crystal: 200,
       deuterium: 100
     },
-    baseTime: 90,
-    maxLevel: 12,
+    maxLevel: 50,
     requirements: {
       roboticsFactory: 2
     }
@@ -159,8 +152,7 @@ export const BUILDINGS = {
       crystal: 400,
       deuterium: 200
     },
-    baseTime: 60,
-    maxLevel: 12,
+    maxLevel: 50,
     energyConsumption: 15, // Energy required to operate
     populationRequired: 30, // Population required to maintain
     requirements: {}
@@ -175,8 +167,7 @@ export const BUILDINGS = {
       crystal: 0,
       deuterium: 0
     },
-    baseTime: 20,
-    maxLevel: 20,
+    maxLevel: 50,
     storage: {
       metal: 5000 // Additional storage per level
     },
@@ -192,8 +183,7 @@ export const BUILDINGS = {
       crystal: 500,
       deuterium: 0
     },
-    baseTime: 20,
-    maxLevel: 20,
+    maxLevel: 50,
     storage: {
       crystal: 5000 // Additional storage per level
     },
@@ -209,8 +199,7 @@ export const BUILDINGS = {
       crystal: 1000,
       deuterium: 0
     },
-    baseTime: 20,
-    maxLevel: 20,
+    maxLevel: 50,
     storage: {
       deuterium: 5000 // Additional storage per level
     },
@@ -226,8 +215,7 @@ export const BUILDINGS = {
       crystal: 500000,
       deuterium: 100000
     },
-    baseTime: 3600, // 1 hour
-    maxLevel: 5,
+    maxLevel: 50,
     requirements: {
       roboticsFactory: 10,
       computerTech: 10
@@ -243,7 +231,6 @@ export const BUILDINGS = {
       crystal: 25,
       deuterium: 0
     },
-    baseTime: 25,
     maxLevel: 50,
     production: {
       water: 40 // Base production per hour at level 1
@@ -262,7 +249,6 @@ export const BUILDINGS = {
       crystal: 10,
       deuterium: 0
     },
-    baseTime: 30,
     maxLevel: 50,
     production: {
       food: 30 // Base production per hour at level 1
@@ -284,7 +270,6 @@ export const BUILDINGS = {
       crystal: 20,
       deuterium: 0
     },
-    baseTime: 20,
     maxLevel: 50,
     housingCapacity: 10, // Base population capacity per level
     energyConsumption: 3,
@@ -300,8 +285,7 @@ export const BUILDINGS = {
       crystal: 400,
       deuterium: 0
     },
-    baseTime: 20,
-    maxLevel: 20,
+    maxLevel: 50,
     storage: {
       water: 5000 // Additional storage per level
     },
@@ -319,8 +303,7 @@ export const BUILDINGS = {
       crystal: 300,
       deuterium: 0
     },
-    baseTime: 20,
-    maxLevel: 20,
+    maxLevel: 50,
     storage: {
       food: 5000 // Additional storage per level
     },

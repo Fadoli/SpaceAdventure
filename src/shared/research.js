@@ -13,7 +13,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 100,
       deuterium: 50
     },
-    baseTime: 1800, // seconds
     unlocks: ['fusionReactor', 'energyTech'],
     bonuses: {
       energyProduction: 0.1, // 10% per level
@@ -31,7 +30,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 600,
       deuterium: 200
     },
-    baseTime: 2400,
     unlocks: ['researchLab', 'weaponsTech', 'shieldingTech'],
     bonuses: {
       researchSpeed: 0.1, // 10% per level
@@ -49,7 +47,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 200,
       deuterium: 100
     },
-    baseTime: 2400,
     prerequisites: ['computerTech'],
     unlocks: ['heavyFighter', 'cruiser', 'battleship'],
     bonuses: {
@@ -67,7 +64,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 600,
       deuterium: 0
     },
-    baseTime: 2400,
     prerequisites: ['computerTech'],
     unlocks: ['defenses'],
     bonuses: {
@@ -85,7 +81,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 0,
       deuterium: 500
     },
-    baseTime: 2400,
     unlocks: ['battleship'],
     bonuses: {
       hullStrength: 0.15 // 15% per level
@@ -102,7 +97,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 150,
       deuterium: 100
     },
-    baseTime: 1800,
     unlocks: ['smallCargo', 'largeCargo'],
     bonuses: {
       shipSpeed: 0.2 // 20% per level
@@ -119,7 +113,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 4000,
       deuterium: 600
     },
-    baseTime: 3600,
     prerequisites: ['combustionDrive'],
     unlocks: ['lightFighter', 'heavyFighter'],
     bonuses: {
@@ -137,7 +130,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 20000,
       deuterium: 6000
     },
-    baseTime: 7200,
     prerequisites: ['impulseDrive', 'computerTech'],
     unlocks: ['cruiser', 'battleship'],
     bonuses: {
@@ -155,7 +147,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 1000,
       deuterium: 600
     },
-    baseTime: 3600,
     prerequisites: ['computerTech'],
     unlocks: ['espionageProbe'],
     bonuses: {
@@ -173,7 +164,6 @@ export const THEORETICAL_RESEARCH = {
       crystal: 8000,
       deuterium: 4000
     },
-    baseTime: 5400,
     prerequisites: ['computerTech'],
     unlocks: ['colonyShip'],
     bonuses: {
@@ -268,7 +258,6 @@ export const PRACTICAL_RESEARCH = {
       crystal: 50,
       deuterium: 25
     },
-    baseTime: 900,
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
@@ -285,7 +274,6 @@ export const PRACTICAL_RESEARCH = {
       crystal: 50,
       deuterium: 25
     },
-    baseTime: 900,
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
@@ -302,7 +290,6 @@ export const PRACTICAL_RESEARCH = {
       crystal: 100,
       deuterium: 50
     },
-    baseTime: 900,
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
@@ -320,7 +307,6 @@ export const PRACTICAL_RESEARCH = {
       crystal: 50,
       deuterium: 25
     },
-    baseTime: 900,
     maxLevels: 30,
     focusModifiers: SHIP_MODIFIERS
   },
@@ -337,7 +323,6 @@ export const PRACTICAL_RESEARCH = {
       crystal: 50,
       deuterium: 25
     },
-    baseTime: 900,
     maxLevels: 30,
     focusModifiers: {
       output: {

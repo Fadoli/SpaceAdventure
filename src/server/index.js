@@ -289,9 +289,9 @@ async function handleRequest(req) {
       }
       
       // Recalculate production for all planets before returning
-      // This ensures derived values reflect current game constants
+      // This ensures derived values reflect current game constants and variant modifiers
       for (const planet of player.planets) {
-        updatePlanetProduction(planet);
+        updatePlanetProduction(planet, player);
       }
       
       // Process any completed buildings

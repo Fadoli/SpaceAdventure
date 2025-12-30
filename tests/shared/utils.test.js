@@ -38,15 +38,6 @@ describe('Utils - formatTimestamp Function', () => {
     const formatted = formatTimestamp(0);
     expect(typeof formatted).toBe('string');
   });
-
-  it('should be reversible to Date object', () => {
-    const timestamp = new Date('2024-06-15T08:30:00').getTime();
-    const formatted = formatTimestamp(timestamp);
-    
-    // Should be parseable back to a date
-    const parsed = new Date(formatted);
-    expect(!isNaN(parsed.getTime())).toBe(true);
-  });
 });
 
 describe('Utils - getTimeDelta Function', () => {

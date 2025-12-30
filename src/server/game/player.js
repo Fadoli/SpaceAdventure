@@ -224,7 +224,7 @@ export async function recomputeAllPlanetsOnStartup() {
         // - Energy consumption and efficiency
         // - Population requirements
         // - maxPopulation calculation
-        await updatePlanetProduction(planet);
+        await updatePlanetProduction(planet, player);
         
         recomputedCount++;
       }

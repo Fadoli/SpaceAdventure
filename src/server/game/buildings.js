@@ -18,6 +18,7 @@ import {
   getBuildTimeMultiplier,
   getStorageCapacityMultiplier
 } from '../config.js';
+import { calculateBaseTime } from '../../shared/time.js';
 
 /**
  * Calculate building cost for a specific level (server-side with config multipliers)
@@ -43,7 +44,7 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   const building = BUILDINGS[buildingType];
   if (!building) return 0;
   
-  const baseTime = building.baseTime * Math.pow(1.5, level - 1);
+  const baseTime = calculateBaseTime(building) * Math.pow(1.5, level - 1);
   
   // Robotics factory speeds up construction (inverse formula: 1 / 0.8^n)
   const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(0.8, roboticsLevel) : 1;

@@ -16,6 +16,7 @@ import {
   calculatePracticalResearchCost,
   calculatePracticalResearchTime
 } from '../../shared/formulas.js';
+import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
 import { SHIPS } from '../../shared/ships.js';
 
@@ -80,7 +81,7 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   
   // Calculate research time (use the level being queued for time calculation)
   const time = calculateTheoreticalResearchTime(
-    tech.baseTime,
+    tech,
     nextLevelToQueue - 1,
     planet.buildings.researchLab || 0
   );
@@ -251,7 +252,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   console.log(`[RESEARCH] Resources deducted, remaining:`, planet.resources);
   
   // Calculate research time with strength and lab bonus
-  const baseTime = practicalResearchConfig.baseTime;
+  const baseTime = calculateBaseTime(practicalResearchConfig);
   const researchLabLevel = planet.buildings.researchLab || 1;
   const timeMultiplier = 1 + (totalFocusLevel * 0.2);
   
@@ -386,7 +387,7 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   
   // Calculate research time based on research lab level
   // Base time increases with research level
-  const baseTime = practicalResearchConfig.baseTime;
+  const baseTime = calculateBaseTime(practicalResearchConfig);
   const researchLabLevel = planet.buildings.researchLab || 1;
   const levelMultiplier = 1 + (totalFocusLevel * 0.2);  // 20% longer for each level
   

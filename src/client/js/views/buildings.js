@@ -776,15 +776,17 @@ export async function showBuildingDetails(buildingKey) {
             deuterium: Math.floor(baseCostEstimate.deuterium * multiplier * costMultiplier)
         };
         
-        // Use the building.buildTime as a reference point
-        const baseTimeEstimate = building.buildTime / (Math.pow(1.5, building.nextLevel - 1) * 0.1);
-        const baseTime = baseTimeEstimate * Math.pow(1.5, level - 1);
         const roboticsLevel = planet?.buildings.roboticsFactory || 0;
         const naniteLevel = planet?.buildings.naniteFactory || 0;
         const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(0.8, roboticsLevel) : 1;
         const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
         const configMultiplier = 0.1;
-        const buildTime = Math.max(1, Math.floor((baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier));
+
+        const serverBuildTimeForNextLevel = building.buildTime;
+        const baseTimeFromCostEstimate = (serverBuildTimeForNextLevel / configMultiplier * roboticsMultiplier * naniteMultiplier) / Math.pow(1.5, building.nextLevel -1);
+
+        const baseTimeForLevel = baseTimeFromCostEstimate * Math.pow(1.5, level - 1);
+        const buildTime = Math.max(1, Math.floor((baseTimeForLevel / roboticsMultiplier / naniteMultiplier) * configMultiplier));
         
         let production = null;
         if (building.production && !isEmpty(building.production)) {

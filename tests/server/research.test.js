@@ -5,6 +5,10 @@ import {
   calculatePracticalResearchCost,
   calculatePracticalResearchTime
 } from '../../src/shared/formulas.js';
+import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH } from '../../src/shared/research.js';
+
+const energyTech = THEORETICAL_RESEARCH.energyTech; // baseTime 500
+const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 250
 
 describe('Research Cost Calculations', () => {
   describe('Theoretical Research Costs', () => {
@@ -116,46 +120,41 @@ describe('Research Cost Calculations', () => {
 });
 
 describe('Research Time Calculations', () => {
+
   describe('Theoretical Research Time', () => {
     it('should double time with each level', () => {
-      const baseTime = 3600;
+      const level0 = calculateTheoreticalResearchTime(energyTech, 0, 1);
+      const level1 = calculateTheoreticalResearchTime(energyTech, 1, 1);
+      const level2 = calculateTheoreticalResearchTime(energyTech, 2, 1);
       
-      const level0 = calculateTheoreticalResearchTime(baseTime, 0, 1);
-      const level1 = calculateTheoreticalResearchTime(baseTime, 1, 1);
-      const level2 = calculateTheoreticalResearchTime(baseTime, 2, 1);
-      
-      expect(level1).toBe(Math.floor(baseTime * Math.pow(2, 1) / (1 + 0.15)));
-      expect(level2).toBe(Math.floor(baseTime * Math.pow(2, 2) / (1 + 0.15)));
+      expect(level1).toBe(Math.floor(500 * Math.pow(2, 1) / (1 + 0.15)));
+      expect(level2).toBe(Math.floor(500 * Math.pow(2, 2) / (1 + 0.15)));
     });
 
     it('should apply research lab speedup (15% per level)', () => {
-      const baseTime = 3600;
       const level = 2;
       
-      const labLevel1 = calculateTheoreticalResearchTime(baseTime, level, 1);
-      const labLevel5 = calculateTheoreticalResearchTime(baseTime, level, 5);
-      const labLevel10 = calculateTheoreticalResearchTime(baseTime, level, 10);
+      const labLevel1 = calculateTheoreticalResearchTime(energyTech, level, 1);
+      const labLevel5 = calculateTheoreticalResearchTime(energyTech, level, 5);
+      const labLevel10 = calculateTheoreticalResearchTime(energyTech, level, 10);
       
       expect(labLevel1).toBeGreaterThan(labLevel5);
       expect(labLevel5).toBeGreaterThan(labLevel10);
     });
 
     it('should calculate speedup correctly', () => {
-      const baseTime = 3600;
       const level = 3;
       
-      const labLevel5 = calculateTheoreticalResearchTime(baseTime, level, 5);
-      const expected = Math.floor(baseTime * Math.pow(2, level) / (1 + 0.15 * 5));
+      const labLevel5 = calculateTheoreticalResearchTime(energyTech, level, 5);
+      const expected = Math.floor(500 * Math.pow(2, level) / (1 + 0.15 * 5));
       
       expect(labLevel5).toBe(expected);
     });
 
     it('should always return positive time', () => {
-      const baseTime = 3600;
-      
       for (let level = 0; level <= 20; level++) {
         for (let labLevel = 0; labLevel <= 20; labLevel++) {
-          const time = calculateTheoreticalResearchTime(baseTime, level, labLevel);
+          const time = calculateTheoreticalResearchTime(energyTech, level, labLevel);
           expect(time).toBeGreaterThan(0);
         }
       }
@@ -164,40 +163,33 @@ describe('Research Time Calculations', () => {
 
   describe('Practical Research Time', () => {
     it('should use 1.5x scaling per level', () => {
-      const baseTime = 1800;
+      const level0 = calculatePracticalResearchTime(metalMineResearch, 0, 1);
+      const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
+      const level2 = calculatePracticalResearchTime(metalMineResearch, 2, 1);
       
-      const level0 = calculatePracticalResearchTime(baseTime, 0, 1);
-      const level1 = calculatePracticalResearchTime(baseTime, 1, 1);
-      const level2 = calculatePracticalResearchTime(baseTime, 2, 1);
-      
-      expect(level1).toBe(Math.floor(baseTime * 1.5 / (1 + 0.15)));
-      expect(level2).toBe(Math.floor(baseTime * Math.pow(1.5, 2) / (1 + 0.15)));
+      expect(level1).toBe(Math.floor(250 * 1.5 / (1 + 0.15)));
+      expect(level2).toBe(Math.floor(250 * Math.pow(1.5, 2) / (1 + 0.15)));
     });
 
     it('should be significantly faster than theoretical', () => {
-      const baseTime = 3600;
-      
-      const theoretical = calculateTheoreticalResearchTime(baseTime, 5, 3);
-      const practical = calculatePracticalResearchTime(baseTime, 5, 3);
+      const theoretical = calculateTheoreticalResearchTime(energyTech, 5, 3);
+      const practical = calculatePracticalResearchTime(metalMineResearch, 5, 3);
       
       expect(practical).toBeLessThan(theoretical);
     });
 
     it('should apply lab speedup', () => {
-      const baseTime = 1800;
       const level = 3;
       
-      const labLevel1 = calculatePracticalResearchTime(baseTime, level, 1);
-      const labLevel3 = calculatePracticalResearchTime(baseTime, level, 3);
+      const labLevel1 = calculatePracticalResearchTime(metalMineResearch, level, 1);
+      const labLevel3 = calculatePracticalResearchTime(metalMineResearch, level, 3);
       
       expect(labLevel3).toBeLessThan(labLevel1);
     });
 
     it('should return positive time even at high levels', () => {
-      const baseTime = 1800;
-      
       for (let level = 0; level <= 15; level++) {
-        const time = calculatePracticalResearchTime(baseTime, level, 5);
+        const time = calculatePracticalResearchTime(metalMineResearch, level, 5);
         expect(time).toBeGreaterThan(0);
       }
     });
@@ -205,12 +197,10 @@ describe('Research Time Calculations', () => {
 
   describe('Time Comparison', () => {
     it('practical should always be faster than theoretical', () => {
-      const baseTime = 3600;
-      
       for (let level = 0; level <= 8; level++) {
         for (let labLevel = 1; labLevel <= 10; labLevel++) {
-          const theoretical = calculateTheoreticalResearchTime(baseTime, level, labLevel);
-          const practical = calculatePracticalResearchTime(baseTime, level, labLevel);
+          const theoretical = calculateTheoreticalResearchTime(energyTech, level, labLevel);
+          const practical = calculatePracticalResearchTime(metalMineResearch, level, labLevel);
           
           expect(practical).toBeLessThanOrEqual(theoretical);
         }
@@ -218,16 +208,15 @@ describe('Research Time Calculations', () => {
     });
 
     it('lab should provide same multiplier benefit for both types', () => {
-      const baseTime = 3600;
       const level = 3;
       
       // Calculate ratio of time reduction
-      const theoretical1 = calculateTheoreticalResearchTime(baseTime, level, 1);
-      const theoretical5 = calculateTheoreticalResearchTime(baseTime, level, 5);
+      const theoretical1 = calculateTheoreticalResearchTime(energyTech, level, 1);
+      const theoretical5 = calculateTheoreticalResearchTime(energyTech, level, 5);
       const theoreticalRatio = theoretical1 / theoretical5;
       
-      const practical1 = calculatePracticalResearchTime(baseTime, level, 1);
-      const practical5 = calculatePracticalResearchTime(baseTime, level, 5);
+      const practical1 = calculatePracticalResearchTime(metalMineResearch, level, 1);
+      const practical5 = calculatePracticalResearchTime(metalMineResearch, level, 5);
       const practicalRatio = practical1 / practical5;
       
       // Ratios should be similar (same lab multiplier applied)
@@ -253,12 +242,11 @@ describe('Research Progression Scenarios', () => {
   });
 
   it('time requirements scale with lab efficiency factor', () => {
-    const baseTime = 3600;
     const baseCost = { metal: 200, crystal: 100, deuterium: 50 };
     
     // At level 5
     const cost5 = calculateTheoreticalResearchCost(baseCost, 5);
-    const time5 = calculateTheoreticalResearchTime(baseTime, 5, 3);
+    const time5 = calculateTheoreticalResearchTime(energyTech, 5, 3);
     
     // Cost multiplier
     const costMultiplier = Math.pow(2, 5);
@@ -270,12 +258,11 @@ describe('Research Progression Scenarios', () => {
   });
 
   it('practical research scaling should be more balanced', () => {
-    const baseTime = 1800;
     const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
     
     // At level 5
     const cost5 = calculatePracticalResearchCost(baseCost, 5);
-    const time5 = calculatePracticalResearchTime(baseTime, 5, 3);
+    const time5 = calculatePracticalResearchTime(metalMineResearch, 5, 3);
     
     // Both use 1.5x multiplier
     const expectedCostMult = Math.pow(1.5, 5);
@@ -288,10 +275,9 @@ describe('Research Progression Scenarios', () => {
 describe('Edge Cases', () => {
   it('should handle level 0 correctly', () => {
     const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
-    const baseTime = 3600;
     
     const cost = calculateTheoreticalResearchCost(baseCost, 0);
-    const time = calculateTheoreticalResearchTime(baseTime, 0, 1);
+    const time = calculateTheoreticalResearchTime(energyTech, 0, 1);
     
     expect(cost.metal).toBe(baseCost.metal);
     expect(time).toBeGreaterThan(0);
@@ -299,20 +285,17 @@ describe('Edge Cases', () => {
 
   it('should handle very high levels', () => {
     const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
-    const baseTime = 3600;
     
     const cost = calculateTheoreticalResearchCost(baseCost, 20);
-    const time = calculateTheoreticalResearchTime(baseTime, 20, 5);
+    const time = calculateTheoreticalResearchTime(energyTech, 20, 5);
     
     expect(cost.metal).toBeGreaterThan(0);
     expect(time).toBeGreaterThan(0);
   });
 
   it('should handle zero lab level correctly', () => {
-    const baseTime = 3600;
-    
-    const time = calculateTheoreticalResearchTime(baseTime, 3, 1);
-    const expected = Math.floor(baseTime * Math.pow(2, 3) / (1 + 0.15));
+    const time = calculateTheoreticalResearchTime(energyTech, 3, 1);
+    const expected = Math.floor(500 * Math.pow(2, 3) / (1 + 0.15));
     
     expect(time).toBe(expected);
   });

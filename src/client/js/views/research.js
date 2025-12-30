@@ -1,6 +1,7 @@
 // Research view - theoretical and practical research management
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES } from '../../../shared/research.js';
 import { formatNumber } from '../utils.js';
+import { calculateBaseTime } from '../../../shared/time.js';
 
 let currentPlanetId = null;
 let researchData = null;
@@ -19,14 +20,13 @@ function calculateTheoreticalResearchCost(baseCost, level) {
   };
 }
 
-/**
- * Calculate theoretical research time
- * baseTime * (1 / (1.1^researchLabLevel)) * (1.1^level)
- */
-function calculateTheoreticalResearchTime(baseTime, level, researchLabLevel) {
-  const labMultiplier = Math.pow(0.8, researchLabLevel);
-  const levelMultiplier = Math.pow(1.1, level);
-  return Math.max(1, Math.floor((baseTime * levelMultiplier) / (1 - labMultiplier + 0.1)));
+
+
+function calculateTheoreticalResearchTime(research, level, researchLabLevel) {
+    const baseTime = calculateBaseTime(research);
+    const time = baseTime * Math.pow(2, level);
+    const labMultiplier = 1 + (researchLabLevel * 0.15); // 15% speedup per lab level
+    return Math.floor(time / labMultiplier);
 }
 
 /**
@@ -630,7 +630,7 @@ window.updateAllocationSliders = function() {
     `;
     
     // Calculate time estimate with strength and max 2 days constraint
-    const baseTime = research.baseTime;
+    const baseTime = calculateBaseTime(research);
     const timeMultiplier = 1 + (weightedMultiplier - 1) * 0.2;
     const strengthTimeMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 3);  // 0.5 to 3.5
     
@@ -961,7 +961,7 @@ window.showResearchDetails = function(techKey) {
   
   for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 10); level++) {
     const cost = calculateTheoreticalResearchCost(tech.baseCost, level - 1);
-    const timeInSeconds = calculateTheoreticalResearchTime(tech.baseTime, level - 1, 6); // Assume research lab level 6
+    const timeInSeconds = calculateTheoreticalResearchTime(tech, level - 1, 6); // Assume research lab level 6
     const timeStr = formatTime(timeInSeconds * 1000);
     
     html += `<tr>

@@ -1,5 +1,6 @@
 // Game formulas and calculations
 import { BUILDINGS } from './buildings.js';
+import { calculateBaseTime } from './time.js';
 
 /**
  * Calculate building cost based on level
@@ -15,7 +16,8 @@ export function calculateBuildingCost(baseCost, level) {
 /**
  * Calculate building construction time
  */
-export function calculateBuildTime(baseTime, level, roboticsLevel = 0, naniteLevel = 0) {
+export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0) {
+  const baseTime = calculateBaseTime(building);
   const time = baseTime * Math.pow(1.5, level);
   const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
@@ -49,7 +51,8 @@ export function calculateResearchCost(baseCost, level) {
 /**
  * Calculate research time
  */
-export function calculateResearchTime(baseTime, level, labLevel = 1) {
+export function calculateResearchTime(research, level, labLevel = 1) {
+  const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(2, level);
   const labMultiplier = 1 + (labLevel * 0.1);
   
@@ -234,7 +237,8 @@ export function calculateTheoreticalResearchCost(baseCost, level) {
  * Calculate theoretical research time at a given level
  * Time doubles with each level, affected by research lab level
  */
-export function calculateTheoreticalResearchTime(baseTime, level, labLevel = 1) {
+export function calculateTheoreticalResearchTime(research, level, labLevel = 1) {
+  const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(2, level);
   const labMultiplier = 1 + (labLevel * 0.15); // 15% speedup per lab level
   
@@ -257,7 +261,8 @@ export function calculatePracticalResearchCost(baseCost, level) {
  * Calculate practical research (customization) time at a given level
  * Slower scaling than theoretical: 1.5x per level
  */
-export function calculatePracticalResearchTime(baseTime, level, labLevel = 1) {
+export function calculatePracticalResearchTime(research, level, labLevel = 1) {
+  const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(1.5, level);
   const labMultiplier = 1 + (labLevel * 0.15);
   

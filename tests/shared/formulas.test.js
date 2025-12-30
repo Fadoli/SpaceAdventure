@@ -24,6 +24,8 @@ import {
 } from '../../src/shared/formulas.js';
 import { BUILDINGS } from '../../src/shared/buildings.js';
 
+import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH } from '../../src/shared/research.js';
+
 // ============ Building Cost Tests ============
 describe('calculateBuildingCost', () => {
   it('should calculate base cost for level 0', () => {
@@ -59,46 +61,45 @@ describe('calculateBuildingCost', () => {
 
 // ============ Build Time Tests ============
 describe('calculateBuildTime', () => {
+  const building = BUILDINGS.roboticsFactory; // metal: 400, crystal: 120, deuterium: 200 => baseTime: 1180
+
   it('should calculate base time at level 0', () => {
-    const result = calculateBuildTime(3600, 0);
-    expect(result).toBe(3600);
+    const result = calculateBuildTime(building, 0);
+    expect(result).toBe(1180);
   });
 
   it('should scale time with 1.5^level', () => {
-    const result = calculateBuildTime(3600, 2);
-    expect(result).toBe(Math.floor(3600 * Math.pow(1.5, 2)));
+    const result = calculateBuildTime(building, 2);
+    expect(result).toBe(Math.floor(1180 * Math.pow(1.5, 2)));
   });
 
   it('should apply robotics factory multiplier (0.8^level)', () => {
-    const baseTime = 3600;
-    const result = calculateBuildTime(baseTime, 1, 2);
-    const expectedTime = Math.floor(baseTime * Math.pow(1.5, 1) * Math.pow(0.8, 2));
+    const result = calculateBuildTime(building, 1, 2);
+    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(0.8, 2));
     expect(result).toBe(expectedTime);
   });
 
   it('should apply nanite factory multiplier (2^level)', () => {
-    const baseTime = 3600;
-    const result = calculateBuildTime(baseTime, 1, 0, 2);
-    const expectedTime = Math.floor(baseTime * Math.pow(1.5, 1) * Math.pow(2, 2));
+    const result = calculateBuildTime(building, 1, 0, 2);
+    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(2, 2));
     expect(result).toBe(expectedTime);
   });
 
   it('should apply both multipliers when both are provided', () => {
-    const baseTime = 3600;
-    const result = calculateBuildTime(baseTime, 1, 1, 1);
-    const expectedTime = Math.floor(baseTime * Math.pow(1.5, 1) * Math.pow(0.8, 1) * Math.pow(2, 1));
+    const result = calculateBuildTime(building, 1, 1, 1);
+    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(0.8, 1) * Math.pow(2, 1));
     expect(result).toBe(expectedTime);
   });
 
   it('robotics factory should speed up construction', () => {
-    const noRobotics = calculateBuildTime(3600, 5, 0, 0);
-    const withRobotics = calculateBuildTime(3600, 5, 1, 0);
+    const noRobotics = calculateBuildTime(building, 5, 0, 0);
+    const withRobotics = calculateBuildTime(building, 5, 1, 0);
     expect(withRobotics).toBeLessThan(noRobotics);
   });
 
   it('nanite factory should slow down construction (increases time)', () => {
-    const noNanite = calculateBuildTime(3600, 5, 0, 0);
-    const withNanite = calculateBuildTime(3600, 5, 0, 1);
+    const noNanite = calculateBuildTime(building, 5, 0, 0);
+    const withNanite = calculateBuildTime(building, 5, 0, 1);
     // Nanite multiplier increases time (2^level multiplier)
     expect(withNanite).toBeGreaterThan(noNanite);
   });
@@ -122,16 +123,16 @@ describe('calculateProduction', () => {
   });
 
   it('should apply variant multiplier', () => {
-    const baseProduction = calculateProduction(30, 15);
+    const baseProduction = 30 * 15 * Math.pow(1.1, 15);
     const withVariant = calculateProduction(30, 15, 1.49);
-    expect(withVariant).toBe(Math.floor(baseProduction * 1.49));
+    expect(withVariant).toBeCloseTo(Math.floor(baseProduction * 1.49));
   });
 
   it('should handle variant modifier of 1.49 for +49% production', () => {
     const result = calculateProduction(30, 15, 1.49);
-    const expectedBase = Math.floor(30 * 15 * Math.pow(1.1, 15));
+    const expectedBase = 30 * 15 * Math.pow(1.1, 15);
     const expected = Math.floor(expectedBase * 1.49);
-    expect(result).toBe(expected);
+    expect(result).toBeCloseTo(expected);
   });
 });
 
@@ -155,21 +156,22 @@ describe('calculateResearchCost', () => {
 
 // ============ Research Time Tests ============
 describe('calculateResearchTime', () => {
+  const research = THEORETICAL_RESEARCH.energyTech; // metal: 200, crystal: 100, deuterium: 50 => baseTime: 500
   it('should calculate base time at level 0', () => {
-    const result = calculateResearchTime(1000, 0, 1);
-    // At level 0 with lab level 1: time = 1000 * 1 / (1 + 0.1*1) = 1000 / 1.1
-    const expected = Math.floor(1000 / (1 + 0.1));
+    const result = calculateResearchTime(research, 0, 1);
+    // At level 0 with lab level 1: time = 500 * 1 / (1 + 0.1*1) = 500 / 1.1
+    const expected = Math.floor(500 / (1 + 0.1));
     expect(result).toBe(expected);
   });
 
   it('should scale with 2^level', () => {
-    const result = calculateResearchTime(1000, 2, 1);
-    expect(result).toBe(Math.floor(1000 * Math.pow(2, 2) / (1 + 0.1)));
+    const result = calculateResearchTime(research, 2, 1);
+    expect(result).toBe(Math.floor(500 * Math.pow(2, 2) / (1 + 0.1)));
   });
 
   it('should apply lab multiplier', () => {
-    const result = calculateResearchTime(1000, 1, 5);
-    const expectedTime = Math.floor(1000 * Math.pow(2, 1) / (1 + 0.1 * 5));
+    const result = calculateResearchTime(research, 1, 5);
+    const expectedTime = Math.floor(500 * Math.pow(2, 1) / (1 + 0.1 * 5));
     expect(result).toBe(expectedTime);
   });
 });
@@ -428,19 +430,18 @@ describe('calculateTheoreticalResearchCost', () => {
 });
 
 describe('calculateTheoreticalResearchTime', () => {
+  const research = THEORETICAL_RESEARCH.energyTech; // baseTime 500
   it('should double time with each level', () => {
-    const baseTime = 3600;
-    const result0 = calculateTheoreticalResearchTime(baseTime, 0);
-    const result1 = calculateTheoreticalResearchTime(baseTime, 1);
+    const result0 = calculateTheoreticalResearchTime(research, 0);
+    const result1 = calculateTheoreticalResearchTime(research, 1);
     
-    const expectedTime1 = Math.floor(baseTime * Math.pow(2, 1) / (1 + 0.15));
+    const expectedTime1 = Math.floor(500 * Math.pow(2, 1) / (1 + 0.15));
     expect(result1).toBe(expectedTime1);
   });
 
   it('should reduce time with higher lab level (15% speedup per level)', () => {
-    const baseTime = 3600;
-    const result1 = calculateTheoreticalResearchTime(baseTime, 1, 1);
-    const result2 = calculateTheoreticalResearchTime(baseTime, 1, 5);
+    const result1 = calculateTheoreticalResearchTime(research, 1, 1);
+    const result2 = calculateTheoreticalResearchTime(research, 1, 5);
     expect(result2).toBeLessThan(result1);
   });
 });
@@ -458,17 +459,16 @@ describe('calculatePracticalResearchCost', () => {
 });
 
 describe('calculatePracticalResearchTime', () => {
+    const research = PRACTICAL_RESEARCH.metalMine; // baseTime 250
   it('should scale slower than theoretical (1.5x per level)', () => {
-    const baseTime = 1800;
-    const result1 = calculatePracticalResearchTime(baseTime, 1);
-    const expectedTime = Math.floor(baseTime * Math.pow(1.5, 1) / (1 + 0.15));
+    const result1 = calculatePracticalResearchTime(research, 1);
+    const expectedTime = Math.floor(250 * Math.pow(1.5, 1) / (1 + 0.15));
     expect(result1).toBe(expectedTime);
   });
 
   it('should be affected by lab level', () => {
-    const baseTime = 1800;
-    const result1 = calculatePracticalResearchTime(baseTime, 2, 1);
-    const result2 = calculatePracticalResearchTime(baseTime, 2, 5);
+    const result1 = calculatePracticalResearchTime(research, 2, 1);
+    const result2 = calculatePracticalResearchTime(research, 2, 5);
     expect(result2).toBeLessThan(result1);
   });
 });
