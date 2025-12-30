@@ -155,23 +155,23 @@ describe('Defenses - calculateDefenseCost Function', () => {
 
 describe('Defenses - calculateDefenseBuildTime Function', () => {
   it('should calculate build time for single defense', () => {
-    const time = calculateDefenseBuildTime('rocketLauncher', 1, 0, 0);
+    const time = calculateDefenseBuildTime('rocketLauncher', 1, 1, 0, 0);
     
     expect(time).toBeGreaterThan(0);
     expect(Number.isInteger(time)).toBe(true);
   });
 
   it('should increase build time with quantity', () => {
-    const time1 = calculateDefenseBuildTime('laserCannon', 1, 0, 0);
-    const time5 = calculateDefenseBuildTime('laserCannon', 5, 0, 0);
+    const time1 = calculateDefenseBuildTime('laserCannon', 1, 1, 0, 0);
+    const time5 = calculateDefenseBuildTime('laserCannon', 5, 1, 0, 0);
     
     expect(time5).toBeGreaterThan(time1);
   });
 
   it('should apply exponential scaling with quantity', () => {
-    const time1 = calculateDefenseBuildTime('shield', 1, 0, 0);
-    const time2 = calculateDefenseBuildTime('shield', 2, 0, 0);
-    const time3 = calculateDefenseBuildTime('shield', 3, 0, 0);
+    const time1 = calculateDefenseBuildTime('shield', 1, 1, 0, 0);
+    const time2 = calculateDefenseBuildTime('shield', 2, 1, 0, 0);
+    const time3 = calculateDefenseBuildTime('shield', 3, 1, 0, 0);
     
     // Should use 1.05^(quantity-1) multiplier
     expect(time2).toBeGreaterThan(time1);
@@ -179,17 +179,17 @@ describe('Defenses - calculateDefenseBuildTime Function', () => {
   });
 
   it('should decrease build time with robotics level', () => {
-    const timeNoRobotics = calculateDefenseBuildTime('particleBeam', 1, 0, 0);
-    const timeWithRobotics = calculateDefenseBuildTime('particleBeam', 1, 5, 0);
+    const timeNoRobotics = calculateDefenseBuildTime('particleBeam', 1, 1, 0, 0);
+    const timeWithRobotics = calculateDefenseBuildTime('particleBeam', 1, 1, 5, 0);
     
     // Robotics: 0.8^level multiplier
     expect(timeWithRobotics).toBeLessThan(timeNoRobotics);
   });
 
   it('should dramatically decrease build time with nanite level', () => {
-    const timeNoNanites = calculateDefenseBuildTime('ionCannon', 1, 0, 0);
-    const timeNanites1 = calculateDefenseBuildTime('ionCannon', 1, 0, 1);
-    const timeNanites2 = calculateDefenseBuildTime('ionCannon', 1, 0, 2);
+    const timeNoNanites = calculateDefenseBuildTime('ionCannon', 1, 1, 0, 0);
+    const timeNanites1 = calculateDefenseBuildTime('ionCannon', 1, 1, 0, 1);
+    const timeNanites2 = calculateDefenseBuildTime('ionCannon', 1, 1, 0, 2);
     
     // Nanites: 2^level multiplier (divides time)
     expect(timeNanites1).toBeLessThan(timeNoNanites);
@@ -197,30 +197,30 @@ describe('Defenses - calculateDefenseBuildTime Function', () => {
   });
 
   it('should combine robotics and nanite bonuses', () => {
-    const timeBase = calculateDefenseBuildTime('rocketLauncher', 1, 0, 0);
-    const timeBoth = calculateDefenseBuildTime('rocketLauncher', 1, 5, 2);
+    const timeBase = calculateDefenseBuildTime('rocketLauncher', 1, 1, 0, 0);
+    const timeBoth = calculateDefenseBuildTime('rocketLauncher', 1, 1, 5, 2);
     
     expect(timeBoth).toBeLessThan(timeBase);
   });
 
   it('should return minimum 1 second', () => {
-    const time = calculateDefenseBuildTime('rocketLauncher', 1, 999, 999);
+    const time = calculateDefenseBuildTime('rocketLauncher', 1, 999, 999, 999);
     expect(time).toBeGreaterThanOrEqual(1);
   });
 
   it('should handle zero robotics and nanites', () => {
-    const time = calculateDefenseBuildTime('plasmaTurret', 1, 0, 0);
+    const time = calculateDefenseBuildTime('plasmaTurret', 1, 1, 0, 0);
     expect(time).toBeGreaterThan(0);
   });
 
   it('should return integer time values', () => {
-    const time = calculateDefenseBuildTime('ionCannon', 3, 2, 1);
+    const time = calculateDefenseBuildTime('ionCannon', 3, 1, 2, 1);
     expect(Number.isInteger(time)).toBe(true);
   });
 
   it('should show different build times for different defense types', () => {
-    const rocketTime = calculateDefenseBuildTime('rocketLauncher', 1, 0, 0);
-    const plasmaTime = calculateDefenseBuildTime('plasmaTurret', 1, 0, 0);
+    const rocketTime = calculateDefenseBuildTime('rocketLauncher', 1, 1, 0, 0);
+    const plasmaTime = calculateDefenseBuildTime('plasmaTurret', 1, 1, 0, 0);
     
     // More advanced defenses take longer
     expect(plasmaTime).toBeGreaterThan(rocketTime);

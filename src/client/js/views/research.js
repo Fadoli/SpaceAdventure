@@ -22,11 +22,12 @@ function calculateTheoreticalResearchCost(baseCost, level) {
 
 
 
-function calculateTheoreticalResearchTime(research, level, researchLabLevel) {
+function calculateTheoreticalResearchTime(research, level, researchLabLevel, computerTechLevel = 0) {
     const baseTime = calculateBaseTime(research);
     const time = baseTime * Math.pow(2, level);
-    const labMultiplier = 1 + (researchLabLevel * 0.15); // 15% speedup per lab level
-    return Math.floor(time / labMultiplier);
+    const labMultiplier = Math.pow(0.8, researchLabLevel);
+    const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
+    return Math.floor(time * labMultiplier * techMultiplier);
 }
 
 /**
@@ -959,9 +960,10 @@ window.showResearchDetails = function(techKey) {
       </thead>
       <tbody>`;
   
+  const computerTechLevel = playerTech.computerTech || 0;
   for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 10); level++) {
     const cost = calculateTheoreticalResearchCost(tech.baseCost, level - 1);
-    const timeInSeconds = calculateTheoreticalResearchTime(tech, level - 1, 6); // Assume research lab level 6
+    const timeInSeconds = calculateTheoreticalResearchTime(tech, level - 1, 6, computerTechLevel); // Assume research lab level 6
     const timeStr = formatTime(timeInSeconds * 1000);
     
     html += `<tr>

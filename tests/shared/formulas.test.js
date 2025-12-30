@@ -81,13 +81,13 @@ describe('calculateBuildTime', () => {
 
   it('should apply nanite factory multiplier (2^level)', () => {
     const result = calculateBuildTime(building, 1, 0, 2);
-    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(2, 2));
+    const expectedTime = Math.floor((1180 * Math.pow(1.5, 1)) / Math.pow(2, 2));
     expect(result).toBe(expectedTime);
   });
 
   it('should apply both multipliers when both are provided', () => {
     const result = calculateBuildTime(building, 1, 1, 1);
-    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(0.8, 1) * Math.pow(2, 1));
+    const expectedTime = Math.floor((1180 * Math.pow(1.5, 1) * Math.pow(0.8, 1)) / Math.pow(2, 1));
     expect(result).toBe(expectedTime);
   });
 
@@ -97,11 +97,11 @@ describe('calculateBuildTime', () => {
     expect(withRobotics).toBeLessThan(noRobotics);
   });
 
-  it('nanite factory should slow down construction (increases time)', () => {
+  it('nanite factory should speed up construction (decreases time)', () => {
     const noNanite = calculateBuildTime(building, 5, 0, 0);
     const withNanite = calculateBuildTime(building, 5, 0, 1);
-    // Nanite multiplier increases time (2^level multiplier)
-    expect(withNanite).toBeGreaterThan(noNanite);
+    // Nanite multiplier should decrease time (divides by 2^level)
+    expect(withNanite).toBeLessThan(noNanite);
   });
 });
 
@@ -159,19 +159,19 @@ describe('calculateResearchTime', () => {
   const research = THEORETICAL_RESEARCH.energyTech; // metal: 200, crystal: 100, deuterium: 50 => baseTime: 500
   it('should calculate base time at level 0', () => {
     const result = calculateResearchTime(research, 0, 1);
-    // At level 0 with lab level 1: time = 500 * 1 / (1 + 0.1*1) = 500 / 1.1
-    const expected = Math.floor(500 / (1 + 0.1));
+    // At level 0 with lab level 1: time = 500 * 1 * 0.8^1 = 400
+    const expected = Math.floor(500 * Math.pow(0.8, 1));
     expect(result).toBe(expected);
   });
 
   it('should scale with 2^level', () => {
     const result = calculateResearchTime(research, 2, 1);
-    expect(result).toBe(Math.floor(500 * Math.pow(2, 2) / (1 + 0.1)));
+    expect(result).toBe(Math.floor(500 * Math.pow(2, 2) * Math.pow(0.8, 1)));
   });
 
   it('should apply lab multiplier', () => {
     const result = calculateResearchTime(research, 1, 5);
-    const expectedTime = Math.floor(500 * Math.pow(2, 1) / (1 + 0.1 * 5));
+    const expectedTime = Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 5));
     expect(result).toBe(expectedTime);
   });
 });
@@ -435,14 +435,15 @@ describe('calculateTheoreticalResearchTime', () => {
     const result0 = calculateTheoreticalResearchTime(research, 0);
     const result1 = calculateTheoreticalResearchTime(research, 1);
     
-    const expectedTime1 = Math.floor(500 * Math.pow(2, 1) / (1 + 0.15));
+    const expectedTime1 = Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 1));
     expect(result1).toBe(expectedTime1);
   });
 
-  it('should reduce time with higher lab level (15% speedup per level)', () => {
+  it('should reduce time with higher lab level (multiplicative 0.8^level)', () => {
     const result1 = calculateTheoreticalResearchTime(research, 1, 1);
     const result2 = calculateTheoreticalResearchTime(research, 1, 5);
     expect(result2).toBeLessThan(result1);
+    expect(result2).toBe(Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 5)));
   });
 });
 
@@ -462,7 +463,7 @@ describe('calculatePracticalResearchTime', () => {
     const research = PRACTICAL_RESEARCH.metalMine; // baseTime 250
   it('should scale slower than theoretical (1.5x per level)', () => {
     const result1 = calculatePracticalResearchTime(research, 1);
-    const expectedTime = Math.floor(250 * Math.pow(1.5, 1) / (1 + 0.15));
+    const expectedTime = Math.floor(250 * Math.pow(1.5, 1) * Math.pow(0.8, 1));
     expect(result1).toBe(expectedTime);
   });
 
@@ -470,6 +471,7 @@ describe('calculatePracticalResearchTime', () => {
     const result1 = calculatePracticalResearchTime(research, 2, 1);
     const result2 = calculatePracticalResearchTime(research, 2, 5);
     expect(result2).toBeLessThan(result1);
+    expect(result2).toBe(Math.floor(250 * Math.pow(1.5, 2) * Math.pow(0.8, 5)));
   });
 });
 

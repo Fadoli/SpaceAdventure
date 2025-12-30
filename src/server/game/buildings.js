@@ -331,8 +331,12 @@ export async function processCompletedBuildings(player) {
 /**
  * Calculate total energy production from all energy-producing buildings
  */
-function calculateTotalEnergyProduction(planet) {
+function calculateTotalEnergyProduction(planet, player = null) {
   let totalEnergy = 0;
+  
+  // Get energy tech bonus
+  const energyTechLevel = player?.research?.energyTech || 0;
+  const energyTechBonus = 1 + (energyTechLevel * 0.1); // 10% per level
   
   for (const buildingType in planet.buildings) {
     const level = planet.buildings[buildingType];
@@ -347,7 +351,7 @@ function calculateTotalEnergyProduction(planet) {
     if (production.energy) {
       // For energy producers, apply population effectiveness only (they don't consume power)
       const populationEff = Math.sqrt(allocation.population); // Simplified effectiveness
-      totalEnergy += production.energy * populationEff;
+      totalEnergy += production.energy * populationEff * energyTechBonus;
     }
   }
   
@@ -479,7 +483,7 @@ export function updatePlanetProduction(planet, player = null) {
   
   // First pass: Calculate demands and apply priority-based allocation
   const currentPopulation = planet.resources?.population || 0;
-  const totalEnergyProduced = calculateTotalEnergyProduction(planet);
+  const totalEnergyProduced = calculateTotalEnergyProduction(planet, player);
   
   const actualAllocations = applyPriorityBasedAllocation(planet, currentPopulation, totalEnergyProduced);
   
@@ -509,6 +513,10 @@ export function updatePlanetProduction(planet, player = null) {
   let totalEnergyConsumption = 0;
   let totalWaterConsumption = 0;
   let totalPopulationRequired = 0;
+  
+  // Energy efficiency from research
+  const energyTechLevel = player?.research?.energyTech || 0;
+  const energyEfficiencyBonus = 1 - (energyTechLevel * 0.05); // 5% reduction per level
   
   // Calculate production from all buildings
   for (const buildingType in planet.buildings) {
@@ -576,6 +584,9 @@ export function updatePlanetProduction(planet, player = null) {
       if (variantModifiers && variantModifiers.energyMultiplier) {
         baseConsumption = Math.floor(baseConsumption * variantModifiers.energyMultiplier);
       }
+      
+      // Apply research efficiency bonus (never reduce below 50% of base consumption)
+      baseConsumption = Math.floor(baseConsumption * Math.max(0.5, energyEfficiencyBonus));
       
       // Energy consumption scales with ACTUAL power allocation
       totalEnergyConsumption += Math.floor(baseConsumption * actualAllocation.power);

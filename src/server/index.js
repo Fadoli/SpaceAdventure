@@ -824,10 +824,11 @@ async function handleRequest(req) {
       const { defenses } = body;
       
       try {
+        const shipyardLevel = planet.buildings?.shipyard || 0;
         const roboticsLevel = planet.buildings?.roboticsFactory || 0;
         const naniteLevel = planet.buildings?.naniteFactory || 0;
         
-        const result = buildDefenses(planet, defenses, roboticsLevel, naniteLevel);
+        const result = buildDefenses(planet, defenses, shipyardLevel, roboticsLevel, naniteLevel);
         
         // Save player
         await updatePlayer(user.id, player);

@@ -127,11 +127,11 @@ describe('Research Time Calculations', () => {
       const level1 = calculateTheoreticalResearchTime(energyTech, 1, 1);
       const level2 = calculateTheoreticalResearchTime(energyTech, 2, 1);
       
-      expect(level1).toBe(Math.floor(500 * Math.pow(2, 1) / (1 + 0.15)));
-      expect(level2).toBe(Math.floor(500 * Math.pow(2, 2) / (1 + 0.15)));
+      expect(level1).toBe(Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 1)));
+      expect(level2).toBe(Math.floor(500 * Math.pow(2, 2) * Math.pow(0.8, 1)));
     });
 
-    it('should apply research lab speedup (15% per level)', () => {
+    it('should apply research lab speedup (multiplicative 0.8^level)', () => {
       const level = 2;
       
       const labLevel1 = calculateTheoreticalResearchTime(energyTech, level, 1);
@@ -146,7 +146,7 @@ describe('Research Time Calculations', () => {
       const level = 3;
       
       const labLevel5 = calculateTheoreticalResearchTime(energyTech, level, 5);
-      const expected = Math.floor(500 * Math.pow(2, level) / (1 + 0.15 * 5));
+      const expected = Math.floor(500 * Math.pow(2, level) * Math.pow(0.8, 5));
       
       expect(labLevel5).toBe(expected);
     });
@@ -167,8 +167,8 @@ describe('Research Time Calculations', () => {
       const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
       const level2 = calculatePracticalResearchTime(metalMineResearch, 2, 1);
       
-      expect(level1).toBe(Math.floor(250 * 1.5 / (1 + 0.15)));
-      expect(level2).toBe(Math.floor(250 * Math.pow(1.5, 2) / (1 + 0.15)));
+      expect(level1).toBe(Math.floor(250 * 1.5 * 0.8));
+      expect(level2).toBe(Math.floor(250 * Math.pow(1.5, 2) * 0.8));
     });
 
     it('should be significantly faster than theoretical', () => {
@@ -210,7 +210,7 @@ describe('Research Time Calculations', () => {
     it('lab should provide same multiplier benefit for both types', () => {
       const level = 3;
       
-      // Calculate ratio of time reduction
+      // Calculate ratio of time reduction: lab level 1 vs lab level 5
       const theoretical1 = calculateTheoreticalResearchTime(energyTech, level, 1);
       const theoretical5 = calculateTheoreticalResearchTime(energyTech, level, 5);
       const theoreticalRatio = theoretical1 / theoretical5;
@@ -219,8 +219,9 @@ describe('Research Time Calculations', () => {
       const practical5 = calculatePracticalResearchTime(metalMineResearch, level, 5);
       const practicalRatio = practical1 / practical5;
       
-      // Ratios should be similar (same lab multiplier applied)
-      expect(Math.abs(theoreticalRatio - practicalRatio)).toBeLessThan(0.1);
+      // The ratio should be exactly 0.8^1 / 0.8^5 = 1 / 0.8^4 = 2.4414...
+      // Since Math.floor is used internally, we check with a small tolerance
+      expect(theoreticalRatio).toBeCloseTo(practicalRatio, 1);
     });
   });
 });
@@ -251,7 +252,7 @@ describe('Research Progression Scenarios', () => {
     // Cost multiplier
     const costMultiplier = Math.pow(2, 5);
     // Time multiplier with lab speedup applied
-    const timeMultiplier = Math.pow(2, 5) / (1 + 0.15 * 3);
+    const timeMultiplier = Math.pow(2, 5) * Math.pow(0.8, 3);
     
     // Time multiplier should be less than cost multiplier due to lab speedup
     expect(timeMultiplier).toBeLessThan(costMultiplier);
@@ -264,11 +265,11 @@ describe('Research Progression Scenarios', () => {
     const cost5 = calculatePracticalResearchCost(baseCost, 5);
     const time5 = calculatePracticalResearchTime(metalMineResearch, 5, 3);
     
-    // Both use 1.5x multiplier
+    // Both use 1.5x multiplier for base scaling
     const expectedCostMult = Math.pow(1.5, 5);
-    const expectedTimeMult = Math.pow(1.5, 5) / (1 + 0.15 * 3);
+    const expectedTimeMult = Math.pow(1.5, 5) * Math.pow(0.8, 3);
     
-    expect(expectedTimeMult / expectedCostMult).toBeCloseTo(1, 0.1);
+    expect(expectedTimeMult).toBeLessThan(expectedCostMult);
   });
 });
 
@@ -294,8 +295,8 @@ describe('Edge Cases', () => {
   });
 
   it('should handle zero lab level correctly', () => {
-    const time = calculateTheoreticalResearchTime(energyTech, 3, 1);
-    const expected = Math.floor(500 * Math.pow(2, 3) / (1 + 0.15));
+    const time = calculateTheoreticalResearchTime(energyTech, 3, 0);
+    const expected = Math.floor(500 * Math.pow(2, 3) * Math.pow(0.8, 0));
     
     expect(time).toBe(expected);
   });

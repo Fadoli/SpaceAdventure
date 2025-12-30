@@ -73,7 +73,7 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
 /**
  * Add defenses to build queue
  */
-export function buildDefenses(planet, defenses, roboticsLevel = 0, naniteLevel = 0) {
+export function buildDefenses(planet, defenses, shipyardLevel = 0, roboticsLevel = 0, naniteLevel = 0) {
   if (!planet.defenseQueue) {
     planet.defenseQueue = [];
   }
@@ -96,7 +96,7 @@ export function buildDefenses(planet, defenses, roboticsLevel = 0, naniteLevel =
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, roboticsLevel, naniteLevel);
+    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, roboticsLevel, naniteLevel);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }
 

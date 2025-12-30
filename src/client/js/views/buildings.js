@@ -121,16 +121,19 @@ export async function updateBuildingsView(planet, onStateChange) {
                 }
                 statsInfo += '</div>';
             } else if (key === 'roboticsFactory' && building.currentLevel > 0) {
-                // Robotics factory - show construction speed improvement
-                const multiplier = Math.pow(0.8, building.currentLevel);
-                const improvement = ((1 - multiplier) * 100).toFixed(0);
-                statsInfo = `<div class="building-special">⏱️ Construction: ${improvement}% faster</div>`;
+                // Robotics factory - show construction speed
+                const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
+                statsInfo = `<div class="building-special">⏱️ Construction: ${speedMult}x speed</div>`;
+            } else if (key === 'naniteFactory' && building.currentLevel > 0) {
+                // Nanite factory - show massive construction speed improvement
+                const speedMult = Math.pow(2, building.currentLevel).toFixed(0);
+                statsInfo = `<div class="building-special">⚡ Construction: ${speedMult}x speed</div>`;
             } else if (key === 'researchLab' && building.currentLevel > 0) {
-                // Research lab - show research speed
+                // Research lab - show research speed (multiplicative 0.8^level on time)
                 const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
                 statsInfo = `<div class="building-special">🔬 Research: ${speedMult}x speed</div>`;
             } else if (key === 'shipyard' && building.currentLevel > 0) {
-                // Shipyard - show production speed
+                // Shipyard - show production speed (multiplicative 0.8^level on time)
                 const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
                 statsInfo = `<div class="building-special">🚀 Production: ${speedMult}x speed</div>`;
             }
@@ -847,18 +850,21 @@ export async function showBuildingDetails(buildingKey) {
                 dataCell += `<div>${icon}+${formatNumber(amount)}/h</div>`;
             }
         } else if (buildingKey === 'roboticsFactory') {
-            // Robotics factory - show construction time multiplier
-            const multiplier = Math.pow(0.8, l.level);
-            const reductionPercent = ((1 - multiplier) * 100).toFixed(1);
-            dataCell = `<div>⏱️ 0.8^${l.level} = ${(multiplier * 100).toFixed(1)}%<br><span style="font-size: 0.9em;">(${reductionPercent}% faster)</span></div>`;
+            // Robotics factory - show construction speed multiplier
+            const speedMult = 1 / Math.pow(0.8, l.level);
+            dataCell = `<div>⏱️ ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+        } else if (buildingKey === 'naniteFactory') {
+            // Nanite factory - show massive construction speed
+            const speedMult = Math.pow(2, l.level);
+            dataCell = `<div>⚡ ${speedMult.toFixed(0)}x speed<br><span style="font-size: 0.9em;">(2^${l.level})</span></div>`;
         } else if (buildingKey === 'researchLab') {
-            // Research lab - show research speed multiplier (inverse robotics)
-            const multiplier = 1 / Math.pow(0.8, l.level);
-            dataCell = `<div>🔬 ${formatNumber(multiplier.toFixed(2))}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+            // Research lab - show research speed multiplier (multiplicative 0.8^level on time)
+            const speedMult = 1 / Math.pow(0.8, l.level);
+            dataCell = `<div>🔬 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
         } else if (buildingKey === 'shipyard') {
-            // Shipyard - show production multiplier (inverse robotics)
-            const multiplier = 1 / Math.pow(0.8, l.level);
-            dataCell = `<div>🚀 ${formatNumber(multiplier.toFixed(2))}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+            // Shipyard - show production multiplier (multiplicative 0.8^level on time)
+            const speedMult = 1 / Math.pow(0.8, l.level);
+            dataCell = `<div>🚀 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
         } else {
             dataCell = '-';
         }
@@ -884,12 +890,19 @@ export async function showBuildingDetails(buildingKey) {
     // Generate special effects info for certain buildings
     let effectsSection = '';
     if (buildingKey === 'roboticsFactory' && currentLevel > 0) {
-        const reductionFactor = Math.pow(0.8, currentLevel);
-        const reductionPercent = ((1 - reductionFactor) * 100).toFixed(1);
+        const speedMult = (1 / Math.pow(0.8, currentLevel)).toFixed(2);
         effectsSection = `
             <div class="building-effects">
                 <strong>⚙️ Current Effect:</strong>
-                <div>Construction time multiplier: 0.8^${currentLevel} = ${(reductionFactor * 100).toFixed(1)}% (${reductionPercent}% faster)</div>
+                <div>Construction speed multiplier: ${speedMult}x (1 / 0.8^${currentLevel})</div>
+            </div>
+        `;
+    } else if (buildingKey === 'naniteFactory' && currentLevel > 0) {
+        const speedMult = Math.pow(2, currentLevel).toFixed(0);
+        effectsSection = `
+            <div class="building-effects">
+                <strong>⚡ Current Effect:</strong>
+                <div>Nanite construction speed multiplier: ${speedMult}x (2^${currentLevel})</div>
             </div>
         `;
     } else if (buildingKey === 'researchLab' && currentLevel > 0) {
@@ -922,7 +935,8 @@ export async function showBuildingDetails(buildingKey) {
                         <th>Build Time</th>
                         <th>${
                             buildingKey.includes('Storage') ? 'Capacity' :
-                            buildingKey === 'roboticsFactory' ? 'Time Factor' :
+                            buildingKey === 'roboticsFactory' ? 'Construction Speed' :
+                            buildingKey === 'naniteFactory' ? 'Nanite Speed' :
                             buildingKey === 'researchLab' ? 'Research Speed' :
                             buildingKey === 'shipyard' ? 'Production Speed' :
                             'Production'

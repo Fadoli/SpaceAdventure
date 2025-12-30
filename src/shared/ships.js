@@ -263,8 +263,8 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   // Base time increases with quantity
   let baseTime = ship.buildTime * quantity * Math.pow(1.1, quantity - 1);
 
-  // Shipyard level increases efficiency
-  const shipyardMultiplier = 1 / (1 + (shipyardLevel * 0.05));
+  // Shipyard level speeds up construction (20% per level, 0.8^n)
+  const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
 
   // Robotics factory speeds up construction (20% per level, 0.8^n)
   const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;

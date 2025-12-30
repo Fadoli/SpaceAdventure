@@ -187,7 +187,9 @@ describe('Ships - calculateShipBuildTime Function', () => {
     const timeLvl1 = calculateShipBuildTime('smallCargo', 1, 1, 0, 0);
     const timeLvl10 = calculateShipBuildTime('smallCargo', 1, 10, 0, 0);
     
+    // Shipyard: 0.8^level multiplier
     expect(timeLvl10).toBeLessThan(timeLvl1);
+    expect(timeLvl10).toBe(Math.floor(30 * Math.pow(0.8, 10)));
   });
 
   it('should decrease build time with robotics level', () => {

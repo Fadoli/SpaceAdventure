@@ -22,7 +22,7 @@ export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLev
   const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
   
-  return Math.floor(time * roboticsMultiplier * naniteMultiplier);
+  return Math.floor((time * roboticsMultiplier) / naniteMultiplier);
 }
 
 /**
@@ -51,12 +51,13 @@ export function calculateResearchCost(baseCost, level) {
 /**
  * Calculate research time
  */
-export function calculateResearchTime(research, level, labLevel = 1) {
+export function calculateResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(2, level);
-  const labMultiplier = 1 + (labLevel * 0.1);
+  const labMultiplier = Math.pow(0.8, labLevel);
+  const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.floor(time / labMultiplier);
+  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
 }
 
 /**
@@ -237,12 +238,13 @@ export function calculateTheoreticalResearchCost(baseCost, level) {
  * Calculate theoretical research time at a given level
  * Time doubles with each level, affected by research lab level
  */
-export function calculateTheoreticalResearchTime(research, level, labLevel = 1) {
+export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(2, level);
-  const labMultiplier = 1 + (labLevel * 0.15); // 15% speedup per lab level
+  const labMultiplier = Math.pow(0.8, labLevel);
+  const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.floor(time / labMultiplier);
+  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
 }
 
 /**
@@ -261,12 +263,13 @@ export function calculatePracticalResearchCost(baseCost, level) {
  * Calculate practical research (customization) time at a given level
  * Slower scaling than theoretical: 1.5x per level
  */
-export function calculatePracticalResearchTime(research, level, labLevel = 1) {
+export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(1.5, level);
-  const labMultiplier = 1 + (labLevel * 0.15);
+  const labMultiplier = Math.pow(0.8, labLevel);
+  const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.floor(time / labMultiplier);
+  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
 }
 
 /**

@@ -80,10 +80,14 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   }
   
   // Calculate research time (use the level being queued for time calculation)
+  const computerTechLevel = player.research.computerTech || 0;
+  const researchSpeedBonus = computerTechLevel * 0.1; // 10% per level
+  
   const time = calculateTheoreticalResearchTime(
     tech,
     nextLevelToQueue - 1,
-    planet.buildings.researchLab || 0
+    planet.buildings.researchLab || 0,
+    researchSpeedBonus
   );
   console.log('Research time (seconds):', time);
   
@@ -254,12 +258,16 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   // Calculate research time with strength and lab bonus
   const baseTime = calculateBaseTime(practicalResearchConfig);
   const researchLabLevel = planet.buildings.researchLab || 1;
+  const computerTechLevel = player.research.computerTech || 0;
+  const labMultiplier = Math.pow(0.8, researchLabLevel);
+  const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
+  
   const timeMultiplier = 1 + (totalFocusLevel * 0.2);
   
   // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 3.5x)
   const strengthTimeMultiplier = 0.5 + (strength * strength * 3);
   
-  let time = Math.floor((baseTime * timeMultiplier * strengthTimeMultiplier) / (1 + (researchLabLevel * 0.1)));
+  let time = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier);
   time = Math.max(60, time);  // Minimum 60 seconds
   
   // Max duration: 2 days (172800 seconds)
@@ -387,14 +395,14 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   
   // Calculate research time based on research lab level
   // Base time increases with research level
-  const baseTime = calculateBaseTime(practicalResearchConfig);
   const researchLabLevel = planet.buildings.researchLab || 1;
-  const levelMultiplier = 1 + (totalFocusLevel * 0.2);  // 20% longer for each level
+  const computerTechLevel = player.research.computerTech || 0;
   
-  // Time formula: base time adjusted by level and lab level
-  const time = Math.max(
-    60,  // Minimum 60 seconds
-    Math.floor((baseTime * levelMultiplier) / (1 + (researchLabLevel * 0.1)))
+  const time = calculatePracticalResearchTime(
+    practicalResearchConfig,
+    totalFocusLevel,
+    researchLabLevel,
+    computerTechLevel * 0.1
   );
   
   // Create queue item for level-based research
