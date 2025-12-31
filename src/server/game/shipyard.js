@@ -25,7 +25,7 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
       throw new Error(`Unknown ship: ${shipKey}`);
     }
 
-    const cost = calculateShipCost(shipKey, quantity, shipyardLevel);
+    const cost = calculateShipCost(shipKey, quantity);
     totalCost.metal += cost.metal;
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
@@ -154,7 +154,7 @@ export function cancelProduction(planet, queueId, type = 'ships') {
   if (item.ships) {
     for (const shipKey in item.ships) {
       const quantity = item.ships[shipKey];
-      const cost = calculateShipCost(shipKey, quantity, 1);
+      const cost = calculateShipCost(shipKey, quantity);
       planet.resources.metal += Math.floor(cost.metal * refundMultiplier);
       planet.resources.crystal += Math.floor(cost.crystal * refundMultiplier);
       planet.resources.deuterium += Math.floor(cost.deuterium * refundMultiplier);

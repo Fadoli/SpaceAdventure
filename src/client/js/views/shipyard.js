@@ -123,7 +123,7 @@ function renderShipsList(planet, shipyardData) {
             for (const shipKey in data.ships) {
                 const ship = data.ships[shipKey];
                 const count = ships[shipKey] || 0;
-                const cost = calculateShipCost(shipKey, 1, shipyardLevel);
+                const cost = calculateShipCost(shipKey, 1);
                 const buildTime = calculateShipBuildTime(shipKey, 1, shipyardLevel);
                 
                 const canBuild = !isLocked &&
@@ -197,7 +197,7 @@ function renderDefensesList(planet, shipyardData) {
             const defense = availableDefenses[defenseKey];
             const count = defenses[defenseKey] || 0;
             const cost = calculateDefenseCost(defenseKey, 1);
-            const buildTime = calculateDefenseBuildTime(defenseKey, 1);
+            const buildTime = calculateDefenseBuildTime(defenseKey, 1, shipyardLevel);
             
             const canBuild = !isLocked &&
                            planet.resources.metal >= cost.metal &&
@@ -368,16 +368,14 @@ function attachShipyardListeners(planet, shipyardData) {
 /**
  * Calculate ship cost (client-side estimate)
  */
-function calculateShipCost(shipKey, quantity, shipyardLevel) {
+function calculateShipCost(shipKey, quantity) {
     const ship = currentShipyardData.availableShips[shipKey];
     if (!ship) return { metal: 0, crystal: 0, deuterium: 0 };
     
-    const levelMultiplier = Math.pow(1.05, shipyardLevel - 1);
-    
     return {
-        metal: Math.floor(ship.baseCost.metal * quantity * levelMultiplier),
-        crystal: Math.floor(ship.baseCost.crystal * quantity * levelMultiplier),
-        deuterium: Math.floor(ship.baseCost.deuterium * quantity * levelMultiplier)
+        metal: Math.floor(ship.baseCost.metal * quantity),
+        crystal: Math.floor(ship.baseCost.crystal * quantity),
+        deuterium: Math.floor(ship.baseCost.deuterium * quantity)
     };
 }
 
@@ -403,7 +401,8 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
     if (!ship) return 0;
     
     let baseTime = ship.buildTime * quantity * Math.pow(1.1, quantity - 1);
-    const shipyardMultiplier = 1 / (1 + (shipyardLevel * 0.05));
+    // Shipyard level speeds up construction (20% per level, 0.8^n)
+    const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
     
     return Math.floor(baseTime * shipyardMultiplier);
 }
@@ -411,11 +410,13 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
 /**
  * Calculate defense build time (client-side estimate)
  */
-function calculateDefenseBuildTime(defenseKey, quantity) {
+function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1) {
     const defense = currentShipyardData.availableDefenses[defenseKey];
     if (!defense) return 0;
     
     let baseTime = defense.buildTime * quantity * Math.pow(1.05, quantity - 1);
+    // Shipyard level speeds up construction (20% per level, 0.8^n)
+    const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
     
-    return Math.floor(baseTime);
+    return Math.floor(baseTime * shipyardMultiplier);
 }

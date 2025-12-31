@@ -117,50 +117,41 @@ describe('Ships - getShipsByType Function', () => {
 
 describe('Ships - calculateShipCost Function', () => {
   it('should calculate cost for single ship', () => {
-    const cost = calculateShipCost('smallCargo', 1, 1);
+    const cost = calculateShipCost('smallCargo', 1);
     
     expect(cost).not.toBeNull();
     expect(cost.metal).toBeGreaterThan(0);
     expect(cost.crystal).toBeGreaterThan(0);
-    expect(cost.deuterium).toBeGreaterThan(0);
+    // Deuterium cost for smallCargo is now 0
+    expect(cost.deuterium).toBe(0);
   });
 
   it('should scale cost with quantity', () => {
-    const cost1 = calculateShipCost('smallCargo', 1, 1);
-    const cost10 = calculateShipCost('smallCargo', 10, 1);
+    const cost1 = calculateShipCost('smallCargo', 1);
+    const cost10 = calculateShipCost('smallCargo', 10);
     
     expect(cost10.metal).toBe(cost1.metal * 10);
     expect(cost10.crystal).toBe(cost1.crystal * 10);
     expect(cost10.deuterium).toBe(cost1.deuterium * 10);
   });
 
-  it('should increase cost with shipyard level', () => {
-    const costLvl1 = calculateShipCost('smallCargo', 1, 1);
-    const costLvl5 = calculateShipCost('smallCargo', 1, 5);
+  it('should not increase cost with shipyard level', () => {
+    const costLvl1 = calculateShipCost('smallCargo', 1);
+    // Shipyard level parameter is now ignored or removed
+    const costLvl5 = calculateShipCost('smallCargo', 1);
     
-    // 1.05^(5-1) = 1.21550625
-    expect(costLvl5.metal).toBeGreaterThan(costLvl1.metal);
-    expect(costLvl5.crystal).toBeGreaterThan(costLvl1.crystal);
-    expect(costLvl5.deuterium).toBeGreaterThan(costLvl1.deuterium);
-  });
-
-  it('should handle quantity and level multiplier', () => {
-    const cost = calculateShipCost('heavyFighter', 5, 10);
-    
-    const baseShip = getShip('heavyFighter');
-    const levelMultiplier = Math.pow(1.05, 10 - 1);
-    const expectedMetal = Math.floor(baseShip.baseCost.metal * 5 * levelMultiplier);
-    
-    expect(cost.metal).toBe(expectedMetal);
+    expect(costLvl5.metal).toBe(costLvl1.metal);
+    expect(costLvl5.crystal).toBe(costLvl1.crystal);
+    expect(costLvl5.deuterium).toBe(costLvl1.deuterium);
   });
 
   it('should return null for unknown ship', () => {
-    const cost = calculateShipCost('unknownShip', 1, 1);
+    const cost = calculateShipCost('unknownShip', 1);
     expect(cost).toBeNull();
   });
 
   it('should return integer costs', () => {
-    const cost = calculateShipCost('smallCargo', 3, 7);
+    const cost = calculateShipCost('smallCargo', 3);
     
     expect(Number.isInteger(cost.metal)).toBe(true);
     expect(Number.isInteger(cost.crystal)).toBe(true);

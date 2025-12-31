@@ -8,9 +8,9 @@ export const SHIPS = {
     type: 'civilian',
     description: 'Basic transport ship for small cargo operations.',
     baseCost: {
-      metal: 400,
-      crystal: 100,
-      deuterium: 50
+      metal: 2000,
+      crystal: 2000,
+      deuterium: 0
     },
     buildTime: 30,
     cargoCapacity: 5000,
@@ -18,7 +18,7 @@ export const SHIPS = {
     speed: 5000, // Units per hour
     attack: 5,
     shield: 10,
-    hull: 40
+    hull: 400
   },
 
   largeCargo: {
@@ -27,9 +27,9 @@ export const SHIPS = {
     type: 'civilian',
     description: 'Heavy transport ship for large cargo operations.',
     baseCost: {
-      metal: 1200,
-      crystal: 600,
-      deuterium: 300
+      metal: 6000,
+      crystal: 6000,
+      deuterium: 0
     },
     buildTime: 60,
     cargoCapacity: 25000,
@@ -37,7 +37,7 @@ export const SHIPS = {
     speed: 4000, // Units per hour
     attack: 5,
     shield: 20,
-    hull: 100
+    hull: 1200
   },
 
   colonyShip: {
@@ -47,8 +47,8 @@ export const SHIPS = {
     description: 'Colonizes new planets. Single-use, one-way trip.',
     baseCost: {
       metal: 10000,
-      crystal: 4000,
-      deuterium: 1000
+      crystal: 20000,
+      deuterium: 10000
     },
     buildTime: 300,
     cargoCapacity: 0,
@@ -56,7 +56,7 @@ export const SHIPS = {
     speed: 2500, // Units per hour
     attack: 50,
     shield: 100,
-    hull: 2000
+    hull: 3000
   },
 
   recycler: {
@@ -65,9 +65,9 @@ export const SHIPS = {
     type: 'civilian',
     description: 'Collects debris from destroyed ships in battle.',
     baseCost: {
-      metal: 300,
-      crystal: 100,
-      deuterium: 150
+      metal: 10000,
+      crystal: 6000,
+      deuterium: 2000
     },
     buildTime: 45,
     cargoCapacity: 20000,
@@ -75,7 +75,7 @@ export const SHIPS = {
     speed: 2000, // Units per hour
     attack: 1,
     shield: 10,
-    hull: 50
+    hull: 1600
   },
 
   espionageProbe: {
@@ -84,17 +84,17 @@ export const SHIPS = {
     type: 'civilian',
     description: 'Gathers intelligence on target planets.',
     baseCost: {
-      metal: 100,
-      crystal: 200,
-      deuterium: 100
+      metal: 0,
+      crystal: 1000,
+      deuterium: 0
     },
     buildTime: 30,
     cargoCapacity: 5,
-    fuel: 50,
+    fuel: 1,
     speed: 8000, // Units per hour - fastest ship
     attack: 0,
     shield: 1,
-    hull: 5
+    hull: 10
   },
 
   // Military Ships - Fighters
@@ -104,17 +104,17 @@ export const SHIPS = {
     type: 'military',
     description: 'Fast, cheap attack ship with low hull strength.',
     baseCost: {
-      metal: 300,
-      crystal: 100,
-      deuterium: 50
+      metal: 3000,
+      crystal: 1000,
+      deuterium: 0
     },
     buildTime: 30,
     cargoCapacity: 50,
     fuel: 100,
     speed: 7500, // Units per hour
     attack: 50,
-    shield: 30,
-    hull: 100
+    shield: 10,
+    hull: 400
   },
 
   heavyFighter: {
@@ -123,17 +123,17 @@ export const SHIPS = {
     type: 'military',
     description: 'Stronger fighter with better armor and shield.',
     baseCost: {
-      metal: 600,
-      crystal: 300,
-      deuterium: 100
+      metal: 6000,
+      crystal: 4000,
+      deuterium: 0
     },
     buildTime: 60,
     cargoCapacity: 100,
     fuel: 200,
     speed: 6000, // Units per hour
-    attack: 100,
-    shield: 60,
-    hull: 200
+    attack: 150,
+    shield: 25,
+    hull: 1000
   },
 
   // Medium Ships
@@ -143,17 +143,17 @@ export const SHIPS = {
     type: 'military',
     description: 'Medium combat ship, good against fighters.',
     baseCost: {
-      metal: 1200,
-      crystal: 800,
-      deuterium: 400
+      metal: 20000,
+      crystal: 7000,
+      deuterium: 2000
     },
     buildTime: 120,
-    cargoCapacity: 300,
+    cargoCapacity: 800,
     fuel: 500,
     speed: 4000, // Units per hour
-    attack: 200,
-    shield: 150,
-    hull: 500
+    attack: 400,
+    shield: 50,
+    hull: 2700
   },
 
   bomber: {
@@ -162,17 +162,17 @@ export const SHIPS = {
     type: 'military',
     description: 'Specialized for destroying planetary defenses.',
     baseCost: {
-      metal: 800,
-      crystal: 400,
-      deuterium: 300
+      metal: 50000,
+      crystal: 25000,
+      deuterium: 15000
     },
-    buildTime: 90,
-    cargoCapacity: 100,
-    fuel: 400,
+    buildTime: 150,
+    cargoCapacity: 500,
+    fuel: 1000,
     speed: 3000, // Units per hour
-    attack: 150,
-    shield: 40,
-    hull: 300
+    attack: 1000,
+    shield: 25,
+    hull: 7500
   },
 
   // Heavy Ships
@@ -182,17 +182,17 @@ export const SHIPS = {
     type: 'military',
     description: 'Heavy combat ship with high damage and durability.',
     baseCost: {
-      metal: 4000,
-      crystal: 3000,
-      deuterium: 1000
+      metal: 45000,
+      crystal: 15000,
+      deuterium: 0
     },
     buildTime: 240,
-    cargoCapacity: 500,
+    cargoCapacity: 1500,
     fuel: 1000,
     speed: 2000, // Units per hour
-    attack: 500,
-    shield: 300,
-    hull: 1500
+    attack: 1000,
+    shield: 200,
+    hull: 6000
   },
 
   destroyer: {
@@ -201,17 +201,17 @@ export const SHIPS = {
     type: 'military',
     description: 'Anti-capital ship specialized against large vessels.',
     baseCost: {
-      metal: 2000,
-      crystal: 1500,
-      deuterium: 800
+      metal: 60000,
+      crystal: 50000,
+      deuterium: 15000
     },
-    buildTime: 180,
-    cargoCapacity: 250,
-    fuel: 800,
+    buildTime: 300,
+    cargoCapacity: 2000,
+    fuel: 1500,
     speed: 3500, // Units per hour
-    attack: 300,
-    shield: 150,
-    hull: 800
+    attack: 2000,
+    shield: 500,
+    hull: 11000
   }
 };
 
@@ -237,19 +237,16 @@ export function getShipsByType(type) {
 }
 
 /**
- * Calculate ship build cost based on quantity and level
+ * Calculate ship build cost based on quantity
  */
-export function calculateShipCost(shipKey, quantity = 1, shipyardLevel = 1) {
+export function calculateShipCost(shipKey, quantity = 1) {
   const ship = getShip(shipKey);
   if (!ship) return null;
 
-  // Cost increases with shipyard level (ships are more complex to build at higher levels)
-  const levelMultiplier = Math.pow(1.05, shipyardLevel - 1);
-
   return {
-    metal: Math.floor(ship.baseCost.metal * quantity * levelMultiplier),
-    crystal: Math.floor(ship.baseCost.crystal * quantity * levelMultiplier),
-    deuterium: Math.floor(ship.baseCost.deuterium * quantity * levelMultiplier)
+    metal: Math.floor(ship.baseCost.metal * quantity),
+    crystal: Math.floor(ship.baseCost.crystal * quantity),
+    deuterium: Math.floor(ship.baseCost.deuterium * quantity)
   };
 }
 
