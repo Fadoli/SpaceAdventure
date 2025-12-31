@@ -261,16 +261,16 @@ describe('calculateAllocationEffectiveness', () => {
     expect(calculateAllocationEffectiveness(0)).toBe(0);
   });
 
-  it('should return 10000 for 100% allocation (sqrt(100)*100 = 10*100)', () => {
-    // Formula is sqrt(allocation%) * 100
-    // sqrt(100) * 100 = 10 * 100 = 1000
+  it('should return 100 for 100% allocation (sqrt(100)*10 = 10*10 = 100)', () => {
+    // Formula is sqrt(allocation%) * 10
+    // sqrt(100) * 10 = 10 * 10 = 100
     const result = calculateAllocationEffectiveness(100);
-    expect(result).toBe(1000);
+    expect(result).toBe(100);
   });
 
-  it('should use square root formula: sqrt(x) * 100', () => {
+  it('should use square root formula: sqrt(x) * 10', () => {
     const result = calculateAllocationEffectiveness(50);
-    const expected = Math.sqrt(50) * 100;
+    const expected = Math.sqrt(50) * 10;
     expect(result).toBe(expected);
   });
 

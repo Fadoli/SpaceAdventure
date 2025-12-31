@@ -21,10 +21,21 @@ import {
 import { calculateBaseTime } from '../../shared/time.js';
 
 /**
+ * Get the effective building definition for a planet (base or custom)
+ */
+export function getEffectiveBuildingDefinition(buildingType, planet = null, player = null) {
+  const currentVariant = (planet?.activeVariants && planet.activeVariants[buildingType]) || 'base';
+  if (currentVariant === 'custom' && player && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+    return player.customBuildingVariants[buildingType].customDefinition;
+  }
+  return BUILDINGS[buildingType];
+}
+
+/**
  * Calculate building cost for a specific level (server-side with config multipliers)
  */
-export function getBuildingCost(buildingType, level) {
-  const building = BUILDINGS[buildingType];
+export function getBuildingCost(buildingType, level, planet = null, player = null) {
+  const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building) return null;
   
   const multiplier = Math.pow(1.5, level);
@@ -40,8 +51,8 @@ export function getBuildingCost(buildingType, level) {
 /**
  * Calculate building construction time (server-side with config multipliers)
  */
-export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel = 0) {
-  const building = BUILDINGS[buildingType];
+export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel = 0, planet = null, player = null) {
+  const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building) return 0;
   
   const baseTime = calculateBaseTime(building) * Math.pow(1.5, level - 1);
@@ -63,8 +74,8 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
 /**
  * Calculate production for a building level (server-side with config multipliers)
  */
-export function getProduction(buildingType, level) {
-  const building = BUILDINGS[buildingType];
+export function getProduction(buildingType, level, planet = null, player = null) {
+  const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building || !building.production) return {};
   
   const production = {};
@@ -82,8 +93,8 @@ export function getProduction(buildingType, level) {
 /**
  * Calculate storage capacity increase for a building level (server-side with config multipliers)
  */
-export function getStorageIncrease(buildingType, level) {
-  const building = BUILDINGS[buildingType];
+export function getStorageIncrease(buildingType, level, planet = null, player = null) {
+  const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building || !building.storage) return {};
   
   const storage = {};
@@ -148,7 +159,7 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   }
   
   // Calculate cost
-  const cost = getBuildingCost(buildingType, nextLevel);
+  const cost = getBuildingCost(buildingType, nextLevel, planet, player);
   
   // Check resources
   if (planet.resources.metal < cost.metal ||
@@ -160,7 +171,7 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   // Calculate build time
   const roboticsLevel = planet.buildings.roboticsFactory || 0;
   const naniteLevel = planet.buildings.naniteFactory || 0;
-  const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel);
+  const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel, planet, player);
   
   // Deduct resources
   planet.resources.metal -= cost.metal;
@@ -342,11 +353,11 @@ function calculateTotalEnergyProduction(planet, player = null) {
     const level = planet.buildings[buildingType];
     if (level === 0) continue;
     
-    const building = BUILDINGS[buildingType];
+    const building = getEffectiveBuildingDefinition(buildingType, planet, player);
     if (!building || !building.production || !building.production.energy) continue;
     
     const allocation = planet.buildingAllocations[buildingType] || { power: 1.0, population: 1.0 };
-    const production = getProduction(buildingType, level);
+    const production = getProduction(buildingType, level, planet, player);
     
     if (production.energy) {
       // For energy producers, apply population effectiveness only (they don't consume power)
@@ -523,30 +534,20 @@ export function updatePlanetProduction(planet, player = null) {
     const level = planet.buildings[buildingType];
     if (level === 0) continue;
     
-    const building = BUILDINGS[buildingType];
+    // Get effective building definition (custom or base)
+    const building = getEffectiveBuildingDefinition(buildingType, planet, player);
     if (!building) continue;
     
-    // Get base production
-    const production = getProduction(buildingType, level);
+    // Get base production (already takes variant into account through definition)
+    const production = getProduction(buildingType, level, planet, player);
     
     // Get ACTUAL allocation (computed based on priority and available resources)
     const actualAllocation = actualAllocations[buildingType] || { power: 1.0, population: 1.0 };
     
-    // Calculate effectiveness from ACTUAL power allocation
-    const powerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power) / 100;
-    
-    // Calculate effectiveness from ACTUAL population allocation
-    const populationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population) / 100;
-    
-    // Combined effectiveness (multiplicative)
+    // Calculate effectiveness from ACTUAL allocations
+    const powerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power * 100) / 100;
+    const populationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population * 100) / 100;
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
-    
-    // Apply variant modifiers if building is using custom variant
-    let variantModifiers = null;
-    const currentVariant = planet.activeVariants && planet.activeVariants[buildingType];
-    if (currentVariant === 'custom' && player && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
-      variantModifiers = player.customBuildingVariants[buildingType].modifiers;
-    }
     
     // Apply position multiplier for relevant resources
     for (const resource in production) {
@@ -564,14 +565,6 @@ export function updatePlanetProduction(planet, player = null) {
       // Apply effectiveness
       amount *= totalEffectiveness;
       
-      // Apply variant modifiers for production multiplier
-      if (variantModifiers) {
-        const modifierKey = `${resource}Multiplier`;
-        if (variantModifiers[modifierKey]) {
-          amount *= variantModifiers[modifierKey];
-        }
-      }
-      
       planet.production[resource] = (planet.production[resource] || 0) + Math.floor(amount);
     }
     
@@ -579,11 +572,6 @@ export function updatePlanetProduction(planet, player = null) {
     if (building.energyConsumption) {
       const energyMultiplier = getResourceProductionMultiplier();
       let baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
-      
-      // Apply variant energy multiplier if applicable
-      if (variantModifiers && variantModifiers.energyMultiplier) {
-        baseConsumption = Math.floor(baseConsumption * variantModifiers.energyMultiplier);
-      }
       
       // Apply research efficiency bonus (never reduce below 50% of base consumption)
       baseConsumption = Math.floor(baseConsumption * Math.max(0.5, energyEfficiencyBonus));
@@ -601,12 +589,6 @@ export function updatePlanetProduction(planet, player = null) {
     // Calculate population requirements using ACTUAL allocation
     if (building.populationRequired) {
       let basePopRequired = Math.floor(building.populationRequired * level * Math.pow(1.05, level));
-      
-      // Apply variant population multiplier if applicable
-      if (variantModifiers && variantModifiers.populationMultiplier) {
-        basePopRequired = Math.floor(basePopRequired * variantModifiers.populationMultiplier);
-      }
-      
       totalPopulationRequired += Math.floor(basePopRequired * actualAllocation.population);
     }
   }

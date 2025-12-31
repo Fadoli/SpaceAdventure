@@ -162,16 +162,16 @@ export async function updateBuildingsView(planet, onStateChange) {
             let allocationBadge = '';
             if (hasAllocation && allocation) {
                 // Calculate desired effectiveness using shared formula
-                const powerEff = calculateAllocationEffectiveness(allocation.power) / 100;
-                const popEff = calculateAllocationEffectiveness(allocation.population) / 100;
+                const powerEff = calculateAllocationEffectiveness(allocation.power * 100) / 100;
+                const popEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
                 const totalEff = powerEff * popEff;
                 const effPercent = (totalEff * 100).toFixed(0);
                 
                 // Calculate ACTUAL effectiveness if available
                 let actualBadge = '';
                 if (actualAllocation) {
-                    const actualPowerEff = calculateAllocationEffectiveness(actualAllocation.power) / 100;
-                    const actualPopEff = calculateAllocationEffectiveness(actualAllocation.population) / 100;
+                    const actualPowerEff = calculateAllocationEffectiveness(actualAllocation.power * 100) / 100;
+                    const actualPopEff = calculateAllocationEffectiveness(actualAllocation.population * 100) / 100;
                     const actualTotalEff = actualPowerEff * actualPopEff;
                     const actualEffPercent = (actualTotalEff * 100).toFixed(0);
                     const actualEffClass = actualTotalEff >= 0.9 ? 'good' : actualTotalEff >= 0.6 ? 'medium' : 'low';

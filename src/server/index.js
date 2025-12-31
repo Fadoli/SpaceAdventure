@@ -8,7 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches } from './game/buildings.js';
+import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches, getEffectiveBuildingDefinition } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { 
   startTheoreticalResearch, 
@@ -546,7 +546,8 @@ async function handleRequest(req) {
       const maxQueueSize = getBuildQueueSize();
       
       for (const buildingType in BUILDINGS) {
-        const buildingDef = BUILDINGS[buildingType];
+        // Get effective building definition (custom or base)
+        const buildingDef = getEffectiveBuildingDefinition(buildingType, planet, player);
         const currentLevel = planet.buildings[buildingType] || 0;
         
         // Find the highest level of this building in the queue
@@ -561,43 +562,31 @@ async function handleRequest(req) {
         const nextLevel = highestQueuedLevel + 1;
         
         // Calculate cost for next level
-        const cost = getBuildingCost(buildingType, nextLevel);
+        const cost = getBuildingCost(buildingType, nextLevel, planet, player);
         
         // Calculate build time
         const roboticsLevel = planet.buildings.roboticsFactory || 0;
         const naniteLevel = planet.buildings.naniteFactory || 0;
-        const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel);
+        const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel, planet, player);
         
-        // Calculate production for next level
-        let production = getProduction(buildingType, nextLevel);
-        
-        // Apply variant modifiers if building is using custom variant
-        const currentVariant = (planet.activeVariants && planet.activeVariants[buildingType]) || 'base';
-        if (currentVariant === 'custom' && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
-          const variantModifiers = player.customBuildingVariants[buildingType].modifiers;
-          const modifiedProduction = {};
-          for (const resource in production) {
-            const modifierKey = `${resource}Multiplier`;
-            if (variantModifiers[modifierKey]) {
-              modifiedProduction[resource] = Math.floor(production[resource] * variantModifiers[modifierKey]);
-            } else {
-              modifiedProduction[resource] = production[resource];
-            }
-          }
-          production = modifiedProduction;
-        }
+        // Calculate production for next level (already handles variant via definition)
+        let production = getProduction(buildingType, nextLevel, planet, player);
         
         // Calculate storage for next level
         let storage = null;
         if (buildingDef.storage) {
-          storage = getStorageIncrease(buildingType, nextLevel);
+          storage = getStorageIncrease(buildingType, nextLevel, planet, player);
         }
         
         // Calculate energy consumption for next level
         let energyConsumption = 0;
         if (buildingDef.energyConsumption) {
           const productionMultiplier = 10.0; // From config
-          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier);
+          // Energy efficiency from research
+          const energyTechLevel = player?.research?.energyTech || 0;
+          const energyEfficiencyBonus = 1 - (energyTechLevel * 0.05); // 5% reduction per level
+          
+          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier * Math.max(0.5, energyEfficiencyBonus));
         }
         
         // Calculate deuterium consumption for next level
@@ -623,10 +612,9 @@ async function handleRequest(req) {
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
           description: buildingDef.description,
-          icon: buildingDef.icon || '',
+          icon: buildingDef.icon,
           currentLevel,
           nextLevel,
-          maxLevel: buildingDef.maxLevel,
           cost,
           buildTime,
           production,
@@ -638,7 +626,7 @@ async function handleRequest(req) {
           requirementsList,
           hasCustomVariant,
           customVariant,
-          currentVariant
+          currentVariant: (planet.activeVariants && planet.activeVariants[buildingType]) || 'base'
         };
       }
       

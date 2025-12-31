@@ -158,13 +158,13 @@ export async function renderAllocation() {
     const populationRequired = basePopulationRequired * allocation.population;
     
     // Calculate desired effectiveness
-    const powerEffectiveness = calculateAllocationEffectiveness(allocation.power) / 100;
-    const populationEffectiveness = calculateAllocationEffectiveness(allocation.population) / 100;
+    const powerEffectiveness = calculateAllocationEffectiveness(allocation.power * 100) / 100;
+    const populationEffectiveness = calculateAllocationEffectiveness(allocation.population * 100) / 100;
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
     
     // Calculate ACTUAL effectiveness (based on priority and available resources)
-    const actualPowerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power) / 100;
-    const actualPopulationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population) / 100;
+    const actualPowerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power * 100) / 100;
+    const actualPopulationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population * 100) / 100;
     const actualTotalEffectiveness = actualPowerEffectiveness * actualPopulationEffectiveness;
     
     // Check if building has energy consumption (skip power slider for solarPlant)
@@ -272,7 +272,7 @@ export function setupAllocationHandlers() {
       const labelRow = e.target.parentElement.querySelector('.allocation-label-row');
       
       // Update effectiveness display and required resources
-      const effectiveness = calculateAllocationEffectiveness(value / 100) / 100;
+      const effectiveness = calculateAllocationEffectiveness(value) / 100;
       const effectivenessPercent = effectiveness * 100;
       
       if (labelRow) {
@@ -332,8 +332,8 @@ function updateEffectivenessBadge(buildingType) {
   
   if (!powerSlider || !populationSlider) return;
   
-  const powerPercent = parseFloat(powerSlider.value) / 100;
-  const populationPercent = parseFloat(populationSlider.value) / 100;
+  const powerPercent = parseFloat(powerSlider.value);
+  const populationPercent = parseFloat(populationSlider.value);
   
   const powerEff = calculateAllocationEffectiveness(powerPercent) / 100;
   const popEff = calculateAllocationEffectiveness(populationPercent) / 100;
@@ -408,7 +408,7 @@ async function undoAllAllocations() {
         powerSlider.value = saved.power * 100;
         const labelRow = powerSlider.parentElement.querySelector('.allocation-label-row');
         if (labelRow) {
-          const effectiveness = calculateAllocationEffectiveness(saved.power) / 100;
+          const effectiveness = calculateAllocationEffectiveness(saved.power * 100) / 100;
           const effectivenessPercent = effectiveness * 100;
           const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
           const energyRequired = baseEnergyRequired * saved.power;
@@ -423,7 +423,7 @@ async function undoAllAllocations() {
         populationSlider.value = saved.population * 100;
         const labelRow = populationSlider.parentElement.querySelector('.allocation-label-row');
         if (labelRow) {
-          const effectiveness = calculateAllocationEffectiveness(saved.population) / 100;
+          const effectiveness = calculateAllocationEffectiveness(saved.population * 100) / 100;
           const effectivenessPercent = effectiveness * 100;
           const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, BUILDINGS);
           const populationRequired = basePopulationRequired * saved.population;

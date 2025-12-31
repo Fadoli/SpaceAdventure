@@ -33,10 +33,10 @@ describe('Client-Side Calculations - Allocation Effectiveness', () => {
 
   it('should match expected square root values', () => {
     const testValues = [
-      { input: 50, expected: Math.sqrt(50) * 100 },
-      { input: 100, expected: 1000 }, // sqrt(100) * 100 = 10 * 100
-      { input: 200, expected: Math.sqrt(200) * 100 },
-      { input: 400, expected: 2000 } // sqrt(400) * 100 = 20 * 100
+      { input: 50, expected: Math.sqrt(50) * 10 },
+      { input: 100, expected: 100 }, // sqrt(100) * 10 = 10 * 10 = 100
+      { input: 200, expected: Math.sqrt(200) * 10 },
+      { input: 400, expected: 200 } // sqrt(400) * 10 = 20 * 10 = 200
     ];
     
     testValues.forEach(test => {

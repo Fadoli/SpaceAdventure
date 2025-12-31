@@ -464,7 +464,8 @@ export function calculateFocusModifiers(research, focusLevels) {
  * Apply practical research modifiers to a building/ship definition
  */
 export function applyCustomization(baseDefinition, modifiers) {
-  const customized = { ...baseDefinition };
+  // Deep clone the definition to avoid modifying the original constants
+  const customized = JSON.parse(JSON.stringify(baseDefinition));
 
   // Apply production modifier
   if (modifiers.productionMultiplier !== 1 && customized.production) {

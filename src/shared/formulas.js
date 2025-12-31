@@ -104,12 +104,12 @@ export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, 
 }
 /**
  * Calculate effectiveness based on allocation percentage
- * Non-linear: 50% = 66%, 100% = 100%, 200% = 150%
- * Formula: effectiveness = sqrt(allocation%) * 100%
+ * Non-linear: 50% = 70.7%, 100% = 100%, 200% = 141.4%
+ * Formula: effectiveness = sqrt(allocation%) * 10
  */
 export function calculateAllocationEffectiveness(allocationPercent) {
   if (allocationPercent <= 0) return 0;
-  return Math.sqrt(allocationPercent) * 100;
+  return Math.sqrt(allocationPercent) * 10;
 }
 
 /**
