@@ -6,6 +6,23 @@ import { calculateBaseTime } from '../../../shared/time.js';
 let currentPlanetId = null;
 let researchData = null;
 let lastResearchStateHash = null;
+let researchQueueVisible = true;
+
+/**
+ * Toggle research queue visibility
+ */
+window.toggleResearchQueueVisibility = function() {
+    researchQueueVisible = !researchQueueVisible;
+    lastResearchStateHash = null; // Force re-render
+    
+    // Find which tab is active and re-render it
+    const activeTab = document.querySelector('.research-tabs .tab-btn.active');
+    if (activeTab) {
+        const tab = activeTab.dataset.tab;
+        if (tab === 'theoretical') renderTheoreticalResearch();
+        else if (tab === 'practical') renderPracticalResearch();
+    }
+};
 
 /**
  * Calculate theoretical research cost for a given level
@@ -187,35 +204,31 @@ function renderTheoreticalResearch() {
 
   // Show research queue at the top if there are items
   if (queue.length > 0) {
-    html += '<div class="research-queue-section">';
-    html += `<h3>🔬 Research Queue (${queue.length})</h3>`;
-    html += '<div class="queue-list">';
+    html += `
+      <div class="research-queue-section">
+        <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <h3 style="margin: 0;">🔬 Research Queue (${queue.length})</h3>
+          <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
+        </div>
+        <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
+    `;
     
     for (const queueItem of queue) {
       const tech = theoryResearch[queueItem.techKey];
       if (!tech) continue;
       
       const isActive = queue.indexOf(queueItem) === 0;
-      const timeRemaining = Math.max(0, queueItem.endTime - Date.now());
       const progressPercent = queueItem.progress || 0;
       
       html += `
         <div class="queue-item ${isActive ? 'active' : ''}">
-          <div class="queue-item-info">
-            <strong>${queue.indexOf(queueItem) + 1}. ${tech.icon} ${tech.name}</strong>
-            <span>→ Level ${queueItem.level}</span>
-          </div>
-          <div class="queue-item-progress">
-            ${isActive ? `
-              <div class="progress-bar" style="width: 200px;">
-                <div class="progress-fill" style="width: ${progressPercent}%"></div>
-              </div>
-              <span class="progress-text">${progressPercent}%</span>
-              <span class="building-now">⚗️ Researching</span>
-            ` : ''}
+          <div class="queue-item-info-row">
+            <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
+            <span class="q-name" title="${tech.name}">${tech.icon} ${tech.name}</span>
+            <span class="q-level">Lvl ${queueItem.level}</span>
             <span class="timer" data-finish="${queueItem.endTime}"></span>
+            <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Cancel">✕</button>
           </div>
-          <button class="btn-cancel" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Cancel">❌</button>
         </div>
       `;
     }
@@ -308,23 +321,30 @@ async function renderPracticalResearch() {
     
     // Show active research queue
     if (queue && queue.length > 0) {
-      html += '<div class="research-queue-section">';
-      html += '<h3>Research Queue</h3>';
-      html += '<div class="queue-list">';
+      html += `
+        <div class="research-queue-section">
+          <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <h3 style="margin: 0;">🔬 Research Queue (${queue.length})</h3>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
+          </div>
+          <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
+      `;
       for (const queueItem of queue) {
         const research = Object.values(practical).find(r => r.baseType === queueItem.baseType);
         if (!research) continue;
         
+        const isActive = queue.indexOf(queueItem) === 0;
         const timeRemaining = Math.max(0, queueItem.endTime - Date.now());
         const progressPercent = queueItem.progress || 0;
         html += `
-          <div class="queue-item">
-            <span class="queue-research">${research.icon} ${research.name} Lvl ${queueItem.level}</span>
-            <div class="queue-progress">
-              <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
-              <span class="time-text">${formatTime(timeRemaining)}</span>
+          <div class="queue-item ${isActive ? 'active' : ''}">
+            <div class="queue-item-info-row">
+              <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
+              <span class="q-name" title="${research.name}">${research.icon} ${research.name}</span>
+              <span class="q-level">Lvl ${queueItem.level}</span>
+              <span class="timer" data-finish="${queueItem.endTime}"></span>
+              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${queueItem.id}')" title="Cancel">✕</button>
             </div>
-            <button class="btn-icon" onclick="cancelPracticalResearch('${queueItem.id}')">✕</button>
           </div>
         `;
       }
