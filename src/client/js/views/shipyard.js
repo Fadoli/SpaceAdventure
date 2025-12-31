@@ -270,7 +270,6 @@ function renderBuildQueue(shipyardData) {
             const isActive = item.queuePosition === 1;
             const timeRemaining = Math.max(0, item.timeRemaining || 0) / 1000; // Convert to seconds
             
-            let itemName = '';
             let itemDetails = '';
             
             if (item.ships && !isEmpty(item.ships)) {
@@ -291,19 +290,17 @@ function renderBuildQueue(shipyardData) {
             
             html += `
                 <div class="queue-item ${isActive ? 'active' : ''}">
-                    <div class="queue-position">${item.queuePosition}</div>
-                    <div class="queue-content">
-                        <div class="queue-name">${itemDetails}</div>
-                        <div class="queue-progress">
-                            <div class="progress-bar">
+                    <div class="queue-item-row">
+                        <span class="q-pos">${item.queuePosition}.</span>
+                        <div class="q-content-mini">
+                            <span class="q-name">${itemDetails}</span>
+                            <div class="progress-bar-mini">
                                 <div class="progress-fill" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
                             </div>
                         </div>
+                        <span class="q-time-mini">${isActive ? formatCountdown(timeRemaining) : 'Waiting'}</span>
+                        <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>
                     </div>
-                    <div class="queue-time">
-                        ${isActive ? `⏳ ${formatCountdown(timeRemaining)}` : '⏳ Waiting'}
-                    </div>
-                    <button class="btn btn-danger btn-sm" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>
                 </div>
             `;
         }

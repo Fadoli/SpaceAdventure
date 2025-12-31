@@ -361,6 +361,22 @@ export async function updateBuildingsView(planet, onStateChange) {
     updateTimers();
 }
 
+let queueVisible = true;
+
+/**
+ * Toggle queue visibility
+ */
+window.toggleQueueVisibility = function() {
+    queueVisible = !queueVisible;
+    lastQueueStateHash = null; // Force re-render
+    const planet = currentGameState?.planets[0];
+    if (planet) {
+        API.getBuildingDetails(planet.id).then(details => {
+            updateQueueView(details.queue, details.maxQueueSize, details.buildings);
+        });
+    }
+};
+
 /**
  * Update the queue view independently
  */
@@ -370,21 +386,22 @@ function updateQueueView(queue, maxQueueSize, buildings) {
     if (queue.length > 0) {
         const queueSummary = `
             <div class="build-queue-summary">
-                <h3>🔨 Build Queue (${queue.length}/${maxQueueSize})</h3>
-                <div class="queue-items">
+                <div class="queue-header" onclick="window.toggleQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">🔨 Queue (${queue.length}/${maxQueueSize})</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">${queueVisible ? '🔼' : '🔽'}</span>
+                </div>
+                <div class="queue-items" style="${queueVisible ? 'margin-top: 4px;' : 'display: none;'}">
                     ${queue.map((item, index) => {
                         const isActive = index === 0;
                         return `
                             <div class="queue-item ${isActive ? 'active' : ''}">
-                                <div class="queue-item-info">
-                                    <strong>${item.queuePosition}. ${buildings[item.building]?.icon || ''} ${buildings[item.building]?.name || item.building}</strong>
-                                    <span>→ Level ${item.level}</span>
-                                </div>
-                                <div class="queue-item-time">
-                                    ${isActive ? '<span class="building-now">⚙️ Building</span>' : ''}
+                                <div class="queue-item-info-row">
+                                    <span class="q-pos">${item.queuePosition}</span>
+                                    <span class="q-name" title="${buildings[item.building]?.name || item.building}">${buildings[item.building]?.icon || ''} ${buildings[item.building]?.name || item.building}</span>
+                                    <span class="q-level">Lvl ${item.level}</span>
                                     <span class="timer" data-finish="${item.finishTime}"></span>
+                                    <button class="btn-cancel-small" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">✕</button>
                                 </div>
-                                <button class="btn-cancel" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">❌</button>
                             </div>
                         `;
                     }).join('')}
