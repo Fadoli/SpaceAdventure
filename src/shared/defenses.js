@@ -150,8 +150,8 @@ export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLeve
   const defense = getDefense(defenseKey);
   if (!defense) return 0;
 
-  // Base time increases with quantity
-  let baseTime = defense.buildTime * quantity * Math.pow(1.05, quantity - 1);
+  // Base time increases linearly with quantity
+  let baseTime = defense.buildTime * quantity;
 
   // Shipyard level speeds up construction (20% per level, 0.8^n)
   const shipyardMultiplier = Math.pow(0.8, shipyardLevel);

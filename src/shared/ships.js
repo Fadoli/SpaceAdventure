@@ -257,8 +257,8 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   const ship = getShip(shipKey);
   if (!ship) return 0;
 
-  // Base time increases with quantity
-  let baseTime = ship.buildTime * quantity * Math.pow(1.1, quantity - 1);
+  // Base time increases linearly with quantity
+  let baseTime = ship.buildTime * quantity;
 
   // Shipyard level speeds up construction (20% per level, 0.8^n)
   const shipyardMultiplier = Math.pow(0.8, shipyardLevel);

@@ -165,17 +165,17 @@ describe('Defenses - calculateDefenseBuildTime Function', () => {
     const time1 = calculateDefenseBuildTime('laserCannon', 1, 1, 0, 0);
     const time5 = calculateDefenseBuildTime('laserCannon', 5, 1, 0, 0);
     
-    expect(time5).toBeGreaterThan(time1);
+    // Should scale linearly: 5 defenses = 5x time
+    expect(time5).toBe(time1 * 5);
   });
 
-  it('should apply exponential scaling with quantity', () => {
+  it('should scale linearly with quantity', () => {
     const time1 = calculateDefenseBuildTime('shield', 1, 1, 0, 0);
     const time2 = calculateDefenseBuildTime('shield', 2, 1, 0, 0);
     const time3 = calculateDefenseBuildTime('shield', 3, 1, 0, 0);
     
-    // Should use 1.05^(quantity-1) multiplier
-    expect(time2).toBeGreaterThan(time1);
-    expect(time3).toBeGreaterThan(time2);
+    expect(time2).toBe(time1 * 2);
+    expect(time3).toBe(time1 * 3);
   });
 
   it('should decrease build time with robotics level', () => {

@@ -400,7 +400,7 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
     const ship = currentShipyardData.availableShips[shipKey];
     if (!ship) return 0;
     
-    let baseTime = ship.buildTime * quantity * Math.pow(1.1, quantity - 1);
+    let baseTime = ship.buildTime * quantity;
     // Shipyard level speeds up construction (20% per level, 0.8^n)
     const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
     
@@ -414,7 +414,7 @@ function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1) {
     const defense = currentShipyardData.availableDefenses[defenseKey];
     if (!defense) return 0;
     
-    let baseTime = defense.buildTime * quantity * Math.pow(1.05, quantity - 1);
+    let baseTime = defense.buildTime * quantity;
     // Shipyard level speeds up construction (20% per level, 0.8^n)
     const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
     
