@@ -1,16 +1,16 @@
 // Game formulas and calculations
 import { BUILDINGS } from './buildings.js';
 import { calculateBaseTime } from './time.js';
-import { BUILDING_SPEED_MULTIPLIER } from './constants.js';
+import { BUILDING_SPEED_MULTIPLIER, SCALING } from './constants.js';
 
 /**
  * Calculate building cost based on level
  */
 export function calculateBuildingCost(baseCost, level) {
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
+    metal: Math.floor(baseCost.metal * Math.pow(SCALING.BUILDING_COST, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.BUILDING_COST, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.BUILDING_COST, level))
   };
 }
 
@@ -19,7 +19,7 @@ export function calculateBuildingCost(baseCost, level) {
  */
 export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0, configMultiplier = 1.0) {
   const baseTime = calculateBaseTime(building);
-  const time = baseTime * Math.pow(1.5, level - 1);
+  const time = baseTime * Math.pow(SCALING.BUILDING_TIME, level - 1);
   const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
   
@@ -28,14 +28,14 @@ export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLev
 
 /**
  * Calculate resource production per hour
- * Formula: baseProduction * level * 1.1^level
+ * Formula: baseProduction * level * productionScaling^level
  * Optionally applies variant modifier (e.g., custom building variant with +49% production)
  * @param {number} baseProduction - Base production amount
  * @param {number} level - Building level
  * @param {number} variantMultiplier - Optional variant modifier (default 1.0)
  */
 export function calculateProduction(baseProduction, level, variantMultiplier = 1.0) {
-  return Math.floor(baseProduction * level * Math.pow(1.1, level) * variantMultiplier);
+  return Math.floor(baseProduction * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * variantMultiplier);
 }
 
 /**
@@ -43,9 +43,9 @@ export function calculateProduction(baseProduction, level, variantMultiplier = 1
  */
 export function calculateResearchCost(baseCost, level) {
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
+    metal: Math.floor(baseCost.metal * Math.pow(SCALING.RESEARCH_COST, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.RESEARCH_COST, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.RESEARCH_COST, level))
   };
 }
 
@@ -54,7 +54,7 @@ export function calculateResearchCost(baseCost, level) {
  */
 export function calculateResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(1.5, level);
+  const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
@@ -65,7 +65,7 @@ export function calculateResearchTime(research, level, labLevel = 1, researchSpe
  * Calculate storage capacity
  */
 export function calculateStorage(baseStorage, level) {
-  return Math.floor(baseStorage * Math.pow(1.5, level));
+  return Math.floor(baseStorage * Math.pow(SCALING.BUILDING_STORAGE, level));
 }
 
 /**
@@ -201,10 +201,10 @@ export function getBuildingEnergyConsumption(buildingType, level, buildingsObj =
   const building = buildingsObj[buildingType];
   if (!building || !building.energyConsumption) return 0;
   
-  // Energy consumption scales exponentially: base * level * (1.1 ^ level) * 10
+  // Energy consumption scales exponentially: base * level * (energyScaling ^ level) * 10
   // This matches the buildings view calculation
   const energyMultiplier = 10.0;
-  return Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+  return Math.floor(building.energyConsumption * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
 }
 
 /**
@@ -217,10 +217,9 @@ export function getBuildingPopulationRequired(buildingType, level, buildingsObj 
   const building = buildingsObj[buildingType];
   if (!building || !building.populationRequired) return 0;
   
-  // Population requirement scales exponentially: base * level * (1.05 ^ level)
+  // Population requirement scales exponentially: base * level * (popScaling ^ level)
   // This matches the buildings view calculation
-  const populationMultiplier = 1.05;
-  return Math.floor(building.populationRequired * level * Math.pow(populationMultiplier, level));
+  return Math.floor(building.populationRequired * level * Math.pow(SCALING.BUILDING_POPULATION, level));
 }
 
 /**

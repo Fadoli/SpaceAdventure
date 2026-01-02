@@ -9,7 +9,7 @@ import {
   calculateAllocationEffectiveness,
   calculatePositionMultiplier
 } from '../../shared/formulas.js';
-import { CONFIG, BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
+import { CONFIG, BUILDING_SPEED_MULTIPLIER, SCALING } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { 
   getBuildQueueSize, 
@@ -38,7 +38,7 @@ export function getBuildingCost(buildingType, level, planet = null, player = nul
   const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building) return null;
   
-  const multiplier = Math.pow(1.5, level);
+  const multiplier = Math.pow(SCALING.BUILDING_COST, level);
   const costMultiplier = getResourceCostMultiplier();
   
   return {
@@ -55,7 +55,7 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building) return 0;
   
-  const baseTime = calculateBaseTime(building) * Math.pow(1.5, level - 1);
+  const baseTime = calculateBaseTime(building) * Math.pow(SCALING.BUILDING_TIME, level - 1);
   
   // Robotics factory speeds up construction (inverse formula: 1 / 0.85^n)
   const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
@@ -83,8 +83,8 @@ export function getProduction(buildingType, level, planet = null, player = null)
   
   for (const resource in building.production) {
     const baseAmount = building.production[resource];
-    // Production increases by 1.1^level, then apply config multiplier
-    production[resource] = Math.floor(baseAmount * level * Math.pow(1.1, level) * productionMultiplier);
+    // Production increases by productionScaling^level, then apply config multiplier
+    production[resource] = Math.floor(baseAmount * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * productionMultiplier);
   }
   
   return production;
@@ -102,7 +102,7 @@ export function getStorageIncrease(buildingType, level, planet = null, player = 
   
   for (const resource in building.storage) {
     const baseAmount = building.storage[resource];
-    storage[resource] = Math.floor(baseAmount * Math.pow(1.6, level - 1) * storageMultiplier);
+    storage[resource] = Math.floor(baseAmount * Math.pow(SCALING.BUILDING_STORAGE, level - 1) * storageMultiplier);
   }
   
   return storage;
@@ -571,7 +571,7 @@ export function updatePlanetProduction(planet, player = null) {
     // Calculate energy consumption using ACTUAL allocation
     if (building.energyConsumption) {
       const energyMultiplier = getResourceProductionMultiplier();
-      let baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(1.1, level) * energyMultiplier);
+      let baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
       
       // Apply research efficiency bonus (never reduce below 50% of base consumption)
       baseConsumption = Math.floor(baseConsumption * Math.max(0.5, energyEfficiencyBonus));
@@ -582,13 +582,13 @@ export function updatePlanetProduction(planet, player = null) {
     
     // Calculate water consumption (for farms)
     if (building.waterConsumption) {
-      const baseWaterConsumption = Math.floor(building.waterConsumption * level * Math.pow(1.1, level));
+      const baseWaterConsumption = Math.floor(building.waterConsumption * level * Math.pow(SCALING.BUILDING_PRODUCTION, level));
       totalWaterConsumption += Math.floor(baseWaterConsumption * totalEffectiveness);
     }
     
     // Calculate population requirements using ACTUAL allocation
     if (building.populationRequired) {
-      let basePopRequired = Math.floor(building.populationRequired * level * Math.pow(1.05, level));
+      let basePopRequired = Math.floor(building.populationRequired * level * Math.pow(SCALING.BUILDING_POPULATION, level));
       totalPopulationRequired += Math.floor(basePopRequired * actualAllocation.population);
     }
   }
@@ -601,7 +601,7 @@ export function updatePlanetProduction(planet, player = null) {
   
   // Calculate max population from housing
   const housingLevel = planet.buildings.housing || 0;
-  planet.maxPopulation = CONFIG.POPULATION_HOUSING_RATIO * housingLevel * Math.pow(1.1, housingLevel);
+  planet.maxPopulation = CONFIG.POPULATION_HOUSING_RATIO * housingLevel * Math.pow(SCALING.BUILDING_PRODUCTION, housingLevel);
   
   // Food consumption based on current population
   const currentPop = planet.resources.population || 0;

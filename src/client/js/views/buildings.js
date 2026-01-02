@@ -1,7 +1,7 @@
 // Buildings view logic
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
-import { RESOURCE_ICONS } from '../../../shared/constants.js';
+import { RESOURCE_ICONS, SCALING } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -89,8 +89,8 @@ export async function updateBuildingsView(planet, onStateChange) {
                     // Calculate current level storage
                     let currentAmount = 0;
                     if (building.currentLevel > 0) {
-                        const baseAmount = nextAmount / Math.pow(1.6, building.nextLevel - 1);
-                        currentAmount = Math.floor(baseAmount * Math.pow(1.6, building.currentLevel - 1));
+                        const baseAmount = nextAmount / Math.pow(SCALING.BUILDING_STORAGE, building.nextLevel - 1);
+                        currentAmount = Math.floor(baseAmount * Math.pow(SCALING.BUILDING_STORAGE, building.currentLevel - 1));
                     }
                     const diff = nextAmount - currentAmount;
                     const icon = RESOURCE_ICONS[resource] || '❓';
@@ -107,8 +107,8 @@ export async function updateBuildingsView(planet, onStateChange) {
                 if (building.currentLevel > 0 && !isEmpty(nextProd)) {
                     for (const resource in nextProd) {
                         const nextAmount = nextProd[resource];
-                        const baseAmount = nextAmount / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0);
-                        currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0);
+                        const baseAmount = nextAmount / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * 10.0);
+                        currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.currentLevel) * 10.0);
                     }
                 }
                 
@@ -144,12 +144,12 @@ export async function updateBuildingsView(planet, onStateChange) {
             if (key === 'fusionReactor' && building.deuteriumConsumption > 0) {
                 // For Fusion Reactor, show deuterium consumption instead
                 const currentDeuterium = building.currentLevel > 0 ? 
-                    Math.floor((building.deuteriumConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0) : 0;
+                    Math.floor((building.deuteriumConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.currentLevel) * 10.0) : 0;
                 const deuteriumDiff = building.deuteriumConsumption - currentDeuterium;
                 energyInfo = `<div class="building-energy">🛢️ -${formatNumber(deuteriumDiff)}/h</div>`;
             } else if (building.energyConsumption > 0) {
                 const currentEnergy = building.currentLevel > 0 ? 
-                    Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(1.1, building.currentLevel) * 10.0) : 0;
+                    Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.currentLevel) * 10.0) : 0;
                 const energyDiff = building.energyConsumption - currentEnergy;
                 energyInfo = `<div class="building-energy">⚡ -${formatNumber(energyDiff)}/h</div>`;
             }
@@ -784,9 +784,9 @@ export async function showBuildingDetails(buildingKey) {
     
     // Estimate base costs from current level costs
     const baseCostEstimate = {
-        metal: Math.round(building.cost.metal / Math.pow(1.5, building.nextLevel)),
-        crystal: Math.round(building.cost.crystal / Math.pow(1.5, building.nextLevel)),
-        deuterium: Math.round(building.cost.deuterium / Math.pow(1.5, building.nextLevel))
+        metal: Math.round(building.cost.metal / Math.pow(SCALING.BUILDING_COST, building.nextLevel)),
+        crystal: Math.round(building.cost.crystal / Math.pow(SCALING.BUILDING_COST, building.nextLevel)),
+        deuterium: Math.round(building.cost.deuterium / Math.pow(SCALING.BUILDING_COST, building.nextLevel))
     };
 
     const roboticsLevel = planet?.buildings.roboticsFactory || 0;
@@ -796,14 +796,14 @@ export async function showBuildingDetails(buildingKey) {
     // Estimate base building time from current next level build time
     // This ensures consistency with the server's current build time for the next level
     const serverBuildTimeForNextLevel = building.buildTime;
-    const baseTimeFromCostEstimate = (serverBuildTimeForNextLevel / configMultiplier / Math.pow(0.8, roboticsLevel) * Math.pow(2, naniteLevel)) / Math.pow(1.5, building.nextLevel - 1);
+    const baseTimeFromCostEstimate = (serverBuildTimeForNextLevel / configMultiplier / Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) * Math.pow(2, naniteLevel)) / Math.pow(SCALING.BUILDING_TIME, building.nextLevel - 1);
     
     // Estimate base production amounts
     const baseProductionEstimate = {};
     const productionMultiplier = 10.0;
     if (building.production && !isEmpty(building.production)) {
         for (const resource in building.production) {
-            baseProductionEstimate[resource] = building.production[resource] / (building.nextLevel * Math.pow(1.1, building.nextLevel) * productionMultiplier);
+            baseProductionEstimate[resource] = building.production[resource] / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * productionMultiplier);
         }
     }
 
@@ -811,7 +811,7 @@ export async function showBuildingDetails(buildingKey) {
     const baseStorageEstimate = {};
     if (building.storage && !isEmpty(building.storage)) {
         for (const resource in building.storage) {
-            baseStorageEstimate[resource] = building.storage[resource] / Math.pow(1.6, building.nextLevel - 1);
+            baseStorageEstimate[resource] = building.storage[resource] / Math.pow(SCALING.BUILDING_STORAGE, building.nextLevel - 1);
         }
     }
 
@@ -819,20 +819,20 @@ export async function showBuildingDetails(buildingKey) {
     let baseEnergyEstimate = 0;
     const energyMultiplier = 10.0;
     if (building.energyConsumption > 0) {
-        baseEnergyEstimate = building.energyConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * energyMultiplier);
+        baseEnergyEstimate = building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * energyMultiplier);
     }
 
     let baseDeuteriumConsEstimate = 0;
     const deuteriumConsMultiplier = 10.0;
     if (building.deuteriumConsumption > 0) {
-        baseDeuteriumConsEstimate = building.deuteriumConsumption / (building.nextLevel * Math.pow(1.1, building.nextLevel) * deuteriumConsMultiplier);
+        baseDeuteriumConsEstimate = building.deuteriumConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * deuteriumConsMultiplier);
     }
 
     // Create a dummy building object for shared formula use
     const buildingWithBaseTime = { baseCost: baseCostEstimate };
     
     for (let level = 1; level <= Math.min(currentLevel + 10, 30); level++) {
-        const multiplier = Math.pow(1.5, level);
+        const multiplier = Math.pow(SCALING.BUILDING_COST, level);
         const cost = {
             metal: Math.floor(baseCostEstimate.metal * multiplier),
             crystal: Math.floor(baseCostEstimate.crystal * multiplier),
@@ -840,14 +840,14 @@ export async function showBuildingDetails(buildingKey) {
         };
         
         // Use shared formula for build time, but pass our estimated baseTime indirectly
-        const baseTimeForLevel = baseTimeFromCostEstimate * Math.pow(1.5, level - 1);
-        const buildTime = Math.max(1, Math.floor((baseTimeForLevel * Math.pow(0.8, roboticsLevel) / Math.pow(2, naniteLevel)) * configMultiplier));
+        const baseTimeForLevel = baseTimeFromCostEstimate * Math.pow(SCALING.BUILDING_TIME, level - 1);
+        const buildTime = Math.max(1, Math.floor((baseTimeForLevel * Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) / Math.pow(2, naniteLevel)) * configMultiplier));
         
         let production = null;
         if (!isEmpty(baseProductionEstimate)) {
             production = {};
             for (const resource in baseProductionEstimate) {
-                production[resource] = Math.floor(baseProductionEstimate[resource] * level * Math.pow(1.1, level) * productionMultiplier);
+                production[resource] = Math.floor(baseProductionEstimate[resource] * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * productionMultiplier);
             }
         }
         
@@ -855,18 +855,18 @@ export async function showBuildingDetails(buildingKey) {
         if (!isEmpty(baseStorageEstimate)) {
             storage = {};
             for (const resource in baseStorageEstimate) {
-                storage[resource] = Math.floor(baseStorageEstimate[resource] * Math.pow(1.6, level - 1));
+                storage[resource] = Math.floor(baseStorageEstimate[resource] * Math.pow(SCALING.BUILDING_STORAGE, level - 1));
             }
         }
         
         let energyConsumption = 0;
         if (baseEnergyEstimate > 0) {
-            energyConsumption = Math.floor(baseEnergyEstimate * level * Math.pow(1.1, level) * energyMultiplier);
+            energyConsumption = Math.floor(baseEnergyEstimate * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * energyMultiplier);
         }
 
         let deuteriumConsumption = 0;
         if (baseDeuteriumConsEstimate > 0) {
-            deuteriumConsumption = Math.floor(baseDeuteriumConsEstimate * level * Math.pow(1.1, level) * deuteriumConsMultiplier);
+            deuteriumConsumption = Math.floor(baseDeuteriumConsEstimate * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * deuteriumConsMultiplier);
         }
         
         levels.push({ level, cost, buildTime, production, storage, energyConsumption, deuteriumConsumption });

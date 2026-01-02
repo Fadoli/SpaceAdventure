@@ -115,7 +115,21 @@ export const CONFIG = {
   DEBRIS_PERCENTAGE: 0.3,
   MAX_PLANETS_PER_PLAYER: 9,
   FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
-  POPULATION_HOUSING_RATIO: 15 // Population per housing level
+  POPULATION_HOUSING_RATIO: 50 // Population per housing level
 };
 
 export const BUILDING_SPEED_MULTIPLIER = 0.85;
+
+// Scaling factors for easier fine-tuning
+export const SCALING = {
+  BUILDING_COST: 1.4,
+  BUILDING_TIME: 1.4,
+  BUILDING_PRODUCTION: 1.1,
+  BUILDING_STORAGE: 1.5,
+  BUILDING_ENERGY: 1.1,
+  BUILDING_POPULATION: 1.1,
+  RESEARCH_COST: 1.5,
+  RESEARCH_TIME: 1.5
+};
+
+export const PLANET_TYPES = {}
