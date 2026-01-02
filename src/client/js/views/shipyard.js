@@ -400,8 +400,9 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
     let baseTime = ship.buildTime * quantity;
     // Shipyard level speeds up construction (20% per level, 0.8^n)
     const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.floor(baseTime * shipyardMultiplier);
+    return Math.floor(baseTime * shipyardMultiplier * configMultiplier);
 }
 
 /**
@@ -414,6 +415,7 @@ function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1) {
     let baseTime = defense.buildTime * quantity;
     // Shipyard level speeds up construction (20% per level, 0.8^n)
     const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.floor(baseTime * shipyardMultiplier);
+    return Math.floor(baseTime * shipyardMultiplier * configMultiplier);
 }

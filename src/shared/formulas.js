@@ -1,6 +1,7 @@
 // Game formulas and calculations
 import { BUILDINGS } from './buildings.js';
 import { calculateBaseTime } from './time.js';
+import { BUILDING_SPEED_MULTIPLIER } from './constants.js';
 
 /**
  * Calculate building cost based on level
@@ -16,13 +17,13 @@ export function calculateBuildingCost(baseCost, level) {
 /**
  * Calculate building construction time
  */
-export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0) {
+export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0, configMultiplier = 1.0) {
   const baseTime = calculateBaseTime(building);
-  const time = baseTime * Math.pow(1.5, level);
-  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
+  const time = baseTime * Math.pow(1.5, level - 1);
+  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
   
-  return Math.floor((time * roboticsMultiplier) / naniteMultiplier);
+  return Math.max(1, Math.floor((time * roboticsMultiplier / naniteMultiplier) * configMultiplier));
 }
 
 /**
@@ -42,9 +43,9 @@ export function calculateProduction(baseProduction, level, variantMultiplier = 1
  */
 export function calculateResearchCost(baseCost, level) {
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(2, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(2, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(2, level))
+    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
   };
 }
 
@@ -53,8 +54,8 @@ export function calculateResearchCost(baseCost, level) {
  */
 export function calculateResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(2, level);
-  const labMultiplier = Math.pow(0.8, labLevel);
+  const time = baseTime * Math.pow(1.5, level);
+  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
   return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
@@ -224,24 +225,24 @@ export function getBuildingPopulationRequired(buildingType, level, buildingsObj 
 
 /**
  * Calculate theoretical research cost at a given level
- * Doubles with each level (exponential growth)
+ * Increases by 1.5x with each level (exponential growth)
  */
 export function calculateTheoreticalResearchCost(baseCost, level) {
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(2, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(2, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(2, level))
+    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
   };
 }
 
 /**
  * Calculate theoretical research time at a given level
- * Time doubles with each level, affected by research lab level
+ * Time increases by 1.5x with each level, affected by research lab level
  */
 export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(2, level);
-  const labMultiplier = Math.pow(0.8, labLevel);
+  const time = baseTime * Math.pow(1.5, level);
+  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
   return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
@@ -266,7 +267,7 @@ export function calculatePracticalResearchCost(baseCost, level) {
 export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(1.5, level);
-  const labMultiplier = Math.pow(0.8, labLevel);
+  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
   return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));

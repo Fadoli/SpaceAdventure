@@ -2,8 +2,8 @@
   "gameSpeed": {
     "description": "Global multipliers for game speeds",
     "resourceProduction": 10.0,
-    "buildTime": 0.1,
-    "researchTime": 0.1,
+    "buildTime": 0.01,
+    "researchTime": 0.01,
     "shipBuildTime": 0.1,
     "fleetSpeed": 2.0
   },

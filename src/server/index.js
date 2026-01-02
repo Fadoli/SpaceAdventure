@@ -31,7 +31,7 @@ import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
 import { SHIPS } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
-import { loadConfig, getBuildQueueSize } from './config.js';
+import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 
 // Load configuration
 await loadConfig();
@@ -273,6 +273,19 @@ async function handleRequest(req) {
         username: user.username,
         createdAt: user.createdAt,
         lastLogin: user.lastLogin
+      });
+    }
+
+    // GET /api/config
+    if (path === '/api/config' && method === 'GET') {
+      // Configuration is public information needed for UI calculations
+      const config = getConfig();
+      
+      // Return only what's needed for the client to avoid leaking server-only secrets if any existed
+      // (Currently all config in config.json is safe to expose)
+      return successResponse({
+        gameSpeed: config.gameSpeed,
+        balancing: config.balancing
       });
     }
     

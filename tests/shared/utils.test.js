@@ -23,7 +23,7 @@ describe('Utils - formatTimestamp Function', () => {
     const formatted = formatTimestamp(now);
     
     expect(typeof formatted).toBe('string');
-    expect(formatted.includes('2024') || formatted.includes('2025')).toBe(true);
+    expect(formatted.includes('2024') || formatted.includes('2025') || formatted.includes('2026')).toBe(true);
   });
 
   it('should be locale-specific', () => {

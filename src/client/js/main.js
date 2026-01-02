@@ -49,6 +49,29 @@ async function init() {
     setupAuthListeners();
     setupGameListeners();
     
+    // Fetch and store game configuration
+    try {
+        window.GAME_CONFIG = await API.getConfig();
+        console.log('Game config loaded:', window.GAME_CONFIG);
+    } catch (error) {
+        console.error('Failed to load game config:', error);
+        // Fallback to default if fetch fails
+        window.GAME_CONFIG = {
+            gameSpeed: {
+                resourceProduction: 1.0,
+                buildTime: 1.0,
+                researchTime: 1.0,
+                shipBuildTime: 1.0,
+                fleetSpeed: 1.0
+            },
+            balancing: {
+                resourceCostMultiplier: 1.0,
+                energyConsumptionMultiplier: 1.0,
+                storageCapacityMultiplier: 1.0
+            }
+        };
+    }
+    
     // Handle browser back/forward buttons
     window.addEventListener('popstate', (event) => {
         if (event.state && gameState) {

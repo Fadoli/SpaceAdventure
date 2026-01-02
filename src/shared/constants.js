@@ -117,3 +117,5 @@ export const CONFIG = {
   FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
   POPULATION_HOUSING_RATIO: 15 // Population per housing level
 };
+
+export const BUILDING_SPEED_MULTIPLIER = 0.85;

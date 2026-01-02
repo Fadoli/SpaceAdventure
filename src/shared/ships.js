@@ -1,5 +1,7 @@
 // Ship definitions and stats
 
+import { BUILDING_SPEED_MULTIPLIER } from './constants.js';
+
 export const SHIPS = {
   // Civilian Ships
   smallCargo: {
@@ -261,10 +263,10 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   let baseTime = ship.buildTime * quantity;
 
   // Shipyard level speeds up construction (20% per level, 0.8^n)
-  const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
+  const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
 
   // Robotics factory speeds up construction (20% per level, 0.8^n)
-  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(0.8, roboticsLevel) : 1;
+  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
 
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;

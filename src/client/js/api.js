@@ -50,6 +50,10 @@ export const API = {
     async getCurrentUser() {
         return await this.request('/auth/me');
     },
+
+    async getConfig() {
+        return await this.request('/config');
+    },
     
     async getGameState() {
         return await this.request('/game/state');

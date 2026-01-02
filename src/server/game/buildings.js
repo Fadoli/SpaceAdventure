@@ -9,7 +9,7 @@ import {
   calculateAllocationEffectiveness,
   calculatePositionMultiplier
 } from '../../shared/formulas.js';
-import { CONFIG } from '../../shared/constants.js';
+import { CONFIG, BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { 
   getBuildQueueSize, 
@@ -57,8 +57,8 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   
   const baseTime = calculateBaseTime(building) * Math.pow(1.5, level - 1);
   
-  // Robotics factory speeds up construction (inverse formula: 1 / 0.8^n)
-  const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(0.8, roboticsLevel) : 1;
+  // Robotics factory speeds up construction (inverse formula: 1 / 0.85^n)
+  const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
   
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;

@@ -12,7 +12,7 @@ const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 250
 
 describe('Research Cost Calculations', () => {
   describe('Theoretical Research Costs', () => {
-    it('should double cost with each level', () => {
+    it('should increase cost by 1.5x with each level', () => {
       const baseCost = { metal: 200, crystal: 100, deuterium: 50 };
       
       const level0 = calculateTheoreticalResearchCost(baseCost, 0);
@@ -21,16 +21,16 @@ describe('Research Cost Calculations', () => {
       const level3 = calculateTheoreticalResearchCost(baseCost, 3);
       
       // Verify exponential growth
-      expect(level1.metal).toBe(Math.floor(baseCost.metal * 2));
-      expect(level2.metal).toBe(Math.floor(baseCost.metal * 4));
-      expect(level3.metal).toBe(Math.floor(baseCost.metal * 8));
+      expect(level1.metal).toBe(Math.floor(baseCost.metal * 1.5));
+      expect(level2.metal).toBe(Math.floor(baseCost.metal * Math.pow(1.5, 2)));
+      expect(level3.metal).toBe(Math.floor(baseCost.metal * Math.pow(1.5, 3)));
     });
 
     it('should apply cost multiplier to all resources equally', () => {
       const baseCost = { metal: 200, crystal: 100, deuterium: 50 };
       const level5 = calculateTheoreticalResearchCost(baseCost, 5);
       
-      const multiplier = Math.pow(2, 5);
+      const multiplier = Math.pow(1.5, 5);
       expect(level5.metal).toBe(Math.floor(baseCost.metal * multiplier));
       expect(level5.crystal).toBe(Math.floor(baseCost.crystal * multiplier));
       expect(level5.deuterium).toBe(Math.floor(baseCost.deuterium * multiplier));
@@ -69,14 +69,14 @@ describe('Research Cost Calculations', () => {
       expect(level3.metal).toBe(Math.floor(baseCost.metal * Math.pow(1.5, 3)));
     });
 
-    it('should be significantly cheaper than theoretical at high levels', () => {
+    it('should scale at the same rate as theoretical at high levels', () => {
       const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
       
       const theoreticalLevel5 = calculateTheoreticalResearchCost(baseCost, 5);
       const practicalLevel5 = calculatePracticalResearchCost(baseCost, 5);
       
-      expect(practicalLevel5.metal).toBeLessThan(theoreticalLevel5.metal);
-      expect(practicalLevel5.crystal).toBeLessThan(theoreticalLevel5.crystal);
+      expect(practicalLevel5.metal).toBe(theoreticalLevel5.metal);
+      expect(practicalLevel5.crystal).toBe(theoreticalLevel5.crystal);
     });
 
     it('should apply cost multiplier to all resources', () => {
@@ -122,16 +122,16 @@ describe('Research Cost Calculations', () => {
 describe('Research Time Calculations', () => {
 
   describe('Theoretical Research Time', () => {
-    it('should double time with each level', () => {
+    it('should scale time with 1.5x each level', () => {
       const level0 = calculateTheoreticalResearchTime(energyTech, 0, 1);
       const level1 = calculateTheoreticalResearchTime(energyTech, 1, 1);
       const level2 = calculateTheoreticalResearchTime(energyTech, 2, 1);
       
-      expect(level1).toBe(Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 1)));
-      expect(level2).toBe(Math.floor(500 * Math.pow(2, 2) * Math.pow(0.8, 1)));
+      expect(level1).toBe(Math.floor(500 * Math.pow(1.5, 1) * Math.pow(0.85, 1)));
+      expect(level2).toBe(Math.floor(500 * Math.pow(1.5, 2) * Math.pow(0.85, 1)));
     });
 
-    it('should apply research lab speedup (multiplicative 0.8^level)', () => {
+    it('should apply research lab speedup (multiplicative 0.85^level)', () => {
       const level = 2;
       
       const labLevel1 = calculateTheoreticalResearchTime(energyTech, level, 1);
@@ -146,7 +146,7 @@ describe('Research Time Calculations', () => {
       const level = 3;
       
       const labLevel5 = calculateTheoreticalResearchTime(energyTech, level, 5);
-      const expected = Math.floor(500 * Math.pow(2, level) * Math.pow(0.8, 5));
+      const expected = Math.floor(500 * Math.pow(1.5, level) * Math.pow(0.85, 5));
       
       expect(labLevel5).toBe(expected);
     });
@@ -167,8 +167,8 @@ describe('Research Time Calculations', () => {
       const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
       const level2 = calculatePracticalResearchTime(metalMineResearch, 2, 1);
       
-      expect(level1).toBe(Math.floor(250 * 1.5 * 0.8));
-      expect(level2).toBe(Math.floor(250 * Math.pow(1.5, 2) * 0.8));
+      expect(level1).toBe(Math.floor(250 * 1.5 * 0.85));
+      expect(level2).toBe(Math.floor(250 * Math.pow(1.5, 2) * 0.85));
     });
 
     it('should be significantly faster than theoretical', () => {
@@ -219,7 +219,7 @@ describe('Research Time Calculations', () => {
       const practical5 = calculatePracticalResearchTime(metalMineResearch, level, 5);
       const practicalRatio = practical1 / practical5;
       
-      // The ratio should be exactly 0.8^1 / 0.8^5 = 1 / 0.8^4 = 2.4414...
+      // The ratio should be exactly 0.85^1 / 0.85^5 = 1 / 0.85^4 = 1.915...
       // Since Math.floor is used internally, we check with a small tolerance
       expect(theoreticalRatio).toBeCloseTo(practicalRatio, 1);
     });
@@ -250,9 +250,9 @@ describe('Research Progression Scenarios', () => {
     const time5 = calculateTheoreticalResearchTime(energyTech, 5, 3);
     
     // Cost multiplier
-    const costMultiplier = Math.pow(2, 5);
+    const costMultiplier = Math.pow(1.5, 5);
     // Time multiplier with lab speedup applied
-    const timeMultiplier = Math.pow(2, 5) * Math.pow(0.8, 3);
+    const timeMultiplier = Math.pow(1.5, 5) * Math.pow(0.85, 3);
     
     // Time multiplier should be less than cost multiplier due to lab speedup
     expect(timeMultiplier).toBeLessThan(costMultiplier);
@@ -267,7 +267,7 @@ describe('Research Progression Scenarios', () => {
     
     // Both use 1.5x multiplier for base scaling
     const expectedCostMult = Math.pow(1.5, 5);
-    const expectedTimeMult = Math.pow(1.5, 5) * Math.pow(0.8, 3);
+    const expectedTimeMult = Math.pow(1.5, 5) * Math.pow(0.85, 3);
     
     expect(expectedTimeMult).toBeLessThan(expectedCostMult);
   });
@@ -296,7 +296,7 @@ describe('Edge Cases', () => {
 
   it('should handle zero lab level correctly', () => {
     const time = calculateTheoreticalResearchTime(energyTech, 3, 0);
-    const expected = Math.floor(500 * Math.pow(2, 3) * Math.pow(0.8, 0));
+    const expected = Math.floor(500 * Math.pow(1.5, 3) * Math.pow(0.85, 0));
     
     expect(time).toBe(expected);
   });

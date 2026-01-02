@@ -173,17 +173,17 @@ describe('Ships - calculateShipBuildTime Function', () => {
     
     // 5 ships should take exactly 5 times longer (linear)
     const baseTime = getShip('lightFighter').buildTime;
-    expect(time1).toBe(Math.floor(baseTime * Math.pow(0.8, 1)));
-    expect(time5).toBe(Math.floor(baseTime * 5 * Math.pow(0.8, 1)));
+    expect(time1).toBe(Math.floor(baseTime * Math.pow(0.85, 1)));
+    expect(time5).toBe(Math.floor(baseTime * 5 * Math.pow(0.85, 1)));
   });
 
   it('should decrease build time with shipyard level', () => {
     const timeLvl1 = calculateShipBuildTime('smallCargo', 1, 1, 0, 0);
     const timeLvl10 = calculateShipBuildTime('smallCargo', 1, 10, 0, 0);
     
-    // Shipyard: 0.8^level multiplier
+    // Shipyard: 0.85^level multiplier
     expect(timeLvl10).toBeLessThan(timeLvl1);
-    expect(timeLvl10).toBe(Math.floor(30 * Math.pow(0.8, 10)));
+    expect(timeLvl10).toBe(Math.floor(30 * Math.pow(0.85, 10)));
   });
 
   it('should decrease build time with robotics level', () => {

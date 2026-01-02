@@ -26,10 +26,10 @@ window.toggleResearchQueueVisibility = function() {
 
 /**
  * Calculate theoretical research cost for a given level
- * Cost doubles with each level: cost = baseCost * 2^level
+ * Cost increases by 1.5x with each level: cost = baseCost * 1.5^level
  */
 function calculateTheoreticalResearchCost(baseCost, level) {
-  const multiplier = Math.pow(2, level);
+  const multiplier = Math.pow(1.5, level);
   return {
     metal: Math.floor(baseCost.metal * multiplier),
     crystal: Math.floor(baseCost.crystal * multiplier),
@@ -41,10 +41,11 @@ function calculateTheoreticalResearchCost(baseCost, level) {
 
 function calculateTheoreticalResearchTime(research, level, researchLabLevel, computerTechLevel = 0) {
     const baseTime = calculateBaseTime(research);
-    const time = baseTime * Math.pow(2, level);
+    const time = baseTime * Math.pow(1.5, level);
     const labMultiplier = Math.pow(0.8, researchLabLevel);
     const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
-    return Math.floor(time * labMultiplier * techMultiplier);
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+    return Math.floor(time * labMultiplier * techMultiplier * configMultiplier);
 }
 
 /**
@@ -654,8 +655,9 @@ window.updateAllocationSliders = function() {
     const baseTime = calculateBaseTime(research);
     const timeMultiplier = 1 + (weightedMultiplier - 1) * 0.2;
     const strengthTimeMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 3);  // 0.5 to 3.5
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
     
-    let estimatedTime = Math.ceil(baseTime * timeMultiplier * strengthTimeMultiplier);
+    let estimatedTime = Math.ceil(baseTime * timeMultiplier * strengthTimeMultiplier * configMultiplier);
     
     // Max duration is 2 days (172800 seconds)
     const maxDuration = 172800;

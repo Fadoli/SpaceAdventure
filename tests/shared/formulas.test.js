@@ -63,31 +63,31 @@ describe('calculateBuildingCost', () => {
 describe('calculateBuildTime', () => {
   const building = BUILDINGS.roboticsFactory; // metal: 400, crystal: 120, deuterium: 200 => baseTime: 1180
 
-  it('should calculate base time at level 0', () => {
-    const result = calculateBuildTime(building, 0);
+  it('should calculate base time at level 1', () => {
+    const result = calculateBuildTime(building, 1);
     expect(result).toBe(1180);
   });
 
-  it('should scale time with 1.5^level', () => {
-    const result = calculateBuildTime(building, 2);
+  it('should scale time with 1.5^(level-1)', () => {
+    const result = calculateBuildTime(building, 3);
     expect(result).toBe(Math.floor(1180 * Math.pow(1.5, 2)));
   });
 
-  it('should apply robotics factory multiplier (0.8^level)', () => {
-    const result = calculateBuildTime(building, 1, 2);
-    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(0.8, 2));
+  it('should apply robotics factory multiplier (0.85^level)', () => {
+    const result = calculateBuildTime(building, 2, 2);
+    const expectedTime = Math.floor(1180 * Math.pow(1.5, 1) * Math.pow(0.85, 2));
     expect(result).toBe(expectedTime);
   });
 
   it('should apply nanite factory multiplier (2^level)', () => {
-    const result = calculateBuildTime(building, 1, 0, 2);
+    const result = calculateBuildTime(building, 2, 0, 2);
     const expectedTime = Math.floor((1180 * Math.pow(1.5, 1)) / Math.pow(2, 2));
     expect(result).toBe(expectedTime);
   });
 
   it('should apply both multipliers when both are provided', () => {
-    const result = calculateBuildTime(building, 1, 1, 1);
-    const expectedTime = Math.floor((1180 * Math.pow(1.5, 1) * Math.pow(0.8, 1)) / Math.pow(2, 1));
+    const result = calculateBuildTime(building, 2, 1, 1);
+    const expectedTime = Math.floor((1180 * Math.pow(1.5, 1) * Math.pow(0.85, 1)) / Math.pow(2, 1));
     expect(result).toBe(expectedTime);
   });
 
@@ -138,7 +138,7 @@ describe('calculateProduction', () => {
 
 // ============ Research Cost Tests ============
 describe('calculateResearchCost', () => {
-  it('should use legacy 2^level formula', () => {
+  it('should use 1.5^level formula', () => {
     const baseCost = { metal: 200, crystal: 100, deuterium: 30 };
     const result = calculateResearchCost(baseCost, 0);
     expect(result.metal).toBe(200);
@@ -146,11 +146,11 @@ describe('calculateResearchCost', () => {
     expect(result.deuterium).toBe(30);
   });
 
-  it('should scale cost exponentially with 2^level', () => {
+  it('should scale cost exponentially with 1.5^level', () => {
     const baseCost = { metal: 200, crystal: 100, deuterium: 30 };
     const result = calculateResearchCost(baseCost, 1);
-    expect(result.metal).toBe(Math.floor(200 * 2));
-    expect(result.crystal).toBe(Math.floor(100 * 2));
+    expect(result.metal).toBe(Math.floor(200 * 1.5));
+    expect(result.crystal).toBe(Math.floor(100 * 1.5));
   });
 });
 
@@ -159,19 +159,19 @@ describe('calculateResearchTime', () => {
   const research = THEORETICAL_RESEARCH.energyTech; // metal: 200, crystal: 100, deuterium: 50 => baseTime: 500
   it('should calculate base time at level 0', () => {
     const result = calculateResearchTime(research, 0, 1);
-    // At level 0 with lab level 1: time = 500 * 1 * 0.8^1 = 400
-    const expected = Math.floor(500 * Math.pow(0.8, 1));
+    // At level 0 with lab level 1: time = 500 * 1 * 0.85^1 = 425
+    const expected = Math.floor(500 * Math.pow(0.85, 1));
     expect(result).toBe(expected);
   });
 
-  it('should scale with 2^level', () => {
+  it('should scale with 1.5^level', () => {
     const result = calculateResearchTime(research, 2, 1);
-    expect(result).toBe(Math.floor(500 * Math.pow(2, 2) * Math.pow(0.8, 1)));
+    expect(result).toBe(Math.floor(500 * Math.pow(1.5, 2) * Math.pow(0.85, 1)));
   });
 
   it('should apply lab multiplier', () => {
     const result = calculateResearchTime(research, 1, 5);
-    const expectedTime = Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 5));
+    const expectedTime = Math.floor(500 * Math.pow(1.5, 1) * Math.pow(0.85, 5));
     expect(result).toBe(expectedTime);
   });
 });
@@ -418,32 +418,32 @@ describe('getBuildingPopulationRequired', () => {
 
 // ============ Theoretical Research Tests ============
 describe('calculateTheoreticalResearchCost', () => {
-  it('should double cost with each level', () => {
+  it('should increase by 1.5x with each level', () => {
     const baseCost = { metal: 800, crystal: 400, deuterium: 200 };
     const result0 = calculateTheoreticalResearchCost(baseCost, 0);
     const result1 = calculateTheoreticalResearchCost(baseCost, 1);
     const result2 = calculateTheoreticalResearchCost(baseCost, 2);
     
-    expect(result1.metal).toBe(Math.floor(baseCost.metal * 2));
-    expect(result2.metal).toBe(Math.floor(baseCost.metal * 4));
+    expect(result1.metal).toBe(Math.floor(baseCost.metal * 1.5));
+    expect(result2.metal).toBe(Math.floor(baseCost.metal * 2.25));
   });
 });
 
 describe('calculateTheoreticalResearchTime', () => {
   const research = THEORETICAL_RESEARCH.energyTech; // baseTime 500
-  it('should double time with each level', () => {
+  it('should increase by 1.5x with each level', () => {
     const result0 = calculateTheoreticalResearchTime(research, 0);
     const result1 = calculateTheoreticalResearchTime(research, 1);
     
-    const expectedTime1 = Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 1));
+    const expectedTime1 = Math.floor(500 * Math.pow(1.5, 1) * Math.pow(0.85, 1));
     expect(result1).toBe(expectedTime1);
   });
 
-  it('should reduce time with higher lab level (multiplicative 0.8^level)', () => {
+  it('should reduce time with higher lab level (multiplicative 0.85^level)', () => {
     const result1 = calculateTheoreticalResearchTime(research, 1, 1);
     const result2 = calculateTheoreticalResearchTime(research, 1, 5);
     expect(result2).toBeLessThan(result1);
-    expect(result2).toBe(Math.floor(500 * Math.pow(2, 1) * Math.pow(0.8, 5)));
+    expect(result2).toBe(Math.floor(500 * Math.pow(1.5, 1) * Math.pow(0.85, 5)));
   });
 });
 
@@ -463,7 +463,7 @@ describe('calculatePracticalResearchTime', () => {
     const research = PRACTICAL_RESEARCH.metalMine; // baseTime 250
   it('should scale slower than theoretical (1.5x per level)', () => {
     const result1 = calculatePracticalResearchTime(research, 1);
-    const expectedTime = Math.floor(250 * Math.pow(1.5, 1) * Math.pow(0.8, 1));
+    const expectedTime = Math.floor(250 * Math.pow(1.5, 1) * Math.pow(0.85, 1));
     expect(result1).toBe(expectedTime);
   });
 
@@ -471,7 +471,7 @@ describe('calculatePracticalResearchTime', () => {
     const result1 = calculatePracticalResearchTime(research, 2, 1);
     const result2 = calculatePracticalResearchTime(research, 2, 5);
     expect(result2).toBeLessThan(result1);
-    expect(result2).toBe(Math.floor(250 * Math.pow(1.5, 2) * Math.pow(0.8, 5)));
+    expect(result2).toBe(Math.floor(250 * Math.pow(1.5, 2) * Math.pow(0.85, 5)));
   });
 });
 
