@@ -34,6 +34,7 @@ import { DEFENSES } from '../shared/defenses.js';
 import { calculateBaseTime } from '../shared/time.js';
 import { SCALING } from '../shared/constants.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
+import { gzipSync, deflateSync } from 'zlib';
 
 // Load configuration
 await loadConfig();
@@ -48,6 +49,35 @@ await recomputeAllPlanetsOnStartup();
 startGameLoop();
 
 const PORT = process.env.PORT || 3000;
+
+/**
+ * Compress response body based on Accept-Encoding header
+ */
+function compressResponse(req, body, contentType) {
+  const acceptEncoding = req.headers.get('accept-encoding') || '';
+  let compressedBody = body;
+  let encoding = null;
+
+  // Only compress text-based formats and large enough bodies
+  const isCompressible = contentType && (
+    contentType.includes('text/') || 
+    contentType.includes('json') || 
+    contentType.includes('javascript') ||
+    contentType.includes('svg')
+  );
+
+  if (isCompressible && body.length > 1024) {
+    if (acceptEncoding.includes('gzip')) {
+      compressedBody = gzipSync(body);
+      encoding = 'gzip';
+    } else if (acceptEncoding.includes('deflate')) {
+      compressedBody = deflateSync(body);
+      encoding = 'deflate';
+    }
+  }
+
+  return { compressedBody, encoding };
+}
 
 // Helper to get cookie value
 function getCookie(req, name) {
@@ -75,19 +105,32 @@ async function requireAuth(req) {
 }
 
 // API Response helper
-function jsonResponse(data, status = 200, headers = {}) {
-  return new Response(JSON.stringify(data), {
+function jsonResponse(req, data, status = 200, headers = {}) {
+  const body = JSON.stringify(data);
+  const contentType = 'application/json';
+  const { compressedBody, encoding } = compressResponse(req, Buffer.from(body), contentType);
+  
+  const finalHeaders = {
+    'Content-Type': contentType,
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    ...headers
+  };
+
+  if (encoding) {
+    finalHeaders['Content-Encoding'] = encoding;
+  }
+
+  return new Response(compressedBody, {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers
-    }
+    headers: finalHeaders
   });
 }
 
 // Error response helper
-function errorResponse(message, status = 400) {
-  return jsonResponse({
+function errorResponse(req, message, status = 400) {
+  return jsonResponse(req, {
     success: false,
     error: message,
     timestamp: Date.now()
@@ -95,8 +138,8 @@ function errorResponse(message, status = 400) {
 }
 
 // Success response helper
-function successResponse(data) {
-  return jsonResponse({
+function successResponse(req, data) {
+  return jsonResponse(req, {
     success: true,
     data,
     timestamp: Date.now()
@@ -149,36 +192,61 @@ async function handleRequest(req) {
       if (await file.exists()) {
         // Determine content type based on file extension
         let contentType = 'text/html; charset=utf-8';
+        let cacheTime = 3600; // 1 hour for most files
+        
         if (filePath.endsWith('.js')) {
           contentType = 'application/javascript; charset=utf-8';
+          cacheTime = 86400; // 1 day for JS
         } else if (filePath.endsWith('.css')) {
           contentType = 'text/css; charset=utf-8';
+          cacheTime = 86400; // 1 day for CSS
         } else if (filePath.endsWith('.json')) {
           contentType = 'application/json; charset=utf-8';
         } else if (filePath.endsWith('.png')) {
           contentType = 'image/png';
+          cacheTime = 604800; // 1 week for images
         } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
           contentType = 'image/jpeg';
+          cacheTime = 604800;
         } else if (filePath.endsWith('.svg')) {
           contentType = 'image/svg+xml';
+          cacheTime = 604800;
         }
         
-        return new Response(file, {
-          headers: {
-            'Content-Type': contentType
-          }
-        });
+        const arrayBuffer = await file.arrayBuffer();
+        const { compressedBody, encoding } = compressResponse(req, Buffer.from(arrayBuffer), contentType);
+        
+        const headers = {
+          'Content-Type': contentType,
+          'Cache-Control': `public, max-age=${cacheTime}`,
+          ...corsHeaders
+        };
+
+        if (encoding) {
+          headers['Content-Encoding'] = encoding;
+        }
+        
+        return new Response(compressedBody, { headers });
       }
       
       // If not found and not an API route, serve index.html (SPA routing)
       if (!path.startsWith('/api/')) {
         const indexFile = Bun.file('./src/client/index.html');
         if (await indexFile.exists()) {
-          return new Response(indexFile, {
-            headers: {
-              'Content-Type': 'text/html; charset=utf-8'
-            }
-          });
+          const arrayBuffer = await indexFile.arrayBuffer();
+          const { compressedBody, encoding } = compressResponse(req, Buffer.from(arrayBuffer), 'text/html');
+          
+          const headers = {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache', // Main entry point should check if changed
+            ...corsHeaders
+          };
+
+          if (encoding) {
+            headers['Content-Encoding'] = encoding;
+          }
+
+          return new Response(compressedBody, { headers });
         }
       }
       
@@ -198,7 +266,7 @@ async function handleRequest(req) {
       // Create player game state
       await createPlayer(user.id, user.username);
       
-      return new Response(JSON.stringify({
+      return jsonResponse(req, {
         success: true,
         data: {
           userId: user.id,
@@ -206,13 +274,9 @@ async function handleRequest(req) {
           sessionToken
         },
         timestamp: Date.now()
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-          'Set-Cookie': createCookie('session', sessionToken, 86400)
-        }
+      }, 200, {
+        ...corsHeaders,
+        'Set-Cookie': createCookie('session', sessionToken, 86400)
       });
     }
     
@@ -224,7 +288,7 @@ async function handleRequest(req) {
       const user = await authenticateUser(username, password);
       const sessionToken = createSession(user.id);
       
-      return new Response(JSON.stringify({
+      return jsonResponse(req, {
         success: true,
         data: {
           userId: user.id,
@@ -232,13 +296,9 @@ async function handleRequest(req) {
           sessionToken
         },
         timestamp: Date.now()
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-          'Set-Cookie': createCookie('session', sessionToken, 86400)
-        }
+      }, 200, {
+        ...corsHeaders,
+        'Set-Cookie': createCookie('session', sessionToken, 86400)
       });
     }
     
@@ -249,17 +309,13 @@ async function handleRequest(req) {
         deleteSession(sessionToken);
       }
       
-      return new Response(JSON.stringify({
+      return jsonResponse(req, {
         success: true,
         data: null,
         timestamp: Date.now()
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-          'Set-Cookie': createCookie('session', '', 0)
-        }
+      }, 200, {
+        ...corsHeaders,
+        'Set-Cookie': createCookie('session', '', 0)
       });
     }
     
@@ -267,10 +323,10 @@ async function handleRequest(req) {
     if (path === '/api/auth/me' && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
-      return successResponse({
+      return successResponse(req, {
         userId: user.id,
         username: user.username,
         createdAt: user.createdAt,
@@ -285,7 +341,7 @@ async function handleRequest(req) {
       
       // Return only what's needed for the client to avoid leaking server-only secrets if any existed
       // (Currently all config in config.json is safe to expose)
-      return successResponse({
+      return successResponse(req, {
         gameSpeed: config.gameSpeed,
         balancing: config.balancing
       });
@@ -295,12 +351,12 @@ async function handleRequest(req) {
     if (path === '/api/game/state' && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       // Recalculate production for all planets before returning
@@ -315,14 +371,14 @@ async function handleRequest(req) {
         await updatePlayer(user.id, player);
       }
       
-      return successResponse(player);
+      return successResponse(req, player);
     }
     
     // POST /api/game/planet/:planetId/build
     if (path.startsWith('/api/game/planet/') && path.endsWith('/build') && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
@@ -331,9 +387,9 @@ async function handleRequest(req) {
       
       try {
         const result = await upgradeBuilding(user.id, planetId, building);
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -341,7 +397,7 @@ async function handleRequest(req) {
     if (path.startsWith('/api/game/planet/') && path.endsWith('/build') && method === 'DELETE') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
@@ -350,9 +406,9 @@ async function handleRequest(req) {
       
       try {
         const result = await cancelBuilding(user.id, planetId, queuePosition);
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -360,7 +416,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/planet\/[^/]+\/building\/[^/]+\/allocation$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const pathParts = path.split('/');
@@ -371,9 +427,9 @@ async function handleRequest(req) {
       
       try {
         const result = await updateBuildingAllocation(user.id, planetId, buildingType, power, population);
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -381,7 +437,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/variant$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const pathParts = path.split('/');
@@ -392,9 +448,9 @@ async function handleRequest(req) {
       
       try {
         const result = await switchBuildingVariant(user.id, planetId, buildingType, toCustom);
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -402,7 +458,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/variant-details$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const pathParts = path.split('/');
@@ -410,12 +466,12 @@ async function handleRequest(req) {
       const buildingType = pathParts[6];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       try {
@@ -472,7 +528,7 @@ async function handleRequest(req) {
           });
         }
         
-        return successResponse({
+        return successResponse(req, {
           baseCost,
           currentCost,
           currentVariant,
@@ -480,7 +536,7 @@ async function handleRequest(req) {
           availableVariants
         });
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -488,7 +544,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/select-variant$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const pathParts = path.split('/');
@@ -504,16 +560,16 @@ async function handleRequest(req) {
         if (isSwitchingToBase) {
           // Queue switch to base variant
           const result = await queueVariantSwitch(user.id, planetId, buildingType, false);
-          return successResponse(result);
+          return successResponse(req, result);
         } else {
           // Switch to custom variant with the specified focus levels
           const player = await getPlayerByUserId(user.id);
           selectCustomBuildingVariant(player, planetId, buildingType, focusLevels);
           const result = await queueVariantSwitch(user.id, planetId, buildingType, true);
-          return successResponse(result);
+          return successResponse(req, result);
         }
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -521,7 +577,7 @@ async function handleRequest(req) {
     if (path === '/api/game/buildings' && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       // Return building definitions (without exposing internal structure)
@@ -535,25 +591,25 @@ async function handleRequest(req) {
         };
       }
       
-      return successResponse(buildingInfo);
+      return successResponse(req, buildingInfo);
     }
     
     // GET /api/game/planet/:planetId/buildings-details
     if (path.match(/^\/api\/game\/planet\/[^\/]+\/buildings-details$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       // Calculate building details for each building type
@@ -645,7 +701,7 @@ async function handleRequest(req) {
         };
       }
       
-      return successResponse({
+      return successResponse(req, {
         buildings: buildingsDetails,
         queue: planet.buildQueue || [],
         variantSwitchQueue: planet.variantSwitchQueue || [],
@@ -657,7 +713,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/planet\/[^\/]+\/allocations$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const parts = path.split('/');
@@ -667,14 +723,14 @@ async function handleRequest(req) {
       const { allocations } = body;
       
       if (!allocations || typeof allocations !== 'object') {
-        return errorResponse('Missing or invalid allocations in request', 400);
+        return errorResponse(req, 'Missing or invalid allocations in request', 400);
       }
       
       try {
         const result = await updatePlanetAllocations(user.id, planetId, allocations);
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -682,7 +738,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/planet\/[^\/]+\/building\/[^\/]+\/allocation$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const parts = path.split('/');
@@ -693,14 +749,14 @@ async function handleRequest(req) {
       const { power, population, priority } = body;
       
       if (power === undefined || population === undefined) {
-        return errorResponse('Missing power or population in request', 400);
+        return errorResponse(req, 'Missing power or population in request', 400);
       }
       
       try {
         const result = await updateBuildingAllocation(user.id, planetId, buildingType, power, population, priority);
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -708,18 +764,18 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       // Process any completed production
@@ -761,7 +817,7 @@ async function handleRequest(req) {
         };
       }
       
-      return successResponse({
+      return successResponse(req, {
         ...shipyardDetails,
         availableShips: ships,
         availableDefenses: defenses
@@ -772,18 +828,18 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard\/ships$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       const body = await req.json();
@@ -799,9 +855,9 @@ async function handleRequest(req) {
         // Save player
         await updatePlayer(user.id, player);
         
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -809,18 +865,18 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard\/defenses$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       const body = await req.json();
@@ -836,9 +892,9 @@ async function handleRequest(req) {
         // Save player
         await updatePlayer(user.id, player);
         
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -846,7 +902,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^\/]+\/shipyard\/[^\/]+$/) && method === 'DELETE') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const parts = path.split('/');
@@ -857,27 +913,27 @@ async function handleRequest(req) {
       
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       try {
         const result = cancelProduction(planet, queueId, type);
         
         if (!result) {
-          return errorResponse('Queue item not found', 404);
+          return errorResponse(req, 'Queue item not found', 404);
         }
         
         // Save player
         await updatePlayer(user.id, player);
         
-        return successResponse(result);
+        return successResponse(req, result);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
@@ -885,24 +941,24 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^\/]+\/fleet$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
       
       // Process any completed production
       processCompletedProduction(planet);
       
-      return successResponse({
+      return successResponse(req, {
         ships: planet.ships || {},
         defenses: planet.defenses || {}
       });
@@ -912,7 +968,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/galaxy\/\d+\/\d+$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
       
       const pathParts = path.split('/');
@@ -942,7 +998,7 @@ async function handleRequest(req) {
       // Sort by position
       planetsInSystem.sort((a, b) => a.position - b.position);
       
-      return successResponse({
+      return successResponse(req, {
         galaxy,
         system,
         planets: planetsInSystem
@@ -957,12 +1013,12 @@ async function handleRequest(req) {
     if (path === '/api/game/research' && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       try {
@@ -970,13 +1026,13 @@ async function handleRequest(req) {
         const theoretical = getTheoreticalResearchLevels(player);
         const practical = getPracticalResearchProgress(player);
 
-        return successResponse({
+        return successResponse(req, {
           progress,
           theoretical,
           practical
         });
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -985,7 +1041,7 @@ async function handleRequest(req) {
       console.log('POST /api/game/planet/:planetId/research/theoretical');
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
@@ -993,12 +1049,12 @@ async function handleRequest(req) {
       
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
 
       const body = await req.json();
@@ -1014,11 +1070,11 @@ async function handleRequest(req) {
         await updatePlayer(user.id, player);
         console.log('Player updated successfully');
 
-        return successResponse(queueItem);
+        return successResponse(req, queueItem);
       } catch (error) {
         console.error('Error starting theoretical research:', error);
         console.error('Error message:', error.message);
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1026,7 +1082,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/theoretical\/[^/]+$/) && method === 'DELETE') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const parts = path.split('/');
@@ -1035,16 +1091,16 @@ async function handleRequest(req) {
 
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       try {
         const refund = cancelTheoreticalResearch(player, queueId, planetId);
         await updatePlayer(user.id, player);
 
-        return successResponse({ refund, cancelled: true });
+        return successResponse(req, { refund, cancelled: true });
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1052,18 +1108,18 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/practical$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       const planet = player.planets.find(p => p.id === planetId);
       if (!planet) {
-        return errorResponse('Planet not found', 404);
+        return errorResponse(req, 'Planet not found', 404);
       }
 
       const body = await req.json();
@@ -1082,10 +1138,10 @@ async function handleRequest(req) {
         console.log(`[PRACTICAL_RESEARCH] Successfully started research:`, queueItem);
         await updatePlayer(user.id, player);
 
-        return successResponse(queueItem);
+        return successResponse(req, queueItem);
       } catch (error) {
         console.error(`[PRACTICAL_RESEARCH] Error starting research:`, error.message);
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1093,7 +1149,7 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/practical\/[^/]+$/) && method === 'DELETE') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const parts = path.split('/');
@@ -1102,7 +1158,7 @@ async function handleRequest(req) {
 
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       try {
@@ -1110,10 +1166,10 @@ async function handleRequest(req) {
         console.log(`[PRACTICAL_RESEARCH] Cancelled research: ${queueId}, refund:`, refund);
         await updatePlayer(user.id, player);
 
-        return successResponse({ refund, cancelled: true });
+        return successResponse(req, { refund, cancelled: true });
       } catch (error) {
         console.error(`[PRACTICAL_RESEARCH] Error cancelling research:`, error.message);
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1121,20 +1177,20 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/available$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       try {
         const available = getAvailablePracticalResearchForPlayer(player, planetId);
-        return successResponse(available);
+        return successResponse(req, available);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1142,13 +1198,13 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/building-variant$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       const body = await req.json();
@@ -1158,9 +1214,9 @@ async function handleRequest(req) {
         const variant = selectCustomBuildingVariant(player, planetId, baseType, focusLevels);
         await updatePlayer(user.id, player);
 
-        return successResponse(variant);
+        return successResponse(req, variant);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1168,12 +1224,12 @@ async function handleRequest(req) {
     if (path === '/api/game/research/ship-variant' && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       const body = await req.json();
@@ -1183,9 +1239,9 @@ async function handleRequest(req) {
         const variant = selectCustomShipVariant(player, baseType, focusLevels);
         await updatePlayer(user.id, player);
 
-        return successResponse(variant);
+        return successResponse(req, variant);
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
 
@@ -1193,34 +1249,34 @@ async function handleRequest(req) {
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/variants$/) && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) {
-        return errorResponse('Not authenticated', 401);
+        return errorResponse(req, 'Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
-        return errorResponse('Player not found', 404);
+        return errorResponse(req, 'Player not found', 404);
       }
 
       try {
         const buildingVariants = getActiveCustomVariants(player, planetId);
         const shipVariants = getActiveShipCustomVariants(player);
 
-        return successResponse({
+        return successResponse(req, {
           building: buildingVariants,
           ships: shipVariants
         });
       } catch (error) {
-        return errorResponse(error.message, 400);
+        return errorResponse(req, error.message, 400);
       }
     }
     
     // 404 for unknown API routes
-    return errorResponse('Route not found', 404);
+    return errorResponse(req, 'Route not found', 404);
     
   } catch (error) {
     console.error('Request error:', error);
-    return errorResponse(error.message || 'Internal server error', 500);
+    return errorResponse(req, error.message || 'Internal server error', 500);
   }
 }
 
