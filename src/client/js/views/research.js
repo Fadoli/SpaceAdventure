@@ -2,6 +2,7 @@
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES } from '../../../shared/research.js';
 import { formatNumber } from '../utils.js';
 import { calculateBaseTime } from '../../../shared/time.js';
+import { BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 
 let currentPlanetId = null;
 let researchData = null;
