@@ -148,38 +148,36 @@ async function gameTick() {
 function processCompletedResearch(player) {
   let updated = false;
   
-  // Check theoretical research
-  const theoreticalCompleted = [];
-  if (player.researchQueue && Array.isArray(player.researchQueue)) {
-    for (let i = player.researchQueue.length - 1; i >= 0; i--) {
-      const item = player.researchQueue[i];
-      if (item.endTime <= Date.now()) {
-        theoreticalCompleted.push(i);
+  // Check theoretical research - sequential (only process first item)
+  if (player.researchQueue && player.researchQueue.length > 0) {
+    const item = player.researchQueue[0];
+    if (item.endTime <= Date.now()) {
+      completeTheoreticalResearch(player, item.id);
+      
+      // If there's another item in the queue, update its start/end times
+      if (player.researchQueue.length > 0) {
+        const nextItem = player.researchQueue[0];
+        nextItem.startTime = Date.now();
+        nextItem.endTime = nextItem.startTime + nextItem.duration;
       }
+      updated = true;
     }
   }
   
-  // Process completed theoretical research in reverse order to maintain indices
-  for (const index of theoreticalCompleted) {
-    completeTheoreticalResearch(player, player.researchQueue[index].id);
-    updated = true;
-  }
-  
-  // Check practical research
-  const practicalCompleted = [];
-  if (player.practicalResearchQueue && Array.isArray(player.practicalResearchQueue)) {
-    for (let i = player.practicalResearchQueue.length - 1; i >= 0; i--) {
-      const item = player.practicalResearchQueue[i];
-      if (item.endTime <= Date.now()) {
-        practicalCompleted.push(i);
+  // Check practical research - sequential (only process first item)
+  if (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) {
+    const item = player.practicalResearchQueue[0];
+    if (item.endTime <= Date.now()) {
+      completePracticalResearch(player, item.id);
+      
+      // If there's another item in the queue, update its start/end times
+      if (player.practicalResearchQueue.length > 0) {
+        const nextItem = player.practicalResearchQueue[0];
+        nextItem.startTime = Date.now();
+        nextItem.endTime = nextItem.startTime + nextItem.duration;
       }
+      updated = true;
     }
-  }
-  
-  // Process completed practical research in reverse order to maintain indices
-  for (const index of practicalCompleted) {
-    completePracticalResearch(player, player.practicalResearchQueue[index].id);
-    updated = true;
   }
   
   return updated;

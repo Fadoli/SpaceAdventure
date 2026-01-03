@@ -103,15 +103,28 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   );
   console.log('Research time (seconds):', time);
   
+  // Calculate start and finish time based on queue position
+  let startTime, endTime;
+  if (!player.researchQueue || player.researchQueue.length === 0) {
+    // First item starts immediately
+    startTime = Date.now();
+    endTime = startTime + (time * 1000);
+  } else {
+    // Subsequent items start when previous item finishes
+    const previousItem = player.researchQueue[player.researchQueue.length - 1];
+    startTime = previousItem.endTime;
+    endTime = startTime + (time * 1000);
+  }
+  
   // Create research queue item with the correct next level
   const item = {
     id: generateId(),
     type: 'theoretical',
     techKey,
     level: nextLevelToQueue,
-    startTime: Date.now(),
+    startTime: startTime,
     duration: time * 1000, // Convert to milliseconds
-    endTime: Date.now() + (time * 1000),
+    endTime: endTime,
     planetId,
     cost,
     progress: 0
@@ -290,6 +303,19 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
     time = maxDuration;
   }
   
+  // Calculate start and finish time based on queue position
+  let startTime, endTime;
+  if (!player.practicalResearchQueue || player.practicalResearchQueue.length === 0) {
+    // First item starts immediately
+    startTime = Date.now();
+    endTime = startTime + (time * 1000);
+  } else {
+    // Subsequent items start when previous item finishes
+    const previousItem = player.practicalResearchQueue[player.practicalResearchQueue.length - 1];
+    startTime = previousItem.endTime;
+    endTime = startTime + (time * 1000);
+  }
+  
   // Create queue item with allocation and strength
   const item = {
     id: generateId(),
@@ -298,9 +324,9 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
     itemType: practicalResearchConfig.type,
     allocation,  // Store the allocation
     strength,    // Store the strength
-    startTime: Date.now(),
+    startTime: startTime,
     duration: time * 1000,
-    endTime: Date.now() + (time * 1000),
+    endTime: endTime,
     planetId,
     cost,
     progress: 0
@@ -420,6 +446,19 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
     configMultiplier
   );
   
+  // Calculate start and finish time based on queue position
+  let startTime, endTime;
+  if (!player.practicalResearchQueue || player.practicalResearchQueue.length === 0) {
+    // First item starts immediately
+    startTime = Date.now();
+    endTime = startTime + (time * 1000);
+  } else {
+    // Subsequent items start when previous item finishes
+    const previousItem = player.practicalResearchQueue[player.practicalResearchQueue.length - 1];
+    startTime = previousItem.endTime;
+    endTime = startTime + (time * 1000);
+  }
+  
   // Create queue item for level-based research
   const item = {
     id: generateId(),
@@ -427,9 +466,9 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
     baseType,
     itemType: practicalResearchConfig.type,  // 'building' or 'ship'
     level: nextLevel,
-    startTime: Date.now(),
+    startTime: startTime,
     duration: time * 1000,  // Convert to milliseconds
-    endTime: Date.now() + (time * 1000),
+    endTime: endTime,
     planetId,
     cost,
     progress: 0
