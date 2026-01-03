@@ -1,7 +1,7 @@
 // Game formulas and calculations
 import { BUILDINGS } from './buildings.js';
 import { calculateBaseTime } from './time.js';
-import { BUILDING_SPEED_MULTIPLIER, SCALING } from './constants.js';
+import { BUILDING_SPEED_MULTIPLIER, SCALING, CONFIG } from './constants.js';
 
 /**
  * Calculate building cost based on level
@@ -104,6 +104,13 @@ export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, 
   };
 }
 /**
+ * Calculate total food consumption based on population
+ */
+export function calculateFoodConsumption(population, consumptionRate) {
+  return population * consumptionRate;
+}
+
+/**
  * Calculate effectiveness based on allocation percentage
  * Non-linear: 50% = 70.7%, 100% = 100%, 200% = 141.4%
  * Formula: effectiveness = sqrt(allocation%) * 10
@@ -136,7 +143,7 @@ export function calculatePopulationEffectiveness(populationPercent) {
  */
 export function calculatePopulationChange(currentPopulation, maxPopulation, foodAvailable, hoursElapsed, productionMultiplier = 1.0) {
   const minPopulation = 10;
-  const minGrowthPerHour = 60;
+  const minGrowthPerHour = CONFIG.MIN_POPULATION_GROWTH || 60;
   
   if (foodAvailable && currentPopulation < maxPopulation) {
     // Grow population (take max of 1% per hour or 60 per hour)

@@ -4,7 +4,7 @@
     "resourceProduction": 10.0,
     "buildTime": 0.01,
     "researchTime": 0.01,
-    "shipBuildTime": 0.1,
+    "shipBuildTime": 0.01,
     "fleetSpeed": 2.0
   },
   "balancing": {

@@ -1,6 +1,7 @@
 // Defense definitions and stats
 
-import { BUILDING_SPEED_MULTIPLIER } from './constants.js';
+import { BUILDING_SPEED_MULTIPLIER, CONFIG } from './constants.js';
+import { calculateBaseTime } from './time.js';
 
 export const DEFENSES = {
   rocketLauncher: {
@@ -8,14 +9,13 @@ export const DEFENSES = {
     icon: '🚀',
     description: 'Basic planetary defense that launches missiles.',
     baseCost: {
-      metal: 100,
-      crystal: 50,
+      metal: 2000,
+      crystal: 0,
       deuterium: 0
     },
-    buildTime: 30,
     attack: 80,
     shield: 20,
-    hull: 200
+    hull: 2000
   },
 
   laserCannon: {
@@ -23,14 +23,13 @@ export const DEFENSES = {
     icon: '🔫',
     description: 'Energy-based defense weapon with high precision.',
     baseCost: {
-      metal: 150,
-      crystal: 100,
+      metal: 1500,
+      crystal: 500,
       deuterium: 0
     },
-    buildTime: 45,
-    attack: 120,
-    shield: 30,
-    hull: 250
+    attack: 100,
+    shield: 25,
+    hull: 2000
   },
 
   particleBeam: {
@@ -38,14 +37,13 @@ export const DEFENSES = {
     icon: '⚛️',
     description: 'Advanced energy weapon dealing massive damage.',
     baseCost: {
-      metal: 300,
-      crystal: 300,
-      deuterium: 100
+      metal: 6000,
+      crystal: 2000,
+      deuterium: 0
     },
-    buildTime: 90,
     attack: 250,
-    shield: 60,
-    hull: 400
+    shield: 100,
+    hull: 8000
   },
 
   shield: {
@@ -53,14 +51,13 @@ export const DEFENSES = {
     icon: '🛡️',
     description: 'Protective energy shield around the planet.',
     baseCost: {
-      metal: 200,
-      crystal: 150,
-      deuterium: 50
+      metal: 10000,
+      crystal: 10000,
+      deuterium: 0
     },
-    buildTime: 60,
     attack: 0,
-    shield: 500,
-    hull: 100
+    shield: 2000,
+    hull: 20000
   },
 
   interceptor: {
@@ -68,14 +65,13 @@ export const DEFENSES = {
     icon: '🎯',
     description: 'Fast-moving defense against incoming attacks.',
     baseCost: {
-      metal: 80,
-      crystal: 80,
-      deuterium: 40
+      metal: 8000,
+      crystal: 2000,
+      deuterium: 0
     },
-    buildTime: 25,
-    attack: 60,
-    shield: 10,
-    hull: 100
+    attack: 150,
+    shield: 50,
+    hull: 10000
   },
 
   antiAirMissile: {
@@ -83,14 +79,13 @@ export const DEFENSES = {
     icon: '💣',
     description: 'Specialized defense against air/space attacks.',
     baseCost: {
-      metal: 120,
-      crystal: 100,
-      deuterium: 50
+      metal: 10000,
+      crystal: 4000,
+      deuterium: 0
     },
-    buildTime: 40,
-    attack: 100,
-    shield: 15,
-    hull: 150
+    attack: 200,
+    shield: 60,
+    hull: 14000
   },
 
   plasmaTurret: {
@@ -98,14 +93,13 @@ export const DEFENSES = {
     icon: '🌋',
     description: 'Extreme damage output at the cost of shorter range.',
     baseCost: {
-      metal: 400,
-      crystal: 200,
-      deuterium: 150
+      metal: 50000,
+      crystal: 50000,
+      deuterium: 30000
     },
-    buildTime: 120,
-    attack: 350,
-    shield: 40,
-    hull: 500
+    attack: 3000,
+    shield: 300,
+    hull: 100000
   },
 
   ionCannon: {
@@ -113,14 +107,13 @@ export const DEFENSES = {
     icon: '⚡',
     description: 'Long-range defense weapon with sustained fire.',
     baseCost: {
-      metal: 250,
-      crystal: 250,
-      deuterium: 100
+      metal: 2000,
+      crystal: 6000,
+      deuterium: 0
     },
-    buildTime: 80,
-    attack: 200,
-    shield: 50,
-    hull: 350
+    attack: 150,
+    shield: 500,
+    hull: 8000
   }
 };
 
@@ -152,8 +145,13 @@ export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLeve
   const defense = getDefense(defenseKey);
   if (!defense) return 0;
 
-  // Base time increases linearly with quantity
-  let baseTime = defense.buildTime * quantity;
+  // Base time related to cost
+  const baseTime = calculateBaseTime(defense) * quantity;
+  
+  // Apply build speed factor (converting cost units to seconds)
+  // We use hours-based speed: time = cost / speed * 3600
+  const speedFactor = CONFIG.DEFENSE_BUILD_SPEED || 2500;
+  const timeInSeconds = (baseTime / speedFactor) * 3600;
 
   // Shipyard level speeds up construction (20% per level, 0.8^n)
   const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
@@ -164,7 +162,7 @@ export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLeve
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
 
-  const totalTime = (baseTime * shipyardMultiplier * roboticsMultiplier) / naniteMultiplier;
+  const totalTime = (timeInSeconds * shipyardMultiplier * roboticsMultiplier) / naniteMultiplier;
 
   return Math.max(1, Math.floor(totalTime));
 }

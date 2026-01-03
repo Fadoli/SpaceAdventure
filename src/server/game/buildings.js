@@ -7,7 +7,8 @@ import {
   getBuildingEnergyConsumption,
   getBuildingPopulationRequired,
   calculateAllocationEffectiveness,
-  calculatePositionMultiplier
+  calculatePositionMultiplier,
+  calculateFoodConsumption
 } from '../../shared/formulas.js';
 import { CONFIG, BUILDING_SPEED_MULTIPLIER, SCALING } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
@@ -601,11 +602,11 @@ export function updatePlanetProduction(planet, player = null) {
   
   // Calculate max population from housing
   const housingLevel = planet.buildings.housing || 0;
-  planet.maxPopulation = CONFIG.POPULATION_HOUSING_RATIO * housingLevel * Math.pow(SCALING.BUILDING_PRODUCTION, housingLevel);
+  planet.maxPopulation = CONFIG.POPULATION_HOUSING_RATIO * housingLevel * Math.pow(SCALING.BUILDING_HOUSING, housingLevel);
   
   // Food consumption based on current population
   const currentPop = planet.resources.population || 0;
-  planet.consumption.food = currentPop * CONFIG.FOOD_CONSUMPTION_PER_POPULATION;
+  planet.consumption.food = calculateFoodConsumption(currentPop, CONFIG.FOOD_CONSUMPTION_PER_POPULATION);
   
   // Energy balance
   const netEnergy = planet.production.energy - totalEnergyConsumption;

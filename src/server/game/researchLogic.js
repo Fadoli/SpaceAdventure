@@ -19,6 +19,7 @@ import {
 import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
 import { SHIPS } from '../../shared/ships.js';
+import { BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
 
 /**
  * Start theoretical research
@@ -259,7 +260,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   const baseTime = calculateBaseTime(practicalResearchConfig);
   const researchLabLevel = planet.buildings.researchLab || 1;
   const computerTechLevel = player.research.computerTech || 0;
-  const labMultiplier = Math.pow(0.8, researchLabLevel);
+  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
   const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
   
   const timeMultiplier = 1 + (totalFocusLevel * 0.2);

@@ -6,6 +6,8 @@ import {
   calculateDefenseBuildTime,
   calculateDefenseStats
 } from '../../src/shared/defenses.js';
+import { calculateBaseTime } from '../../src/shared/time.js';
+import { CONFIG } from '../../src/shared/constants.js';
 
 describe('Defenses - Data Structure', () => {
   it('should have all defense types defined', () => {
@@ -17,7 +19,7 @@ describe('Defenses - Data Structure', () => {
   });
 
   it('should have required properties for each defense', () => {
-    const requiredProps = ['name', 'icon', 'description', 'baseCost', 'buildTime', 'attack', 'shield', 'hull'];
+    const requiredProps = ['name', 'icon', 'description', 'baseCost', 'attack', 'shield', 'hull'];
     
     for (const defenseKey in DEFENSES) {
       const defense = DEFENSES[defenseKey];
@@ -38,7 +40,6 @@ describe('Defenses - Data Structure', () => {
       expect(defense.baseCost.metal).toBeGreaterThanOrEqual(0);
       expect(defense.baseCost.crystal).toBeGreaterThanOrEqual(0);
       expect(defense.baseCost.deuterium).toBeGreaterThanOrEqual(0);
-      expect(defense.buildTime).toBeGreaterThan(0);
       expect(defense.attack).toBeGreaterThanOrEqual(0);
       expect(defense.shield).toBeGreaterThanOrEqual(0);
       expect(defense.hull).toBeGreaterThan(0);
@@ -390,15 +391,19 @@ describe('Defenses - Integration Tests', () => {
 
   it('should show defense upgrade progression', () => {
     const tier1 = getDefense('rocketLauncher');
-    const tier2 = getDefense('laserCannon');
-    const tier3 = getDefense('particleBeam');
+    const tier2 = getDefense('particleBeam');
+    const tier3 = getDefense('plasmaTurret');
     
     // Each tier should be stronger and more expensive
     expect(tier2.attack).toBeGreaterThan(tier1.attack);
     expect(tier3.attack).toBeGreaterThan(tier2.attack);
     
-    expect(tier2.baseCost.metal).toBeGreaterThan(tier1.baseCost.metal);
-    expect(tier3.baseCost.metal).toBeGreaterThan(tier2.baseCost.metal);
+    const totalCost1 = tier1.baseCost.metal + tier1.baseCost.crystal + tier1.baseCost.deuterium;
+    const totalCost2 = tier2.baseCost.metal + tier2.baseCost.crystal + tier2.baseCost.deuterium;
+    const totalCost3 = tier3.baseCost.metal + tier3.baseCost.crystal + tier3.baseCost.deuterium;
+
+    expect(totalCost2).toBeGreaterThan(totalCost1);
+    expect(totalCost3).toBeGreaterThan(totalCost2);
   });
 
   it('should allow defense composition analysis', () => {

@@ -115,7 +115,10 @@ export const CONFIG = {
   DEBRIS_PERCENTAGE: 0.3,
   MAX_PLANETS_PER_PLAYER: 9,
   FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
-  POPULATION_HOUSING_RATIO: 50 // Population per housing level
+  POPULATION_HOUSING_RATIO: 50, // Population per housing level
+  MIN_POPULATION_GROWTH: 60, // Minimum population growth per hour when food available
+  SHIP_BUILD_SPEED: 2500, // Cost units per hour at base speed
+  DEFENSE_BUILD_SPEED: 2500 // Cost units per hour at base speed
 };
 
 export const BUILDING_SPEED_MULTIPLIER = 0.85;
@@ -128,6 +131,7 @@ export const SCALING = {
   BUILDING_STORAGE: 1.5,
   BUILDING_ENERGY: 1.1,
   BUILDING_POPULATION: 1.1,
+  BUILDING_HOUSING: 1.1,
   RESEARCH_COST: 1.5,
   RESEARCH_TIME: 1.5
 };

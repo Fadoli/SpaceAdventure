@@ -31,6 +31,7 @@ import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
 import { SHIPS } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
+import { calculateBaseTime } from '../shared/time.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 
 // Load configuration
@@ -741,7 +742,7 @@ async function handleRequest(req) {
           hull: ship.hull,
           cargoCapacity: ship.cargoCapacity,
           baseCost: ship.baseCost,
-          buildTime: ship.buildTime
+          baseTime: calculateBaseTime(ship)
         };
       }
       
@@ -755,7 +756,7 @@ async function handleRequest(req) {
           shield: defense.shield,
           hull: defense.hull,
           baseCost: defense.baseCost,
-          buildTime: defense.buildTime
+          baseTime: calculateBaseTime(defense)
         };
       }
       

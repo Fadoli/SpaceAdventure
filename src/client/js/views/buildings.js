@@ -1,7 +1,7 @@
 // Buildings view logic
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
-import { RESOURCE_ICONS, SCALING } from '../../../shared/constants.js';
+import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -123,19 +123,19 @@ export async function updateBuildingsView(planet, onStateChange) {
                 statsInfo += '</div>';
             } else if (key === 'roboticsFactory' && building.currentLevel > 0) {
                 // Robotics factory - show construction speed
-                const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
+                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
                 statsInfo = `<div class="building-special">⏱️ Construction: ${speedMult}x speed</div>`;
             } else if (key === 'naniteFactory' && building.currentLevel > 0) {
                 // Nanite factory - show massive construction speed improvement
                 const speedMult = Math.pow(2, building.currentLevel).toFixed(0);
                 statsInfo = `<div class="building-special">⚡ Construction: ${speedMult}x speed</div>`;
             } else if (key === 'researchLab' && building.currentLevel > 0) {
-                // Research lab - show research speed (multiplicative 0.8^level on time)
-                const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
+                // Research lab - show research speed (multiplicative BUILDING_SPEED_MULTIPLIER^level on time)
+                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
                 statsInfo = `<div class="building-special">🔬 Research: ${speedMult}x speed</div>`;
             } else if (key === 'shipyard' && building.currentLevel > 0) {
-                // Shipyard - show production speed (multiplicative 0.8^level on time)
-                const speedMult = (1 / Math.pow(0.8, building.currentLevel)).toFixed(2);
+                // Shipyard - show production speed (multiplicative BUILDING_SPEED_MULTIPLIER^level on time)
+                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
                 statsInfo = `<div class="building-special">🚀 Production: ${speedMult}x speed</div>`;
             }
             
@@ -149,7 +149,7 @@ export async function updateBuildingsView(planet, onStateChange) {
                 energyInfo = `<div class="building-energy">🛢️ -${formatNumber(deuteriumDiff)}/h</div>`;
             } else if (building.energyConsumption > 0) {
                 const currentEnergy = building.currentLevel > 0 ? 
-                    Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.currentLevel) * 10.0) : 0;
+                    Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_ENERGY, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(SCALING.BUILDING_ENERGY, building.currentLevel) * 10.0) : 0;
                 const energyDiff = building.energyConsumption - currentEnergy;
                 energyInfo = `<div class="building-energy">⚡ -${formatNumber(energyDiff)}/h</div>`;
             }
@@ -819,7 +819,7 @@ export async function showBuildingDetails(buildingKey) {
     let baseEnergyEstimate = 0;
     const energyMultiplier = 10.0;
     if (building.energyConsumption > 0) {
-        baseEnergyEstimate = building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * energyMultiplier);
+        baseEnergyEstimate = building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_ENERGY, building.nextLevel) * energyMultiplier);
     }
 
     let baseDeuteriumConsEstimate = 0;
@@ -861,7 +861,7 @@ export async function showBuildingDetails(buildingKey) {
         
         let energyConsumption = 0;
         if (baseEnergyEstimate > 0) {
-            energyConsumption = Math.floor(baseEnergyEstimate * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * energyMultiplier);
+            energyConsumption = Math.floor(baseEnergyEstimate * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
         }
 
         let deuteriumConsumption = 0;
@@ -893,20 +893,20 @@ export async function showBuildingDetails(buildingKey) {
             }
         } else if (buildingKey === 'roboticsFactory') {
             // Robotics factory - show construction speed multiplier
-            const speedMult = 1 / Math.pow(0.8, l.level);
-            dataCell = `<div>⏱️ ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+            const speedMult = 1 / Math.pow(BUILDING_SPEED_MULTIPLIER, l.level);
+            dataCell = `<div>⏱️ ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / ${BUILDING_SPEED_MULTIPLIER}^${l.level})</span></div>`;
         } else if (buildingKey === 'naniteFactory') {
             // Nanite factory - show massive construction speed
             const speedMult = Math.pow(2, l.level);
             dataCell = `<div>⚡ ${speedMult.toFixed(0)}x speed<br><span style="font-size: 0.9em;">(2^${l.level})</span></div>`;
         } else if (buildingKey === 'researchLab') {
-            // Research lab - show research speed multiplier (multiplicative 0.8^level on time)
-            const speedMult = 1 / Math.pow(0.8, l.level);
-            dataCell = `<div>🔬 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+            // Research lab - show research speed multiplier (multiplicative BUILDING_SPEED_MULTIPLIER^level on time)
+            const speedMult = 1 / Math.pow(BUILDING_SPEED_MULTIPLIER, l.level);
+            dataCell = `<div>🔬 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / ${BUILDING_SPEED_MULTIPLIER}^${l.level})</span></div>`;
         } else if (buildingKey === 'shipyard') {
-            // Shipyard - show production multiplier (multiplicative 0.8^level on time)
-            const speedMult = 1 / Math.pow(0.8, l.level);
-            dataCell = `<div>🚀 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / 0.8^${l.level})</span></div>`;
+            // Shipyard - show production multiplier (multiplicative BUILDING_SPEED_MULTIPLIER^level on time)
+            const speedMult = 1 / Math.pow(BUILDING_SPEED_MULTIPLIER, l.level);
+            dataCell = `<div>🚀 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / ${BUILDING_SPEED_MULTIPLIER}^${l.level})</span></div>`;
         } else {
             dataCell = '-';
         }
@@ -932,11 +932,11 @@ export async function showBuildingDetails(buildingKey) {
     // Generate special effects info for certain buildings
     let effectsSection = '';
     if (buildingKey === 'roboticsFactory' && currentLevel > 0) {
-        const speedMult = (1 / Math.pow(0.8, currentLevel)).toFixed(2);
+        const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, currentLevel)).toFixed(2);
         effectsSection = `
             <div class="building-effects">
                 <strong>⚙️ Current Effect:</strong>
-                <div>Construction speed multiplier: ${speedMult}x (1 / 0.8^${currentLevel})</div>
+                <div>Construction speed multiplier: ${speedMult}x (1 / ${BUILDING_SPEED_MULTIPLIER}^${currentLevel})</div>
             </div>
         `;
     } else if (buildingKey === 'naniteFactory' && currentLevel > 0) {
@@ -948,19 +948,19 @@ export async function showBuildingDetails(buildingKey) {
             </div>
         `;
     } else if (buildingKey === 'researchLab' && currentLevel > 0) {
-        const speedMult = (1 / Math.pow(0.8, currentLevel)).toFixed(2);
+        const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, currentLevel)).toFixed(2);
         effectsSection = `
             <div class="building-effects">
                 <strong>🔬 Current Effect:</strong>
-                <div>Research speed multiplier: ${speedMult}x (1 / 0.8^${currentLevel})</div>
+                <div>Research speed multiplier: ${speedMult}x (1 / ${BUILDING_SPEED_MULTIPLIER}^${currentLevel})</div>
             </div>
         `;
     } else if (buildingKey === 'shipyard' && currentLevel > 0) {
-        const speedMult = (1 / Math.pow(0.8, currentLevel)).toFixed(2);
+        const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, currentLevel)).toFixed(2);
         effectsSection = `
             <div class="building-effects">
                 <strong>🚀 Current Effect:</strong>
-                <div>Ship production speed multiplier: ${speedMult}x (1 / 0.8^${currentLevel})</div>
+                <div>Ship production speed multiplier: ${speedMult}x (1 / ${BUILDING_SPEED_MULTIPLIER}^${currentLevel})</div>
             </div>
         `;
     }

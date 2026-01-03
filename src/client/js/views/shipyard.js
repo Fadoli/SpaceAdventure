@@ -1,8 +1,9 @@
 // Shipyard view logic
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
-import { RESOURCE_ICONS } from '../../../shared/constants.js';
+import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
+import { calculateBaseTime } from '../../../shared/time.js';
 
 let currentShipyardData = null;
 let currentPlanetId = null;
@@ -397,12 +398,18 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
     const ship = currentShipyardData.availableShips[shipKey];
     if (!ship) return 0;
     
-    let baseTime = ship.buildTime * quantity;
-    // Shipyard level speeds up construction (20% per level, 0.8^n)
-    const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
+    // Base time related to cost
+    const baseTime = calculateBaseTime(ship) * quantity;
+    
+    // Apply build speed factor (converting cost units to seconds)
+    const speedFactor = CONFIG.SHIP_BUILD_SPEED || 2500;
+    const timeInSeconds = (baseTime / speedFactor) * 3600;
+
+    // Shipyard level speeds up construction (20% per level, multiplier^n)
+    const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.floor(baseTime * shipyardMultiplier * configMultiplier);
+    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * configMultiplier));
 }
 
 /**
@@ -412,10 +419,16 @@ function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1) {
     const defense = currentShipyardData.availableDefenses[defenseKey];
     if (!defense) return 0;
     
-    let baseTime = defense.buildTime * quantity;
-    // Shipyard level speeds up construction (20% per level, 0.8^n)
-    const shipyardMultiplier = Math.pow(0.8, shipyardLevel);
+    // Base time related to cost
+    const baseTime = calculateBaseTime(defense) * quantity;
+    
+    // Apply build speed factor (converting cost units to seconds)
+    const speedFactor = CONFIG.DEFENSE_BUILD_SPEED || 2500;
+    const timeInSeconds = (baseTime / speedFactor) * 3600;
+
+    // Shipyard level speeds up construction (20% per level, multiplier^n)
+    const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.floor(baseTime * shipyardMultiplier * configMultiplier);
+    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * configMultiplier));
 }

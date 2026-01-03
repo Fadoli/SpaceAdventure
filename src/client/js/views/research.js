@@ -42,7 +42,7 @@ function calculateTheoreticalResearchCost(baseCost, level) {
 function calculateTheoreticalResearchTime(research, level, researchLabLevel, computerTechLevel = 0) {
     const baseTime = calculateBaseTime(research);
     const time = baseTime * Math.pow(1.5, level);
-    const labMultiplier = Math.pow(0.8, researchLabLevel);
+    const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
     const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
     return Math.floor(time * labMultiplier * techMultiplier * configMultiplier);

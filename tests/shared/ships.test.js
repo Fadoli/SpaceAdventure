@@ -9,6 +9,8 @@ import {
   calculateCargoCapacity,
   calculateFleetFuelCost
 } from '../../src/shared/ships.js';
+import { calculateBaseTime } from '../../src/shared/time.js';
+import { CONFIG } from '../../src/shared/constants.js';
 
 describe('Ships - Data Structure', () => {
   it('should have all ship types defined', () => {
@@ -21,44 +23,79 @@ describe('Ships - Data Structure', () => {
     expect(SHIPS).toHaveProperty('battleship');
   });
 
-  it('should have required properties for each ship', () => {
-    const requiredProps = ['name', 'icon', 'type', 'baseCost', 'buildTime', 'cargoCapacity', 'fuel', 'speed', 'attack', 'shield', 'hull'];
-    
-    for (const shipKey in SHIPS) {
-      const ship = SHIPS[shipKey];
-      requiredProps.forEach(prop => {
-        expect(ship).toHaveProperty(prop);
-      });
+    it('should have required properties for each ship', () => {
+
+      const requiredProps = ['name', 'icon', 'type', 'baseCost', 'cargoCapacity', 'fuel', 'speed', 'attack', 'shield', 'hull'];
+
       
-      // Verify cost structure
-      expect(ship.baseCost).toHaveProperty('metal');
-      expect(ship.baseCost).toHaveProperty('crystal');
-      expect(ship.baseCost).toHaveProperty('deuterium');
-    }
-  });
 
-  it('should have valid type classifications', () => {
-    const validTypes = ['civilian', 'military'];
-    
-    for (const shipKey in SHIPS) {
-      expect(validTypes).toContain(SHIPS[shipKey].type);
-    }
-  });
+      for (const shipKey in SHIPS) {
 
-  it('should have positive costs and stats', () => {
-    for (const shipKey in SHIPS) {
-      const ship = SHIPS[shipKey];
-      expect(ship.baseCost.metal).toBeGreaterThanOrEqual(0);
-      expect(ship.baseCost.crystal).toBeGreaterThanOrEqual(0);
-      expect(ship.baseCost.deuterium).toBeGreaterThanOrEqual(0);
-      expect(ship.buildTime).toBeGreaterThan(0);
-      expect(ship.speed).toBeGreaterThan(0);
-      expect(ship.attack).toBeGreaterThanOrEqual(0);
-      expect(ship.shield).toBeGreaterThanOrEqual(0);
-      expect(ship.hull).toBeGreaterThan(0);
-    }
+        const ship = SHIPS[shipKey];
+
+        requiredProps.forEach(prop => {
+
+          expect(ship).toHaveProperty(prop);
+
+        });
+
+        
+
+        // Verify cost structure
+
+        expect(ship.baseCost).toHaveProperty('metal');
+
+        expect(ship.baseCost).toHaveProperty('crystal');
+
+        expect(ship.baseCost).toHaveProperty('deuterium');
+
+      }
+
+    });
+
+  
+
+    it('should have valid type classifications', () => {
+
+      const validTypes = ['civilian', 'military'];
+
+      
+
+      for (const shipKey in SHIPS) {
+
+        expect(validTypes).toContain(SHIPS[shipKey].type);
+
+      }
+
+    });
+
+  
+
+    it('should have positive costs and stats', () => {
+
+      for (const shipKey in SHIPS) {
+
+        const ship = SHIPS[shipKey];
+
+        expect(ship.baseCost.metal).toBeGreaterThanOrEqual(0);
+
+        expect(ship.baseCost.crystal).toBeGreaterThanOrEqual(0);
+
+        expect(ship.baseCost.deuterium).toBeGreaterThanOrEqual(0);
+
+        expect(ship.speed).toBeGreaterThan(0);
+
+        expect(ship.attack).toBeGreaterThanOrEqual(0);
+
+        expect(ship.shield).toBeGreaterThanOrEqual(0);
+
+        expect(ship.hull).toBeGreaterThan(0);
+
+      }
+
+    });
+
   });
-});
 
 describe('Ships - getShip Function', () => {
   it('should retrieve ship by key', () => {
@@ -172,18 +209,24 @@ describe('Ships - calculateShipBuildTime Function', () => {
     const time5 = calculateShipBuildTime('lightFighter', 5, 1, 0, 0);
     
     // 5 ships should take exactly 5 times longer (linear)
-    const baseTime = getShip('lightFighter').buildTime;
-    expect(time1).toBe(Math.floor(baseTime * Math.pow(0.85, 1)));
-    expect(time5).toBe(Math.floor(baseTime * 5 * Math.pow(0.85, 1)));
+    expect(time5).toBeGreaterThanOrEqual(time1 * 5);
+    expect(time5).toBeLessThanOrEqual(time1 * 5 + 1);
   });
 
   it('should decrease build time with shipyard level', () => {
     const timeLvl1 = calculateShipBuildTime('smallCargo', 1, 1, 0, 0);
     const timeLvl10 = calculateShipBuildTime('smallCargo', 1, 10, 0, 0);
     
-    // Shipyard: 0.85^level multiplier
+    // Shipyard: BUILDING_SPEED_MULTIPLIER^level multiplier
     expect(timeLvl10).toBeLessThan(timeLvl1);
-    expect(timeLvl10).toBe(Math.floor(30 * Math.pow(0.85, 10)));
+    
+    const ship = getShip('smallCargo');
+    const baseTime = calculateBaseTime(ship);
+    const speedFactor = CONFIG.SHIP_BUILD_SPEED || 2500;
+    const timeInSeconds = (baseTime / speedFactor) * 3600;
+    const expectedTime = Math.floor(timeInSeconds * Math.pow(0.85, 10));
+    
+    expect(timeLvl10).toBe(expectedTime);
   });
 
   it('should decrease build time with robotics level', () => {

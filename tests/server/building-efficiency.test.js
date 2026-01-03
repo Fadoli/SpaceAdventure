@@ -12,7 +12,7 @@ describe('Building Efficiency - Cost-to-Production Analysis', () => {
     // Track cost efficiency: cost per unit production per hour
     const efficiencies = [];
     
-    for (let level = 1; level <= 10; level++) {
+    for (let level = 1; level <= 20; level++) {
       const cost = getBuildingCost('metalMine', level);
       const production = getProduction('metalMine', level);
       
@@ -25,10 +25,11 @@ describe('Building Efficiency - Cost-to-Production Analysis', () => {
       }
     }
     
-    // Cost scales faster than production, so later levels are less efficient
-    if (efficiencies.length >= 2) {
-      const early = efficiencies[0].costPerUnit;
-      const late = efficiencies[efficiencies.length - 1].costPerUnit;
+    // Cost scales faster than production at high levels, so later levels are less efficient
+    // We compare level 5 vs level 20 to ensure we've passed the initial 'increasing efficiency' phase
+    if (efficiencies.length >= 20) {
+      const early = efficiencies[4].costPerUnit; // Level 5
+      const late = efficiencies[19].costPerUnit; // Level 20
       // Later levels should be more expensive per unit (diminishing efficiency)
       expect(late).toBeGreaterThan(early);
     }

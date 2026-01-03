@@ -48,7 +48,8 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
 
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
-  const finishTime = Date.now() + (totalBuildTime * configMultiplier * 1000);
+  const effectiveBuildTime = totalBuildTime * configMultiplier;
+  const finishTime = Date.now() + (effectiveBuildTime * 1000);
 
   // Add to queue
   const queueItem = {
@@ -56,7 +57,7 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
     ships,
     startTime: Date.now(),
     finishTime,
-    buildTime: totalBuildTime,
+    buildTime: effectiveBuildTime,
     queuePosition: planet.shipQueue.length + 1
   };
 
@@ -114,7 +115,8 @@ export function buildDefenses(planet, defenses, shipyardLevel = 0, roboticsLevel
 
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
-  const finishTime = Date.now() + (totalBuildTime * configMultiplier * 1000);
+  const effectiveBuildTime = totalBuildTime * configMultiplier;
+  const finishTime = Date.now() + (effectiveBuildTime * 1000);
 
   // Add to queue
   const queueItem = {
@@ -122,7 +124,7 @@ export function buildDefenses(planet, defenses, shipyardLevel = 0, roboticsLevel
     defenses,
     startTime: Date.now(),
     finishTime,
-    buildTime: totalBuildTime,
+    buildTime: effectiveBuildTime,
     queuePosition: planet.defenseQueue.length + 1
   };
 

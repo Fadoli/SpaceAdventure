@@ -27,7 +27,7 @@ export function formatNumber(num) {
  * Format countdown timer
  */
 export function formatCountdown(seconds) {
-    if (seconds <= 0) return '00:00:00';
+    if (!seconds || isNaN(seconds) || seconds <= 0) return '00:00:00';
     
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);

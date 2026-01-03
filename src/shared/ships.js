@@ -1,6 +1,7 @@
 // Ship definitions and stats
 
-import { BUILDING_SPEED_MULTIPLIER } from './constants.js';
+import { BUILDING_SPEED_MULTIPLIER, CONFIG } from './constants.js';
+import { calculateBaseTime } from './time.js';
 
 export const SHIPS = {
   // Civilian Ships
@@ -14,7 +15,6 @@ export const SHIPS = {
       crystal: 2000,
       deuterium: 0
     },
-    buildTime: 30,
     cargoCapacity: 5000,
     fuel: 50,
     speed: 5000, // Units per hour
@@ -33,7 +33,6 @@ export const SHIPS = {
       crystal: 6000,
       deuterium: 0
     },
-    buildTime: 60,
     cargoCapacity: 25000,
     fuel: 300,
     speed: 4000, // Units per hour
@@ -52,7 +51,6 @@ export const SHIPS = {
       crystal: 20000,
       deuterium: 10000
     },
-    buildTime: 300,
     cargoCapacity: 0,
     fuel: 1000,
     speed: 2500, // Units per hour
@@ -71,7 +69,6 @@ export const SHIPS = {
       crystal: 6000,
       deuterium: 2000
     },
-    buildTime: 45,
     cargoCapacity: 20000,
     fuel: 300,
     speed: 2000, // Units per hour
@@ -90,7 +87,6 @@ export const SHIPS = {
       crystal: 1000,
       deuterium: 0
     },
-    buildTime: 30,
     cargoCapacity: 5,
     fuel: 1,
     speed: 8000, // Units per hour - fastest ship
@@ -110,7 +106,6 @@ export const SHIPS = {
       crystal: 1000,
       deuterium: 0
     },
-    buildTime: 30,
     cargoCapacity: 50,
     fuel: 100,
     speed: 7500, // Units per hour
@@ -129,7 +124,6 @@ export const SHIPS = {
       crystal: 4000,
       deuterium: 0
     },
-    buildTime: 60,
     cargoCapacity: 100,
     fuel: 200,
     speed: 6000, // Units per hour
@@ -149,7 +143,6 @@ export const SHIPS = {
       crystal: 7000,
       deuterium: 2000
     },
-    buildTime: 120,
     cargoCapacity: 800,
     fuel: 500,
     speed: 4000, // Units per hour
@@ -168,7 +161,6 @@ export const SHIPS = {
       crystal: 25000,
       deuterium: 15000
     },
-    buildTime: 150,
     cargoCapacity: 500,
     fuel: 1000,
     speed: 3000, // Units per hour
@@ -188,7 +180,6 @@ export const SHIPS = {
       crystal: 15000,
       deuterium: 0
     },
-    buildTime: 240,
     cargoCapacity: 1500,
     fuel: 1000,
     speed: 2000, // Units per hour
@@ -207,7 +198,6 @@ export const SHIPS = {
       crystal: 50000,
       deuterium: 15000
     },
-    buildTime: 300,
     cargoCapacity: 2000,
     fuel: 1500,
     speed: 3500, // Units per hour
@@ -259,8 +249,13 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   const ship = getShip(shipKey);
   if (!ship) return 0;
 
-  // Base time increases linearly with quantity
-  let baseTime = ship.buildTime * quantity;
+  // Base time related to cost
+  const baseTime = calculateBaseTime(ship) * quantity;
+  
+  // Apply build speed factor (converting cost units to seconds)
+  // We use hours-based speed: time = cost / speed * 3600
+  const speedFactor = CONFIG.SHIP_BUILD_SPEED || 2500;
+  const timeInSeconds = (baseTime / speedFactor) * 3600;
 
   // Shipyard level speeds up construction (20% per level, 0.8^n)
   const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
@@ -271,7 +266,7 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
 
-  const totalTime = (baseTime * shipyardMultiplier * roboticsMultiplier) / naniteMultiplier;
+  const totalTime = (timeInSeconds * shipyardMultiplier * roboticsMultiplier) / naniteMultiplier;
 
   return Math.max(1, Math.floor(totalTime));
 }
