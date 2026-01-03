@@ -241,7 +241,7 @@ function renderTheoreticalResearch() {
       const nextLevelToQueue = level + 1 + queuedCount;
 
       html += `
-        <div class="tech-card ${isQueued ? 'queued' : ''} ${level >= 10 ? 'maxed' : ''}">
+        <div class="tech-card ${isQueued ? 'queued' : ''}">
           <div class="tech-header">
             <span class="tech-icon">${tech.icon}</span>
             <div class="tech-name">
@@ -253,7 +253,7 @@ function renderTheoreticalResearch() {
 
           <div class="tech-actions">
             ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
-            <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')" ${level >= 10 ? 'disabled' : ''}>
+            <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')">
               Level ${nextLevelToQueue}
             </button>
           </div>
