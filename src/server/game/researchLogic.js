@@ -21,6 +21,15 @@ import { BUILDINGS } from '../../shared/buildings.js';
 import { SHIPS } from '../../shared/ships.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
 
+import { 
+  getBuildQueueSize, 
+  getResourceProductionMultiplier,
+  getResourceCostMultiplier,
+  getBuildTimeMultiplier,
+  getStorageCapacityMultiplier,
+  getResearchTimeMultiplier
+} from '../config.js';
+
 /**
  * Start theoretical research
  * Returns the research queue item
@@ -83,12 +92,14 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   // Calculate research time (use the level being queued for time calculation)
   const computerTechLevel = player.research.computerTech || 0;
   const researchSpeedBonus = computerTechLevel * 0.1; // 10% per level
+  const configMultiplier = getResearchTimeMultiplier();
   
   const time = calculateTheoreticalResearchTime(
     tech,
     nextLevelToQueue - 1,
     planet.buildings.researchLab || 0,
-    researchSpeedBonus
+    researchSpeedBonus,
+    configMultiplier
   );
   console.log('Research time (seconds):', time);
   
@@ -262,13 +273,14 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   const computerTechLevel = player.research.computerTech || 0;
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
   const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
+  const configMultiplier = getResearchTimeMultiplier();
   
   const timeMultiplier = 1 + (totalFocusLevel * 0.2);
   
   // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 3.5x)
   const strengthTimeMultiplier = 0.5 + (strength * strength * 3);
   
-  let time = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier);
+  let time = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier * configMultiplier);
   time = Math.max(60, time);  // Minimum 60 seconds
   
   // Max duration: 2 days (172800 seconds)
@@ -398,12 +410,14 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   // Base time increases with research level
   const researchLabLevel = planet.buildings.researchLab || 1;
   const computerTechLevel = player.research.computerTech || 0;
+  const configMultiplier = getResearchTimeMultiplier();
   
   const time = calculatePracticalResearchTime(
     practicalResearchConfig,
     totalFocusLevel,
     researchLabLevel,
-    computerTechLevel * 0.1
+    computerTechLevel * 0.1,
+    configMultiplier
   );
   
   // Create queue item for level-based research

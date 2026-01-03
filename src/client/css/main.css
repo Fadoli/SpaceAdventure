@@ -484,19 +484,17 @@ body {
 .queue-items {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .queue-item {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    padding: 3px 6px;
+    padding: 6px 10px;
     transition: all 0.3s;
-    gap: 8px;
     overflow: hidden;
 }
 
@@ -505,107 +503,61 @@ body {
     background: linear-gradient(90deg, var(--bg-tertiary) 0%, rgba(92, 184, 92, 0.1) 100%);
 }
 
+.queue-item-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
 .q-pos {
     color: var(--accent-yellow);
     font-weight: bold;
-    min-width: 18px;
-    font-size: 0.75rem;
+    min-width: 20px;
+    font-size: 0.85rem;
 }
 
 .q-name {
-    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: var(--text-primary);
+    min-width: 150px;
 }
 
 .q-level, .q-count {
     color: var(--text-secondary);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     white-space: nowrap;
-}
-
-.btn-cancel-small {
-    background: transparent;
-    border: none;
-    color: var(--accent-red);
-    cursor: pointer;
-    font-size: 0.9rem;
-    padding: 0 4px;
-    line-height: 1;
-    transition: transform 0.2s, color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-cancel-small:hover {
-    transform: scale(1.2);
-    color: #ff4d4d;
-}
-
-/* Building Queue specific */
-.build-queue-summary {
-    grid-column: 1 / -1;
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(240, 173, 78, 0.15) 100%);
-    border: 1px solid var(--accent-yellow);
-    border-radius: 4px;
-    padding: 4px;
-    margin-bottom: 8px;
-}
-
-/* Shipyard Queue specific */
-#shipyard-view .queue-items {
-    margin-top: 10px;
-}
-
-#shipyard-view .queue-item {
-    padding: 4px 8px;
-    border-left: 3px solid var(--border-color);
-}
-
-#shipyard-view .queue-item.active {
-    border-left-color: var(--accent-green);
-}
-
-.queue-item-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-}
-
-.q-content-mini {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.q-time-mini {
-    font-size: 0.75rem;
-    color: var(--accent-green);
-    font-family: 'Courier New', monospace;
     min-width: 60px;
-    text-align: right;
-    font-weight: bold;
 }
 
 .progress-bar-mini {
-    height: 3px;
+    flex: 1;
+    height: 8px;
     background: var(--bg-primary);
-    border-radius: 1px;
+    border-radius: 4px;
     overflow: hidden;
-    width: 100%;
+    border: 1px solid var(--border-color);
+    margin: 0 10px;
 }
 
 .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
-    transition: width 0.3s ease;
+    transition: width 1s linear;
+    width: 0%;
+}
+
+.q-time-mini {
+    font-size: 0.9rem;
+    color: var(--accent-green);
+    font-family: 'Courier New', monospace;
+    min-width: 85px;
+    text-align: right;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
 /* Research Queue specific */

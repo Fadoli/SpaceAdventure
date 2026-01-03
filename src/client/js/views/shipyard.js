@@ -293,11 +293,9 @@ function renderBuildQueue(shipyardData) {
                 <div class="queue-item ${isActive ? 'active' : ''}">
                     <div class="queue-item-row">
                         <span class="q-pos">${item.queuePosition}.</span>
-                        <div class="q-content-mini">
-                            <span class="q-name">${itemDetails}</span>
-                            <div class="progress-bar-mini">
-                                <div class="progress-fill" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
-                            </div>
+                        <span class="q-name">${itemDetails}</span>
+                        <div class="progress-bar-mini">
+                            <div class="progress-fill" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
                         </div>
                         <span class="q-time-mini">${isActive ? formatCountdown(timeRemaining) : 'Waiting'}</span>
                         <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>

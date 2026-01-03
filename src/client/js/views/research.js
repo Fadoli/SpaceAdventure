@@ -3,9 +3,16 @@ import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES } f
 import { formatNumber } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { calculateBaseTime } from '../../../shared/time.js';
+import { 
+  calculateTheoreticalResearchCost, 
+  calculateTheoreticalResearchTime,
+  calculatePracticalResearchCost,
+  calculatePracticalResearchTime
+} from '../../../shared/formulas.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 
 let currentPlanetId = null;
+let currentPlanetBuildings = null;
 let researchData = null;
 let lastResearchStateHash = null;
 let researchQueueVisible = true;
@@ -27,30 +34,6 @@ window.toggleResearchQueueVisibility = function() {
 };
 
 /**
- * Calculate theoretical research cost for a given level
- * Cost increases by 1.5x with each level: cost = baseCost * 1.5^level
- */
-function calculateTheoreticalResearchCost(baseCost, level) {
-  const multiplier = Math.pow(1.5, level);
-  return {
-    metal: Math.floor(baseCost.metal * multiplier),
-    crystal: Math.floor(baseCost.crystal * multiplier),
-    deuterium: Math.floor(baseCost.deuterium * multiplier)
-  };
-}
-
-
-
-function calculateTheoreticalResearchTime(research, level, researchLabLevel, computerTechLevel = 0) {
-    const baseTime = calculateBaseTime(research);
-    const time = baseTime * Math.pow(1.5, level);
-    const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
-    const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
-    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
-    return Math.floor(time * labMultiplier * techMultiplier * configMultiplier);
-}
-
-/**
  * Calculate a hash of the research state to detect changes
  */
 function calculateResearchStateHash(data) {
@@ -65,9 +48,10 @@ function calculateResearchStateHash(data) {
 /**
  * Initialize research view
  */
-export async function initializeResearch(planetId) {
-  console.log('Initializing research view for planet:', planetId);
-  currentPlanetId = planetId;
+export async function initializeResearch(planet) {
+  console.log('Initializing research view for planet:', planet.id);
+  currentPlanetId = planet.id;
+  currentPlanetBuildings = planet.buildings;
   await loadResearchData();
   console.log('Research data ready:', researchData);
   renderResearchView();
@@ -221,15 +205,20 @@ function renderTheoreticalResearch() {
       if (!tech) continue;
       
       const isActive = queue.indexOf(queueItem) === 0;
-      const progressPercent = queueItem.progress || 0;
+      const elapsed = Date.now() - queueItem.startTime;
+      const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
+      const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
       
       html += `
         <div class="queue-item ${isActive ? 'active' : ''}">
-          <div class="queue-item-info-row">
+          <div class="queue-item-row">
             <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
             <span class="q-name" title="${tech.name}">${tech.icon} ${tech.name}</span>
             <span class="q-level">Lvl ${queueItem.level}</span>
-            <span class="timer" data-finish="${queueItem.endTime}"></span>
+            <div class="progress-bar-mini">
+              <div class="progress-fill" id="research-theory-progress-${queueItem.id}" style="width: ${isActive ? percent : 0}%"></div>
+            </div>
+            <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
             <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Cancel">✕</button>
           </div>
         </div>
@@ -286,7 +275,10 @@ function renderTheoreticalResearch() {
 function updateResearchQueueTimers() {
   document.querySelectorAll('.research-queue-section .timer').forEach(timer => {
     const finishTime = parseInt(timer.dataset.finish);
-    const remaining = Math.max(0, finishTime - Date.now());
+    const startTime = parseInt(timer.dataset.start);
+    const id = timer.dataset.id;
+    const now = Date.now();
+    const remaining = Math.max(0, finishTime - now);
     
     const hours = Math.floor(remaining / 3600000);
     const minutes = Math.floor((remaining % 3600000) / 60000);
@@ -296,6 +288,20 @@ function updateResearchQueueTimers() {
       timer.textContent = 'Complete!';
     } else {
       timer.textContent = `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    // Update progress bar if it exists
+    if (id && startTime && finishTime) {
+      const theoryBar = document.getElementById(`research-theory-progress-${id}`);
+      const practicalBar = document.getElementById(`research-practical-progress-${id}`);
+      const progressBar = theoryBar || practicalBar;
+      
+      if (progressBar) {
+        const total = finishTime - startTime;
+        const elapsed = now - startTime;
+        const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+        progressBar.style.width = `${percent}%`;
+      }
     }
   });
 }
@@ -337,15 +343,20 @@ async function renderPracticalResearch() {
         if (!research) continue;
         
         const isActive = queue.indexOf(queueItem) === 0;
-        const timeRemaining = Math.max(0, queueItem.endTime - Date.now());
-        const progressPercent = queueItem.progress || 0;
+        const elapsed = Date.now() - queueItem.startTime;
+        const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
+        const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
+
         html += `
           <div class="queue-item ${isActive ? 'active' : ''}">
-            <div class="queue-item-info-row">
+            <div class="queue-item-row">
               <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
               <span class="q-name" title="${research.name}">${research.icon} ${research.name}</span>
-              <span class="q-level">Lvl ${queueItem.level}</span>
-              <span class="timer" data-finish="${queueItem.endTime}"></span>
+              <span class="q-level">Lvl ${queueItem.level || ''}</span>
+              <div class="progress-bar-mini">
+                <div class="progress-fill" id="research-practical-progress-${queueItem.id}" style="width: ${isActive ? percent : 0}%"></div>
+              </div>
+              <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
               <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${queueItem.id}')" title="Cancel">✕</button>
             </div>
           </div>
@@ -409,25 +420,6 @@ async function renderPracticalResearch() {
     console.error('Error loading practical research:', error);
     container.innerHTML = `<p class="error">Failed to load practical research: ${error.message}</p>`;
   }
-}
-
-/**
- * Calculate research cost based on level
- */
-function calculateResearchCost(baseCost, currentLevel) {
-  const multiplier = 1 + (currentLevel * 0.5);  // Cost scales with level
-  return {
-    metal: Math.ceil(baseCost.metal * multiplier),
-    crystal: Math.ceil(baseCost.crystal * multiplier),
-    deuterium: Math.ceil(baseCost.deuterium * multiplier)
-  };
-}
-
-/**
- * Calculate research time in seconds
- */
-function calculateResearchTime(baseTime) {
-  return baseTime;  // Can be adjusted based on research lab later
 }
 
 /**
@@ -657,9 +649,16 @@ window.updateAllocationSliders = function() {
     const baseTime = calculateBaseTime(research);
     const timeMultiplier = 1 + (weightedMultiplier - 1) * 0.2;
     const strengthTimeMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 3);  // 0.5 to 3.5
+    
+    // Include lab and tech bonuses to match server logic
+    const playerTech = researchData?.theoretical || {};
+    const computerTechLevel = playerTech.computerTech || 0;
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 1;
+    const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
+    const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
     
-    let estimatedTime = Math.ceil(baseTime * timeMultiplier * strengthTimeMultiplier * configMultiplier);
+    let estimatedTime = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier * configMultiplier);
     
     // Max duration is 2 days (172800 seconds)
     const maxDuration = 172800;
@@ -966,9 +965,19 @@ window.showResearchDetails = function(techKey) {
   const rows = [];
   
   const computerTechLevel = playerTech.computerTech || 0;
-  for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 10); level++) {
+  const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+  const researchSpeedBonus = computerTechLevel * 0.1;
+  const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+
+  for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 30); level++) {
     const cost = calculateTheoreticalResearchCost(tech.baseCost, level - 1);
-    const timeInSeconds = calculateTheoreticalResearchTime(tech, level - 1, 6, computerTechLevel); // Assume research lab level 6
+    const timeInSeconds = calculateTheoreticalResearchTime(
+      tech, 
+      level - 1, 
+      researchLabLevel, 
+      researchSpeedBonus,
+      configMultiplier
+    );
     const timeStr = formatTime(timeInSeconds * 1000);
     
     rows.push([
@@ -988,7 +997,7 @@ window.showResearchDetails = function(techKey) {
       headers: headers,
       rows: rows
     },
-    footer: '* Time estimate assumes Research Lab level 6'
+    footer: `* Time estimate assumes Research Lab level ${researchLabLevel}`
   });
 };
 

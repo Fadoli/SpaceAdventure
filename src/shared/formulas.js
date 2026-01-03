@@ -52,13 +52,8 @@ export function calculateResearchCost(baseCost, level) {
 /**
  * Calculate research time
  */
-export function calculateResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
-  const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
-  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
-  const techMultiplier = 1 / (1 + researchSpeedBonus);
-  
-  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
+export function calculateResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0) {
+  return calculateTheoreticalResearchTime(research, level, labLevel, researchSpeedBonus, configMultiplier);
 }
 
 /**
@@ -231,52 +226,50 @@ export function getBuildingPopulationRequired(buildingType, level, buildingsObj 
 
 /**
  * Calculate theoretical research cost at a given level
- * Increases by 1.5x with each level (exponential growth)
+ * Increases with each level (exponential growth)
  */
 export function calculateTheoreticalResearchCost(baseCost, level) {
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
+    metal: Math.floor(baseCost.metal * Math.pow(SCALING.RESEARCH_COST, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.RESEARCH_COST, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.RESEARCH_COST, level))
   };
 }
 
 /**
  * Calculate theoretical research time at a given level
- * Time increases by 1.5x with each level, affected by research lab level
+ * Time increases with each level, affected by research lab level
  */
-export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
+export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0) {
   const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(1.5, level);
+  const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
+  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier * configMultiplier));
 }
 
 /**
  * Calculate practical research (customization) cost at a given level
- * Slower scaling than theoretical: 1.5x per level
  */
 export function calculatePracticalResearchCost(baseCost, level) {
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(1.5, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(1.5, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(1.5, level))
+    metal: Math.floor(baseCost.metal * Math.pow(SCALING.RESEARCH_COST, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.RESEARCH_COST, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.RESEARCH_COST, level))
   };
 }
 
 /**
  * Calculate practical research (customization) time at a given level
- * Slower scaling than theoretical: 1.5x per level
  */
-export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0) {
+export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0) {
   const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(1.5, level);
+  const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier));
+  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier * configMultiplier));
 }
 
 /**

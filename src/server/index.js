@@ -32,6 +32,7 @@ import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/bui
 import { SHIPS } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
 import { calculateBaseTime } from '../shared/time.js';
+import { SCALING } from '../shared/constants.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 
 // Load configuration

@@ -243,7 +243,8 @@ function switchView(view, updateHistory = true) {
             updateGalaxyView(gameState);
         } else if (view === 'research') {
             // Initialize research view when explicitly switched
-            initializeResearch(currentPlanetId);
+            const planet = gameState.planets.find(p => p.id === currentPlanetId) || gameState.planets[0];
+            initializeResearch(planet);
         } else {
             updateCurrentView();
         }
@@ -341,7 +342,7 @@ function startResourceUpdate() {
     updateInterval = setInterval(async () => {
         await loadGameState();
         updateTimers();
-    }, 2000); // Every 2 seconds
+    }, 1000); // Every 1 second
 }
 
 // Global window functions for onclick handlers

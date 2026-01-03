@@ -398,13 +398,22 @@ function updateQueueView(queue, maxQueueSize, buildings) {
                 <div class="queue-items" style="${queueVisible ? 'display: flex; margin-top: 4px;' : 'display: none;'}">
                     ${queue.map((item, index) => {
                         const isActive = index === 0;
+                        const elapsed = Date.now() - item.startTime;
+                        const total = item.finishTime - item.startTime;
+                        const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                        
                         return `
                             <div class="queue-item ${isActive ? 'active' : ''}">
-                                <span class="q-pos">${item.queuePosition}.</span>
-                                <span class="q-name" title="${buildings[item.building]?.name || item.building}">${buildings[item.building]?.icon || ''} ${buildings[item.building]?.name || item.building}</span>
-                                <span class="q-level">Lvl ${item.level}</span>
-                                <span class="timer" data-finish="${item.finishTime}"></span>
-                                <button class="btn-cancel-small" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">✕</button>
+                                <div class="queue-item-row">
+                                    <span class="q-pos">${item.queuePosition}.</span>
+                                    <span class="q-name" title="${buildings[item.building]?.name || item.building}">${buildings[item.building]?.icon || ''} ${buildings[item.building]?.name || item.building}</span>
+                                    <span class="q-level">Lvl ${item.level}</span>
+                                    <div class="progress-bar-mini">
+                                        <div class="progress-fill" id="build-progress-${item.queuePosition}" style="width: ${isActive ? percent : 0}%"></div>
+                                    </div>
+                                    <span class="q-time-mini timer" data-finish="${item.finishTime}" data-start="${item.startTime}" data-queue-pos="${item.queuePosition}"></span>
+                                    <button class="btn-cancel-small" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">✕</button>
+                                </div>
                             </div>
                         `;
                     }).join('')}
@@ -417,14 +426,26 @@ function updateQueueView(queue, maxQueueSize, buildings) {
     }
 }
 
-/**
- * Update countdown timers
- */
 export function updateTimers() {
     document.querySelectorAll('.timer').forEach(timer => {
         const finishTime = parseInt(timer.dataset.finish);
-        const remaining = Math.max(0, finishTime - Date.now());
+        const startTime = parseInt(timer.dataset.start);
+        const queuePos = timer.dataset.queuePos;
+        const now = Date.now();
+        const remaining = Math.max(0, finishTime - now);
+        
         timer.textContent = formatCountdown(remaining / 1000);
+        
+        // Update progress bar if it exists
+        if (queuePos) {
+            const progressBar = document.getElementById(`build-progress-${queuePos}`);
+            if (progressBar && startTime && finishTime) {
+                const total = finishTime - startTime;
+                const elapsed = now - startTime;
+                const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                progressBar.style.width = `${percent}%`;
+            }
+        }
         
         if (remaining === 0) {
             timer.textContent = 'Complete!';
