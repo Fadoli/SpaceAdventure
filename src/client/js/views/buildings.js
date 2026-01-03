@@ -1,6 +1,7 @@
 // Buildings view logic
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
+import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
@@ -772,12 +773,6 @@ export async function showBuildingDetails(buildingKey) {
     const building = buildingDetails.buildings[buildingKey];
     const currentLevel = building.currentLevel;
     
-    const modal = document.getElementById('building-details-modal');
-    const modalTitle = document.getElementById('modal-building-title');
-    const modalBody = document.getElementById('modal-building-body');
-    
-    modalTitle.innerHTML = `${building.icon} ${building.name} <span class="current-level">(Current: Level ${currentLevel})</span>`;
-    
     // For the table, we still need to calculate future levels
     // This could be optimized by having the server provide this data too
     const levels = [];
@@ -827,9 +822,6 @@ export async function showBuildingDetails(buildingKey) {
     if (building.deuteriumConsumption > 0) {
         baseDeuteriumConsEstimate = building.deuteriumConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * deuteriumConsMultiplier);
     }
-
-    // Create a dummy building object for shared formula use
-    const buildingWithBaseTime = { baseCost: baseCostEstimate };
     
     for (let level = 1; level <= Math.min(currentLevel + 10, 30); level++) {
         const multiplier = Math.pow(SCALING.BUILDING_COST, level);
@@ -872,7 +864,21 @@ export async function showBuildingDetails(buildingKey) {
         levels.push({ level, cost, buildTime, production, storage, energyConsumption, deuteriumConsumption });
     }
     
-    let tableRows = levels.map(l => {
+    // Prepare table data
+    const headers = [
+        'Level',
+        'Cost',
+        'Build Time',
+        buildingKey.includes('Storage') ? 'Capacity' :
+        buildingKey === 'roboticsFactory' ? 'Construction Speed' :
+        buildingKey === 'naniteFactory' ? 'Nanite Speed' :
+        buildingKey === 'researchLab' ? 'Research Speed' :
+        buildingKey === 'shipyard' ? 'Production Speed' :
+        'Production',
+        buildingKey === 'fusionReactor' ? 'Deuterium' : 'Energy'
+    ];
+
+    const rows = levels.map(l => {
         const isCurrent = l.level === currentLevel;
         
         // Determine what data to display based on building type
@@ -918,22 +924,22 @@ export async function showBuildingDetails(buildingKey) {
             consumptionCell = `⚡-${formatNumber(l.energyConsumption)}/h`;
         }
         
-        return `
-            <tr class="${isCurrent ? 'current-level-row' : ''}">
-                <td>${l.level}${isCurrent ? ' ⭐' : ''}</td>
-                <td>⚙️${formatNumber(l.cost.metal)}<br>💎${formatNumber(l.cost.crystal)}${l.cost.deuterium > 0 ? `<br>🛢️${formatNumber(l.cost.deuterium)}` : ''}</td>
-                <td>${formatCountdown(l.buildTime)}</td>
-                <td>${dataCell}</td>
-                <td>${consumptionCell}</td>
-            </tr>
-        `;
-    }).join('');
-    
-    // Generate special effects info for certain buildings
-    let effectsSection = '';
+        const costCell = `⚙️${formatNumber(l.cost.metal)}<br>💎${formatNumber(l.cost.crystal)}${l.cost.deuterium > 0 ? `<br>🛢️${formatNumber(l.cost.deuterium)}` : ''}`;
+        
+        return [
+            `${l.level}${isCurrent ? ' ⭐' : ''}`,
+            costCell,
+            formatCountdown(l.buildTime),
+            dataCell,
+            consumptionCell
+        ];
+    });
+
+    // Prepare effects string
+    let effects = '';
     if (buildingKey === 'roboticsFactory' && currentLevel > 0) {
         const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, currentLevel)).toFixed(2);
-        effectsSection = `
+        effects = `
             <div class="building-effects">
                 <strong>⚙️ Current Effect:</strong>
                 <div>Construction speed multiplier: ${speedMult}x (1 / ${BUILDING_SPEED_MULTIPLIER}^${currentLevel})</div>
@@ -941,7 +947,7 @@ export async function showBuildingDetails(buildingKey) {
         `;
     } else if (buildingKey === 'naniteFactory' && currentLevel > 0) {
         const speedMult = Math.pow(2, currentLevel).toFixed(0);
-        effectsSection = `
+        effects = `
             <div class="building-effects">
                 <strong>⚡ Current Effect:</strong>
                 <div>Nanite construction speed multiplier: ${speedMult}x (2^${currentLevel})</div>
@@ -949,7 +955,7 @@ export async function showBuildingDetails(buildingKey) {
         `;
     } else if (buildingKey === 'researchLab' && currentLevel > 0) {
         const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, currentLevel)).toFixed(2);
-        effectsSection = `
+        effects = `
             <div class="building-effects">
                 <strong>🔬 Current Effect:</strong>
                 <div>Research speed multiplier: ${speedMult}x (1 / ${BUILDING_SPEED_MULTIPLIER}^${currentLevel})</div>
@@ -957,64 +963,29 @@ export async function showBuildingDetails(buildingKey) {
         `;
     } else if (buildingKey === 'shipyard' && currentLevel > 0) {
         const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, currentLevel)).toFixed(2);
-        effectsSection = `
+        effects = `
             <div class="building-effects">
                 <strong>🚀 Current Effect:</strong>
                 <div>Ship production speed multiplier: ${speedMult}x (1 / ${BUILDING_SPEED_MULTIPLIER}^${currentLevel})</div>
             </div>
         `;
     }
-    
-    modalBody.innerHTML = `
-        <div class="building-description">${building.description}</div>
-        ${effectsSection}
-        <div class="stats-table-container">
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        <th>Level</th>
-                        <th>Cost</th>
-                        <th>Build Time</th>
-                        <th>${
-                            buildingKey.includes('Storage') ? 'Capacity' :
-                            buildingKey === 'roboticsFactory' ? 'Construction Speed' :
-                            buildingKey === 'naniteFactory' ? 'Nanite Speed' :
-                            buildingKey === 'researchLab' ? 'Research Speed' :
-                            buildingKey === 'shipyard' ? 'Production Speed' :
-                            'Production'
-                        }</th>
-                        <th>${buildingKey === 'fusionReactor' ? 'Deuterium' : 'Energy'}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-    
-    // Add click outside modal to close
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
+
+    renderDetailsModal({
+        title: `${building.icon} ${building.name} <span class="current-level">(Current: Level ${currentLevel})</span>`,
+        description: building.description,
+        effects: effects,
+        table: {
+            headers: headers,
+            rows: rows,
+            highlightRowIndex: rows.findIndex((r, i) => levels[i].level === currentLevel)
         }
     });
-    
-    // Add ESC key to close modal
-    const handleEscKey = (e) => {
-        if (e.key === 'Escape' && modal.style.display === 'block') {
-            closeModal();
-            document.removeEventListener('keydown', handleEscKey);
-        }
-    };
-    document.addEventListener('keydown', handleEscKey);
 }
 
 /**
  * Close modal
  */
 export function closeModal() {
-    document.getElementById('building-details-modal').style.display = 'none';
+    closeDetailsModal();
 }

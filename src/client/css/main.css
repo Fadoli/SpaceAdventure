@@ -2255,3 +2255,41 @@ body {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+/* Generic Details Modal Styles */
+.details-description {
+    color: var(--text-secondary);
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-blue);
+}
+
+.details-effects {
+    color: var(--text-primary);
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-green);
+}
+
+.details-effects strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--accent-green);
+}
+
+.details-effects ul {
+    list-style-position: inside;
+    margin-top: 5px;
+}
+
+.details-footer {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-top: 15px;
+    text-align: right;
+    font-style: italic;
+}
+

@@ -1,6 +1,7 @@
 // Research view - theoretical and practical research management
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES } from '../../../shared/research.js';
 import { formatNumber } from '../utils.js';
+import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { calculateBaseTime } from '../../../shared/time.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 
@@ -928,19 +929,11 @@ window.showResearchDetails = function(techKey) {
   
   if (!tech) return;
   
-  const modal = document.getElementById('research-details-modal');
-  const modalTitle = document.getElementById('modal-research-title');
-  const modalBody = document.getElementById('modal-research-body');
-  
-  modalTitle.innerHTML = `${tech.icon} ${tech.name} <span class="current-level">(Current: Level ${currentLevel})</span>`;
-  
-  // Build a progression table showing costs and benefits for multiple levels
-  let html = `<div class="research-details">`;
-  html += `<p class="research-description">${tech.description}</p>`;
+  let effectsHtml = '';
   
   // Show bonuses/effects
   if (tech.bonuses && Object.keys(tech.bonuses).length > 0) {
-    html += `<div class="research-effects">
+    effectsHtml += `<div class="research-effects">
       <h3>Benefits:</h3>
       <ul>`;
     for (const [bonus, value] of Object.entries(tech.bonuses)) {
@@ -952,36 +945,25 @@ window.showResearchDetails = function(techKey) {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       const displayValue = (value * 100).toFixed(0);
-      html += `<li>+${displayValue}% ${displayName}</li>`;
+      effectsHtml += `<li>+${displayValue}% ${displayName}</li>`;
     }
-    html += `</ul></div>`;
+    effectsHtml += `</ul></div>`;
   }
   
   // Show unlocks
   if (tech.unlocks && tech.unlocks.length > 0) {
-    html += `<div class="research-unlocks">
+    effectsHtml += `<div class="research-unlocks">
       <h3>Unlocks:</h3>
       <ul>`;
     for (const unlock of tech.unlocks) {
-      html += `<li>${unlock}</li>`;
+      effectsHtml += `<li>${unlock}</li>`;
     }
-    html += `</ul></div>`;
+    effectsHtml += `</ul></div>`;
   }
   
-  // Show progression table for next 5 levels
-  html += `<div class="progression-table">
-    <h3>Progression</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Level</th>
-          <th>⚙️ Metal</th>
-          <th>💎 Crystal</th>
-          <th>🛢️ Deuterium</th>
-          <th>⏱️ Time</th>
-        </tr>
-      </thead>
-      <tbody>`;
+  // Prepare progression table
+  const headers = ['Level', '⚙️ Metal', '💎 Crystal', '🛢️ Deuterium', '⏱️ Time'];
+  const rows = [];
   
   const computerTechLevel = playerTech.computerTech || 0;
   for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 10); level++) {
@@ -989,29 +971,32 @@ window.showResearchDetails = function(techKey) {
     const timeInSeconds = calculateTheoreticalResearchTime(tech, level - 1, 6, computerTechLevel); // Assume research lab level 6
     const timeStr = formatTime(timeInSeconds * 1000);
     
-    html += `<tr>
-      <td>Level ${level}</td>
-      <td>${formatNumber(cost.metal)}</td>
-      <td>${formatNumber(cost.crystal)}</td>
-      <td>${formatNumber(cost.deuterium)}</td>
-      <td>${timeStr}</td>
-    </tr>`;
+    rows.push([
+      `Level ${level}`,
+      formatNumber(cost.metal),
+      formatNumber(cost.crystal),
+      formatNumber(cost.deuterium),
+      timeStr
+    ]);
   }
   
-  html += `</tbody>
-    </table>
-    <p style="font-size: 0.9em; color: #999; margin-top: 10px;">* Time estimate assumes Research Lab level 6</p>
-  </div></div>`;
-  
-  modalBody.innerHTML = html;
-  modal.style.display = 'flex';
+  renderDetailsModal({
+    title: `${tech.icon} ${tech.name} <span class="current-level">(Current: Level ${currentLevel})</span>`,
+    description: tech.description,
+    effects: effectsHtml,
+    table: {
+      headers: headers,
+      rows: rows
+    },
+    footer: '* Time estimate assumes Research Lab level 6'
+  });
 };
 
 /**
  * Close research details modal
  */
 window.closeResearchModal = function() {
-  document.getElementById('research-details-modal').style.display = 'none';
+  closeDetailsModal();
 };
 
 /**
