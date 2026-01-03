@@ -97,7 +97,7 @@ function renderResearchView() {
   // Clear the container first (remove the "coming soon" message)
   container.innerHTML = '';
 
-  const maxQueue = window.GAME_CONFIG?.maxResearchQueue || 1;
+  const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
   const content = document.createElement('div');
   content.className = 'research-container';
@@ -191,7 +191,7 @@ function renderTheoreticalResearch() {
 
   let html = '<div class="theory-research-list">';
 
-  const maxQueue = window.GAME_CONFIG?.maxResearchQueue || 1;
+  const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
   // Show research queue at the top if there are items
   if (queue.length > 0) {
@@ -331,7 +331,7 @@ async function renderPracticalResearch() {
     const playerPractical = researchData?.practical || {};
     const queue = researchData?.progress?.practical || [];
 
-    const maxQueue = window.GAME_CONFIG?.maxResearchQueue || 1;
+    const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
     let html = '<div class="practical-research-view">';
     

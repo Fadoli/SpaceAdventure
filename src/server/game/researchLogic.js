@@ -27,7 +27,8 @@ import {
   getResourceCostMultiplier,
   getBuildTimeMultiplier,
   getStorageCapacityMultiplier,
-  getResearchTimeMultiplier
+  getResearchTimeMultiplier,
+  getConfig
 } from '../config.js';
 
 /**
@@ -51,7 +52,7 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   }
   
   // Check build queue size
-  const maxQueueSize = getConfig().maxResearchQueue || 1;
+  // Check build queue size\n  const maxQueueSize = getResearchQueueSize();
   if (player.researchQueue && player.researchQueue.length >= maxQueueSize) {
     throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }
@@ -235,7 +236,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   }
 
   // Check queue size
-  const maxQueueSize = getConfig().maxResearchQueue || 1;
+  // Check build queue size\n  const maxQueueSize = getResearchQueueSize();
   if (player.practicalResearchQueue && player.practicalResearchQueue.length >= maxQueueSize) {
     throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }
@@ -384,7 +385,7 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   }
 
   // Check queue size
-  const maxQueueSize = getConfig().maxResearchQueue || 1;
+  // Check build queue size\n  const maxQueueSize = getResearchQueueSize();
   if (player.practicalResearchQueue && player.practicalResearchQueue.length >= maxQueueSize) {
     throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }

@@ -339,11 +339,11 @@ async function handleRequest(req) {
       // Configuration is public information needed for UI calculations
       const config = getConfig();
       
-      // Return only what's needed for the client to avoid leaking server-only secrets if any existed
-      // (Currently all config in config.json is safe to expose)
+      // Return only what's needed for the client
       return successResponse(req, {
         gameSpeed: config.gameSpeed,
-        balancing: config.balancing
+        balancing: config.balancing,
+        gameplay: config.gameplay
       });
     }
     

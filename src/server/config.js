@@ -45,7 +45,7 @@ function getDefaultConfig() {
     },
     gameplay: {
       buildQueueSize: 1,
-      researchQueueSize: 1,
+      researchQueueSize: 10,
       maxPlanetsPerPlayer: 9,
       startingResourcesMultiplier: 1.0
     }
