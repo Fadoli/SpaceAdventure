@@ -50,6 +50,12 @@ export function startTheoreticalResearch(player, techKey, planetId) {
     throw new Error(`Prerequisites not met for ${techKey}`);
   }
   
+  // Check build queue size
+  const maxQueueSize = getConfig().maxResearchQueue || 1;
+  if (player.researchQueue && player.researchQueue.length >= maxQueueSize) {
+    throw new Error(`Research queue is full (max ${maxQueueSize})`);
+  }
+  
   // Get current completed level
   const currentCompletedLevel = player.research[techKey] || 0;
   console.log('Current completed research level:', currentCompletedLevel);
@@ -227,6 +233,12 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   if (!planet) {
     throw new Error('Planet not found');
   }
+
+  // Check queue size
+  const maxQueueSize = getConfig().maxResearchQueue || 1;
+  if (player.practicalResearchQueue && player.practicalResearchQueue.length >= maxQueueSize) {
+    throw new Error(`Research queue is full (max ${maxQueueSize})`);
+  }
   
   // Check for research lab
   console.log(`[RESEARCH] Research lab level:`, planet.buildings.researchLab);
@@ -369,6 +381,12 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   
   if (!planet) {
     throw new Error('Planet not found');
+  }
+
+  // Check queue size
+  const maxQueueSize = getConfig().maxResearchQueue || 1;
+  if (player.practicalResearchQueue && player.practicalResearchQueue.length >= maxQueueSize) {
+    throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }
   
   // Ensure player has practical research structure

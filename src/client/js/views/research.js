@@ -97,6 +97,8 @@ function renderResearchView() {
   // Clear the container first (remove the "coming soon" message)
   container.innerHTML = '';
 
+  const maxQueue = window.GAME_CONFIG?.maxResearchQueue || 1;
+
   const content = document.createElement('div');
   content.className = 'research-container';
   content.innerHTML = `
@@ -189,12 +191,14 @@ function renderTheoreticalResearch() {
 
   let html = '<div class="theory-research-list">';
 
+  const maxQueue = window.GAME_CONFIG?.maxResearchQueue || 1;
+
   // Show research queue at the top if there are items
   if (queue.length > 0) {
     html += `
       <div class="research-queue-section">
         <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <h3 style="margin: 0;">🔬 Research Queue (${queue.length})</h3>
+          <h3 style="margin: 0;">🔬 Research Queue (${queue.length}/${maxQueue})</h3>
           <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
         </div>
         <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
@@ -239,6 +243,7 @@ function renderTheoreticalResearch() {
       const isQueued = queuedItems.length > 0;
       const queuedCount = queuedItems.length;
       const nextLevelToQueue = level + 1 + queuedCount;
+      const isQueueFull = queue.length >= maxQueue;
 
       html += `
         <div class="tech-card ${isQueued ? 'queued' : ''}">
@@ -253,7 +258,7 @@ function renderTheoreticalResearch() {
 
           <div class="tech-actions">
             ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
-            <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')">
+            <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')" ${isQueueFull ? 'disabled' : ''} title="${isQueueFull ? 'Research queue is full' : ''}">
               Level ${nextLevelToQueue}
             </button>
           </div>
@@ -326,6 +331,8 @@ async function renderPracticalResearch() {
     const playerPractical = researchData?.practical || {};
     const queue = researchData?.progress?.practical || [];
 
+    const maxQueue = window.GAME_CONFIG?.maxResearchQueue || 1;
+
     let html = '<div class="practical-research-view">';
     
     // Show active research queue
@@ -333,7 +340,7 @@ async function renderPracticalResearch() {
       html += `
         <div class="research-queue-section">
           <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <h3 style="margin: 0;">🔬 Research Queue (${queue.length})</h3>
+            <h3 style="margin: 0;">🔬 Research Queue (${queue.length}/${maxQueue})</h3>
             <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
           </div>
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
@@ -379,9 +386,11 @@ async function renderPracticalResearch() {
       const totalLevel = researchLevels 
         ? Object.values(researchLevels).reduce((a, b) => a + b, 0)
         : 0;
+      
+      const isQueueFull = queue.length >= maxQueue;
 
       html += `
-        <div class="research-card" onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}')">
+        <div class="research-card" onclick="${!isQueueFull ? `openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}')` : ''}">
           <div class="card-header">
             <span class="icon">${research.icon}</span>
             <span class="name">${research.name}</span>
@@ -404,7 +413,7 @@ async function renderPracticalResearch() {
             ${totalLevel > 0 ? `
               <button class="btn btn-success btn-small" onclick="window.buildCustomVariantFromResearch('${research.baseType}', 'building', event)">✓ Create Variant</button>
             ` : ''}
-            <button class="btn btn-primary" onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}', event)">Customize Research →</button>
+            <button class="btn btn-primary" ${isQueueFull ? 'disabled title="Research queue is full"' : ''} onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}', event)">Customize Research →</button>
           </div>
         </div>
       `;
