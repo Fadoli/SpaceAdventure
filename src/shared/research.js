@@ -16,7 +16,7 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['fusionReactor', 'energyTech'],
     bonuses: {
       energyProduction: 0.1, // 10% per level
-      energyEfficiency: 0.05 // 5% per level
+      energyEfficiency: 0.01 // 1% per level
     }
   },
 

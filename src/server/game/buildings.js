@@ -528,7 +528,7 @@ export function updatePlanetProduction(planet, player = null) {
   
   // Energy efficiency from research
   const energyTechLevel = player?.research?.energyTech || 0;
-  const energyEfficiencyBonus = 1 - (energyTechLevel * 0.05); // 5% reduction per level
+  const energyEfficiencyBonus = 1 - (energyTechLevel * 0.01); // 1% reduction per level
   
   // Calculate production from all buildings
   for (const buildingType in planet.buildings) {
@@ -602,7 +602,9 @@ export function updatePlanetProduction(planet, player = null) {
   
   // Calculate max population from housing
   const housingLevel = planet.buildings.housing || 0;
-  planet.maxPopulation = CONFIG.POPULATION_HOUSING_RATIO * housingLevel * Math.pow(SCALING.BUILDING_HOUSING, housingLevel);
+  const housingDef = BUILDINGS.housing;
+  const housingRatio = housingDef.housingCapacity || CONFIG.POPULATION_HOUSING_RATIO;
+  planet.maxPopulation = housingRatio * housingLevel * Math.pow(SCALING.BUILDING_HOUSING, housingLevel);
   
   // Food consumption based on current population
   const currentPop = planet.resources.population || 0;

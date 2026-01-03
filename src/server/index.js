@@ -598,16 +598,16 @@ async function handleRequest(req) {
           const productionMultiplier = 10.0; // From config
           // Energy efficiency from research
           const energyTechLevel = player?.research?.energyTech || 0;
-          const energyEfficiencyBonus = 1 - (energyTechLevel * 0.05); // 5% reduction per level
+          const energyEfficiencyBonus = 1 - (energyTechLevel * 0.01); // 1% reduction per level
           
-          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier * Math.max(0.5, energyEfficiencyBonus));
+          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(SCALING.BUILDING_ENERGY, nextLevel) * productionMultiplier * Math.max(0.5, energyEfficiencyBonus));
         }
         
         // Calculate deuterium consumption for next level
         let deuteriumConsumption = 0;
         if (buildingDef.deuteriumConsumption) {
           const productionMultiplier = 10.0; // From config
-          deuteriumConsumption = Math.floor(buildingDef.deuteriumConsumption * nextLevel * Math.pow(1.1, nextLevel) * productionMultiplier);
+          deuteriumConsumption = Math.floor(buildingDef.deuteriumConsumption * nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, nextLevel) * productionMultiplier);
         }
         
         // Check if can afford

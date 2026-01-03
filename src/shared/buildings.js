@@ -45,8 +45,8 @@ export const BUILDINGS = {
     icon: '💎',
     description: 'Mines crystal from the planet. Each level increases production.',
     baseCost: {
-      metal: 48,
-      crystal: 24,
+      metal: 50,
+      crystal: 25,
       deuterium: 0
     },
     maxLevel: 50,
@@ -63,15 +63,15 @@ export const BUILDINGS = {
     icon: '🛢️',
     description: 'Synthesizes deuterium from heavy water. Each level increases production.',
     baseCost: {
-      metal: 225,
-      crystal: 75,
+      metal: 200,
+      crystal: 65,
       deuterium: 0
     },
     maxLevel: 50,
     production: {
       deuterium: 10 // Base production per hour at level 1
     },
-    energyConsumption: 15, // Reduced from 20 to 15 for better early-game viability
+    energyConsumption: 20, // Increased to add more energy pressure for deuterium
     populationRequired: 4, // Base population requirement
     requirements: {}
   },
@@ -81,8 +81,8 @@ export const BUILDINGS = {
     icon: '⚡',
     description: 'Provides energy through solar panels. Required to power other buildings.',
     baseCost: {
-      metal: 75,
-      crystal: 30,
+      metal: 80,
+      crystal: 35,
       deuterium: 0
     },
     maxLevel: 50,
@@ -98,15 +98,15 @@ export const BUILDINGS = {
     icon: '⚛️',
     description: 'Advanced energy production through nuclear fusion. Consumes deuterium.',
     baseCost: {
-      metal: 900,
-      crystal: 360,
-      deuterium: 180
+      metal: 1000,
+      crystal: 400,
+      deuterium: 200
     },
     maxLevel: 50,
     production: {
-      energy: 50 // Base energy production at level 1
+      energy: 80 // Increased to make it more attractive vs Solar Plant later on
     },
-    deuteriumConsumption: 5, // Reduced from 10 to 5 for early levels, can scale with level
+    deuteriumConsumption: 8, // Increased consumption to balance higher energy output
     requirements: {
       deuteriumSynthesizer: 5,
       energyTech: 3
@@ -163,13 +163,13 @@ export const BUILDINGS = {
     icon: '📦',
     description: 'Increases metal storage capacity.',
     baseCost: {
-      metal: 1000,
+      metal: 2000,
       crystal: 0,
       deuterium: 0
     },
     maxLevel: 50,
     storage: {
-      metal: 5000 // Additional storage per level
+      metal: 15000 // Additional storage per level
     },
     requirements: {}
   },
@@ -179,13 +179,13 @@ export const BUILDINGS = {
     icon: '📦',
     description: 'Increases crystal storage capacity.',
     baseCost: {
-      metal: 1000,
-      crystal: 500,
+      metal: 2000,
+      crystal: 1000,
       deuterium: 0
     },
     maxLevel: 50,
     storage: {
-      crystal: 5000 // Additional storage per level
+      crystal: 15000 // Additional storage per level
     },
     requirements: {}
   },
@@ -195,13 +195,13 @@ export const BUILDINGS = {
     icon: '🛢️',
     description: 'Increases deuterium storage capacity.',
     baseCost: {
-      metal: 1000,
-      crystal: 1000,
+      metal: 2000,
+      crystal: 2000,
       deuterium: 0
     },
     maxLevel: 50,
     storage: {
-      deuterium: 5000 // Additional storage per level
+      deuterium: 15000 // Additional storage per level
     },
     requirements: {}
   },
@@ -235,7 +235,7 @@ export const BUILDINGS = {
     production: {
       water: 40 // Base production per hour at level 1
     },
-    energyConsumption: 8,
+    energyConsumption: 10, // Increased to align with basic mines
     populationRequired: 5, // Base population requirement
     requirements: {}
   },
@@ -254,7 +254,7 @@ export const BUILDINGS = {
       food: 30 // Base production per hour at level 1
     },
     waterConsumption: 10, // Water consumed per hour
-    energyConsumption: 5,
+    energyConsumption: 8, // Increased energy consumption
     populationRequired: 8, // Base population requirement
     requirements: {
       waterExtractor: 1
@@ -271,7 +271,7 @@ export const BUILDINGS = {
       deuterium: 0
     },
     maxLevel: 50,
-    housingCapacity: 10, // Base population capacity per level
+    housingCapacity: 50, // Updated to 50 to match server constant usage
     energyConsumption: 3,
     requirements: {}
   },
@@ -281,13 +281,13 @@ export const BUILDINGS = {
     icon: '💦',
     description: 'Increases water storage capacity.',
     baseCost: {
-      metal: 800,
-      crystal: 400,
+      metal: 2000,
+      crystal: 1000,
       deuterium: 0
     },
     maxLevel: 50,
     storage: {
-      water: 5000 // Additional storage per level
+      water: 15000 // Additional storage per level
     },
     requirements: {
       waterExtractor: 1
@@ -299,13 +299,13 @@ export const BUILDINGS = {
     icon: '🍞',
     description: 'Increases food storage capacity.',
     baseCost: {
-      metal: 600,
-      crystal: 300,
+      metal: 2000,
+      crystal: 1000,
       deuterium: 0
     },
     maxLevel: 50,
     storage: {
-      food: 5000 // Additional storage per level
+      food: 15000 // Additional storage per level
     },
     requirements: {
       farm: 1
