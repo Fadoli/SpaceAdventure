@@ -789,7 +789,8 @@ async function renderCustomVariants() {
     if (!container) return;
 
     try {
-        const response = await fetch(`/api/game/planet/${currentPlanetId}/research/variants`);
+        const planetId = getCurrentPlanetId();
+        const response = await fetch(`/api/game/planet/${planetId}/research/variants`);
         const result = await response.json();
         const { building, ships } = result.data || result;
 
