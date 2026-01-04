@@ -320,10 +320,12 @@ export function calculatePracticalModifiers(baseDefinition, focusLevels, researc
   };
   
   // Sum modifiers from each focus
-  for (const [focus, level] of Object.entries(focusLevels)) {
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
     if (level > 0 && researchConfig.focusModifiers && researchConfig.focusModifiers[focus]) {
       const focusModifiers = researchConfig.focusModifiers[focus];
-      for (const [stat, modifier] of Object.entries(focusModifiers)) {
+      for (const stat in focusModifiers) {
+        const modifier = focusModifiers[stat];
         if (modifiers.hasOwnProperty(stat)) {
           modifiers[stat] += modifier * level;
         }

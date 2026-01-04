@@ -252,7 +252,8 @@ describe('Resource Planning Calculations', () => {
     };
     
     const results = {};
-    for (const [name, value] of Object.entries(allocations)) {
+    for (const name in allocations) {
+      const value = allocations[name];
       results[name] = calculateAllocationEffectiveness(value);
     }
     

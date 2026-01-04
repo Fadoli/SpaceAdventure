@@ -474,7 +474,8 @@ export function getAvailablePracticalResearch(playerBuildings, playerShips) {
   const available = {};
 
   // Check which buildings exist
-  for (const [key, research] of Object.entries(PRACTICAL_RESEARCH)) {
+  for (const key in PRACTICAL_RESEARCH) {
+    const research = PRACTICAL_RESEARCH[key];
     if (research.type === 'building' && playerBuildings[research.baseType]) {
       available[key] = research;
     } else if (research.type === 'ship' && playerShips[research.baseType]) {
@@ -491,9 +492,14 @@ export function getAvailablePracticalResearch(playerBuildings, playerShips) {
  */
 export function getCustomVariant(baseType, type, focusLevels) {
   // focusLevels = { output: 5, automation: 3, energy: 2, cost: 0 }
-  const research = Object.values(PRACTICAL_RESEARCH).find(
-    r => r.baseType === baseType && r.type === type
-  );
+  let research = null;
+  for (const key in PRACTICAL_RESEARCH) {
+    const r = PRACTICAL_RESEARCH[key];
+    if (r.baseType === baseType && r.type === type) {
+      research = r;
+      break;
+    }
+  }
 
   if (!research) return null;
 
@@ -516,7 +522,7 @@ export function calculateFocusModifiers(research, focusLevels) {
     costMultiplier: 1,
     energyMultiplier: 1,
     populationMultiplier: 1,
-    cargoMultiplier: 1,
+    cargoCapacityMultiplier: 1, // Corrected from cargoMultiplier
     fuelMultiplier: 1,
     speedMultiplier: 1,
     attackMultiplier: 1,
@@ -526,10 +532,12 @@ export function calculateFocusModifiers(research, focusLevels) {
   };
 
   // Apply exponential modifiers from each focus
-  for (const [focus, level] of Object.entries(focusLevels)) {
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
     if (level > 0 && research.focusModifiers[focus]) {
       const focusModifiers = research.focusModifiers[focus];
-      for (const [stat, baseMultiplier] of Object.entries(focusModifiers)) {
+      for (const stat in focusModifiers) {
+        const baseMultiplier = focusModifiers[stat];
         if (modifiers.hasOwnProperty(stat)) {
           // baseMultiplier is the base (e.g., 1.02 for +2% per level)
           // Result is the multiplicative value: (1.02^level)

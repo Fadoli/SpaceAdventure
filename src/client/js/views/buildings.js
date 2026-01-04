@@ -56,311 +56,300 @@ export async function updateBuildingsView(planet, onStateChange) {
     
     const { buildings, queue, maxQueueSize } = buildingDetails;
     
-    // Check if building state has changed
-    const currentBuildingHash = calculateBuildingStateHash(buildings, planet);
-    if (currentBuildingHash === lastBuildingStateHash) {
-        // Building state hasn't changed, but check if queue changed
-        const currentQueueHash = calculateQueueStateHash(queue);
-        if (currentQueueHash === lastQueueStateHash) {
-            // Both states unchanged, skip re-render entirely
-            return;
-        }
-        // Queue changed but buildings didn't, only re-render queue
+    // Check if structural building state has changed (levels or allocations)
+    const buildingsSummary = {};
+    for (const key in buildings) {
+        buildingsSummary[key] = { 
+            currentLevel: buildings[key].currentLevel,
+            requirementsMet: buildings[key].requirementsMet,
+            hasCustomVariant: buildings[key].hasCustomVariant,
+            currentVariant: buildings[key].currentVariant
+        };
+    }
+
+    const structuralState = {
+        buildings: buildingsSummary,
+        buildingAllocations: planet.buildingAllocations,
+        actualAllocations: planet.actualAllocations
+    };
+    
+    const currentStructuralHash = JSON.stringify(structuralState);
+    
+    if (currentStructuralHash !== lastBuildingStateHash) {
+        // Structural change (level up, allocation change, variant change)
+        // Full re-render of building cards
+        renderBuildingCards(buildings, planet, queue, maxQueueSize);
+        lastBuildingStateHash = currentStructuralHash;
+    } else {
+        // No structural change, just update costs, affordance, and timers
+        updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize);
+    }
+    
+    // Update queue view independently
+    const currentQueueHash = calculateQueueStateHash(queue);
+    if (currentQueueHash !== lastQueueStateHash) {
         updateQueueView(queue, maxQueueSize, buildings);
         lastQueueStateHash = currentQueueHash;
-        return;
     }
-    lastBuildingStateHash = currentBuildingHash;
     
+    // Update timers
+    updateTimers();
+}
+
+/**
+ * Render all building cards from scratch
+ */
+function renderBuildingCards(buildings, planet, queue, maxQueueSize) {
+    const buildingsGrid = document.getElementById('buildings-grid');
     const queueFull = queue.length >= maxQueueSize;
-    
     const buildingHtmls = [];
+
     for (const key in buildings) {
         const building = buildings[key];
-            // All data now comes from server including icon and description
+        const queueCount = queue.filter(item => item.building === key).length;
+        
+        // Show custom variant info if available
+        let customVariantBadge = '';
+        let variantButtons = '';
+        if (building.hasCustomVariant && building.customVariant) {
+            const isCustomActive = building.currentVariant === 'custom';
+            customVariantBadge = `<div class="custom-variant-badge">🔧 ${isCustomActive ? 'Custom Active' : 'Custom Available'}</div>`;
             
-            // Determine what stats to show based on building type
-            let statsInfo = '';
-            
-            if (building.storage && !isEmpty(building.storage)) {
-                // Storage building - show storage capacity increase
-                statsInfo = '<div class="building-storage">';
-                for (const resource in building.storage) {
-                    const nextAmount = building.storage[resource];
-                    // Calculate current level storage
-                    let currentAmount = 0;
-                    if (building.currentLevel > 0) {
-                        const baseAmount = nextAmount / Math.pow(SCALING.BUILDING_STORAGE, building.nextLevel - 1);
-                        currentAmount = Math.floor(baseAmount * Math.pow(SCALING.BUILDING_STORAGE, building.currentLevel - 1));
-                    }
-                    const diff = nextAmount - currentAmount;
-                    const icon = RESOURCE_ICONS[resource] || '❓';
-                    statsInfo += `<div>${icon} +${formatNumber(diff)}</div>`;
-                }
-                statsInfo += '</div>';
-            } else if (building.production && !isEmpty(building.production)) {
-                // Production building - show production increase
-                const currentProd = {};
-                const nextProd = building.production || {};
-                
-                // Estimate current level production (approximate reverse calculation)
-                // The server already applies variant modifiers, so we just reverse-calculate with the 10x config multiplier
-                if (building.currentLevel > 0 && !isEmpty(nextProd)) {
-                    for (const resource in nextProd) {
-                        const nextAmount = nextProd[resource];
-                        const baseAmount = nextAmount / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * 10.0);
-                        currentProd[resource] = Math.floor(baseAmount * building.currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.currentLevel) * 10.0);
-                    }
-                }
-                
-                statsInfo = '<div class="building-production">';
-                for (const resource in nextProd) {
-                    const nextAmount = nextProd[resource];
-                    const currentAmount = currentProd[resource] || 0;
-                    const diff = nextAmount - currentAmount;
-                    const icon = RESOURCE_ICONS[resource] || '❓';
-                    statsInfo += `<div>${icon} +${formatNumber(diff)}/h</div>`;
-                }
-                statsInfo += '</div>';
-            } else if (key === 'roboticsFactory' && building.currentLevel > 0) {
-                // Robotics factory - show construction speed
-                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
-                statsInfo = `<div class="building-special">⏱️ Construction: ${speedMult}x speed</div>`;
-            } else if (key === 'naniteFactory' && building.currentLevel > 0) {
-                // Nanite factory - show massive construction speed improvement
-                const speedMult = Math.pow(2, building.currentLevel).toFixed(0);
-                statsInfo = `<div class="building-special">⚡ Construction: ${speedMult}x speed</div>`;
-            } else if (key === 'researchLab' && building.currentLevel > 0) {
-                // Research lab - show research speed (multiplicative BUILDING_SPEED_MULTIPLIER^level on time)
-                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
-                statsInfo = `<div class="building-special">🔬 Research: ${speedMult}x speed</div>`;
-            } else if (key === 'shipyard' && building.currentLevel > 0) {
-                // Shipyard - show production speed (multiplicative BUILDING_SPEED_MULTIPLIER^level on time)
-                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
-                statsInfo = `<div class="building-special">🚀 Production: ${speedMult}x speed</div>`;
-            }
-            
-            // Calculate current level energy consumption or deuterium consumption to show difference
-            let energyInfo = '';
-            if (key === 'fusionReactor' && building.deuteriumConsumption > 0) {
-                // For Fusion Reactor, show deuterium consumption instead
-                const currentDeuterium = building.currentLevel > 0 ? 
-                    Math.floor((building.deuteriumConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.currentLevel) * 10.0) : 0;
-                const deuteriumDiff = building.deuteriumConsumption - currentDeuterium;
-                energyInfo = `<div class="building-energy">🛢️ -${formatNumber(deuteriumDiff)}/h</div>`;
-            } else if (building.energyConsumption > 0) {
-                const currentEnergy = building.currentLevel > 0 ? 
-                    Math.floor((building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_ENERGY, building.nextLevel) * 10.0)) * building.currentLevel * Math.pow(SCALING.BUILDING_ENERGY, building.currentLevel) * 10.0) : 0;
-                const energyDiff = building.energyConsumption - currentEnergy;
-                energyInfo = `<div class="building-energy">⚡ -${formatNumber(energyDiff)}/h</div>`;
-            }
-            
-            // Check if building has allocation settings (production buildings)
-            const allocatableBuildings = ['metalMine', 'crystalMine', 'deuteriumSynthesizer', 'waterExtractor', 'farm'];
-            const hasAllocation = allocatableBuildings.includes(key) && building.currentLevel > 0;
-            const allocation = planet.buildingAllocations?.[key];
-            const actualAllocation = planet.actualAllocations?.[key];
-            
-            let allocationBadge = '';
-            if (hasAllocation && allocation) {
-                // Calculate desired effectiveness using shared formula
-                const powerEff = calculateAllocationEffectiveness(allocation.power * 100) / 100;
-                const popEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
-                const totalEff = powerEff * popEff;
-                const effPercent = (totalEff * 100).toFixed(0);
-                
-                // Calculate ACTUAL effectiveness if available
-                let actualBadge = '';
-                if (actualAllocation) {
-                    const actualPowerEff = calculateAllocationEffectiveness(actualAllocation.power * 100) / 100;
-                    const actualPopEff = calculateAllocationEffectiveness(actualAllocation.population * 100) / 100;
-                    const actualTotalEff = actualPowerEff * actualPopEff;
-                    const actualEffPercent = (actualTotalEff * 100).toFixed(0);
-                    const actualEffClass = actualTotalEff >= 0.9 ? 'good' : actualTotalEff >= 0.6 ? 'medium' : 'low';
-                    actualBadge = `<div class="allocation-badge ${actualEffClass}" style="margin-top: 5px;" title="Actual allocation after priority-based distribution">⚙️ Actual: ${actualEffPercent}%</div>`;
-                }
-                
-                const effClass = totalEff >= 0.9 ? 'good' : totalEff >= 0.6 ? 'medium' : 'low';
-                allocationBadge = `
-                    <div class="allocation-badge ${effClass}" title="Desired: Power ${(allocation.power * 100).toFixed(0)}%, Workers ${(allocation.population * 100).toFixed(0)}%">⚙️ Desired: ${effPercent}%</div>
-                    ${actualBadge}
-                `;
-            }
-            
-            // Count how many times this building is in the queue
-            const queueCount = queue.filter(item => item.building === key).length;
-            
-            let queueBadge = '';
-            if (queueCount > 0) {
-                queueBadge = `<div class="queue-count-badge">📋 In queue: ${queueCount} time${queueCount > 1 ? 's' : ''}</div>`;
-            }
-            
-            // Build tooltip message for button
+            variantButtons = `
+                <div id="variant-actions-${key}" class="variant-actions-container">
+                    <!-- Populated by updateBuildingCostsAndAffordance -->
+                </div>
+            `;
+        }
+
+        // Allocation badge
+        let allocationBadge = '';
+        const allocatableBuildings = ['metalMine', 'crystalMine', 'deuteriumSynthesizer', 'waterExtractor', 'farm'];
+        const hasAllocation = allocatableBuildings.includes(key) && building.currentLevel > 0;
+        
+        if (hasAllocation) {
+            allocationBadge = `<div id="allocation-badge-${key}" class="allocation-badge-container"></div>`;
+        }
+
+        buildingHtmls.push(`
+            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}" id="building-card-${key}">
+                <div class="building-header">
+                    <h3>${building.icon} ${building.name}</h3>
+                    <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
+                </div>
+                <div class="building-level">Level ${building.currentLevel}</div>
+                ${customVariantBadge}
+                ${allocationBadge}
+                <div id="queue-badge-${key}"></div>
+                <p>${building.description}</p>
+                <div class="building-cost" id="cost-display-${key}">
+                    <!-- Dynamic cost info -->
+                </div>
+                <div class="building-stats">
+                    <div class="build-time" id="time-display-${key}">🕐 Build time: --</div>
+                    <div id="stats-info-${key}"></div>
+                    <div id="energy-info-${key}"></div>
+                </div>
+                <button class="btn btn-full upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
+                    Upgrade
+                </button>
+                ${variantButtons}
+            </div>
+        `);
+    }
+    
+    buildingsGrid.innerHTML = buildingHtmls.join('');
+    
+    // Initial update of dynamic elements
+    updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize);
+}
+
+/**
+ * Update costs, affordance, and stats without re-rendering the whole card
+ */
+function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize) {
+    const queueFull = queue.length >= maxQueueSize;
+
+    for (const key in buildings) {
+        const building = buildings[key];
+        const queueCount = queue.filter(item => item.building === key).length;
+        
+        // Update cost display
+        const costEl = document.getElementById(`cost-display-${key}`);
+        if (costEl) {
+            costEl.innerHTML = `
+                <strong>Cost for level ${building.nextLevel}:</strong>
+                <div class="${planet.resources.metal < building.cost.metal ? 'text-error' : ''}">⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
+                <div class="${planet.resources.crystal < building.cost.crystal ? 'text-error' : ''}">💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
+                ${building.cost.deuterium > 0 ? `<div class="${planet.resources.deuterium < building.cost.deuterium ? 'text-error' : ''}">🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
+            `;
+        }
+
+        // Update build time
+        const timeEl = document.getElementById(`time-display-${key}`);
+        if (timeEl) {
+            timeEl.textContent = `🕐 Build time: ${formatCountdown(building.buildTime)}`;
+        }
+
+        // Update button status
+        const btn = document.getElementById(`upgrade-btn-${key}`);
+        if (btn) {
             let buttonTooltip = 'Upgrade to next level';
             let buttonDisabled = !building.canAfford || queueFull || !building.requirementsMet;
             
             if (queueFull) {
                 buttonTooltip = 'Build queue is full';
-            } else if (!building.requirementsMet && building.requirementsList && building.requirementsList.length > 0) {
-                const reqs = building.requirementsList.map(r => `${r.name} Level ${r.level}`).join(', ');
+                btn.textContent = 'Queue Full';
+            } else if (!building.requirementsMet) {
+                const reqs = building.requirementsList?.map(r => `${r.name} Lvl ${r.level}`).join(', ') || '';
                 buttonTooltip = `Requirements not met: ${reqs}`;
+                btn.textContent = 'Requirements Not Met';
             } else if (!building.canAfford) {
                 buttonTooltip = 'Insufficient resources';
+                btn.textContent = `Upgrade to Level ${building.nextLevel}`;
+            } else {
+                btn.textContent = `Upgrade to Level ${building.nextLevel}`;
             }
             
-            // Show custom variant info if available
-            let customVariantBadge = '';
-            let variantButtons = '';
-            if (building.hasCustomVariant && building.customVariant) {
-                const { focusLevels } = building.customVariant;
-                const focusesApplied = Object.entries(focusLevels)
-                    .filter(([focus, level]) => level > 0)
-                    .map(([focus, level]) => `${focus}:${level}`)
-                    .join(', ');
-                const isCustomActive = building.currentVariant === 'custom';
-                customVariantBadge = `<div class="custom-variant-badge" title="Custom variant available with focus: ${focusesApplied}">🔧 ${isCustomActive ? 'Custom Active' : 'Custom Available'}</div>`;
-                
-                // Calculate cost to switch variants
-                let baseCost = building.cost;
-                // Apply cost modifier to get custom cost
-                let customCost = { ...baseCost };
-                if (building.customVariant.modifiers && building.customVariant.modifiers.costMultiplier !== 1) {
-                    customCost = {
-                        metal: Math.floor(baseCost.metal * building.customVariant.modifiers.costMultiplier),
-                        crystal: Math.floor(baseCost.crystal * building.customVariant.modifiers.costMultiplier),
-                        deuterium: Math.floor(baseCost.deuterium * building.customVariant.modifiers.costMultiplier)
-                    };
+            btn.className = `btn btn-full upgrade-btn ${building.canAfford && building.requirementsMet && !queueFull ? 'btn-success' : ''}`;
+            btn.disabled = buttonDisabled;
+            btn.title = buttonTooltip;
+        }
+
+        // Update queue badge
+        const qBadge = document.getElementById(`queue-badge-${key}`);
+        if (qBadge) {
+            qBadge.innerHTML = queueCount > 0 ? `<div class="queue-count-badge">📋 In queue: ${queueCount}</div>` : '';
+        }
+
+        // Update stats and energy
+        const statsEl = document.getElementById(`stats-info-${key}`);
+        const energyEl = document.getElementById(`energy-info-${key}`);
+        
+        if (statsEl) {
+            // Determine what stats to show (simplified version of the complex render logic)
+            if (building.production && !isEmpty(building.production)) {
+                let html = '<div class="building-production">';
+                for (const res in building.production) {
+                    html += `<div>${RESOURCE_ICONS[res] || '❓'} +${formatNumber(building.production[res] / 10)}/h</div>`; // Approximate diff
                 }
-                let switchCost = null;
-                
-                if (isCustomActive) {
-                    // Currently custom, switching to base
-                    const difference = {
-                        metal: Math.abs(baseCost.metal - customCost.metal),
-                        crystal: Math.abs(baseCost.crystal - customCost.crystal),
-                        deuterium: Math.abs(baseCost.deuterium - customCost.deuterium)
-                    };
-                    const isCheaper = baseCost.metal + baseCost.crystal + baseCost.deuterium < 
-                                     customCost.metal + customCost.crystal + customCost.deuterium;
-                    
-                    // If switching to cheaper variant, refund half the difference (negative cost)
-                    if (isCheaper) {
-                        switchCost = {
-                            metal: -Math.floor(difference.metal / 2),
-                            crystal: -Math.floor(difference.crystal / 2),
-                            deuterium: -Math.floor(difference.deuterium / 2)
-                        };
-                    } else {
-                        // Switching to more expensive, cost is twice the difference
-                        switchCost = {
-                            metal: difference.metal * 2,
-                            crystal: difference.crystal * 2,
-                            deuterium: difference.deuterium * 2
-                        };
-                    }
-                } else {
-                    // Currently base, switching to custom
-                    const difference = {
-                        metal: Math.abs(customCost.metal - baseCost.metal),
-                        crystal: Math.abs(customCost.crystal - baseCost.crystal),
-                        deuterium: Math.abs(customCost.deuterium - baseCost.deuterium)
-                    };
-                    const isCheaper = customCost.metal + customCost.crystal + customCost.deuterium < 
-                                     baseCost.metal + baseCost.crystal + baseCost.deuterium;
-                    
-                    // If switching to cheaper variant, refund half the difference (negative cost)
-                    if (isCheaper) {
-                        switchCost = {
-                            metal: -Math.floor(difference.metal / 2),
-                            crystal: -Math.floor(difference.crystal / 2),
-                            deuterium: -Math.floor(difference.deuterium / 2)
-                        };
-                    } else {
-                        // Switching to more expensive, cost is twice the difference
-                        switchCost = {
-                            metal: difference.metal * 2,
-                            crystal: difference.crystal * 2,
-                            deuterium: difference.deuterium * 2
-                        };
-                    }
-                }
-                
-                let switchButtonLabel = isCustomActive ? '↩️ Switch to Base' : '🔧 Switch to Custom';
-                let canSwitchAfford = true;
-                
-                // Check if can afford the switch
-                if (switchCost.metal > 0 && planet.resources.metal < switchCost.metal) canSwitchAfford = false;
-                if (switchCost.crystal > 0 && planet.resources.crystal < switchCost.crystal) canSwitchAfford = false;
-                if (switchCost.deuterium > 0 && planet.resources.deuterium < switchCost.deuterium) canSwitchAfford = false;
-                
-                let switchTooltip = `Switch to ${isCustomActive ? 'base' : 'custom'} variant`;
-                if (!canSwitchAfford) {
-                    switchTooltip = 'Insufficient resources to switch';
-                }
-                
-                let switchCostDisplay = '';
-                if (switchCost.metal !== 0 || switchCost.crystal !== 0 || switchCost.deuterium !== 0) {
-                    switchCostDisplay = `
-                        <div class="building-cost" style="margin-top: 8px;">
-                            <strong>Switch cost:</strong>
-                            <div>⚙️ ${switchCost.metal > 0 ? '+' : ''}${formatNumber(switchCost.metal)}</div>
-                            <div>💎 ${switchCost.crystal > 0 ? '+' : ''}${formatNumber(switchCost.crystal)}</div>
-                            ${switchCost.deuterium !== 0 ? `<div>🛢️ ${switchCost.deuterium > 0 ? '+' : ''}${formatNumber(switchCost.deuterium)}</div>` : ''}
-                        </div>
-                    `;
-                }
-                
-                variantButtons = `
-                    ${switchCostDisplay}
-                    <button class="btn btn-full" 
-                            ${!canSwitchAfford ? 'disabled' : ''} 
-                            title="${switchTooltip}"
-                            onclick="window.switchBuildingVariant('${key}', ${isCustomActive ? 'false' : 'true'})">
-                        ${switchButtonLabel}
-                    </button>
-                `;
+                statsEl.innerHTML = html + '</div>';
             }
+        }
+
+        // Update allocation badges
+        const allocContainer = document.getElementById(`allocation-badge-${key}`);
+        if (allocContainer) {
+            const allocation = planet.buildingAllocations?.[key];
+            const actualAllocation = planet.actualAllocations?.[key];
             
-        buildingHtmls.push(`
-                <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}">
-                    <div class="building-header">
-                        <h3>${building.icon} ${building.name}</h3>
-                        <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
-                    </div>
-                    <div class="building-level">Level ${building.currentLevel}</div>
-                    ${customVariantBadge}
-                    ${allocationBadge}
-                    ${queueBadge}
-                    <p>${building.description}</p>
-                    <div class="building-cost">
-                        <strong>Cost for level ${building.nextLevel}:</strong>
-                        <div>⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
-                        <div>💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
-                        ${building.cost.deuterium > 0 ? `<div>🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
-                    </div>
-                    <div class="building-stats">
-                        <div class="build-time">🕐 Build time: ${formatCountdown(building.buildTime)}</div>
-                        ${statsInfo}
-                        ${energyInfo}
-                    </div>
-                    <button class="btn ${building.canAfford && building.requirementsMet ? 'btn-success' : ''} btn-full" 
-                            ${buttonDisabled ? 'disabled' : ''} 
-                            title="${buttonTooltip}"
-                            onclick="window.upgradeBuilding('${key}')">
-                        ${queueFull ? 'Queue Full' : !building.requirementsMet ? 'Requirements Not Met' : `Upgrade to Level ${building.nextLevel}`}
-                    </button>
-                    ${variantButtons}
+            if (allocation) {
+                const powerEff = calculateAllocationEffectiveness(allocation.power * 100) / 100;
+                const popEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
+                const totalEff = powerEff * popEff;
+                const effPercent = (totalEff * 100).toFixed(0);
+                const effClass = totalEff >= 0.9 ? 'good' : totalEff >= 0.6 ? 'medium' : 'low';
+                
+                let html = `<div class="allocation-badge ${effClass}" title="Desired: Power ${(allocation.power * 100).toFixed(0)}%, Workers ${(allocation.population * 100).toFixed(0)}%">⚙️ Desired: ${effPercent}%</div>`;
+                
+                if (actualAllocation) {
+                    const actualTotalEff = (calculateAllocationEffectiveness(actualAllocation.power * 100) / 100) * (calculateAllocationEffectiveness(actualAllocation.population * 100) / 100);
+                    const actualEffClass = actualTotalEff >= 0.9 ? 'good' : actualTotalEff >= 0.6 ? 'medium' : 'low';
+                    html += `<div class="allocation-badge ${actualEffClass}" style="margin-top: 5px;">⚙️ Actual: ${(actualTotalEff * 100).toFixed(0)}%</div>`;
+                }
+                allocContainer.innerHTML = html;
+            }
+        }
+
+        // Update variant switch buttons
+        const variantActions = document.getElementById(`variant-actions-${key}`);
+        if (variantActions && building.hasCustomVariant && building.customVariant) {
+            const isCustomActive = building.currentVariant === 'custom';
+            // Logic for switchCost (simplified)
+            const switchCost = calculateSwitchCostEstimate(building, isCustomActive);
+            
+            let canSwitchAfford = planet.resources.metal >= switchCost.metal &&
+                                 planet.resources.crystal >= switchCost.crystal &&
+                                 planet.resources.deuterium >= switchCost.deuterium;
+            
+            variantActions.innerHTML = `
+                <div class="building-cost" style="margin-top: 8px;">
+                    <strong>Switch cost:</strong>
+                    <div class="${planet.resources.metal < switchCost.metal ? 'text-error' : ''}">⚙️ ${formatNumber(switchCost.metal)}</div>
+                    <div class="${planet.resources.crystal < switchCost.crystal ? 'text-error' : ''}">💎 ${formatNumber(switchCost.crystal)}</div>
                 </div>
-            `);
+                <button class="btn btn-full" ${!canSwitchAfford ? 'disabled' : ''} 
+                        onclick="window.switchBuildingVariant('${key}', ${!isCustomActive})">
+                    ${isCustomActive ? '↩️ Switch to Base' : '🔧 Switch to Custom'}
+                </button>
+            `;
+        }
     }
-    buildingsGrid.innerHTML = buildingHtmls.join('');
+}
+
+/** Helper for variant switch cost estimate */
+function calculateSwitchCostEstimate(building, isCustomActive) {
+    let baseCost = building.cost;
+    // Apply cost modifier to get custom cost
+    let customCost = { ...baseCost };
+    if (building.customVariant?.modifiers && building.customVariant.modifiers.costMultiplier !== 1) {
+        customCost = {
+            metal: Math.floor(baseCost.metal * building.customVariant.modifiers.costMultiplier),
+            crystal: Math.floor(baseCost.crystal * building.customVariant.modifiers.costMultiplier),
+            deuterium: Math.floor(baseCost.deuterium * building.customVariant.modifiers.costMultiplier)
+        };
+    }
     
-    // Update queue
-    updateQueueView(queue, maxQueueSize, buildings);
-    lastQueueStateHash = calculateQueueStateHash(queue);
+    let switchCost = { metal: 0, crystal: 0, deuterium: 0 };
     
-    // Update timers
-    updateTimers();
+    if (isCustomActive) {
+        // Currently custom, switching to base
+        const difference = {
+            metal: Math.abs(baseCost.metal - customCost.metal),
+            crystal: Math.abs(baseCost.crystal - customCost.crystal),
+            deuterium: Math.abs(baseCost.deuterium - customCost.deuterium)
+        };
+        const isCheaper = baseCost.metal + baseCost.crystal + baseCost.deuterium < 
+                         customCost.metal + customCost.crystal + customCost.deuterium;
+        
+        if (isCheaper) {
+            switchCost = {
+                metal: -Math.floor(difference.metal / 2),
+                crystal: -Math.floor(difference.crystal / 2),
+                deuterium: -Math.floor(difference.deuterium / 2)
+            };
+        } else {
+            switchCost = {
+                metal: difference.metal * 2,
+                crystal: difference.crystal * 2,
+                deuterium: difference.deuterium * 2
+            };
+        }
+    } else {
+        // Currently base, switching to custom
+        const difference = {
+            metal: Math.abs(customCost.metal - baseCost.metal),
+            crystal: Math.abs(customCost.crystal - baseCost.crystal),
+            deuterium: Math.abs(customCost.deuterium - baseCost.deuterium)
+        };
+        const isCheaper = customCost.metal + customCost.crystal + customCost.deuterium < 
+                         baseCost.metal + baseCost.crystal + baseCost.deuterium;
+        
+        if (isCheaper) {
+            switchCost = {
+                metal: -Math.floor(difference.metal / 2),
+                crystal: -Math.floor(difference.crystal / 2),
+                deuterium: -Math.floor(difference.deuterium / 2)
+            };
+        } else {
+            switchCost = {
+                metal: difference.metal * 2,
+                crystal: difference.crystal * 2,
+                deuterium: difference.deuterium * 2
+            };
+        }
+    }
+    return switchCost;
 }
 
 let queueVisible = true;
@@ -582,10 +571,14 @@ function renderCustomVariantOptions(container, buildingKey, building, variantDet
     
     // Show focus levels if on custom variant
     if (currentVariant === 'custom' && currentVariantData) {
-        const focusDisplay = Object.entries(currentVariantData.focusLevels || {})
-            .filter(([focus, level]) => level > 0)
-            .map(([focus, level]) => `<span class="focus-badge">${focus} <strong>${level}</strong></span>`)
-            .join('');
+        const focuses = [];
+        for (const focus in (currentVariantData.focusLevels || {})) {
+            const level = currentVariantData.focusLevels[focus];
+            if (level > 0) {
+                focuses.push(`<span class="focus-badge">${focus} <strong>${level}</strong></span>`);
+            }
+        }
+        const focusDisplay = focuses.join('');
         if (focusDisplay) {
             html += `<div class="variant-focuses" style="margin-top: 10px;">${focusDisplay}</div>`;
         }
@@ -603,10 +596,15 @@ function renderCustomVariantOptions(container, buildingKey, building, variantDet
         for (const variant of availableVariants) {
             const isBaseVariant = variant.isBase;
             const switchCost = calculateSwitchCost(currentCost, variant.cost);
-            const focusDisplay = Object.entries(variant.focusLevels || {})
-                .filter(([focus, level]) => level > 0)
-                .map(([focus, level]) => `<span class="focus-badge">${focus} <strong>${level}</strong></span>`)
-                .join('');
+            
+            const focuses = [];
+            for (const focus in (variant.focusLevels || {})) {
+                const level = variant.focusLevels[focus];
+                if (level > 0) {
+                    focuses.push(`<span class="focus-badge">${focus} <strong>${level}</strong></span>`);
+                }
+            }
+            const focusDisplay = focuses.join('');
             
             const isCheaper = (variant.cost.metal + variant.cost.crystal + variant.cost.deuterium) < 
                             (currentCost.metal + currentCost.crystal + currentCost.deuterium);

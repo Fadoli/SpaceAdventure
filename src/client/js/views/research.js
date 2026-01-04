@@ -184,7 +184,8 @@ function renderTheoreticalResearch() {
 
   // Group by category
   const grouped = {};
-  for (const [key, tech] of Object.entries(theoryResearch)) {
+  for (const key in theoryResearch) {
+    const tech = theoryResearch[key];
     if (!grouped[tech.category]) {
       grouped[tech.category] = [];
     }
@@ -234,7 +235,8 @@ function renderTheoreticalResearch() {
     html += '</div></div>';
   }
 
-  for (const [category, techs] of Object.entries(grouped)) {
+  for (const category in grouped) {
+    const techs = grouped[category];
     html += `<div class="research-category">
       <h3>${category}</h3>
       <div class="tech-list">`;
@@ -372,7 +374,13 @@ async function renderPracticalResearch() {
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
       `;
       for (const queueItem of queue) {
-        const research = Object.values(practical).find(r => r.baseType === queueItem.baseType);
+        let research = null;
+        for (const key in practical) {
+          if (practical[key].baseType === queueItem.baseType) {
+            research = practical[key];
+            break;
+          }
+        }
         if (!research) continue;
         
         const isActive = queue.indexOf(queueItem) === 0;
@@ -403,15 +411,19 @@ async function renderPracticalResearch() {
     html += '<div class="research-cards-section"><h3>Available Customizations</h3>';
     html += '<div class="research-cards">';
 
-    for (const [key, research] of Object.entries(practical)) {
+    for (const key in practical) {
+      const research = practical[key];
       if (!available[key]) continue;
       foundAny = true;
       
       // Calculate total focus level for this research
       const researchLevels = playerPractical[research.baseType];
-      const totalLevel = researchLevels 
-        ? Object.values(researchLevels).reduce((a, b) => a + b, 0)
-        : 0;
+      let totalLevel = 0;
+      if (researchLevels) {
+        for (const focus in researchLevels) {
+          totalLevel += researchLevels[focus];
+        }
+      }
       
       const isQueueFull = queue.length >= maxQueue;
 
@@ -689,7 +701,10 @@ window.updateAllocationSliders = function() {
     // Sum of current focus levels
     const playerPractical = researchData?.practical || {};
     const currentFocusLevels = playerPractical[window.currentResearch.baseType] || {};
-    const totalFocusLevel = Object.values(currentFocusLevels).reduce((a, b) => a + b, 0);
+    let totalFocusLevel = 0;
+    for (const focus in currentFocusLevels) {
+        totalFocusLevel += currentFocusLevels[focus];
+    }
 
     const estimatedTime = calculatePracticalResearchTime(
       research,
@@ -767,11 +782,12 @@ async function renderCustomVariants() {
     let html = '<div class="variants-container">';
 
     // Building variants
-    if (Object.keys(building).length > 0) {
+    if (!isEmpty(building)) {
       html += '<div class="variants-section">';
       html += '<h3>Custom Building Variants</h3>';
 
-      for (const [baseType, variant] of Object.entries(building)) {
+      for (const baseType in building) {
+        const variant = building[baseType];
         html += renderVariantCard(baseType, variant, 'building');
       }
 
@@ -779,18 +795,19 @@ async function renderCustomVariants() {
     }
 
     // Ship variants
-    if (Object.keys(ships).length > 0) {
+    if (!isEmpty(ships)) {
       html += '<div class="variants-section">';
       html += '<h3>Custom Ship Variants</h3>';
 
-      for (const [baseType, variant] of Object.entries(ships)) {
+      for (const baseType in ships) {
+        const variant = ships[baseType];
         html += renderVariantCard(baseType, variant, 'ship');
       }
 
       html += '</div>';
     }
 
-    if (Object.keys(building).length === 0 && Object.keys(ships).length === 0) {
+    if (isEmpty(building) && isEmpty(ships)) {
       html += '<p class="no-variants">No custom variants yet. Research practical customizations to create variants.</p>';
     }
 
@@ -813,7 +830,8 @@ function renderVariantCard(baseType, variant, type) {
       <div class="focus-breakdown">
   `;
 
-  for (const [focus, level] of Object.entries(focusLevels)) {
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
     if (level > 0) {
       html += `<span class="focus-badge focus-${focus}">+${level} ${focus}</span>`;
     }
@@ -964,11 +982,12 @@ window.showResearchDetails = function(techKey) {
   let effectsHtml = '';
   
   // Show bonuses/effects
-  if (tech.bonuses && Object.keys(tech.bonuses).length > 0) {
+  if (tech.bonuses && !isEmpty(tech.bonuses)) {
     effectsHtml += `<div class="research-effects">
       <h3>Benefits:</h3>
       <ul>`;
-    for (const [bonus, value] of Object.entries(tech.bonuses)) {
+    for (const bonus in tech.bonuses) {
+      const value = tech.bonuses[bonus];
       const displayName = bonus
         .replace(/([A-Z])/g, ' $1')
         .toLowerCase()
@@ -1137,7 +1156,16 @@ window.buildCustomVariantFromResearch = async function(baseType, type, event) {
   const practical = result.data?.practical || result.practical || {};
   
   const focusLevels = practical[baseType];
-  if (!focusLevels || !Object.values(focusLevels).some(level => level > 0)) {
+  let hasAnyFocus = false;
+  if (focusLevels) {
+    for (const focus in focusLevels) {
+      if (focusLevels[focus] > 0) {
+        hasAnyFocus = true;
+        break;
+      }
+    }
+  }
+  if (!focusLevels || !hasAnyFocus) {
     alert(`No research available for ${baseType}`);
     return;
   }

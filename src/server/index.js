@@ -556,7 +556,7 @@ async function handleRequest(req) {
       
       try {
         // If focusLevels is empty, switch to base; otherwise switch to custom
-        const isSwitchingToBase = !focusLevels || Object.keys(focusLevels).length === 0;
+        const isSwitchingToBase = !focusLevels || isEmpty(focusLevels);
         
         if (isSwitchingToBase) {
           // Queue switch to base variant

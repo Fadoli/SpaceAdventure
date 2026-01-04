@@ -207,7 +207,10 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   const baseType = practicalResearchConfig.baseType;
   
   // Validate allocation sums to approximately 1 (or 100%)
-  const allocationSum = Object.values(allocation).reduce((a, b) => a + b, 0);
+  let allocationSum = 0;
+  for (const focus in allocation) {
+    allocationSum += allocation[focus];
+  }
   console.log(`[RESEARCH] Allocation sum: ${allocationSum}`);
   
   if (Math.abs(allocationSum - 1) > 0.01) {  // Allow small rounding errors
@@ -260,13 +263,17 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   };
   
   let totalCostMultiplier = 0;
-  for (const [focus, percentage] of Object.entries(allocation)) {
+  for (const focus in allocation) {
+    const percentage = allocation[focus];
     totalCostMultiplier += (costModifiers[focus] || 1) * percentage;
   }
   
   // Apply level scaling
   const currentLevel = player.practicalResearch[baseType];
-  const totalFocusLevel = Object.values(currentLevel).reduce((a, b) => a + b, 0);
+  let totalFocusLevel = 0;
+  for (const focus in currentLevel) {
+    totalFocusLevel += currentLevel[focus];
+  }
   const levelMultiplier = 1 + (totalFocusLevel * 0.3);
   
   // Apply non-linear strength multiplier (0 = 0.5x, 0.5 = 1x, 1 = 2.5x)
@@ -355,11 +362,21 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
 export function startPracticalResearchLevel(player, researchKey, planetId) {
   console.log(`[RESEARCH] startPracticalResearchLevel called with researchKey=${researchKey}, planetId=${planetId}`);
   
-  // Get the practical research config
-  const PRACTICAL = getPracticalResearch();
-  console.log(`[RESEARCH] Available practical research keys:`, Object.keys(PRACTICAL));
+    // Get the practical research config
   
-  const practicalResearchConfig = PRACTICAL[researchKey];
+    const PRACTICAL = getPracticalResearch();
+  
+    const practicalKeys = [];
+  
+    for (const k in PRACTICAL) {
+  
+      practicalKeys.push(k);
+  
+    }
+  
+    console.log(`[RESEARCH] Available practical research keys:`, practicalKeys);
+  
+    const practicalResearchConfig = PRACTICAL[researchKey];
   console.log(`[RESEARCH] Config for ${researchKey}:`, practicalResearchConfig);
   
   if (!practicalResearchConfig) {
@@ -413,7 +430,10 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   const currentLevel = player.practicalResearch[baseType];
   console.log(`[RESEARCH] Current focus levels for ${baseType}:`, currentLevel);
   
-  const totalFocusLevel = Object.values(currentLevel).reduce((a, b) => a + b, 0);
+  let totalFocusLevel = 0;
+  for (const focus in currentLevel) {
+    totalFocusLevel += currentLevel[focus];
+  }
   const nextLevel = totalFocusLevel + 1;
   console.log(`[RESEARCH] Total focus level: ${totalFocusLevel}, next level: ${nextLevel}`);
   
@@ -521,7 +541,8 @@ export function completePracticalResearch(player, queueItemId) {
   // For allocation-based research, distribute improvements based on allocation
   if (item.allocation) {
     console.log(`[RESEARCH] Processing allocation-based research`);
-    for (const [focus, percentage] of Object.entries(item.allocation)) {
+    for (const focus in item.allocation) {
+      const percentage = item.allocation[focus];
       if (percentage > 0) {
         // Each percentage point gives 0.2 levels (so 100% = 20 levels, 50% = 10 levels, 20% = 4 levels, etc)
         const levelIncrease = Math.max(1, Math.floor(percentage * 20));
@@ -632,16 +653,23 @@ export function selectCustomBuildingVariant(player, planetId, baseType, focusLev
   }
   
   // Verify research config exists
-  const researchConfig = Object.values(getPracticalResearch()).find(
-    r => r.baseType === baseType && r.type === 'building'
-  );
+  let researchConfig = null;
+  const practical = getPracticalResearch();
+  for (const key in practical) {
+    const r = practical[key];
+    if (r.baseType === baseType && r.type === 'building') {
+      researchConfig = r;
+      break;
+    }
+  }
   
   if (!researchConfig) {
     throw new Error(`No practical research available for ${baseType}`);
   }
   
   // Validate focus levels don't exceed research levels
-  for (const [focus, level] of Object.entries(focusLevels)) {
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
     const researchLevel = player.practicalResearch[baseType]?.[focus] || 0;
     if (level > researchLevel) {
       throw new Error(`Focus level ${level} exceeds research level ${researchLevel} for ${focus}`);
@@ -677,16 +705,23 @@ export function selectCustomShipVariant(player, baseType, focusLevels) {
   }
   
   // Verify research config exists
-  const researchConfig = Object.values(getPracticalResearch()).find(
-    r => r.baseType === baseType && r.type === 'ship'
-  );
+  let researchConfig = null;
+  const practical = getPracticalResearch();
+  for (const key in practical) {
+    const r = practical[key];
+    if (r.baseType === baseType && r.type === 'ship') {
+      researchConfig = r;
+      break;
+    }
+  }
   
   if (!researchConfig) {
     throw new Error(`No practical research available for ${baseType}`);
   }
   
   // Validate focus levels
-  for (const [focus, level] of Object.entries(focusLevels)) {
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
     const researchLevel = player.practicalResearch[baseType]?.[focus] || 0;
     if (level > researchLevel) {
       throw new Error(`Focus level ${level} exceeds research level ${researchLevel} for ${focus}`);
