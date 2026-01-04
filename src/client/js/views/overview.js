@@ -231,9 +231,9 @@ export function updateResources(planet) {
     const crystalProdEl = document.getElementById('crystal-production');
     const deutProdEl = document.getElementById('deuterium-production');
     
-    const metalProdValue = energyEfficiency < 100 ? `${production.metal} (${energyEfficiency}%)` : production.metal;
-    const crystalProdValue = energyEfficiency < 100 ? `${production.crystal} (${energyEfficiency}%)` : production.crystal;
-    const deutProdValue = energyEfficiency < 100 ? `${production.deuterium} (${energyEfficiency}%)` : production.deuterium;
+    const metalProdValue = energyEfficiency < 100 ? `${formatNumber(production.metal)} (${energyEfficiency}%)` : formatNumber(production.metal);
+    const crystalProdValue = energyEfficiency < 100 ? `${formatNumber(production.crystal)} (${energyEfficiency}%)` : formatNumber(production.crystal);
+    const deutProdValue = energyEfficiency < 100 ? `${formatNumber(production.deuterium)} (${energyEfficiency}%)` : formatNumber(production.deuterium);
 
     if (metalProdEl) metalProdEl.textContent = metalProdValue;
     if (crystalProdEl) crystalProdEl.textContent = crystalProdValue;
@@ -242,12 +242,12 @@ export function updateResources(planet) {
     const waterAmt = document.getElementById('water-amount');
     const waterProd = document.getElementById('water-production');
     if (waterAmt) waterAmt.textContent = formatNumber(resources.water || 0);
-    if (waterProd) waterProd.textContent = production.water || 0;
+    if (waterProd) waterProd.textContent = formatNumber(production.water || 0);
     
     const foodAmt = document.getElementById('food-amount');
     const foodProd = document.getElementById('food-production');
     if (foodAmt) foodAmt.textContent = formatNumber(resources.food || 0);
-    if (foodProd) foodProd.textContent = production.food || 0;
+    if (foodProd) foodProd.textContent = formatNumber(production.food || 0);
     
     const popAmt = document.getElementById('population-amount');
     const popMax = document.getElementById('population-max');
