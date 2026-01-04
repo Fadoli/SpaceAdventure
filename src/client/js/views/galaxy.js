@@ -2,6 +2,7 @@
 import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { showConfirm, showPrompt } from './modals.js';
+import { Notifications } from '../notifications.js';
 
 let currentGalaxy = 1;
 let currentSystem = 1;
@@ -211,7 +212,7 @@ window.spyOnPlanetFromGalaxy = async function(position) {
     
     const probeCount = parseInt(probeCountStr);
     if (isNaN(probeCount) || probeCount <= 0) {
-        alert('Invalid probe count');
+        Notifications.showError('Invalid probe count');
         return;
     }
 

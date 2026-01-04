@@ -6,6 +6,7 @@ import { isEmpty } from '../../../shared/utils.js';
 import { calculateBaseTime } from '../../../shared/time.js';
 import { getCurrentPlanetId } from '../main.js';
 import { showConfirm } from './modals.js';
+import { Notifications } from '../notifications.js';
 
 let currentShipyardData = null;
 let collapsedSections = {}; // Track collapsed state

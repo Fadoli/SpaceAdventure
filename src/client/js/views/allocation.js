@@ -1,8 +1,8 @@
-// Building allocation view - manage power and population allocation
 import { getCurrentPlanet } from '../main.js';
 import { API } from '../api.js';
 import { calculateAllocationEffectiveness, getBuildingEnergyConsumption, getBuildingPopulationRequired } from '../../../shared/formulas.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
+import { Notifications } from '../notifications.js';
 
 // Track saved allocation state to avoid overwriting user input during updates
 let savedAllocations = {};
@@ -382,10 +382,10 @@ async function applyAllAllocations() {
     savedAllocations = { ...allocations };
     
     // Show success message without refreshing the view
-    alert('Allocations updated successfully!');
+    Notifications.showSuccess('Allocations updated successfully!');
   } catch (error) {
     console.error('Failed to update allocations:', error);
-    alert('Failed to update allocations: ' + error.message);
+    Notifications.showError('Failed to update allocations: ' + error.message);
   }
 }
 

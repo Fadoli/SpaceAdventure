@@ -1,6 +1,7 @@
 import { API } from '../api.js';
 import { formatDate } from '../utils.js';
 import { showConfirm } from './modals.js';
+import { Notifications } from '../notifications.js';
 
 let lastMessagesHash = null;
 
@@ -199,7 +200,7 @@ window.deleteSingleMessage = async function(id, event) {
         lastMessagesHash = null; // Force re-render
         updateMessagesView();
     } catch (error) {
-        alert('Failed to delete: ' + error.message);
+        Notifications.showError('Failed to delete: ' + error.message);
     }
 };
 
@@ -212,6 +213,6 @@ window.clearAllMessages = async function() {
         lastMessagesHash = null; // Force re-render
         updateMessagesView();
     } catch (error) {
-        alert('Failed to clear: ' + error.message);
+        Notifications.showError('Failed to clear: ' + error.message);
     }
 };

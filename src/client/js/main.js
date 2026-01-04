@@ -24,6 +24,7 @@ let currentUser = null;
 let gameState = null;
 let currentView = 'overview';
 let currentPlanetId = null;
+let lastAllocationPlanetId = null;
 let updateInterval = null;
 
 // URL State Management
@@ -181,6 +182,7 @@ function switchView(view, updateHistory = true) {
     if (gameState) {
         // For allocation view, render it when explicitly switched
         if (view === 'allocation') {
+            lastAllocationPlanetId = currentPlanetId;
             renderAllocation().then(html => {
                 document.getElementById('allocation-view').innerHTML = html;
                 setupAllocationHandlers();
@@ -300,7 +302,17 @@ function updateCurrentView() {
             break;
         case 'allocation':
             // Don't re-render allocation view during auto-updates to preserve user input
-            // Only re-render when user explicitly switches to this view
+            // EXCEPT when we switched planets
+            if (lastAllocationPlanetId !== currentPlanetId) {
+                lastAllocationPlanetId = currentPlanetId;
+                renderAllocation().then(html => {
+                    const el = document.getElementById('allocation-view');
+                    if (el) {
+                        el.innerHTML = html;
+                        setupAllocationHandlers();
+                    }
+                });
+            }
             break;
     }
 }
@@ -321,6 +333,11 @@ function startResourceUpdate() {
 // Global window functions for onclick handlers
 window.selectPlanet = function(planetId) {
     if (!gameState) return;
+    
+    // Close any open modals when switching planets
+    if (window.closeDetailsModal) window.closeDetailsModal();
+    if (window.closeInputModal) window.closeInputModal();
+    if (window.closeAllocationModal) window.closeAllocationModal();
     
     const planet = gameState.planets.find(p => p.id === planetId);
     if (planet) {
@@ -351,7 +368,7 @@ window.selectCustomVariant = async function(buildingKey, focusLevels) {
         await buildingsView.closeCustomVariantModal();
         await loadGameState();
     } catch (error) {
-        alert('Error: ' + error.message);
+        Notifications.showError('Error: ' + error.message);
     }
 };
 

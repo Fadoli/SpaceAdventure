@@ -41,6 +41,7 @@ window.toggleResearchQueueVisibility = function () {
  */
 function calculateResearchStateHash(data) {
     const state = {
+        planetId: getCurrentPlanetId(),
         // Only include stable identifiers for the queue
         theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
         practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, level: q.level })),
@@ -521,7 +522,7 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
     const research = practical[researchKey];
 
     if (!research) {
-        alert('Research not found');
+        Notifications.showError('Research not found');
         return;
     }
 
