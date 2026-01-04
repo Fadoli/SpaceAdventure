@@ -37,6 +37,7 @@ import { MISSION_TYPES } from '../shared/constants.js';
 import { calculateBaseTime } from '../shared/time.js';
 import { SCALING } from '../shared/constants.js';
 import { calculateAllocationEffectiveness } from '../shared/formulas.js';
+import { isEmpty } from '../shared/utils.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 import { gzipSync, deflateSync } from 'zlib';
 
