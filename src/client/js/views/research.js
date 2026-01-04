@@ -42,6 +42,7 @@ window.toggleResearchQueueVisibility = function () {
 function calculateResearchStateHash(data) {
     const state = {
         planetId: getCurrentPlanetId(),
+        labLevel: currentPlanetBuildings?.researchLab || 0,
         // Only include stable identifiers for the queue
         theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
         practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, level: q.level })),

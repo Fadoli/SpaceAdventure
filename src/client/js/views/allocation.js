@@ -56,6 +56,10 @@ export async function renderAllocation() {
     return '<div class="error">No planet selected</div>';
   }
   
+  // Clear saved allocations when switching to a new planet
+  // This ensures we get the latest values from the new planet
+  savedAllocations = {};
+  
   // Buildings that can have allocation (production buildings with workers)
   const allocatableBuildings = [
     'metalMine',

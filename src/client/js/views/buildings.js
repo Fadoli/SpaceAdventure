@@ -19,6 +19,7 @@ let lastQueueStateHash = null;
  */
 function calculateBuildingStateHash(buildings, planet) {
     const state = {
+        planetId: planet.id,
         buildings: buildings,
         resources: planet.resources,
         buildingAllocations: planet.buildingAllocations,

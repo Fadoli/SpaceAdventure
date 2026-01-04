@@ -17,6 +17,7 @@ let lastShipyardStateHash = null;
  */
 function calculateShipyardStateHash(shipyardData, planet) {
     const state = {
+        planetId: planet.id,
         ships: shipyardData.ships,
         queue: shipyardData.queue,
         shipyardLevel: shipyardData.shipyardLevel,
