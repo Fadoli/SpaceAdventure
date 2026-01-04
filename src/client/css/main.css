@@ -2803,3 +2803,60 @@ body {
     opacity: 1;
 }
 
+
+/* Updated Header Layout */
+.user-info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-end;
+}
+
+.player-name {
+    text-align: right;
+}
+
+.btn-logout-header {
+    background: rgba(217, 83, 79, 0.1);
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    cursor: pointer;
+    width: fit-content;
+}
+
+.btn-logout-header:hover {
+    background: var(--accent-red);
+    color: white;
+}
+
+.header-title-info {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Modal Small and Input */
+.modal-small {
+    max-width: 400px !important;
+    margin: 15% auto !important;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--accent-blue);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+

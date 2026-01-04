@@ -13,9 +13,8 @@
             <!-- Header -->
             <header class="game-header">
                 <div class="header-left">
-                    <h1>🚀 Space Adventure</h1>
-                    <div class="player-info-header">
-                        <span id="player-name" class="player-name"></span>
+                    <div class="header-title-info">
+                        <h1>🚀 Space Adventure</h1>
                         <span id="header-planet-info" class="header-planet-info">
                             <span id="planet-select-header-container"></span> 
                             <span id="planet-coords-header"></span>
@@ -61,7 +60,10 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <button id="logout-btn" class="btn btn-small">Logout</button>
+                    <div class="user-info-group">
+                        <span id="player-name" class="player-name"></span>
+                        <button id="logout-btn" class="btn btn-logout-header">Logout</button>
+                    </div>
                 </div>
             </header>
             
@@ -143,6 +145,22 @@
                 <span class="modal-close" onclick="window.closeDetailsModal()">&times;</span>
                 <h2 id="details-modal-title"></h2>
                 <div id="details-modal-body"></div>
+            </div>
+        </div>
+
+        <!-- Input/Confirm Modal -->
+        <div id="input-modal" class="modal">
+            <div class="modal-content modal-small">
+                <span class="modal-close" onclick="window.closeInputModal()">&times;</span>
+                <h2 id="input-modal-title">Confirm Action</h2>
+                <div id="input-modal-body"></div>
+                <div id="input-modal-field-container" style="display: none; margin: 15px 0;">
+                    <input type="text" id="input-modal-field" class="modal-input">
+                </div>
+                <div class="modal-footer">
+                    <button id="input-modal-cancel" class="btn btn-secondary" onclick="window.closeInputModal()">Cancel</button>
+                    <button id="input-modal-confirm" class="btn btn-primary">Confirm</button>
+                </div>
             </div>
         </div>
     </div>

@@ -1,6 +1,7 @@
 // Overview view logic
 import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
+import { showPrompt } from './modals.js';
 
 let lastOverviewPlanetId = null;
 
@@ -15,8 +16,8 @@ window.changePlanet = function(select) {
 };
 
 window.renamePlanetUI = async function(planetId, currentName) {
-    const newName = prompt('Enter new planet name (3-20 characters):', currentName);
-    if (!newName || newName === currentName) return;
+    const newName = await showPrompt('Rename Planet', 'Enter new planet name (3-20 characters):', currentName);
+    if (newName === null || newName === currentName) return;
     
     try {
         await API.renamePlanet(planetId, newName);

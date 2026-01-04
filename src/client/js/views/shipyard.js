@@ -5,6 +5,7 @@ import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shar
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateBaseTime } from '../../../shared/time.js';
 import { getCurrentPlanetId } from '../main.js';
+import { showConfirm } from './modals.js';
 
 let currentShipyardData = null;
 let collapsedSections = {}; // Track collapsed state
@@ -351,6 +352,10 @@ function attachShipyardListeners(planet, shipyardData) {
     window.cancelShipyardBuild = async function(queueId) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
+        
+        const confirmed = await showConfirm('Cancel Build', 'Cancel this production order? You will get 50% resources back.');
+        if (!confirmed) return;
+
         try {
             const response = await API.cancelShipyardProduction(planetId, queueId);
             console.log('Build cancelled:', response);

@@ -2,6 +2,7 @@
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus } from '../../../shared/research.js';
 import { formatNumber } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
+import { showConfirm } from './modals.js';
 import { calculateBaseTime } from '../../../shared/time.js';
 import {
     calculateTheoreticalResearchCost,
@@ -1077,7 +1078,8 @@ window.closeResearchModal = function () {
  * Cancel theoretical research
  */
 window.cancelTheoreticalResearch = async function (queueId) {
-    if (!confirm('Cancel this research?')) return;
+    const confirmed = await showConfirm('Cancel Research', 'Cancel this theoretical research?');
+    if (!confirmed) return;
 
     try {
         const planetId = getCurrentPlanetId();
@@ -1133,7 +1135,8 @@ window.startPracticalResearch = async function (baseType, type, focus) {
  * Cancel practical research
  */
 window.cancelPracticalResearch = async function (queueId) {
-    if (!confirm('Cancel this research?')) return;
+    const confirmed = await showConfirm('Cancel Customization', 'Cancel this research customization?');
+    if (!confirmed) return;
 
     try {
         const planetId = getCurrentPlanetId();

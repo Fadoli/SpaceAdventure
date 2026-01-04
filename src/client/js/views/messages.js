@@ -1,5 +1,6 @@
 import { API } from '../api.js';
 import { formatDate } from '../utils.js';
+import { showConfirm } from './modals.js';
 
 let lastMessagesHash = null;
 
@@ -154,7 +155,8 @@ function isUnread(el) {
 
 window.deleteSingleMessage = async function(id, event) {
     if (event) event.stopPropagation();
-    if (!confirm('Delete this message?')) return;
+    const confirmed = await showConfirm('Delete Message', 'Delete this message?');
+    if (!confirmed) return;
     
     try {
         await API.deleteMessage(id);
@@ -166,7 +168,8 @@ window.deleteSingleMessage = async function(id, event) {
 };
 
 window.clearAllMessages = async function() {
-    if (!confirm('Delete ALL messages?')) return;
+    const confirmed = await showConfirm('Clear All Messages', 'Delete ALL messages?');
+    if (!confirmed) return;
     
     try {
         await API.clearMessages();

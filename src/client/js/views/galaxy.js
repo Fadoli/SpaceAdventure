@@ -1,6 +1,7 @@
 // Galaxy view logic
 import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
+import { showConfirm, showPrompt } from './modals.js';
 
 let currentGalaxy = 1;
 let currentSystem = 1;
@@ -205,7 +206,8 @@ function renderOGameEmptyRow(position) {
 // Mission trigger functions
 window.spyOnPlanetFromGalaxy = async function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
-    if (!confirm(`Send 1 espionage probe to ${coords.join(':')}?`)) return;
+    const confirmed = await showConfirm('Send Espionage Probe', `Send 1 espionage probe to ${coords.join(':')}?`);
+    if (!confirmed) return;
 
     try {
         const response = await fetch('/api/game/galaxy/mission', {
@@ -231,7 +233,8 @@ window.spyOnPlanetFromGalaxy = async function(position) {
 
 window.colonizePlanetFromGalaxy = async function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
-    if (!confirm(`Send 1 colony ship to ${coords.join(':')}?`)) return;
+    const confirmed = await showConfirm('Send Colony Ship', `Send 1 colony ship to ${coords.join(':')}?`);
+    if (!confirmed) return;
 
     try {
         const response = await fetch('/api/game/galaxy/mission', {

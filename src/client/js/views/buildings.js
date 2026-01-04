@@ -2,6 +2,7 @@
 import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
+import { showConfirm } from './modals.js';
 import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
@@ -823,7 +824,8 @@ export async function cancelBuilding(queuePosition, onStateChange) {
     const planetId = getCurrentPlanetId();
     if (!planetId) return;
     
-    if (confirm(`Cancel building at queue position ${queuePosition}? You will get 50% resources back.`)) {
+    const confirmed = await showConfirm('Cancel Building', `Cancel building at queue position ${queuePosition}? You will get 50% resources back.`);
+    if (confirmed) {
         try {
             await API.cancelBuilding(planetId, queuePosition);
             if (onStateChange) await onStateChange();
