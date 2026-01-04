@@ -5,6 +5,7 @@ import { calculateShipSpeed } from '../../shared/ships.js';
 import { calculateTravelTime } from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
+import { addMessage } from './messages.js';
 
 /**
  * Calculate distance between two sets of coordinates [G, S, P]
@@ -198,14 +199,12 @@ async function executeEspionage(player, fleet, allPlayers) {
     report.info = "Target coordinates are empty space.";
   }
 
-  if (!player.messages) player.messages = [];
-  player.messages.push({
-    id: generateId(),
+  await addMessage(player.userId, {
     from: 'Intelligence Service',
     subject: `Espionage Report: [${fleet.targetCoords.join(':')}]`,
-    content: report,
-    time: Date.now(),
-    unread: true
+    body: `Our spies have returned from ${fleet.targetCoords.join(':')}.`,
+    type: 'espionage',
+    data: report
   });
 }
 
@@ -255,6 +254,14 @@ async function executeColonization(player, fleet, allPlayers) {
       newPlanet.ships[shipKey] = (newPlanet.ships[shipKey] || 0) + fleet.ships[shipKey];
     }
   }
+
+  await addMessage(player.userId, {
+    from: 'Colonial Command',
+    subject: `Colonization Successful: [${fleet.targetCoords.join(':')}]`,
+    body: `A new colony has been established at ${fleet.targetCoords.join(':')}.`,
+    type: 'colonization',
+    data: { coords: [...fleet.targetCoords], planetId }
+  });
 
   return true; // Mission completed, fleet record removed
 }

@@ -130,5 +130,27 @@ export const API = {
     
     async getGalaxyView(galaxy, system) {
         return await this.request(`/game/galaxy/${galaxy}/${system}`);
+    },
+
+    async getMessages() {
+        return await this.request('/game/messages');
+    },
+
+    async markMessageRead(messageId) {
+        return await this.request(`/game/messages/${messageId}/read`, {
+            method: 'POST'
+        });
+    },
+
+    async deleteMessage(messageId) {
+        return await this.request(`/game/messages/${messageId}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async clearMessages() {
+        return await this.request('/game/messages', {
+            method: 'DELETE'
+        });
     }
 };

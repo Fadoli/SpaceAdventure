@@ -11,6 +11,7 @@ import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnSta
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches, getEffectiveBuildingDefinition } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
+import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
 import { 
   startTheoreticalResearch, 
   completeTheoreticalResearch, 
@@ -1397,6 +1398,48 @@ async function handleRequest(req) {
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }
+    }
+
+    // ============================================
+    // MESSAGE ROUTES
+    // ============================================
+
+    // GET /api/game/messages
+    if (path === '/api/game/messages' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const messages = await getPlayerMessages(user.id);
+      return successResponse(req, messages);
+    }
+
+    // POST /api/game/messages/:messageId/read
+    if (path.match(/^\/api\/game\/messages\/[^\/]+\/read$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const messageId = path.split('/')[4];
+      const result = await markMessageRead(user.id, messageId);
+      return successResponse(req, { success: result });
+    }
+
+    // DELETE /api/game/messages/:messageId
+    if (path.match(/^\/api\/game\/messages\/[^\/]+$/) && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const messageId = path.split('/')[4];
+      const result = await deleteMessage(user.id, messageId);
+      return successResponse(req, { success: result });
+    }
+
+    // DELETE /api/game/messages
+    if (path === '/api/game/messages' && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const result = await clearMessages(user.id);
+      return successResponse(req, { success: result });
     }
     
     // 404 for unknown API routes

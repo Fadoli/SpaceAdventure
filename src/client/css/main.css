@@ -2614,3 +2614,149 @@ body {
     margin-left: 5px;
 }
 
+
+/* Message System Styles */
+.messages-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.message-item.unread {
+    border-left: 4px solid var(--accent-blue);
+    background: linear-gradient(90deg, rgba(74, 144, 226, 0.05) 0%, var(--bg-secondary) 100%);
+}
+
+.msg-header {
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.msg-header:hover {
+    background: var(--bg-tertiary);
+}
+
+.msg-status-icon {
+    font-size: 1.1rem;
+    min-width: 24px;
+}
+
+.msg-sender {
+    font-weight: bold;
+    min-width: 150px;
+    color: var(--accent-blue);
+}
+
+.msg-subject {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msg-date {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    min-width: 150px;
+    text-align: right;
+}
+
+.btn-delete-msg {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0 5px;
+    transition: color 0.2s;
+}
+
+.btn-delete-msg:hover {
+    color: var(--accent-red);
+}
+
+.msg-body {
+    padding: 20px;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+    line-height: 1.6;
+}
+
+.msg-text {
+    margin-bottom: 15px;
+}
+
+/* Espionage Report Styling */
+.espionage-report {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.report-section {
+    margin-bottom: 15px;
+}
+
+.report-section h4 {
+    color: var(--accent-yellow);
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 3px;
+}
+
+.res-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.data-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.data-list span {
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+}
+
+.empty-info {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+

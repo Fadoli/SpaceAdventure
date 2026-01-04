@@ -14,6 +14,7 @@ import { updateResearchView, initializeResearch, updateResearchTimers } from './
 import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateGalaxyView } from './views/galaxy.js';
+import { updateMessagesView } from './views/messages.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 import { updateFleetMovements } from './views/fleetMovements.js';
 
@@ -190,6 +191,8 @@ function switchView(view, updateHistory = true) {
             // Initialize research view when explicitly switched
             const planet = gameState.planets.find(p => p.id === currentPlanetId) || gameState.planets[0];
             initializeResearch(planet);
+        } else if (view === 'messages') {
+            updateMessagesView();
         } else {
             updateCurrentView();
         }
@@ -278,6 +281,9 @@ function updateCurrentView() {
         case 'galaxy':
             // Don't auto-update galaxy view during regular updates
             // Only render when user explicitly switches to this view
+            break;
+        case 'messages':
+            updateMessagesView();
             break;
         case 'allocation':
             // Don't re-render allocation view during auto-updates to preserve user input

@@ -95,7 +95,7 @@ export const SHIPS = {
     },
     cargoCapacity: 5,
     fuel: 1,
-    speed: 8000, // Units per hour - fastest ship
+    speed: 100000000, // Crazy fast!
     attack: 0,
     shield: 1,
     hull: 10
