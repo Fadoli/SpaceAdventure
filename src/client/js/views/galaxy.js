@@ -195,7 +195,67 @@ function renderOGameEmptyRow(position) {
             <td class="planet-col empty-cell">-</td>
             <td class="player-col empty-cell">-</td>
             <td class="status-col empty-cell">-</td>
-            <td class="action-col empty-cell">-</td>
+            <td class="action-col empty-cell">
+                <button class="action-btn colonize-btn" onclick="window.colonizePlanetFromGalaxy(${position})" title="Colonize this position">🏗️</button>
+            </td>
         </tr>
     `;
 }
+
+// Mission trigger functions
+window.spyOnPlanetFromGalaxy = async function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    if (!confirm(`Send 1 espionage probe to ${coords.join(':')}?`)) return;
+
+    try {
+        const response = await fetch('/api/game/galaxy/mission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                missionType: 'espionage',
+                targetCoords: coords,
+                ships: { espionageProbe: 1 }
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert(`Espionage probe dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
+        } else {
+            alert(`Failed: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+};
+
+window.colonizePlanetFromGalaxy = async function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    if (!confirm(`Send 1 colony ship to ${coords.join(':')}?`)) return;
+
+    try {
+        const response = await fetch('/api/game/galaxy/mission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                missionType: 'colonize',
+                targetCoords: coords,
+                ships: { colonyShip: 1 }
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert(`Colony ship dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
+        } else {
+            alert(`Failed: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+};
+
+window.attackPlanetFromGalaxy = function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    alert(\Attack mission to \ coming soon!\);
+};

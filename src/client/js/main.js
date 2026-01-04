@@ -15,6 +15,7 @@ import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateGalaxyView } from './views/galaxy.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
+import { updateFleetMovements } from './views/fleetMovements.js';
 
 // State
 let currentUser = null;
@@ -265,6 +266,9 @@ async function loadGameState() {
 function updateUI() {
     if (!gameState) return;
     
+    // Update fleet movements
+    updateFleetMovements(gameState);
+    
     // Update player name
     document.getElementById('player-name').textContent = currentUser.username;
     
@@ -343,6 +347,7 @@ function startResourceUpdate() {
     updateInterval = setInterval(async () => {
         await loadGameState();
         updateTimers();
+        updateFleetMovements(gameState);
     }, 1000); // Every 1 second
 }
 
@@ -465,16 +470,6 @@ window.selectPlanetFromGalaxy = function(playerUsername) {
         switchView('overview');
         updateUI();
     }
-};
-
-window.spyOnPlanetFromGalaxy = function(position) {
-    console.log('Spy on planet at position:', position);
-    // TODO: Implement espionage view
-};
-
-window.attackPlanetFromGalaxy = function(position) {
-    console.log('Attack planet at position:', position);
-    // TODO: Implement attack/fleet management
 };
 
 // Helper function to render galaxy table HTML

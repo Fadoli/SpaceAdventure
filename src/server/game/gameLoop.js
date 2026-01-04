@@ -3,6 +3,7 @@ import { getPlayers, savePlayers } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
+import { processFleets } from './fleet.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
 import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
@@ -129,6 +130,12 @@ async function gameTick() {
       if (researchUpdated) {
         updated = true;
       }
+
+      // Process fleets
+      const fleetsUpdated = await processFleets(player, players);
+      if (fleetsUpdated) {
+        updated = true;
+      }
     }
     
     // Save if anything changed and enough time has passed
@@ -147,36 +154,43 @@ async function gameTick() {
  */
 function processCompletedResearch(player) {
   let updated = false;
+  let now = Date.now();
   
-  // Check theoretical research - sequential (only process first item)
-  if (player.researchQueue && player.researchQueue.length > 0) {
+  // Check theoretical research - sequential
+  while (player.researchQueue && player.researchQueue.length > 0) {
     const item = player.researchQueue[0];
-    if (item.endTime <= Date.now()) {
+    if (item.endTime <= now) {
       completeTheoreticalResearch(player, item.id);
       
       // If there's another item in the queue, update its start/end times
       if (player.researchQueue.length > 0) {
         const nextItem = player.researchQueue[0];
-        nextItem.startTime = Date.now();
+        // The next item starts when the previous one finished
+        nextItem.startTime = item.endTime; 
         nextItem.endTime = nextItem.startTime + nextItem.duration;
       }
       updated = true;
+    } else {
+      break; // First item not finished yet
     }
   }
   
-  // Check practical research - sequential (only process first item)
-  if (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) {
+  // Check practical research - sequential
+  while (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) {
     const item = player.practicalResearchQueue[0];
-    if (item.endTime <= Date.now()) {
+    if (item.endTime <= now) {
       completePracticalResearch(player, item.id);
       
       // If there's another item in the queue, update its start/end times
       if (player.practicalResearchQueue.length > 0) {
         const nextItem = player.practicalResearchQueue[0];
-        nextItem.startTime = Date.now();
+        // The next item starts when the previous one finished
+        nextItem.startTime = item.endTime;
         nextItem.endTime = nextItem.startTime + nextItem.duration;
       }
       updated = true;
+    } else {
+      break; // First item not finished yet
     }
   }
   

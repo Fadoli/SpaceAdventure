@@ -320,38 +320,49 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
  */
 export async function processCompletedBuildings(player) {
   let updated = false;
+  let now = Date.now();
   
   for (const planet of player.planets) {
-    if (!planet.buildQueue || planet.buildQueue.length === 0) {
-      continue;
-    }
-    
-    // Only process the first item in queue (currently building)
-    const buildItem = planet.buildQueue[0];
-    
-    // Check if building is complete
-    if (buildItem.finishTime <= Date.now()) {
-      // Complete the building
-      planet.buildings[buildItem.building] = buildItem.level;
+    // Process queue sequentially
+    while (planet.buildQueue && planet.buildQueue.length > 0) {
+      const buildItem = planet.buildQueue[0];
       
-      // Recalculate production (pass player for variant modifier support)
-      updatePlanetProduction(planet, player);
-      
-      // Remove from queue
-      planet.buildQueue.shift();
-      
-      // Update queue positions for remaining items
-      planet.buildQueue.forEach((item, index) => {
-        item.queuePosition = index + 1;
-      });
-      
-      // If there are more items in queue, they continue with their scheduled times
-      // (times were already calculated when added to queue)
-      
-      // Update activity timestamp when building completes
-      planet.lastActivity = Date.now();
-      
-      updated = true;
+      // Check if building is complete
+      if (buildItem.finishTime <= now) {
+        // Complete the building
+        planet.buildings[buildItem.building] = buildItem.level;
+        
+        // Recalculate production
+        updatePlanetProduction(planet, player);
+        
+        // Remove from queue
+        planet.buildQueue.shift();
+        
+        // Update queue positions and times for remaining items
+        if (planet.buildQueue.length > 0) {
+          planet.buildQueue.forEach((item, index) => {
+            item.queuePosition = index + 1;
+            // The first item in the new queue starts when the previous one finished
+            if (index === 0) {
+              const duration = item.finishTime - item.startTime;
+              item.startTime = buildItem.finishTime;
+              item.finishTime = item.startTime + duration;
+            } else {
+              // Subsequent items start when their predecessor finishes
+              const prevItem = planet.buildQueue[index - 1];
+              const duration = item.finishTime - item.startTime;
+              item.startTime = prevItem.finishTime;
+              item.finishTime = item.startTime + duration;
+            }
+          });
+        }
+        
+        // Update activity timestamp
+        planet.lastActivity = now;
+        updated = true;
+      } else {
+        break; // First item not finished
+      }
     }
   }
   

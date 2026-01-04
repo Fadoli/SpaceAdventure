@@ -227,14 +227,76 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
         const energyEl = document.getElementById(`energy-info-${key}`);
         
         if (statsEl) {
-            // Determine what stats to show (simplified version of the complex render logic)
-            if (building.production && !isEmpty(building.production)) {
-                let html = '<div class="building-production">';
-                for (const res in building.production) {
-                    html += `<div>${RESOURCE_ICONS[res] || '❓'} +${formatNumber(building.production[res] / 10)}/h</div>`; // Approximate diff
+            let statsHtml = '';
+            if (building.storage && !isEmpty(building.storage)) {
+                statsHtml = '<div class="building-storage">';
+                for (const resource in building.storage) {
+                    const nextAmount = building.storage[resource];
+                    let currentAmount = 0;
+                    if (building.currentLevel > 0) {
+                        const baseAmount = nextAmount / Math.pow(SCALING.BUILDING_STORAGE, building.nextLevel - 1);
+                        currentAmount = Math.floor(baseAmount * Math.pow(SCALING.BUILDING_STORAGE, building.currentLevel - 1));
+                    }
+                    const diff = nextAmount - currentAmount;
+                    statsHtml += `<div>${RESOURCE_ICONS[resource] || '❓'} +${formatNumber(diff)}</div>`;
                 }
-                statsEl.innerHTML = html + '</div>';
+                statsHtml += '</div>';
+            } else if (building.production && !isEmpty(building.production)) {
+                statsHtml = '<div class="building-production">';
+                
+                // Show current actual production
+                if (building.currentLevel > 0 && !isEmpty(building.actualProduction)) {
+                    statsHtml += `<div class="actual-value" title="Current actual production based on workers and power">Actual: `;
+                    for (const res in building.actualProduction) {
+                        statsHtml += `${RESOURCE_ICONS[res] || ''} ${formatNumber(building.actualProduction[res])}/h `;
+                    }
+                    statsHtml += `<span class="eff-label">(${(building.totalEffectiveness * 100).toFixed(0)}%)</span></div>`;
+                }
+
+                // Show expected gain for next level (based on current effectiveness)
+                if (!isEmpty(building.productionGains)) {
+                    statsHtml += `<div class="expected-gain" title="Expected gain if you upgrade, keeping current allocations">Gain: `;
+                    for (const res in building.productionGains) {
+                        const gain = building.productionGains[res];
+                        statsHtml += `<span class="gain-value">${RESOURCE_ICONS[res] || ''} +${formatNumber(gain)}/h</span> `;
+                    }
+                    statsHtml += `</div>`;
+                }
+                statsHtml += '</div>';
+            } else if (key === 'roboticsFactory' && building.currentLevel > 0) {
+                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
+                statsHtml = `<div class="building-special">⏱️ Construction: ${speedMult}x speed</div>`;
+            } else if (key === 'naniteFactory' && building.currentLevel > 0) {
+                const speedMult = Math.pow(2, building.currentLevel).toFixed(0);
+                statsHtml = `<div class="building-special">⚡ Construction: ${speedMult}x speed</div>`;
+            } else if (key === 'researchLab' && building.currentLevel > 0) {
+                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
+                statsHtml = `<div class="building-special">🔬 Research: ${speedMult}x speed</div>`;
+            } else if (key === 'shipyard' && building.currentLevel > 0) {
+                const speedMult = (1 / Math.pow(BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
+                statsHtml = `<div class="building-special">🚀 Production: ${speedMult}x speed</div>`;
             }
+            statsEl.innerHTML = statsHtml;
+        }
+
+        if (energyEl) {
+            let energyHtml = '';
+            if (key === 'fusionReactor') {
+                if (building.currentLevel > 0) {
+                    energyHtml += `<div class="building-energy actual-value">🛢️ Actual: -${formatNumber(building.actualDeuteriumConsumption)}/h</div>`;
+                }
+                if (building.deuteriumGain > 0) {
+                    energyHtml += `<div class="building-energy expected-gain">🛢️ Cost: +${formatNumber(building.deuteriumGain)}/h</div>`;
+                }
+            } else if (building.energyConsumption > 0) {
+                if (building.currentLevel > 0) {
+                    energyHtml += `<div class="building-energy actual-value">⚡ Actual: -${formatNumber(building.actualEnergyConsumption)}/h</div>`;
+                }
+                if (building.energyGain > 0) {
+                    energyHtml += `<div class="building-energy expected-gain">⚡ Cost: +${formatNumber(building.energyGain)}/h</div>`;
+                }
+            }
+            energyEl.innerHTML = energyHtml;
         }
 
         // Update allocation badges

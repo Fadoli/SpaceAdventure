@@ -10,6 +10,7 @@ import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches, getEffectiveBuildingDefinition } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
+import { sendFleet } from './game/fleet.js';
 import { 
   startTheoreticalResearch, 
   completeTheoreticalResearch, 
@@ -32,8 +33,10 @@ import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/bui
 import { getTheoreticalResearch, getResearchBonus } from '../shared/research.js';
 import { SHIPS, calculateShipSpeed } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
+import { MISSION_TYPES } from '../shared/constants.js';
 import { calculateBaseTime } from '../shared/time.js';
 import { SCALING } from '../shared/constants.js';
+import { calculateAllocationEffectiveness } from '../shared/formulas.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 import { gzipSync, deflateSync } from 'zlib';
 
@@ -197,7 +200,7 @@ async function handleRequest(req) {
         
         if (filePath.endsWith('.js')) {
           contentType = 'application/javascript; charset=utf-8';
-          cacheTime = 86400; // 1 day for JS
+          cacheTime = 3600; // 1 hour for JS
         } else if (filePath.endsWith('.css')) {
           contentType = 'text/css; charset=utf-8';
           cacheTime = 86400; // 1 day for CSS
@@ -684,6 +687,58 @@ async function handleRequest(req) {
         const hasCustomVariant = player.customBuildingVariants && player.customBuildingVariants[buildingType] ? true : false;
         const customVariant = (player.customBuildingVariants && player.customBuildingVariants[buildingType]) || null;
         
+        // Calculate current ACTUAL production and consumption (adjusted by effectiveness)
+        const currentProdBase = currentLevel > 0 ? getProduction(buildingType, currentLevel, planet, player) : {};
+        const actualAllocation = (planet.actualAllocations && planet.actualAllocations[buildingType]) || { power: 1.0, population: 1.0 };
+        
+        // Use same formula as updatePlanetProduction
+        const powerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power * 100) / 100;
+        const populationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population * 100) / 100;
+        const totalEffectiveness = powerEffectiveness * populationEffectiveness;
+        
+        const actualProduction = {};
+        for (const res in currentProdBase) {
+          actualProduction[res] = Math.floor(currentProdBase[res] * totalEffectiveness);
+        }
+
+        let actualEnergyConsumption = 0;
+        if (buildingDef.energyConsumption && currentLevel > 0) {
+          const energyMultiplier = 10.0;
+          const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+          const reduction = 1 - energyEfficiencyBonus;
+          const baseConsumption = Math.floor(buildingDef.energyConsumption * currentLevel * Math.pow(SCALING.BUILDING_ENERGY, currentLevel) * energyMultiplier * Math.max(0.5, reduction));
+          actualEnergyConsumption = Math.floor(baseConsumption * actualAllocation.power);
+        }
+
+        let actualDeuteriumConsumption = 0;
+        if (buildingDef.deuteriumConsumption && currentLevel > 0) {
+          const productionMultiplier = 10.0;
+          const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+          const reduction = 1 - energyEfficiencyBonus;
+          const baseConsumption = Math.floor(buildingDef.deuteriumConsumption * currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, currentLevel) * productionMultiplier * Math.max(0.5, reduction));
+          actualDeuteriumConsumption = Math.floor(baseConsumption * totalEffectiveness);
+        }
+
+        // Calculate expected gains for next level based on CURRENT effectiveness/allocations
+        const expectedNextProduction = {};
+        for (const res in production) {
+          expectedNextProduction[res] = Math.floor(production[res] * totalEffectiveness);
+        }
+
+        const expectedNextEnergyConsumption = buildingDef.energyConsumption ? 
+          Math.floor(energyConsumption * actualAllocation.power) : 0;
+        
+        const expectedNextDeuteriumConsumption = buildingDef.deuteriumConsumption ? 
+          Math.floor(deuteriumConsumption * totalEffectiveness) : 0;
+
+        const productionGains = {};
+        for (const res in expectedNextProduction) {
+          productionGains[res] = expectedNextProduction[res] - (actualProduction[res] || 0);
+        }
+
+        const energyGain = expectedNextEnergyConsumption - actualEnergyConsumption;
+        const deuteriumGain = expectedNextDeuteriumConsumption - actualDeuteriumConsumption;
+
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
           description: buildingDef.description,
@@ -697,6 +752,13 @@ async function handleRequest(req) {
           storage,
           energyConsumption,
           deuteriumConsumption,
+          actualProduction,
+          actualEnergyConsumption,
+          actualDeuteriumConsumption,
+          productionGains,
+          energyGain,
+          deuteriumGain,
+          totalEffectiveness,
           canAfford,
           requirementsMet,
           requirementsList,
@@ -1010,6 +1072,53 @@ async function handleRequest(req) {
         system,
         planets: planetsInSystem
       });
+    }
+
+    // POST /api/game/galaxy/mission - Send mission from galaxy view
+    if (path === '/api/game/galaxy/mission' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) {
+        return errorResponse(req, 'Not authenticated', 401);
+      }
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player) {
+        return errorResponse(req, 'Player not found', 404);
+      }
+
+      const body = await req.json();
+      const { missionType, targetCoords, ships } = body;
+
+      if (!missionType || !targetCoords || !ships) {
+        return errorResponse(req, 'Missing mission details', 400);
+      }
+
+      try {
+        // Find a planet that has these ships
+        let originPlanet = null;
+        for (const p of player.planets) {
+          let hasShips = true;
+          for (const shipKey in ships) {
+            if ((p.ships[shipKey] || 0) < ships[shipKey]) {
+              hasShips = false;
+              break;
+            }
+          }
+          if (hasShips) {
+            originPlanet = p;
+            break;
+          }
+        }
+
+        if (!originPlanet) {
+          return errorResponse(req, 'No planet found with sufficient ships for this mission', 400);
+        }
+
+        const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships);
+        return successResponse(req, fleet);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
     }
 
     // ============================================
