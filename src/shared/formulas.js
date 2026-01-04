@@ -2,28 +2,32 @@
 import { BUILDINGS } from './buildings.js';
 import { calculateBaseTime } from './time.js';
 import { BUILDING_SPEED_MULTIPLIER, SCALING, CONFIG } from './constants.js';
+import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
 
 /**
  * Calculate building cost based on level
  */
-export function calculateBuildingCost(baseCost, level) {
+export function calculateBuildingCost(baseCost, level, costReductionBonus = 0) {
+  const multiplier = Math.pow(SCALING.BUILDING_COST, level);
+  const reduction = 1 - costReductionBonus;
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(SCALING.BUILDING_COST, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.BUILDING_COST, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.BUILDING_COST, level))
+    metal: Math.floor(baseCost.metal * multiplier * reduction),
+    crystal: Math.floor(baseCost.crystal * multiplier * reduction),
+    deuterium: Math.floor(baseCost.deuterium * multiplier * reduction)
   };
 }
 
 /**
  * Calculate building construction time
  */
-export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0, configMultiplier = 1.0) {
+export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0, configMultiplier = 1.0, timeReductionBonus = 0) {
   const baseTime = calculateBaseTime(building);
   const time = baseTime * Math.pow(SCALING.BUILDING_TIME, level - 1);
   const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
+  const reduction = 1 - timeReductionBonus;
   
-  return Math.max(1, Math.floor((time * roboticsMultiplier / naniteMultiplier) * configMultiplier));
+  return Math.max(1, Math.floor((time * roboticsMultiplier / naniteMultiplier) * configMultiplier * reduction));
 }
 
 /**
@@ -78,19 +82,24 @@ export function calculateFuelConsumption(distance, ships) {
 /**
  * Calculate fleet travel time
  */
-export function calculateTravelTime(distance, speed) {
+export function calculateTravelTime(distance, speed, configMultiplier = 1.0) {
   // Simplified: distance in systems, speed is base speed
-  return Math.floor((distance * 3600) / speed); // Returns seconds
+  return Math.floor(((distance * 3600) / speed) * configMultiplier); // Returns seconds
 }
 
 /**
  * Calculate combat power
  */
-export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, armorTech = 0) {
-  // Simplified combat calculation
-  const weaponsMultiplier = 1 + (weaponsTech * 0.1);
-  const shieldMultiplier = 1 + (shieldingTech * 0.1);
-  const armorMultiplier = 1 + (armorTech * 0.1);
+export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, armorTech = 0, hullBonusTech = 0) {
+  // Simplified combat calculation: data-driven
+  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.2;
+  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.2;
+  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.15;
+  const hullBonus = THEORETICAL_RESEARCH.advancedMaterials.bonuses.unitHullBonus || 0.05;
+
+  const weaponsMultiplier = 1 + (weaponsTech * attackBonus);
+  const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
+  const armorMultiplier = 1 + (armorTech * armorBonus) + (hullBonusTech * hullBonus);
   
   return {
     attack: Math.floor(ships * weaponsMultiplier * 100),

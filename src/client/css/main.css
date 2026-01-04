@@ -1985,10 +1985,41 @@ body {
     color: var(--text-secondary);
 }
 
-.tech-actions {
+.tech-costs {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+    background: var(--bg-tertiary);
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.cost-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tech-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.tech-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tech-card .build-time {
+    font-size: 0.85rem;
+    color: var(--accent-yellow);
+    font-weight: bold;
 }
 
 .queued-badge {

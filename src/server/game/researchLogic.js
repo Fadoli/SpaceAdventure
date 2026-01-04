@@ -8,7 +8,8 @@ import {
   getAvailablePracticalResearch,
   getCustomVariant,
   calculateFocusModifiers,
-  applyCustomization
+  applyCustomization,
+  getResearchBonus
 } from '../../shared/research.js';
 import {
   calculateTheoreticalResearchCost,
@@ -28,6 +29,7 @@ import {
   getBuildTimeMultiplier,
   getStorageCapacityMultiplier,
   getResearchTimeMultiplier,
+  getResearchQueueSize,
   getConfig
 } from '../config.js';
 
@@ -52,7 +54,8 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   }
   
   // Check build queue size
-  // Check build queue size\n  const maxQueueSize = getResearchQueueSize();
+  // Check build queue size
+  const maxQueueSize = getResearchQueueSize();
   if (player.researchQueue && player.researchQueue.length >= maxQueueSize) {
     throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }
@@ -97,8 +100,7 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   }
   
   // Calculate research time (use the level being queued for time calculation)
-  const computerTechLevel = player.research.computerTech || 0;
-  const researchSpeedBonus = computerTechLevel * 0.1; // 10% per level
+  const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
   
   const time = calculateTheoreticalResearchTime(
@@ -236,7 +238,8 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   }
 
   // Check queue size
-  // Check build queue size\n  const maxQueueSize = getResearchQueueSize();
+  // Check build queue size
+  const maxQueueSize = getResearchQueueSize();
   if (player.practicalResearchQueue && player.practicalResearchQueue.length >= maxQueueSize) {
     throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }
@@ -296,9 +299,9 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   // Calculate research time with strength and lab bonus
   const baseTime = calculateBaseTime(practicalResearchConfig);
   const researchLabLevel = planet.buildings.researchLab || 1;
-  const computerTechLevel = player.research.computerTech || 0;
+  const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
-  const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
+  const techMultiplier = 1 / (1 + researchSpeedBonus);
   const configMultiplier = getResearchTimeMultiplier();
   
   const timeMultiplier = 1 + (totalFocusLevel * 0.2);
@@ -385,7 +388,8 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   }
 
   // Check queue size
-  // Check build queue size\n  const maxQueueSize = getResearchQueueSize();
+  // Check build queue size
+  const maxQueueSize = getResearchQueueSize();
   if (player.practicalResearchQueue && player.practicalResearchQueue.length >= maxQueueSize) {
     throw new Error(`Research queue is full (max ${maxQueueSize})`);
   }
@@ -454,14 +458,14 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   // Calculate research time based on research lab level
   // Base time increases with research level
   const researchLabLevel = planet.buildings.researchLab || 1;
-  const computerTechLevel = player.research.computerTech || 0;
+  const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
   
   const time = calculatePracticalResearchTime(
     practicalResearchConfig,
     totalFocusLevel,
     researchLabLevel,
-    computerTechLevel * 0.1,
+    researchSpeedBonus,
     configMultiplier
   );
   

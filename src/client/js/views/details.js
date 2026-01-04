@@ -29,7 +29,7 @@ export function renderDetailsModal(data) {
     modalTitle.innerHTML = data.title;
 
     // Build Content
-    let html = `<div class="details-description">${data.description}</div>`;
+    let html = `<div class="details-description">${data.detailedDescription || data.description}</div>`;
 
     // Render Effects
     if (data.effects) {

@@ -26,6 +26,7 @@ export const BUILDINGS = {
     name: 'Metal Mine',
     icon: '⚙️',
     description: 'Extracts metal from the planet. Each level increases production.',
+    detailedDescription: 'The Metal Mine uses advanced drilling and excavation technology to extract raw ores from the planet\'s crust. As the mine deepens, higher concentrations of metal are found, significantly increasing the yield per hour. Higher levels require more power and population to operate the massive heavy machinery.',
     baseCost: {
       metal: 60,
       crystal: 15,
@@ -44,6 +45,7 @@ export const BUILDINGS = {
     name: 'Crystal Mine',
     icon: '💎',
     description: 'Mines crystal from the planet. Each level increases production.',
+    detailedDescription: 'Crystal is a vital resource used in high-tech electronics and specialized building components. The Crystal Mine utilizes precision laser cutting and sound-wave resonance to harvest these fragile formations without damage. Deeper levels allow for more specialized extraction techniques.',
     baseCost: {
       metal: 50,
       crystal: 25,
@@ -62,6 +64,7 @@ export const BUILDINGS = {
     name: 'Deuterium Synthesizer',
     icon: '🛢️',
     description: 'Synthesizes deuterium from heavy water. Each level increases production.',
+    detailedDescription: 'Deuterium is a rare isotope of hydrogen, essential for fueling advanced fusion reactors and starships. The Synthesizer extracts it from heavy water through a complex electrolysis and centrifugation process. This building is highly energy-intensive but crucial for late-game expansion.',
     baseCost: {
       metal: 200,
       crystal: 65,
@@ -80,6 +83,7 @@ export const BUILDINGS = {
     name: 'Solar Plant',
     icon: '⚡',
     description: 'Provides energy through solar panels. Required to power other buildings.',
+    detailedDescription: 'The primary source of clean energy for any new colony. Solar Plants use vast arrays of high-efficiency photovoltaic cells to convert stellar radiation into electricity. Effectiveness varies depending on the distance from the sun, but it remains the most reliable early-game energy source.',
     baseCost: {
       metal: 80,
       crystal: 35,
@@ -97,6 +101,7 @@ export const BUILDINGS = {
     name: 'Fusion Reactor',
     icon: '⚛️',
     description: 'Advanced energy production through nuclear fusion. Consumes deuterium.',
+    detailedDescription: 'The pinnacle of energy technology. Fusion Reactors simulate the core of a star, fusing deuterium atoms to release massive amounts of energy. While expensive to build and maintain, they provide far more power than solar plants and become more efficient with Energy Technology research.',
     baseCost: {
       metal: 1000,
       crystal: 400,
@@ -117,6 +122,7 @@ export const BUILDINGS = {
     name: 'Robotics Factory',
     icon: '🤖',
     description: 'Produces construction robots that speed up building construction. Each level reduces construction time by 20%.',
+    detailedDescription: 'The Robotics Factory produces and maintains a fleet of automated construction drones. These machines work tirelessly, far exceeding human labor in precision and speed. Each upgrade increases the number and efficiency of drones, significantly reducing the time required for all planetary construction projects.',
     baseCost: {
       metal: 400,
       crystal: 120,
@@ -132,6 +138,7 @@ export const BUILDINGS = {
     name: 'Shipyard',
     icon: '🚀',
     description: 'Constructs ships and defenses for your empire.',
+    detailedDescription: 'The planetary Shipyard is capable of assembling everything from tiny espionage probes to massive battleships. It contains dry-docks and automated assembly lines for rapid hull construction. Higher levels unlock more advanced ship designs and improve overall production speed.',
     baseCost: {
       metal: 400,
       crystal: 200,
@@ -147,6 +154,7 @@ export const BUILDINGS = {
     name: 'Research Lab',
     icon: '🔬',
     description: 'Enables research of new technologies. Higher levels unlock advanced research.',
+    detailedDescription: 'Scientific advancement is the key to dominating the galaxy. The Research Lab provides the facilities and supercomputing power needed to develop new technologies. Upgrading the lab unlocks advanced theoretical research and improves the speed at which scientists can make breakthroughs.',
     baseCost: {
       metal: 200,
       crystal: 400,
@@ -162,6 +170,7 @@ export const BUILDINGS = {
     name: 'Metal Storage',
     icon: '📦',
     description: 'Increases metal storage capacity.',
+    detailedDescription: 'Massive silo complexes designed to store raw metal ores and refined ingots. Without adequate storage, excess production will be lost once local depots are full. Upgrading storage is essential for accumulating the resources needed for expensive high-tier projects.',
     baseCost: {
       metal: 2000,
       crystal: 0,
@@ -178,6 +187,7 @@ export const BUILDINGS = {
     name: 'Crystal Storage',
     icon: '📦',
     description: 'Increases crystal storage capacity.',
+    detailedDescription: 'Climate-controlled environments designed to prevent the degradation of harvested crystals. Essential for maintaining large stockpiles of this high-tech component. Each upgrade increases the capacity by 15,000 units.',
     baseCost: {
       metal: 2000,
       crystal: 1000,
@@ -194,6 +204,7 @@ export const BUILDINGS = {
     name: 'Deuterium Tank',
     icon: '🛢️',
     description: 'Increases deuterium storage capacity.',
+    detailedDescription: 'Pressure-shielded cryogenic tanks for the safe storage of Deuterium fuel. Due to its volatile nature, specialized containment is required to store large quantities. Vital for maintaining a deep-space fleet.',
     baseCost: {
       metal: 2000,
       crystal: 2000,
@@ -210,6 +221,7 @@ export const BUILDINGS = {
     name: 'Nanite Factory',
     icon: '🔧',
     description: 'Produces nanomachines that dramatically speed up construction.',
+    detailedDescription: 'The ultimate construction facility. This building produces billions of microscopic nanites capable of assembling structures atom by atom. The Nanite Factory provides a massive multiplicative boost to construction and production speeds, dwarfing the bonuses of the Robotics Factory.',
     baseCost: {
       metal: 1000000,
       crystal: 500000,
@@ -226,6 +238,7 @@ export const BUILDINGS = {
     name: 'Water Extractor',
     icon: '💦',
     description: 'Extracts water from the planet. More effective on planets farther from the sun.',
+    detailedDescription: 'Water is the biological lifeblood of any colony. The Water Extractor harvests moisture from the atmosphere and deep aquifers. Planets farther from the star tend to have higher moisture levels, making these buildings significantly more productive in outer orbits.',
     baseCost: {
       metal: 50,
       crystal: 25,
@@ -265,6 +278,7 @@ export const BUILDINGS = {
     name: 'Housing',
     icon: '🏘️',
     description: 'Provides housing for population. Each level houses more people.',
+    detailedDescription: 'Residential complexes for your colonists. Population growth is limited by the amount of available housing. High-level housing uses vertical construction and life-support systems to support thousands of workers per level.',
     baseCost: {
       metal: 30,
       crystal: 20,
@@ -280,6 +294,7 @@ export const BUILDINGS = {
     name: 'Water Storage',
     icon: '💦',
     description: 'Increases water storage capacity.',
+    detailedDescription: 'Massive underground reservoirs designed to store millions of liters of purified water. Critical for sustaining population growth during potential extraction shortfalls.',
     baseCost: {
       metal: 2000,
       crystal: 1000,
@@ -298,6 +313,7 @@ export const BUILDINGS = {
     name: 'Food Silo',
     icon: '🍞',
     description: 'Increases food storage capacity.',
+    detailedDescription: 'Automated silos that maintain the freshness of planetary food supplies. Adequate food storage prevents population decay and provides a buffer for rapid expansion.',
     baseCost: {
       metal: 2000,
       crystal: 1000,

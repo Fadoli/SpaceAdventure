@@ -143,6 +143,7 @@ function renderShipsList(planet, shipyardData) {
                             <div>⚔️ Attack: ${ship.attack}</div>
                             <div>🛡️ Shield: ${ship.shield}</div>
                             <div>❤️ Hull: ${ship.hull}</div>
+                            <div>🚀 Speed: ${formatNumber(ship.effectiveSpeed)}</div>
                             ${ship.cargoCapacity > 0 ? `<div>📦 Cargo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
                         </div>
                         <div class="ship-cost">

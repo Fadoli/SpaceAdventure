@@ -328,8 +328,8 @@ describe('Ships - calculateFleetStats Function', () => {
     const statsNoTech = calculateFleetStats(fleet, 0, 0, 0);
     const statsWithTech = calculateFleetStats(fleet, 5, 0, 0);
     
-    // 5 levels = 1 + (5 * 0.1) = 1.5x
-    expect(statsWithTech.attack).toBe(Math.floor(statsNoTech.attack * 1.5));
+    // 5 levels = 1 + (5 * 0.2) = 2.0x
+    expect(statsWithTech.attack).toBe(Math.floor(statsNoTech.attack * 2.0));
   });
 
   it('should apply shield technology multiplier', () => {
@@ -338,8 +338,8 @@ describe('Ships - calculateFleetStats Function', () => {
     const statsNoTech = calculateFleetStats(fleet, 0, 0, 0);
     const statsWithTech = calculateFleetStats(fleet, 0, 3, 0);
     
-    // 3 levels = 1 + (3 * 0.1) = 1.3x
-    expect(statsWithTech.shield).toBe(Math.floor(statsNoTech.shield * 1.3));
+    // 3 levels = 1 + (3 * 0.2) = 1.6x
+    expect(statsWithTech.shield).toBe(Math.floor(statsNoTech.shield * 1.6));
   });
 
   it('should apply armor technology multiplier', () => {
@@ -348,8 +348,8 @@ describe('Ships - calculateFleetStats Function', () => {
     const statsNoTech = calculateFleetStats(fleet, 0, 0, 0);
     const statsWithTech = calculateFleetStats(fleet, 0, 0, 2);
     
-    // 2 levels = 1 + (2 * 0.1) = 1.2x
-    expect(statsWithTech.hull).toBe(Math.floor(statsNoTech.hull * 1.2));
+    // 2 levels = 1 + (2 * 0.15) = 1.3x
+    expect(statsWithTech.hull).toBe(Math.floor(statsNoTech.hull * 1.3));
   });
 
   it('should combine all technologies', () => {

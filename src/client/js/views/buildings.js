@@ -995,6 +995,7 @@ export async function showBuildingDetails(buildingKey) {
     renderDetailsModal({
         title: `${building.icon} ${building.name} <span class="current-level">(Current: Level ${currentLevel})</span>`,
         description: building.description,
+        detailedDescription: building.detailedDescription,
         effects: effects,
         table: {
             headers: headers,

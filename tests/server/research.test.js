@@ -6,6 +6,7 @@ import {
   calculatePracticalResearchTime
 } from '../../src/shared/formulas.js';
 import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH } from '../../src/shared/research.js';
+import { calculateShipSpeed, SHIPS } from '../../src/shared/ships.js';
 
 const energyTech = THEORETICAL_RESEARCH.energyTech; // baseTime 500
 const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 250
@@ -301,3 +302,38 @@ describe('Edge Cases', () => {
     expect(time).toBe(expected);
   });
 });
+
+describe('Ship Drive Speed Calculations', () => {
+  it('should apply combustion drive bonus to light fighters', () => {
+    const baseSpeed = SHIPS.lightFighter.speed;
+    const research = { combustionDrive: 5 }; // 5 * 20% = 100% bonus (2x speed)
+    const effectiveSpeed = calculateShipSpeed('lightFighter', research);
+    
+    expect(effectiveSpeed).toBe(baseSpeed * 2);
+  });
+
+  it('should apply impulse drive bonus to heavy fighters', () => {
+    const baseSpeed = SHIPS.heavyFighter.speed;
+    const research = { impulseDrive: 2 }; // 2 * 30% = 60% bonus (1.6x speed)
+    const effectiveSpeed = calculateShipSpeed('heavyFighter', research);
+    
+    expect(effectiveSpeed).toBe(Math.floor(baseSpeed * 1.6));
+  });
+
+  it('should apply hyperspace drive bonus to battleships', () => {
+    const baseSpeed = SHIPS.battleship.speed;
+    const research = { hyperspaceDrive: 1 }; // 1 * 50% = 50% bonus (1.5x speed)
+    const effectiveSpeed = calculateShipSpeed('battleship', research);
+    
+    expect(effectiveSpeed).toBe(Math.floor(baseSpeed * 1.5));
+  });
+
+  it('should not apply wrong drive bonus to ships', () => {
+    const baseSpeed = SHIPS.lightFighter.speed;
+    const research = { impulseDrive: 10, hyperspaceDrive: 10 };
+    const effectiveSpeed = calculateShipSpeed('lightFighter', research);
+    
+    expect(effectiveSpeed).toBe(baseSpeed);
+  });
+});
+

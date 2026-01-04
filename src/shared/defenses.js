@@ -2,6 +2,7 @@
 
 import { BUILDING_SPEED_MULTIPLIER, CONFIG } from './constants.js';
 import { calculateBaseTime } from './time.js';
+import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
 
 export const DEFENSES = {
   rocketLauncher: {
@@ -127,21 +128,22 @@ export function getDefense(defenseKey) {
 /**
  * Calculate defense build cost based on quantity
  */
-export function calculateDefenseCost(defenseKey, quantity = 1) {
+export function calculateDefenseCost(defenseKey, quantity = 1, costReductionBonus = 0) {
   const defense = getDefense(defenseKey);
   if (!defense) return null;
 
+  const reduction = 1 - costReductionBonus;
   return {
-    metal: Math.floor(defense.baseCost.metal * quantity),
-    crystal: Math.floor(defense.baseCost.crystal * quantity),
-    deuterium: Math.floor(defense.baseCost.deuterium * quantity)
+    metal: Math.floor(defense.baseCost.metal * quantity * reduction),
+    crystal: Math.floor(defense.baseCost.crystal * quantity * reduction),
+    deuterium: Math.floor(defense.baseCost.deuterium * quantity * reduction)
   };
 }
 
 /**
  * Calculate build time for defenses
  */
-export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLevel = 1, roboticsLevel = 0, naniteLevel = 0) {
+export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLevel = 1, roboticsLevel = 0, naniteLevel = 0, timeReductionBonus = 0) {
   const defense = getDefense(defenseKey);
   if (!defense) return 0;
 
@@ -162,7 +164,8 @@ export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLeve
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
 
-  const totalTime = (timeInSeconds * shipyardMultiplier * roboticsMultiplier) / naniteMultiplier;
+  const reduction = 1 - timeReductionBonus;
+  const totalTime = (timeInSeconds * shipyardMultiplier * roboticsMultiplier * reduction) / naniteMultiplier;
 
   return Math.max(1, Math.floor(totalTime));
 }
@@ -170,10 +173,20 @@ export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLeve
 /**
  * Calculate total defense stats
  */
-export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech = 0, armorTech = 0) {
+export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech = 0, armorTech = 0, hullBonusTech = 0) {
   let totalAttack = 0;
   let totalShield = 0;
   let totalHull = 0;
+
+  // Tech multipliers: data-driven
+  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.2;
+  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.2;
+  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.15;
+  const hullBonus = THEORETICAL_RESEARCH.advancedMaterials.bonuses.unitHullBonus || 0.05;
+
+  const attackMultiplier = 1 + (weaponsTech * attackBonus);
+  const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
+  const armorMultiplier = 1 + (armorTech * armorBonus) + (hullBonusTech * hullBonus);
 
   for (const defenseKey in defenses) {
     const count = defenses[defenseKey];
@@ -181,11 +194,6 @@ export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech =
 
     const defense = getDefense(defenseKey);
     if (!defense) continue;
-
-    // Tech multipliers
-    const attackMultiplier = 1 + (weaponsTech * 0.1);
-    const shieldMultiplier = 1 + (shieldingTech * 0.1);
-    const armorMultiplier = 1 + (armorTech * 0.1);
 
     totalAttack += defense.attack * count * attackMultiplier;
     totalShield += defense.shield * count * shieldMultiplier;

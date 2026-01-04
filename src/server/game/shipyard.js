@@ -1,19 +1,24 @@
 // Shipyard production system
 
-import { getShip, calculateShipCost, calculateShipBuildTime } from '../../shared/ships.js';
+import { getShip, calculateShipCost, calculateShipBuildTime, calculateShipSpeed, SHIPS } from '../../shared/ships.js';
 import { getDefense, calculateDefenseCost, calculateDefenseBuildTime } from '../../shared/defenses.js';
+import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
 
 /**
  * Add ships to build queue
  */
-export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, naniteLevel = 0) {
+export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel = 0, naniteLevel = 0) {
   if (!planet.shipQueue) {
     planet.shipQueue = [];
   }
 
   let totalCost = { metal: 0, crystal: 0, deuterium: 0 };
   let totalBuildTime = 0;
+
+  // Research bonuses
+  const costReductionBonus = getResearchBonus(player?.research, 'globalCostReduction');
+  const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
 
   // Validate and calculate costs
   for (const shipKey in ships) {
@@ -25,12 +30,12 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
       throw new Error(`Unknown ship: ${shipKey}`);
     }
 
-    const cost = calculateShipCost(shipKey, quantity);
+    const cost = calculateShipCost(shipKey, quantity, costReductionBonus);
     totalCost.metal += cost.metal;
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const buildTime = calculateShipBuildTime(shipKey, quantity, shipyardLevel, roboticsLevel, naniteLevel);
+    const buildTime = calculateShipBuildTime(shipKey, quantity, shipyardLevel, roboticsLevel, naniteLevel, timeReductionBonus);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }
 
@@ -74,13 +79,17 @@ export function buildShips(planet, ships, shipyardLevel, roboticsLevel = 0, nani
 /**
  * Add defenses to build queue
  */
-export function buildDefenses(planet, defenses, shipyardLevel = 0, roboticsLevel = 0, naniteLevel = 0) {
+export function buildDefenses(planet, player, defenses, shipyardLevel = 0, roboticsLevel = 0, naniteLevel = 0) {
   if (!planet.defenseQueue) {
     planet.defenseQueue = [];
   }
 
   let totalCost = { metal: 0, crystal: 0, deuterium: 0 };
   let totalBuildTime = 0;
+
+  // Research bonuses
+  const costReductionBonus = getResearchBonus(player?.research, 'globalCostReduction');
+  const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
 
   // Validate and calculate costs
   for (const defenseKey in defenses) {
@@ -92,12 +101,12 @@ export function buildDefenses(planet, defenses, shipyardLevel = 0, roboticsLevel
       throw new Error(`Unknown defense: ${defenseKey}`);
     }
 
-    const cost = calculateDefenseCost(defenseKey, quantity);
+    const cost = calculateDefenseCost(defenseKey, quantity, costReductionBonus);
     totalCost.metal += cost.metal;
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, roboticsLevel, naniteLevel);
+    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, roboticsLevel, naniteLevel, timeReductionBonus);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }
 
@@ -254,7 +263,7 @@ export function processCompletedProduction(planet) {
 /**
  * Get shipyard details for a planet
  */
-export function getShipyardDetails(planet) {
+export function getShipyardDetails(planet, player = null) {
   if (!planet.shipQueue) {
     planet.shipQueue = [];
   }
@@ -272,10 +281,19 @@ export function getShipyardDetails(planet) {
   const roboticsLevel = planet.buildings?.roboticsFactory || 0;
   const naniteLevel = planet.buildings?.naniteFactory || 0;
 
+  // Calculate effective speeds if player is provided
+  const effectiveSpeeds = {};
+  if (player) {
+    for (const shipKey in SHIPS) {
+      effectiveSpeeds[shipKey] = calculateShipSpeed(shipKey, player.research);
+    }
+  }
+
   return {
     shipyardLevel,
     ships: planet.ships,
     defenses: planet.defenses,
+    effectiveSpeeds,
     shipQueue: planet.shipQueue.map(item => ({
       ...item,
       ships: item.ships || {},

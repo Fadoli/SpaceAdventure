@@ -3,6 +3,16 @@ import {
   BUILDINGS,
   checkRequirements
 } from '../../shared/buildings.js';
+import { 
+  getTheoreticalResearch,
+  getPracticalResearch,
+  canResearchTheoretical,
+  getAvailablePracticalResearch,
+  getCustomVariant,
+  calculateFocusModifiers,
+  applyCustomization,
+  getResearchBonus
+} from '../../shared/research.js';
 import {
   getBuildingEnergyConsumption,
   getBuildingPopulationRequired,
@@ -42,10 +52,14 @@ export function getBuildingCost(buildingType, level, planet = null, player = nul
   const multiplier = Math.pow(SCALING.BUILDING_COST, level);
   const costMultiplier = getResourceCostMultiplier();
   
+  // Apply research bonus: data-driven globalCostReduction
+  const costReductionBonus = getResearchBonus(player?.research, 'globalCostReduction');
+  const reduction = 1 - costReductionBonus;
+  
   return {
-    metal: Math.floor(building.baseCost.metal * multiplier * costMultiplier),
-    crystal: Math.floor(building.baseCost.crystal * multiplier * costMultiplier),
-    deuterium: Math.floor(building.baseCost.deuterium * multiplier * costMultiplier)
+    metal: Math.floor(building.baseCost.metal * multiplier * costMultiplier * reduction),
+    crystal: Math.floor(building.baseCost.crystal * multiplier * costMultiplier * reduction),
+    deuterium: Math.floor(building.baseCost.deuterium * multiplier * costMultiplier * reduction)
   };
 }
 
@@ -67,7 +81,11 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   // Apply config build time multiplier
   const configMultiplier = getBuildTimeMultiplier();
   
-  const totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier;
+  // Apply research bonus: data-driven globalTimeReduction
+  const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
+  const reduction = 1 - timeReductionBonus;
+  
+  const totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier * reduction;
   
   return Math.max(1, Math.floor(totalTime)); // Minimum 1 second
 }
@@ -346,9 +364,9 @@ export async function processCompletedBuildings(player) {
 function calculateTotalEnergyProduction(planet, player = null) {
   let totalEnergy = 0;
   
-  // Get energy tech bonus
-  const energyTechLevel = player?.research?.energyTech || 0;
-  const energyTechBonus = 1 + (energyTechLevel * 0.1); // 10% per level
+  // Get energy tech bonus: data-driven buildingEnergyProduction
+  const energyProductionBonus = getResearchBonus(player?.research, 'buildingEnergyProduction');
+  const bonus = 1 + energyProductionBonus;
   
   for (const buildingType in planet.buildings) {
     const level = planet.buildings[buildingType];
@@ -363,7 +381,7 @@ function calculateTotalEnergyProduction(planet, player = null) {
     if (production.energy) {
       // For energy producers, apply population effectiveness only (they don't consume power)
       const populationEff = Math.sqrt(allocation.population); // Simplified effectiveness
-      totalEnergy += production.energy * populationEff * energyTechBonus;
+      totalEnergy += production.energy * populationEff * bonus;
     }
   }
   
@@ -526,9 +544,9 @@ export function updatePlanetProduction(planet, player = null) {
   let totalWaterConsumption = 0;
   let totalPopulationRequired = 0;
   
-  // Energy efficiency from research
-  const energyTechLevel = player?.research?.energyTech || 0;
-  const energyEfficiencyBonus = 1 - (energyTechLevel * 0.01); // 1% reduction per level
+  // Energy efficiency from research: data-driven buildingEnergyEfficiency
+  const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+  const reduction = 1 - energyEfficiencyBonus;
   
   // Calculate production from all buildings
   for (const buildingType in planet.buildings) {
@@ -575,7 +593,7 @@ export function updatePlanetProduction(planet, player = null) {
       let baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
       
       // Apply research efficiency bonus (never reduce below 50% of base consumption)
-      baseConsumption = Math.floor(baseConsumption * Math.max(0.5, energyEfficiencyBonus));
+      baseConsumption = Math.floor(baseConsumption * Math.max(0.5, reduction));
       
       // Energy consumption scales with ACTUAL power allocation
       totalEnergyConsumption += Math.floor(baseConsumption * actualAllocation.power);
@@ -583,8 +601,9 @@ export function updatePlanetProduction(planet, player = null) {
     
     // Calculate water consumption (for farms)
     if (building.waterConsumption) {
+      // Water efficiency: data-driven (re-using reduction for simplicity or adding specific one)
       const baseWaterConsumption = Math.floor(building.waterConsumption * level * Math.pow(SCALING.BUILDING_PRODUCTION, level));
-      totalWaterConsumption += Math.floor(baseWaterConsumption * totalEffectiveness);
+      totalWaterConsumption += Math.floor(baseWaterConsumption * totalEffectiveness * Math.max(0.5, reduction));
     }
     
     // Calculate population requirements using ACTUAL allocation

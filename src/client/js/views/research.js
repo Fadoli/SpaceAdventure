@@ -1,5 +1,5 @@
 // Research view - theoretical and practical research management
-import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES } from '../../../shared/research.js';
+import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus } from '../../../shared/research.js';
 import { formatNumber } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -237,13 +237,28 @@ function renderTheoreticalResearch() {
       <h3>${category}</h3>
       <div class="tech-list">`;
 
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+    const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+
     for (const tech of techs) {
-      const level = playerTech[tech.key] || 0;
+      const techData = playerTech[tech.key];
+      const level = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
       const queuedItems = queue.filter(q => q.techKey === tech.key);
       const isQueued = queuedItems.length > 0;
       const queuedCount = queuedItems.length;
       const nextLevelToQueue = level + 1 + queuedCount;
       const isQueueFull = queue.length >= maxQueue;
+
+      // Calculate time and cost for next level to show on card
+      const nextLevelTime = calculateTheoreticalResearchTime(
+        tech,
+        nextLevelToQueue - 1,
+        researchLabLevel,
+        researchSpeedBonus,
+        configMultiplier
+      );
+      const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
 
       html += `
         <div class="tech-card ${isQueued ? 'queued' : ''}">
@@ -255,12 +270,21 @@ function renderTheoreticalResearch() {
             </div>
             <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="View detailed information">ℹ️</button>
           </div>
+          
+          <div class="tech-costs">
+            <div class="cost-item" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
+            <div class="cost-item" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
+            ${nextLevelCost.deuterium > 0 ? `<div class="cost-item" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
+          </div>
 
-          <div class="tech-actions">
-            ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
-            <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')" ${isQueueFull ? 'disabled' : ''} title="${isQueueFull ? 'Research queue is full' : ''}">
-              Level ${nextLevelToQueue}
-            </button>
+          <div class="tech-footer">
+            <span class="build-time">🕐 ${formatTime(nextLevelTime * 1000)}</span>
+            <div class="tech-actions">
+              ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
+              <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')" ${isQueueFull ? 'disabled' : ''} title="${isQueueFull ? 'Research queue is full' : ''}">
+                Research
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -661,10 +685,10 @@ window.updateAllocationSliders = function() {
     
     // Include lab and tech bonuses to match server logic
     const playerTech = researchData?.theoretical || {};
-    const computerTechLevel = playerTech.computerTech || 0;
     const researchLabLevel = currentPlanetBuildings?.researchLab || 1;
     const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
-    const techMultiplier = 1 / (1 + (computerTechLevel * 0.1));
+    const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
+    const techMultiplier = 1 / (1 + researchSpeedBonus);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
     
     let estimatedTime = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier * configMultiplier);
@@ -933,7 +957,8 @@ window.showResearchDetails = function(techKey) {
   const theoryResearch = getTheoreticalResearch();
   const tech = theoryResearch[techKey];
   const playerTech = researchData?.theoretical || {};
-  const currentLevel = playerTech[techKey] || 0;
+  const techData = playerTech[techKey];
+  const currentLevel = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
   
   if (!tech) return;
   
@@ -973,9 +998,8 @@ window.showResearchDetails = function(techKey) {
   const headers = ['Level', '⚙️ Metal', '💎 Crystal', '🛢️ Deuterium', '⏱️ Time'];
   const rows = [];
   
-  const computerTechLevel = playerTech.computerTech || 0;
   const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
-  const researchSpeedBonus = computerTechLevel * 0.1;
+  const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
   const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
 
   for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 30); level++) {
@@ -1001,6 +1025,7 @@ window.showResearchDetails = function(techKey) {
   renderDetailsModal({
     title: `${tech.icon} ${tech.name} <span class="current-level">(Current: Level ${currentLevel})</span>`,
     description: tech.description,
+    detailedDescription: tech.detailedDescription,
     effects: effectsHtml,
     table: {
       headers: headers,

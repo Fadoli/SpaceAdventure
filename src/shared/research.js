@@ -8,6 +8,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Energy',
     icon: '⚡',
     description: 'Improves energy production and efficiency across all buildings.',
+    detailedDescription: 'Energy Technology is the cornerstone of all advanced planetary infrastructure. It covers the mastery of high-density power generation, superconducting transmission, and localized grid optimization. As scientists delve deeper into quantum energetics and zero-point fluctuations, they unlock the ability to construct Fusion Reactors, which harness the power of artificial suns. Higher levels of this research not only unlock new energy structures but also improve the efficiency of existing ones, making it easier to power a rapidly growing colony without constant blackouts.',
     baseCost: {
       metal: 200,
       crystal: 100,
@@ -15,8 +16,8 @@ export const THEORETICAL_RESEARCH = {
     },
     unlocks: ['fusionReactor', 'energyTech'],
     bonuses: {
-      energyProduction: 0.1, // 10% per level
-      energyEfficiency: 0.01 // 1% per level
+      buildingEnergyProduction: 0.1, // 10% per level
+      buildingEnergyEfficiency: 0.01 // 1% per level
     }
   },
 
@@ -25,6 +26,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Computing',
     icon: '💻',
     description: 'Accelerates research and improves fleet efficiency.',
+    detailedDescription: 'From localized AI sub-routines to massive planet-wide neural networks, Computer Technology governs the processing power available to your empire. Advanced computing allows for more efficient management of complex research simulations and the coordination of vast robotic workforces. Strategically, this is one of the most critical technologies to advance early, as its "research speed" bonus applies to every other technological field. It is also a fundamental requirement for advanced defensive systems and the sophisticated navigation computers required for deep-space combat vessels.',
     baseCost: {
       metal: 400,
       crystal: 600,
@@ -32,8 +34,8 @@ export const THEORETICAL_RESEARCH = {
     },
     unlocks: ['researchLab', 'weaponsTech', 'shieldingTech'],
     bonuses: {
-      researchSpeed: 0.1, // 10% per level
-      computerScience: 0.05
+      globalResearchSpeed: 0.1, // 10% per level
+      globalFleetCommand: 0.05
     }
   },
 
@@ -42,6 +44,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '⚔️',
     description: 'Increases attack power of all units.',
+    detailedDescription: 'In a galaxy full of potential threats, superior firepower is the ultimate deterrent. Weapons Technology encompasses research into high-energy laser focal points, railgun acceleration, and focused antimatter warheads. By refining the destructive potential of your fleet\'s primary armaments, this technology increases the damage output of every ship and planetary defense turret in your arsenal. Commanders who neglect Weapons Tech often find their fleets outmatched by smaller, more specialized forces that hit harder and more precisely.',
     baseCost: {
       metal: 800,
       crystal: 200,
@@ -50,7 +53,7 @@ export const THEORETICAL_RESEARCH = {
     prerequisites: ['computerTech'],
     unlocks: ['heavyFighter', 'cruiser', 'battleship'],
     bonuses: {
-      attackPower: 0.2 // 20% per level
+      unitAttackPower: 0.2 // 20% per level
     }
   },
 
@@ -59,6 +62,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '🛡️',
     description: 'Improves shield strength and defense.',
+    detailedDescription: 'Shielding Technology focuses on the generation and stabilization of high-frequency gravitic and electromagnetic barriers. These shields are designed to absorb and redistribute the energy from incoming attacks, protecting the underlying hull from damage. As this research progresses, shield generators become more resilient and faster to cycle, significantly increasing the survivability of your ships. High levels of shielding are also required to construct the massive planetary shield domes that can withstand prolonged orbital bombardments.',
     baseCost: {
       metal: 200,
       crystal: 600,
@@ -67,7 +71,7 @@ export const THEORETICAL_RESEARCH = {
     prerequisites: ['computerTech'],
     unlocks: ['defenses'],
     bonuses: {
-      shieldStrength: 0.2 // 20% per level
+      unitShieldStrength: 0.2 // 20% per level
     }
   },
 
@@ -76,6 +80,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '🔒',
     description: 'Strengthens hull armor of ships.',
+    detailedDescription: 'When shields fail, only the cold, hard metal of the hull stands between your crew and the vacuum of space. Armor Technology focuses on the development of multi-layered composite alloys and structural reinforcement techniques that can withstand extreme heat and kinetic impacts. This research directly increases the maximum hull integrity of all units, allowing them to remain in the fight long after their counterparts would have been reduced to space dust. It is essential for the construction of massive Battleships and heavily armored planetary bunkers.',
     baseCost: {
       metal: 1000,
       crystal: 0,
@@ -83,7 +88,7 @@ export const THEORETICAL_RESEARCH = {
     },
     unlocks: ['battleship'],
     bonuses: {
-      hullStrength: 0.15 // 15% per level
+      unitHullStrength: 0.15 // 15% per level
     }
   },
 
@@ -92,6 +97,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Propulsion',
     icon: '🚀',
     description: 'Enables basic spaceship travel.',
+    detailedDescription: 'The fundamental propulsion system for any interstellar civilization. Combustion Drives utilize high-efficiency chemical reactions to generate the massive thrust needed to exit a planet\'s gravity well and travel between nearby celestial bodies. While lacking the sheer speed of advanced fusion or hyperspace drives, the Combustion Drive is reliable, cost-effective, and forms the backbone of early transport and trade fleets. Mastering this tech is the first step toward exploring the stars and establishing your first colonies.',
     baseCost: {
       metal: 400,
       crystal: 150,
@@ -99,7 +105,7 @@ export const THEORETICAL_RESEARCH = {
     },
     unlocks: ['smallCargo', 'largeCargo'],
     bonuses: {
-      shipSpeed: 0.2 // 20% per level
+      shipCombustionSpeed: 0.2 // 20% per level
     }
   },
 
@@ -108,6 +114,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Propulsion',
     icon: '🌠',
     description: 'Faster interplanetary travel.',
+    detailedDescription: 'Impulse Drives represent a significant leap over basic chemical rockets. By utilizing localized fusion reactions to accelerate plasma to relativistic speeds, these drives provide a massive increase in sub-light velocity and maneuverability. Ships equipped with Impulse Drives can cross entire solar systems in a fraction of the time required by combustion-based vessels. This technology is vital for rapid response fleets and is a prerequisite for the construction of agile Light Fighters and more capable combat vessels.',
     baseCost: {
       metal: 2000,
       crystal: 4000,
@@ -116,7 +123,7 @@ export const THEORETICAL_RESEARCH = {
     prerequisites: ['combustionDrive'],
     unlocks: ['lightFighter', 'heavyFighter'],
     bonuses: {
-      shipSpeed: 0.3 // 30% per level
+      shipImpulseSpeed: 0.3 // 30% per level
     }
   },
 
@@ -125,6 +132,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Propulsion',
     icon: '🌌',
     description: 'Enables intergalactic travel.',
+    detailedDescription: 'The pinnacle of propulsion technology. Hyperspace Drives function by creating a localized tear in the fabric of space-time, allowing a ship to enter a "sub-space" dimension where the speed of light is not a barrier. This allows for near-instantaneous travel across vast distances that would otherwise take centuries to cross. The Hyperspace Drive is the lifeblood of a sprawling intergalactic empire, enabling the rapid deployment of massive battle-fleets and the efficient coordination of far-flung colonies. It is required for the construction of the most powerful capital ships.',
     baseCost: {
       metal: 10000,
       crystal: 20000,
@@ -133,7 +141,7 @@ export const THEORETICAL_RESEARCH = {
     prerequisites: ['impulseDrive', 'computerTech'],
     unlocks: ['cruiser', 'battleship'],
     bonuses: {
-      shipSpeed: 0.5 // 50% per level
+      shipHyperSpeed: 0.5 // 50% per level
     }
   },
 
@@ -142,6 +150,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Espionage',
     icon: '🕵️',
     description: 'Enables espionage missions and improves intelligence gathering.',
+    detailedDescription: 'In the dark reaches of space, information is often more valuable than gold. Espionage Technology focuses on the development of ultra-sensitive long-range scanners, advanced encryption algorithms, and stealth-coatings for probes. Advancing this tech allows your empire to gain detailed insights into enemy planet infrastructure and fleet movements while simultaneously making your own systems much harder to penetrate. High-level espionage is essential for planning successful attacks and avoiding costly ambushes.',
     baseCost: {
       metal: 1000,
       crystal: 1000,
@@ -150,7 +159,7 @@ export const THEORETICAL_RESEARCH = {
     prerequisites: ['computerTech'],
     unlocks: ['espionageProbe'],
     bonuses: {
-      espionageAbility: 0.1 // 10% per level
+      unitEspionageAbility: 0.1 // 10% per level
     }
   },
 
@@ -159,6 +168,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Science',
     icon: '🔭',
     description: 'Unlocks additional galaxy slots and colony expansion.',
+    detailedDescription: 'The study of the cosmos and the formation of star systems. Advanced knowledge of Astrophysics is required to identify and exploit habitable worlds across the galaxy. This research directly determines the maximum number of planets your empire can colonize and manage effectively. It also covers the logistical challenges of maintaining distant outposts, ensuring your colonists have the life-support and communications systems needed to survive in the most remote corners of the universe. Every level expands your reach and your influence.',
     baseCost: {
       metal: 4000,
       crystal: 8000,
@@ -167,8 +177,59 @@ export const THEORETICAL_RESEARCH = {
     prerequisites: ['computerTech'],
     unlocks: ['colonyShip'],
     bonuses: {
-      galaxySlots: 1, // Adds 1 galaxy slot per level
-      colonistCapacity: 0.2 // 20% more colonists per level
+      playerGalaxySlots: 1, // Adds 1 galaxy slot per level
+      unitColonistCapacity: 0.2 // 20% more colonists per level
+    }
+  },
+
+  resourceEfficiency: {
+    name: 'Resource Efficiency',
+    category: 'Engineering',
+    icon: '♻️',
+    description: 'Reduces the construction cost of buildings, defenses, and ships.',
+    detailedDescription: 'Resource Efficiency focus on minimizing waste and optimizing the use of raw materials during construction. By implementing advanced recycling protocols and structural optimization algorithms, your engineers can build larger structures and more complex vessels with fewer resources. Each level reduces the Metal, Crystal, and Deuterium cost of all buildings, ships, and defenses by 0.5%.',
+    baseCost: {
+      metal: 2000,
+      crystal: 4000,
+      deuterium: 1000
+    },
+    prerequisites: ['energyTech'],
+    bonuses: {
+      globalCostReduction: 0.005 // 0.5% per level
+    }
+  },
+
+  modularConstruction: {
+    name: 'Modular Construction',
+    category: 'Engineering',
+    icon: '🏗️',
+    description: 'Reduces the construction time of all structures and units.',
+    detailedDescription: 'Modular Construction utilizes standardized structural components and pre-fabricated modules to streamline the assembly process. Instead of building from scratch, your robotics and shipyard crews can simply snap together tested and verified sections. Each level of this research reduces the base time required to build buildings, ships, and defenses by 1%.',
+    baseCost: {
+      metal: 5000,
+      crystal: 2000,
+      deuterium: 500
+    },
+    prerequisites: ['computerTech', 'energyTech'],
+    bonuses: {
+      globalTimeReduction: 0.01 // 1% per level
+    }
+  },
+
+  advancedMaterials: {
+    name: 'Advanced Materials',
+    category: 'Military',
+    icon: '💎',
+    description: 'Increases the hull integrity of all ships and defenses.',
+    detailedDescription: 'Research into carbon-nanotube weaving and self-healing polymers allows for the creation of incredibly resilient hulls. Advanced Materials go beyond simple armor plating, reinforcing the very skeleton of your vessels and defensive structures. Each level of this research increases the base hull strength (HP) of all ships and planetary defenses by 5%.',
+    baseCost: {
+      metal: 1000,
+      crystal: 5000,
+      deuterium: 2500
+    },
+    prerequisites: ['armorTech'],
+    bonuses: {
+      unitHullBonus: 0.05 // 5% per level
     }
   }
 };
@@ -352,6 +413,28 @@ export const PRACTICAL_RESEARCH = {
     }
   }
 };
+
+/**
+ * Calculate total bonus from all researched technologies for a given bonus type
+ * @param {Object} playerResearch - Player's research levels { techKey: level }
+ * @param {string} bonusKey - The bonus type to sum (e.g., 'costReduction', 'timeReduction')
+ */
+export function getResearchBonus(playerResearch, bonusKey) {
+  if (!playerResearch) return 0;
+  
+  let totalBonus = 0;
+  for (const techKey in playerResearch) {
+    const techLevel = playerResearch[techKey];
+    // Handle both old structure (number) and new structure (object with level)
+    const level = typeof techLevel === 'object' ? (techLevel.level ?? 0) : (techLevel ?? 0);
+    
+    const tech = THEORETICAL_RESEARCH[techKey];
+    if (tech && tech.bonuses && tech.bonuses[bonusKey]) {
+      totalBonus += level * tech.bonuses[bonusKey];
+    }
+  }
+  return totalBonus;
+}
 
 /**
  * Get all theoretical research techs

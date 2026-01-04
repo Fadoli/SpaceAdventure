@@ -29,7 +29,8 @@ import {
 } from './game/researchLogic.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
-import { SHIPS } from '../shared/ships.js';
+import { getTheoreticalResearch, getResearchBonus } from '../shared/research.js';
+import { SHIPS, calculateShipSpeed } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
 import { calculateBaseTime } from '../shared/time.js';
 import { SCALING } from '../shared/constants.js';
@@ -653,18 +654,21 @@ async function handleRequest(req) {
         let energyConsumption = 0;
         if (buildingDef.energyConsumption) {
           const productionMultiplier = 10.0; // From config
-          // Energy efficiency from research
-          const energyTechLevel = player?.research?.energyTech || 0;
-          const energyEfficiencyBonus = 1 - (energyTechLevel * 0.01); // 1% reduction per level
+          // Energy efficiency from research: data-driven
+          const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+          const reduction = 1 - energyEfficiencyBonus;
           
-          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(SCALING.BUILDING_ENERGY, nextLevel) * productionMultiplier * Math.max(0.5, energyEfficiencyBonus));
+          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(SCALING.BUILDING_ENERGY, nextLevel) * productionMultiplier * Math.max(0.5, reduction));
         }
         
         // Calculate deuterium consumption for next level
         let deuteriumConsumption = 0;
         if (buildingDef.deuteriumConsumption) {
           const productionMultiplier = 10.0; // From config
-          deuteriumConsumption = Math.floor(buildingDef.deuteriumConsumption * nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, nextLevel) * productionMultiplier);
+          // Apply same energy efficiency bonus if it's a deuterium consumer (flavor choice)
+          const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+          const reduction = 1 - energyEfficiencyBonus;
+          deuteriumConsumption = Math.floor(buildingDef.deuteriumConsumption * nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, nextLevel) * productionMultiplier * Math.max(0.5, reduction));
         }
         
         // Check if can afford
@@ -683,6 +687,7 @@ async function handleRequest(req) {
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
           description: buildingDef.description,
+          detailedDescription: buildingDef.detailedDescription,
           icon: buildingDef.icon,
           currentLevel,
           nextLevel,
@@ -781,7 +786,7 @@ async function handleRequest(req) {
       // Process any completed production
       processCompletedProduction(planet);
       
-      const shipyardDetails = getShipyardDetails(planet);
+      const shipyardDetails = getShipyardDetails(planet, player);
       
       // Add available ships and defenses to the response
       const ships = {};
@@ -793,13 +798,15 @@ async function handleRequest(req) {
           name: ship.name,
           icon: ship.icon,
           type: ship.type,
+          driveType: ship.driveType,
           description: ship.description,
           attack: ship.attack,
           shield: ship.shield,
           hull: ship.hull,
           cargoCapacity: ship.cargoCapacity,
           baseCost: ship.baseCost,
-          baseTime: calculateBaseTime(ship)
+          baseTime: calculateBaseTime(ship),
+          effectiveSpeed: calculateShipSpeed(shipKey, player.research)
         };
       }
       
@@ -850,7 +857,7 @@ async function handleRequest(req) {
         const roboticsLevel = planet.buildings?.roboticsFactory || 0;
         const naniteLevel = planet.buildings?.naniteFactory || 0;
         
-        const result = buildShips(planet, ships, shipyardLevel, roboticsLevel, naniteLevel);
+        const result = buildShips(planet, player, ships, shipyardLevel, roboticsLevel, naniteLevel);
         
         // Save player
         await updatePlayer(user.id, player);
@@ -887,7 +894,7 @@ async function handleRequest(req) {
         const roboticsLevel = planet.buildings?.roboticsFactory || 0;
         const naniteLevel = planet.buildings?.naniteFactory || 0;
         
-        const result = buildDefenses(planet, defenses, shipyardLevel, roboticsLevel, naniteLevel);
+        const result = buildDefenses(planet, player, defenses, shipyardLevel, roboticsLevel, naniteLevel);
         
         // Save player
         await updatePlayer(user.id, player);
@@ -1023,8 +1030,18 @@ async function handleRequest(req) {
 
       try {
         const progress = getResearchProgress(player);
-        const theoretical = getTheoreticalResearchLevels(player);
+        const theoreticalLevels = getTheoreticalResearchLevels(player);
         const practical = getPracticalResearchProgress(player);
+
+        // Include metadata from shared research definitions
+        const theoreticalMetadata = getTheoreticalResearch();
+        const theoretical = {};
+        for (const key in theoreticalMetadata) {
+          theoretical[key] = {
+            level: theoreticalLevels[key] || 0,
+            detailedDescription: theoreticalMetadata[key].detailedDescription
+          };
+        }
 
         return successResponse(req, {
           progress,

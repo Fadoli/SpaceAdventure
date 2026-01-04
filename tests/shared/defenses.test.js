@@ -285,8 +285,8 @@ describe('Defenses - calculateDefenseStats Function', () => {
     const statsNoTech = calculateDefenseStats(defenses, 0, 0, 0);
     const statsWithTech = calculateDefenseStats(defenses, 5, 0, 0);
     
-    // 5 levels = 1 + (5 * 0.1) = 1.5x
-    expect(statsWithTech.attack).toBe(Math.floor(statsNoTech.attack * 1.5));
+    // 5 levels = 1 + (5 * 0.2) = 2.0x
+    expect(statsWithTech.attack).toBe(Math.floor(statsNoTech.attack * 2.0));
   });
 
   it('should apply shielding technology multiplier', () => {
@@ -295,8 +295,8 @@ describe('Defenses - calculateDefenseStats Function', () => {
     const statsNoTech = calculateDefenseStats(defenses, 0, 0, 0);
     const statsWithTech = calculateDefenseStats(defenses, 0, 3, 0);
     
-    // 3 levels = 1 + (3 * 0.1) = 1.3x
-    expect(statsWithTech.shield).toBe(Math.floor(statsNoTech.shield * 1.3));
+    // 3 levels = 1 + (3 * 0.2) = 1.6x
+    expect(statsWithTech.shield).toBe(Math.floor(statsNoTech.shield * 1.6));
   });
 
   it('should apply armor technology multiplier', () => {
@@ -305,8 +305,8 @@ describe('Defenses - calculateDefenseStats Function', () => {
     const statsNoTech = calculateDefenseStats(defenses, 0, 0, 0);
     const statsWithTech = calculateDefenseStats(defenses, 0, 0, 4);
     
-    // 4 levels = 1 + (4 * 0.1) = 1.4x
-    expect(statsWithTech.hull).toBe(Math.floor(statsNoTech.hull * 1.4));
+    // 4 levels = 1 + (4 * 0.15) = 1.6x
+    expect(statsWithTech.hull).toBe(Math.floor(statsNoTech.hull * 1.6));
   });
 
   it('should combine all technologies', () => {
