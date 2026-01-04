@@ -206,8 +206,14 @@ function renderOGameEmptyRow(position) {
 // Mission trigger functions
 window.spyOnPlanetFromGalaxy = async function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
-    const confirmed = await showConfirm('Send Espionage Probe', `Send 1 espionage probe to ${coords.join(':')}?`);
-    if (!confirmed) return;
+    const probeCountStr = await showPrompt('Send Espionage Probes', `How many probes to send to ${coords.join(':')}?`, '1');
+    if (probeCountStr === null) return;
+    
+    const probeCount = parseInt(probeCountStr);
+    if (isNaN(probeCount) || probeCount <= 0) {
+        alert('Invalid probe count');
+        return;
+    }
 
     try {
         const response = await fetch('/api/game/galaxy/mission', {
@@ -216,7 +222,7 @@ window.spyOnPlanetFromGalaxy = async function(position) {
             body: JSON.stringify({
                 missionType: 'espionage',
                 targetCoords: coords,
-                ships: { espionageProbe: 1 }
+                ships: { espionageProbe: probeCount }
             })
         });
 
