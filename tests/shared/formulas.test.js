@@ -477,17 +477,20 @@ describe('calculatePracticalResearchCost', () => {
 
 describe('calculatePracticalResearchTime', () => {
     const research = PRACTICAL_RESEARCH.metalMine; // baseTime 250
-  it(`should scale slower than theoretical (${SCALING.RESEARCH_TIME}x per level)`, () => {
+  it('should scale slower than theoretical', () => {
+    // Linear: baseTime(250) * (1 + level*0.2) * strengthTimeMult(0.5=1.25) * labMult(0.85^1)
     const result1 = calculatePracticalResearchTime(research, 1);
-    const expectedTime = Math.floor(250 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(BUILDING_SPEED_MULTIPLIER, 1));
+    const expectedTime = Math.floor(250 * (1 + 1 * 0.2) * 1.25 * 0.85);
     expect(result1).toBe(expectedTime);
   });
 
   it('should be affected by lab level', () => {
+    // Linear: baseTime(250) * (1 + level*0.2) * strengthTimeMult(0.5=1.25) * labMult(0.85^5)
     const result1 = calculatePracticalResearchTime(research, 2, 1);
     const result2 = calculatePracticalResearchTime(research, 2, 5);
     expect(result2).toBeLessThan(result1);
-    expect(result2).toBe(Math.floor(250 * Math.pow(SCALING.RESEARCH_TIME, 2) * Math.pow(BUILDING_SPEED_MULTIPLIER, 5)));
+    const expected = Math.floor(250 * (1 + 2 * 0.2) * 1.25 * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
+    expect(result2).toBe(expected);
   });
 });
 

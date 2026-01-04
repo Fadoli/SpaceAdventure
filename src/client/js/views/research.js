@@ -38,7 +38,9 @@ window.toggleResearchQueueVisibility = function() {
  */
 function calculateResearchStateHash(data) {
   const state = {
-    progress: data.progress,
+    // Only include stable identifiers for the queue
+    theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
+    practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, level: q.level })),
     theoretical: data.theoretical,
     practical: data.practical
   };
@@ -678,35 +680,32 @@ window.updateAllocationSliders = function() {
       <span>🔷 Deuterium: ${formatNumber(estimatedCost.deuterium)}</span>
     `;
     
-    // Calculate time estimate with strength and max 2 days constraint
-    const baseTime = calculateBaseTime(research);
-    const timeMultiplier = 1 + (weightedMultiplier - 1) * 0.2;
-    const strengthTimeMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 3);  // 0.5 to 3.5
-    
-    // Include lab and tech bonuses to match server logic
+    // Calculate time estimate with unified formula
     const playerTech = researchData?.theoretical || {};
-    const researchLabLevel = currentPlanetBuildings?.researchLab || 1;
-    const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
     const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
-    const techMultiplier = 1 / (1 + researchSpeedBonus);
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 1;
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
     
-    let estimatedTime = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier * configMultiplier);
-    
-    // Max duration is 2 days (172800 seconds)
-    const maxDuration = 172800;
-    let warningMsg = '';
-    
-    if (estimatedTime > maxDuration) {
-      estimatedTime = maxDuration;
-      warningMsg = '⚠️ Capped at 2 days maximum';
-    }
+    // Sum of current focus levels
+    const playerPractical = researchData?.practical || {};
+    const currentFocusLevels = playerPractical[window.currentResearch.baseType] || {};
+    const totalFocusLevel = Object.values(currentFocusLevels).reduce((a, b) => a + b, 0);
+
+    const estimatedTime = calculatePracticalResearchTime(
+      research,
+      totalFocusLevel,
+      researchLabLevel,
+      researchSpeedBonus,
+      configMultiplier,
+      strength / 100
+    );
     
     document.getElementById('time-estimate').textContent = formatTime(estimatedTime * 1000);
     
     const warningEl = document.getElementById('strength-warning');
     if (warningEl) {
-      warningEl.textContent = warningMsg;
+      const maxDuration = 172800;
+      warningEl.textContent = estimatedTime >= maxDuration ? '⚠️ Capped at 2 days maximum' : '';
     }
   }
 };
@@ -1227,11 +1226,17 @@ window.editVariant = function(baseType, type) {
 /**
  * Update research view with player data
  */
-export function updateResearchView(player) {
+export function updateResearchView(player, planetId = null) {
     // Called when player data updates during gameplay
-    // Need to ensure currentPlanetId is set from the player's first planet
-    if (!currentPlanetId && player?.planets?.[0]) {
+    if (planetId) {
+        currentPlanetId = planetId;
+        const planet = player.planets.find(p => p.id === planetId);
+        if (planet) {
+            currentPlanetBuildings = planet.buildings;
+        }
+    } else if (!currentPlanetId && player?.planets?.[0]) {
         currentPlanetId = player.planets[0].id;
+        currentPlanetBuildings = player.planets[0].buildings;
     }
     loadResearchData();
 }

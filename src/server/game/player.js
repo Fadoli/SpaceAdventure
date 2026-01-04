@@ -4,18 +4,25 @@ import { STARTING_RESOURCES, STARTING_BUILDINGS, CONFIG } from '../../shared/con
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { updatePlanetProduction } from './buildings.js';
 
+let playersCache = null;
+
 /**
- * Get all players from storage
+ * Get all players (uses in-memory cache if available)
  */
 export async function getPlayers() {
+  if (playersCache) {
+    return playersCache;
+  }
   const data = await readJsonFile('players.json');
-  return data?.players || [];
+  playersCache = data?.players || [];
+  return playersCache;
 }
 
 /**
- * Save players to storage
+ * Save players to storage and update cache
  */
-async function savePlayers(players) {
+export async function savePlayers(players) {
+  playersCache = players;
   return await writeJsonFile('players.json', { players });
 }
 
@@ -27,9 +34,13 @@ export async function getPlayerByUserId(userId) {
   let player = players.find(p => p.userId === userId);
   
   // Initialize missing fields for backward compatibility
-  if (player && !player.practicalResearch) {
-    player.practicalResearch = {};
-    player.practicalResearchQueue = [];
+  if (player) {
+    if (!player.research) player.research = {};
+    if (!player.researchQueue) player.researchQueue = [];
+    if (!player.practicalResearch) player.practicalResearch = {};
+    if (!player.practicalResearchQueue) player.practicalResearchQueue = [];
+    if (!player.customBuildingVariants) player.customBuildingVariants = {};
+    if (!player.customShipVariants) player.customShipVariants = {};
   }
   
   return player;
@@ -192,6 +203,14 @@ export async function recomputeAllPlanetsOnStartup() {
     let recomputedCount = 0;
     
     for (const player of players) {
+      // Initialize player-level research fields if missing
+      if (!player.research) player.research = {};
+      if (!player.researchQueue) player.researchQueue = [];
+      if (!player.practicalResearch) player.practicalResearch = {};
+      if (!player.practicalResearchQueue) player.practicalResearchQueue = [];
+      if (!player.customBuildingVariants) player.customBuildingVariants = {};
+      if (!player.customShipVariants) player.customShipVariants = {};
+
       for (const planet of player.planets) {
         // Initialize building allocations if missing
         if (!planet.buildingAllocations) {

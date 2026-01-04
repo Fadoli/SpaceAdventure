@@ -296,28 +296,15 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   }
   console.log(`[RESEARCH] Resources deducted, remaining:`, planet.resources);
   
-  // Calculate research time with strength and lab bonus
-  const baseTime = calculateBaseTime(practicalResearchConfig);
-  const researchLabLevel = planet.buildings.researchLab || 1;
-  const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
-  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, researchLabLevel);
-  const techMultiplier = 1 / (1 + researchSpeedBonus);
-  const configMultiplier = getResearchTimeMultiplier();
-  
-  const timeMultiplier = 1 + (totalFocusLevel * 0.2);
-  
-  // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 3.5x)
-  const strengthTimeMultiplier = 0.5 + (strength * strength * 3);
-  
-  let time = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier * configMultiplier);
-  time = Math.max(60, time);  // Minimum 60 seconds
-  
-  // Max duration: 2 days (172800 seconds)
-  const maxDuration = 172800;
-  if (time > maxDuration) {
-    console.log(`[RESEARCH] Research time ${time}s exceeds max of ${maxDuration}s, capping to max`);
-    time = maxDuration;
-  }
+  // Calculate research time with unified formula
+  const time = calculatePracticalResearchTime(
+    practicalResearchConfig,
+    totalFocusLevel,
+    planet.buildings.researchLab || 1,
+    researchSpeedBonus,
+    configMultiplier,
+    strength
+  );
   
   // Calculate start and finish time based on queue position
   let startTime, endTime;
@@ -464,9 +451,10 @@ export function startPracticalResearchLevel(player, researchKey, planetId) {
   const time = calculatePracticalResearchTime(
     practicalResearchConfig,
     totalFocusLevel,
-    researchLabLevel,
+    planet.buildings.researchLab || 1,
     researchSpeedBonus,
-    configMultiplier
+    configMultiplier,
+    0.5 // Default strength for level-based
   );
   
   // Calculate start and finish time based on queue position

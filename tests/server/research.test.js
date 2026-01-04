@@ -163,13 +163,15 @@ describe('Research Time Calculations', () => {
   });
 
   describe('Practical Research Time', () => {
-    it('should use 1.5x scaling per level', () => {
+    it('should use slower 1.5x scaling', () => {
+      // Linear formula: baseTime * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
+      // strengthTimeMult(0.5) = 0.5 + (0.5^2 * 3) = 1.25
       const level0 = calculatePracticalResearchTime(metalMineResearch, 0, 1);
       const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
       const level2 = calculatePracticalResearchTime(metalMineResearch, 2, 1);
       
-      expect(level1).toBe(Math.floor(250 * 1.5 * 0.85));
-      expect(level2).toBe(Math.floor(250 * Math.pow(1.5, 2) * 0.85));
+      expect(level1).toBe(Math.floor(250 * (1 + 1 * 0.2) * 1.25 * 0.85));
+      expect(level2).toBe(Math.floor(250 * (1 + 2 * 0.2) * 1.25 * 0.85));
     });
 
     it('should be significantly faster than theoretical', () => {

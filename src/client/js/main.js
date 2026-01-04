@@ -312,9 +312,10 @@ function updateCurrentView() {
             updateBuildingsView(planet, loadGameState);
             break;
         case 'research':
-            // Update research timers without full re-render
+            // Update research timers and buildings without full re-render
             updateTimers();
             updateResearchTimers();
+            updateResearchView(gameState, currentPlanetId);
             break;
         case 'shipyard':
             updateShipyardView(planet);

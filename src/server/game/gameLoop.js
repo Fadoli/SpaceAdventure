@@ -1,5 +1,5 @@
 // Game tick system - processes game state periodically
-import { readJsonFile, writeJsonFile } from '../storage/storage.js';
+import { getPlayers, savePlayers } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
@@ -43,15 +43,15 @@ export function stopGameLoop() {
  */
 async function gameTick() {
   try {
-    // Load all players
-    const playersData = await readJsonFile('players.json');
-    if (!playersData || !playersData.players) {
+    // Load all players (uses in-memory cache)
+    const players = await getPlayers();
+    if (!players) {
       return;
     }
     
     let updated = false;
     
-    for (const player of playersData.players) {
+    for (const player of players) {
       // Process each planet
       for (const planet of player.planets) {
         // Update resources based on production
@@ -134,7 +134,7 @@ async function gameTick() {
     // Save if anything changed and enough time has passed
     const now = Date.now();
     if (updated && (now - lastSaveTime) >= SAVE_INTERVAL) {
-      await writeJsonFile('players.json', playersData);
+      await savePlayers(players);
       lastSaveTime = now;
     }
   } catch (error) {

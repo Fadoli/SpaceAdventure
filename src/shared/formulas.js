@@ -272,13 +272,25 @@ export function calculatePracticalResearchCost(baseCost, level) {
 /**
  * Calculate practical research (customization) time at a given level
  */
-export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0) {
+export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, strength = 0.5) {
   const baseTime = calculateBaseTime(research);
-  const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
+  
+  // Linear scaling for practical research: 20% more time per level
+  const timeMultiplier = 1 + (level * 0.2);
+  
+  // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 3.5x)
+  const strengthTimeMultiplier = 0.5 + (strength * strength * 3);
+  
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier * configMultiplier));
+  const totalTime = Math.floor(baseTime * timeMultiplier * strengthTimeMultiplier * labMultiplier * techMultiplier * configMultiplier);
+  
+  // Apply same constraints as server
+  const minTime = 60; // 1 minute minimum
+  const maxTime = 172800; // 2 days maximum
+  
+  return Math.max(minTime, Math.min(maxTime, totalTime));
 }
 
 /**
