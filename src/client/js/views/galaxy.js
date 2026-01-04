@@ -228,12 +228,12 @@ window.spyOnPlanetFromGalaxy = async function(position) {
 
         const result = await response.json();
         if (result.success) {
-            alert(`Espionage probe dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
+            Notifications.showSuccess(`Espionage probe dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
         } else {
-            alert(`Failed: ${result.error}`);
+            Notifications.showError(`Failed: ${result.error}`);
         }
     } catch (error) {
-        alert(`Error: ${error.message}`);
+        Notifications.showError(`Error: ${error.message}`);
     }
 };
 
@@ -255,16 +255,16 @@ window.colonizePlanetFromGalaxy = async function(position) {
 
         const result = await response.json();
         if (result.success) {
-            alert(`Colony ship dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
+            Notifications.showSuccess(`Colony ship dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
         } else {
-            alert(`Failed: ${result.error}`);
+            Notifications.showError(`Failed: ${result.error}`);
         }
     } catch (error) {
-        alert(`Error: ${error.message}`);
+        Notifications.showError(`Error: ${error.message}`);
     }
 };
 
 window.attackPlanetFromGalaxy = function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
-    alert("Not implemented yet: Attack planet at " + coords.join(':'));
+    Notifications.showError("Not implemented yet: Attack planet at " + coords.join(':'));
 };

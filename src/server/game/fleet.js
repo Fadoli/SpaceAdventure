@@ -182,19 +182,63 @@ async function executeEspionage(player, fleet, allPlayers) {
     }
   }
 
+  // Proper Espionage Logic
+  // Formula: Effective Level = AttackerTech - DefenderTech + sqrt(probes) - 1
+  const attackerTech = player.research?.espionageTech || 0;
+  const defenderTech = targetPlayer?.research?.espionageTech || 0;
+  const probes = fleet.ships.espionageProbe || 1;
+  
+  // Difference in tech levels
+  const techDiff = attackerTech - defenderTech;
+  
+  // Total espionage power
+  // 1 probe at same tech level -> level 0 (Resources only)
+  // More probes or higher tech -> higher level
+  const espionagePower = techDiff + (Math.sqrt(probes) - 1);
+  
   const report = {
     id: generateId(),
     type: 'espionage',
     time: Date.now(),
     coords: [...fleet.targetCoords],
-    targetPlayer: targetPlayer ? targetPlayer.username : 'Unknown'
+    targetPlayer: targetPlayer ? targetPlayer.username : 'Unknown',
+    techLevel: attackerTech,
+    defenderTechLevel: defenderTech,
+    probeCount: probes,
+    power: espionagePower.toFixed(2)
   };
 
   if (targetPlanet) {
+    // Reveal info based on power thresholds
+    // Level 0: Resources
     report.resources = { ...targetPlanet.resources };
-    report.buildings = { ...targetPlanet.buildings };
-    report.ships = { ...targetPlanet.ships };
-    report.defenses = { ...targetPlanet.defenses };
+    
+    // Level 2: + Fleet
+    if (espionagePower >= 2) {
+      report.ships = { ...targetPlanet.ships };
+    }
+    
+    // Level 4: + Defense
+    if (espionagePower >= 4) {
+      report.defenses = { ...targetPlanet.defenses };
+    }
+    
+    // Level 6: + Buildings
+    if (espionagePower >= 6) {
+      report.buildings = { ...targetPlanet.buildings };
+    }
+    
+    // Level 8: + Research
+    if (espionagePower >= 8) {
+      report.research = { ...targetPlayer.research };
+    }
+
+    // Add info about what was NOT seen
+    if (espionagePower < 2) report.info = "Your espionage power was too low to see fleet movements.";
+    else if (espionagePower < 4) report.info = "Your espionage power was too low to see planetary defenses.";
+    else if (espionagePower < 6) report.info = "Your espionage power was too low to see planetary buildings.";
+    else if (espionagePower < 8) report.info = "Your espionage power was too low to see enemy research levels.";
+    
   } else {
     report.info = "Target coordinates are empty space.";
   }
@@ -202,7 +246,7 @@ async function executeEspionage(player, fleet, allPlayers) {
   await addMessage(player.userId, {
     from: 'Intelligence Service',
     subject: `Espionage Report: [${fleet.targetCoords.join(':')}]`,
-    body: `Our spies have returned from ${fleet.targetCoords.join(':')}.`,
+    body: `Our spies have returned from ${fleet.targetCoords.join(':')}. (Power: ${espionagePower.toFixed(1)})`,
     type: 'espionage',
     data: report
   });

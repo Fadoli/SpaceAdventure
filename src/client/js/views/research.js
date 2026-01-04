@@ -4,6 +4,7 @@ import { formatNumber } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { calculateBaseTime } from '../../../shared/time.js';
+import { Notifications } from '../notifications.js';
 import {
     calculateTheoreticalResearchCost,
     calculateTheoreticalResearchTime,
@@ -496,14 +497,14 @@ window.startResearchLevel = async function (researchKey) {
 
         if (!response.ok) {
             const error = await response.json();
-            alert(`Error: ${error.message}`);
+            Notifications.showError(`Error: ${error.message}`);
             return;
         }
 
         await loadResearchData();
         renderPracticalResearch();
     } catch (error) {
-        alert(`Failed to start research: ${error.message}`);
+        Notifications.showError(`Failed to start research: ${error.message}`);
     }
 };
 
@@ -943,7 +944,7 @@ window.startTheoreticalResearch = async function (techKey) {
         console.log('Current Planet ID:', planetId);
 
         if (!planetId) {
-            alert('Error: Planet ID not set. Please refresh the page.');
+            Notifications.showError('Error: Planet ID not set. Please refresh the page.');
             console.error('Planet ID is not set!');
             return;
         }
@@ -966,7 +967,7 @@ window.startTheoreticalResearch = async function (techKey) {
         if (!response.ok) {
             const error = await response.json();
             console.error('Server error response:', error);
-            alert(`Error: ${error.message}`);
+            Notifications.showError(`Error: ${error.message}`);
             return;
         }
 
@@ -977,7 +978,7 @@ window.startTheoreticalResearch = async function (techKey) {
         renderTheoreticalResearch();
     } catch (error) {
         console.error('Failed to start research:', error);
-        alert(`Failed to start research: ${error.message}`);
+        Notifications.showError(`Failed to start research: ${error.message}`);
     }
 };
 
@@ -1090,14 +1091,14 @@ window.cancelTheoreticalResearch = async function (queueId) {
 
         if (!response.ok) {
             const error = await response.json();
-            alert(`Error: ${error.message}`);
+            Notifications.showError(`Error: ${error.message}`);
             return;
         }
 
         await loadResearchData();
         renderTheoreticalResearch();
     } catch (error) {
-        alert(`Failed to cancel research: ${error.message}`);
+        Notifications.showError(`Failed to cancel research: ${error.message}`);
     }
 };
 
@@ -1108,7 +1109,7 @@ window.startPracticalResearch = async function (baseType, type, focus) {
     try {
         const planetId = getCurrentPlanetId();
         if (!planetId) {
-            alert('Error: Planet ID not set. Please refresh the page.');
+            Notifications.showError('Error: Planet ID not set. Please refresh the page.');
             return;
         }
 
@@ -1120,14 +1121,14 @@ window.startPracticalResearch = async function (baseType, type, focus) {
 
         if (!response.ok) {
             const error = await response.json();
-            alert(`Error: ${error.message}`);
+            Notifications.showError(`Error: ${error.message}`);
             return;
         }
 
         await loadResearchData();
         renderPracticalResearch();
     } catch (error) {
-        alert(`Failed to start customization research: ${error.message}`);
+        Notifications.showError(`Failed to start customization research: ${error.message}`);
     }
 };
 
@@ -1147,14 +1148,14 @@ window.cancelPracticalResearch = async function (queueId) {
 
         if (!response.ok) {
             const error = await response.json();
-            alert(`Error: ${error.message}`);
+            Notifications.showError(`Error: ${error.message}`);
             return;
         }
 
         await loadResearchData();
         renderPracticalResearch();
     } catch (error) {
-        alert(`Failed to cancel research: ${error.message}`);
+        Notifications.showError(`Failed to cancel research: ${error.message}`);
     }
 };
 
@@ -1185,7 +1186,7 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
         }
     }
     if (!focusLevels || !hasAnyFocus) {
-        alert(`No research available for ${baseType}`);
+        Notifications.showError(`No research available for ${baseType}`);
         return;
     }
 
@@ -1207,17 +1208,17 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
 
         if (!variantResponse.ok) {
             const error = await variantResponse.json();
-            alert(`Error: ${error.message || 'Failed to create variant'}`);
+            Notifications.showError(`Error: ${error.message || 'Failed to create variant'}`);
             return;
         }
 
-        alert(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
+        Notifications.showSuccess(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
 
         // Reload research data to show the variant
         await loadResearchData();
         renderCustomVariants();
     } catch (error) {
-        alert(`Failed to create variant: ${error.message}`);
+        Notifications.showError(`Failed to create variant: ${error.message}`);
     }
 };
 
@@ -1232,7 +1233,7 @@ window.buildCustomVariant = async function (baseType, type) {
 
     const focusLevels = practical[baseType];
     if (!focusLevels) {
-        alert(`No research available for ${baseType}`);
+        Notifications.showError(`No research available for ${baseType}`);
         return;
     }
 
@@ -1254,22 +1255,22 @@ window.buildCustomVariant = async function (baseType, type) {
 
         if (!variantResponse.ok) {
             const error = await variantResponse.json();
-            alert(`Error: ${error.message || 'Failed to create variant'}`);
+            Notifications.showError(`Error: ${error.message || 'Failed to create variant'}`);
             return;
         }
 
-        alert(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
+        Notifications.showSuccess(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
 
         // Reload research data to show the variant
         await loadResearchData();
         renderCustomVariants();
     } catch (error) {
-        alert(`Failed to create variant: ${error.message}`);
+        Notifications.showError(`Failed to create variant: ${error.message}`);
     }
 };
 
 window.editVariant = function (baseType, type) {
-    alert(`Edit variant for ${type} ${baseType} (coming soon)`);
+    Notifications.showError(`Edit variant for ${type} ${baseType} (coming soon)`);
 };
 
 /**

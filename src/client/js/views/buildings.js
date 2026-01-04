@@ -3,6 +3,7 @@ import { API } from '../api.js';
 import { formatNumber, formatCountdown } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
+import { Notifications } from '../notifications.js';
 import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
@@ -517,7 +518,7 @@ export async function upgradeBuilding(buildingKey, onStateChange) {
         await API.upgradeBuilding(planetId, buildingKey);
         if (onStateChange) await onStateChange();
     } catch (error) {
-        alert('Error: ' + error.message);
+        Notifications.showError('Error: ' + error.message);
     }
 }
 
@@ -534,7 +535,7 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
             await API.switchBuildingVariant(planetId, buildingKey, false);
             if (onStateChange) await onStateChange();
         } catch (error) {
-            alert('Error: ' + error.message);
+            Notifications.showError('Error: ' + error.message);
         }
         return;
     }
@@ -545,13 +546,13 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
         buildingDetails = await API.getBuildingDetails(planetId);
     } catch (error) {
         console.error('Failed to load building details:', error);
-        alert('Failed to load building details');
+        Notifications.showError('Failed to load building details');
         return;
     }
     
     const building = buildingDetails.buildings[buildingKey];
     if (!building || !building.customVariant) {
-        alert('No custom variant available');
+        Notifications.showError('No custom variant available');
         return;
     }
     
@@ -830,7 +831,7 @@ export async function cancelBuilding(queuePosition, onStateChange) {
             await API.cancelBuilding(planetId, queuePosition);
             if (onStateChange) await onStateChange();
         } catch (error) {
-            alert('Error: ' + error.message);
+            Notifications.showError('Error: ' + error.message);
         }
     }
 }

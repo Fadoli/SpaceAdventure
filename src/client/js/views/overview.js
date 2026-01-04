@@ -2,6 +2,7 @@
 import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { showPrompt } from './modals.js';
+import { Notifications } from '../notifications.js';
 
 let lastOverviewPlanetId = null;
 
@@ -31,7 +32,7 @@ window.renamePlanetUI = async function(planetId, currentName) {
             window.location.reload();
         }
     } catch (error) {
-        alert('Failed to rename: ' + error.message);
+        Notifications.showError('Failed to rename: ' + error.message);
     }
 };
 

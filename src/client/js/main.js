@@ -17,6 +17,7 @@ import { updateGalaxyView } from './views/galaxy.js';
 import { updateMessagesView } from './views/messages.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 import { updateFleetMovements } from './views/fleetMovements.js';
+import { Notifications } from './notifications.js';
 
 // State
 let currentUser = null;

@@ -328,7 +328,7 @@ function attachShipyardListeners(planet, shipyardData) {
             const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
             updateShipyardView(activePlanet);
         } catch (error) {
-            alert(`Failed to build ship: ${error.message}`);
+            Notifications.showError(`Failed to build ship: ${error.message}`);
         }
     };
     
@@ -345,7 +345,7 @@ function attachShipyardListeners(planet, shipyardData) {
             const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
             updateShipyardView(activePlanet);
         } catch (error) {
-            alert(`Failed to build defense: ${error.message}`);
+            Notifications.showError(`Failed to build defense: ${error.message}`);
         }
     };
     
@@ -364,7 +364,7 @@ function attachShipyardListeners(planet, shipyardData) {
             const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
             updateShipyardView(activePlanet);
         } catch (error) {
-            alert(`Failed to cancel build: ${error.message}`);
+            Notifications.showError(`Failed to cancel build: ${error.message}`);
         }
     };
     
