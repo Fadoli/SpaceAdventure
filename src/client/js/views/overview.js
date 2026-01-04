@@ -1,4 +1,5 @@
 // Overview view logic
+import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 
 let lastOverviewPlanetId = null;
@@ -10,6 +11,26 @@ window.changePlanet = function(select) {
         window.selectPlanet(planetId);
     } else {
         window.location.reload();
+    }
+};
+
+window.renamePlanetUI = async function(planetId, currentName) {
+    const newName = prompt('Enter new planet name (3-20 characters):', currentName);
+    if (!newName || newName === currentName) return;
+    
+    try {
+        await API.renamePlanet(planetId, newName);
+        // Refresh the whole state to update all UI parts (header select, overview, etc)
+        // We can use a trick: trigger a "reload" of the current view by just calling updateUI via a global if possible
+        // but since we want to be safe, let's just use window.location.reload() for this specific "structural" change
+        // OR better: if selectPlanet is available, just call it with current ID to refresh
+        if (window.selectPlanet) {
+            window.selectPlanet(planetId);
+        } else {
+            window.location.reload();
+        }
+    } catch (error) {
+        alert('Failed to rename: ' + error.message);
     }
 };
 
@@ -52,7 +73,10 @@ function initializeOverviewStructure(container, planet, allPlanets) {
             <div class="planet-details-table">
                 <div class="detail-row">
                     <span class="detail-label">Planet</span>
-                    <span class="detail-value" id="ov-planet-name">-</span>
+                    <span class="detail-value">
+                        <span id="ov-planet-name">-</span>
+                        <button class="btn-icon-small" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
+                    </span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Coordinates</span>

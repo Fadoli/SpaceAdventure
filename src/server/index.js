@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet } from './game/player.js';
 import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches, getEffectiveBuildingDefinition } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
@@ -1075,6 +1075,23 @@ async function handleRequest(req) {
         system,
         planets: planetsInSystem
       });
+    }
+
+    // POST /api/game/planet/:planetId/rename
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/rename$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const planetId = path.split('/')[4];
+      const body = await req.json();
+      const { name } = body;
+      
+      try {
+        const planet = await renamePlanet(user.id, planetId, name);
+        return successResponse(req, planet);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
     }
 
     // POST /api/game/galaxy/mission - Send mission from galaxy view

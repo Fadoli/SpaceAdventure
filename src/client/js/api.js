@@ -132,6 +132,13 @@ export const API = {
         return await this.request(`/game/galaxy/${galaxy}/${system}`);
     },
 
+    async renamePlanet(planetId, newName) {
+        return await this.request(`/game/planet/${planetId}/rename`, {
+            method: 'POST',
+            body: JSON.stringify({ name: newName })
+        });
+    },
+
     async getMessages() {
         return await this.request('/game/messages');
     },

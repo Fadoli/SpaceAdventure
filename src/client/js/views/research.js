@@ -754,7 +754,8 @@ window.submitAllocationResearch = async function (researchKey, baseType) {
     };
 
     try {
-        const response = await fetch(`/api/game/planet/${currentPlanetId}/research/practical`, {
+        const planetId = getCurrentPlanetId();
+        const response = await fetch(`/api/game/planet/${planetId}/research/practical`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

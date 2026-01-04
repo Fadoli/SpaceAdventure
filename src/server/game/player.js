@@ -190,6 +190,41 @@ export async function updatePlanetResources(userId, planetId, resources) {
 }
 
 /**
+ * Rename a planet with rate limiting
+ */
+export async function renamePlanet(userId, planetId, newName) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+  
+  const planet = player.planets.find(p => p.id === planetId);
+  if (!planet) throw new Error('Planet not found');
+  
+  // Validation
+  if (!newName || newName.length < 3 || newName.length > 20) {
+    throw new Error('Name must be 3-20 characters');
+  }
+  
+  if (!/^[a-zA-Z0-9\s_-]+$/.test(newName)) {
+    throw new Error('Name can only contain letters, numbers, spaces, underscores, and hyphens');
+  }
+  
+  // Rate limiting (once per hour)
+  const COOLDOWN = 60 * 60 * 1000; // 1 hour
+  const now = Date.now();
+  
+  if (planet.lastRenamed && (now - planet.lastRenamed < COOLDOWN)) {
+    const remaining = Math.ceil((COOLDOWN - (now - planet.lastRenamed)) / 60000);
+    throw new Error(`You can only rename this planet once per hour. Please wait ${remaining} minutes.`);
+  }
+  
+  planet.name = newName.trim();
+  planet.lastRenamed = now;
+  
+  await updatePlayer(userId, player);
+  return planet;
+}
+
+/**
  * Recompute all planets on startup (in-memory only, no persistence)
  * This ensures all derived values are correctly calculated based on:
  * - Current buildings and their levels

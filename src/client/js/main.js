@@ -237,10 +237,22 @@ function updateUI() {
         updateResources(planet);
         
         // Update planet info in header
-        const planetNameHeader = document.getElementById('planet-name-header');
+        const planetSelectContainer = document.getElementById('planet-select-header-container');
         const planetCoordsHeader = document.getElementById('planet-coords-header');
         
-        if (planetNameHeader) planetNameHeader.textContent = planet.name;
+        if (planetSelectContainer) {
+            // Only re-render dropdown if number of planets changed or it's missing
+            const currentSelect = planetSelectContainer.querySelector('select');
+            if (!currentSelect || currentSelect.options.length !== gameState.planets.length) {
+                const options = gameState.planets.map(p => 
+                    `<option value="${p.id}" ${p.id === planet.id ? 'selected' : ''}>${p.name}</option>`
+                ).join('');
+                planetSelectContainer.innerHTML = `<select class="header-planet-select" onchange="window.selectPlanet(this.value)">${options}</select>`;
+            } else if (currentSelect.value !== planet.id) {
+                currentSelect.value = planet.id;
+            }
+        }
+        
         if (planetCoordsHeader) planetCoordsHeader.textContent = `[${planet.coordinates.join(':')}]`;
         
         // Update current view

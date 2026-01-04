@@ -2760,3 +2760,46 @@ body {
     font-style: italic;
 }
 
+
+/* Header Planet Select */
+.header-planet-select {
+    background: transparent;
+    border: none;
+    color: var(--accent-blue);
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    outline: none;
+}
+
+.header-planet-select:hover {
+    background: var(--bg-tertiary);
+}
+
+.header-planet-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+
+/* Small Icon Button */
+.btn-icon-small {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px;
+    margin-left: 5px;
+    border-radius: 3px;
+    transition: background 0.2s;
+    opacity: 0.6;
+}
+
+.btn-icon-small:hover {
+    background: var(--bg-tertiary);
+    opacity: 1;
+}
+

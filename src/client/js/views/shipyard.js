@@ -27,8 +27,6 @@ function calculateShipyardStateHash(shipyardData, planet) {
  * Update shipyard view with planet data
  */
 export async function updateShipyardView(planet) {
-    currentPlanetId = planet.id;
-    
     try {
         const shipyardData = await API.getShipyardDetails(planet.id);
         
