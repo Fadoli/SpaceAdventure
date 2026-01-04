@@ -6,6 +6,7 @@ import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../sha
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
 import { calculateBaseTime } from '../../../shared/time.js';
+import { getCurrentPlanetId } from '../main.js';
 
 let currentGameState = null;
 let lastBuildingStateHash = null;
@@ -508,12 +509,11 @@ export function updateTimers() {
  * Upgrade building (exposed globally)
  */
 export async function upgradeBuilding(buildingKey, onStateChange) {
-    if (!currentGameState || !currentGameState.planets[0]) return;
-    
-    const planet = currentGameState.planets[0];
+    const planetId = getCurrentPlanetId();
+    if (!planetId) return;
     
     try {
-        await API.upgradeBuilding(planet.id, buildingKey);
+        await API.upgradeBuilding(planetId, buildingKey);
         if (onStateChange) await onStateChange();
     } catch (error) {
         alert('Error: ' + error.message);
@@ -524,14 +524,13 @@ export async function upgradeBuilding(buildingKey, onStateChange) {
  * Switch building variant (exposed globally)
  */
 export async function switchBuildingVariant(buildingKey, toCustom, onStateChange) {
-    if (!currentGameState || !currentGameState.planets[0]) return;
-    
-    const planet = currentGameState.planets[0];
+    const planetId = getCurrentPlanetId();
+    if (!planetId) return;
     
     if (!toCustom) {
         // Switching to base - direct switch, no selection needed
         try {
-            await API.switchBuildingVariant(planet.id, buildingKey, false);
+            await API.switchBuildingVariant(planetId, buildingKey, false);
             if (onStateChange) await onStateChange();
         } catch (error) {
             alert('Error: ' + error.message);
@@ -542,7 +541,7 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
     // Switching to custom - show selection modal
     let buildingDetails;
     try {
-        buildingDetails = await API.getBuildingDetails(planet.id);
+        buildingDetails = await API.getBuildingDetails(planetId);
     } catch (error) {
         console.error('Failed to load building details:', error);
         alert('Failed to load building details');
@@ -555,6 +554,7 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
         return;
     }
     
+    const planet = currentGameState?.planets.find(p => p.id === planetId);
     showCustomVariantSelectionModal(buildingKey, building, planet, onStateChange);
 }
 
@@ -820,13 +820,12 @@ function getOutputDifferences(building, variant) {
  * Cancel building (exposed globally)
  */
 export async function cancelBuilding(queuePosition, onStateChange) {
-    if (!currentGameState || !currentGameState.planets[0]) return;
-    
-    const planet = currentGameState.planets[0];
+    const planetId = getCurrentPlanetId();
+    if (!planetId) return;
     
     if (confirm(`Cancel building at queue position ${queuePosition}? You will get 50% resources back.`)) {
         try {
-            await API.cancelBuilding(planet.id, queuePosition);
+            await API.cancelBuilding(planetId, queuePosition);
             if (onStateChange) await onStateChange();
         } catch (error) {
             alert('Error: ' + error.message);
@@ -838,8 +837,10 @@ export async function cancelBuilding(queuePosition, onStateChange) {
  * Show building details modal
  */
 export async function showBuildingDetails(buildingKey) {
-    const planet = currentGameState?.planets[0];
+    const planetId = getCurrentPlanetId();
+    if (!planetId) return;
     
+    const planet = currentGameState?.planets.find(p => p.id === planetId);
     if (!planet) return;
     
     // Fetch detailed stats from server

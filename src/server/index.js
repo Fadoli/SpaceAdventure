@@ -94,7 +94,7 @@ function getCookie(req, name) {
 
 // Helper to create cookie string
 function createCookie(name, value, maxAge) {
-  return `${name}=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
+  return `${name}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
 }
 
 // Middleware to check authentication
@@ -114,11 +114,16 @@ function jsonResponse(req, data, status = 200, headers = {}) {
   const contentType = 'application/json';
   const { compressedBody, encoding } = compressResponse(req, Buffer.from(body), contentType);
   
+  const origin = req.headers.get('origin') || '*';
   const finalHeaders = {
     'Content-Type': contentType,
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     'Pragma': 'no-cache',
     'Expires': '0',
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true',
     ...headers
   };
 
@@ -176,21 +181,22 @@ async function handleRequest(req) {
   const path = url.pathname;
   const method = req.method;
   
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  };
-  
   if (method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    const origin = req.headers.get('origin') || '*';
+    return new Response(null, { 
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Credentials': 'true'
+      }
+    });
   }
   
   try {
     // Static file serving
-    if (path === '/' || !path.startsWith('/api/')) {
-      const filePath = path === '/' ? '/src/client/index.html' : path;
+    if (path === '/' || path === '/login.html' || !path.startsWith('/api/')) {
+      const filePath = (path === '/' || path === '/login.html') ? (path === '/' ? '/src/client/index.html' : '/src/client/login.html') : path;
       const file = Bun.file(`.${filePath}`);
       
       if (await file.exists()) {
@@ -222,8 +228,7 @@ async function handleRequest(req) {
         
         const headers = {
           'Content-Type': contentType,
-          'Cache-Control': `public, max-age=${cacheTime}`,
-          ...corsHeaders
+          'Cache-Control': `public, max-age=${cacheTime}`
         };
 
         if (encoding) {
@@ -242,8 +247,7 @@ async function handleRequest(req) {
           
           const headers = {
             'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-cache', // Main entry point should check if changed
-            ...corsHeaders
+            'Cache-Control': 'no-cache' // Main entry point should check if changed
           };
 
           if (encoding) {
@@ -279,7 +283,6 @@ async function handleRequest(req) {
         },
         timestamp: Date.now()
       }, 200, {
-        ...corsHeaders,
         'Set-Cookie': createCookie('session', sessionToken, 86400)
       });
     }
@@ -301,7 +304,6 @@ async function handleRequest(req) {
         },
         timestamp: Date.now()
       }, 200, {
-        ...corsHeaders,
         'Set-Cookie': createCookie('session', sessionToken, 86400)
       });
     }
@@ -318,7 +320,6 @@ async function handleRequest(req) {
         data: null,
         timestamp: Date.now()
       }, 200, {
-        ...corsHeaders,
         'Set-Cookie': createCookie('session', '', 0)
       });
     }

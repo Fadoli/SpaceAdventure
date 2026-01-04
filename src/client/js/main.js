@@ -47,7 +47,6 @@ function updateUrlParams(planetId, view) {
 
 // Initialize app
 async function init() {
-    setupAuthListeners();
     setupGameListeners();
     
     // Fetch and store game configuration
@@ -88,20 +87,19 @@ async function init() {
         currentUser = await API.getCurrentUser();
         if (currentUser) {
             await showGameScreen();
+        } else {
+            if (window.location.pathname !== '/login.html') {
+                window.location.href = '/login.html';
+            }
         }
     } catch (error) {
-        showAuthScreen();
+        if (window.location.pathname !== '/login.html') {
+            window.location.href = '/login.html';
+        }
     }
 }
 
-// Auth Screen
-function showAuthScreen() {
-    document.getElementById('auth-screen').classList.add('active');
-    document.getElementById('game-screen').classList.remove('active');
-}
-
 async function showGameScreen() {
-    document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     
     // Load game state first
@@ -138,60 +136,6 @@ async function showGameScreen() {
     startResourceUpdate();
 }
 
-function setupAuthListeners() {
-    // Tab switching
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const tab = e.target.dataset.tab;
-            
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            
-            e.target.classList.add('active');
-            document.getElementById(`${tab}-form`).classList.add('active');
-        });
-    });
-    
-    // Login form
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
-        const errorEl = document.getElementById('login-error');
-        
-        try {
-            errorEl.classList.remove('show');
-            const response = await API.login(username, password);
-            currentUser = response;
-            await showGameScreen();
-        } catch (error) {
-            errorEl.textContent = error.message;
-            errorEl.classList.add('show');
-        }
-    });
-    
-    // Register form
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const username = document.getElementById('register-username').value;
-        const password = document.getElementById('register-password').value;
-        const email = document.getElementById('register-email').value;
-        const errorEl = document.getElementById('register-error');
-        
-        try {
-            errorEl.classList.remove('show');
-            const response = await API.register(username, password, email);
-            currentUser = response;
-            await showGameScreen();
-        } catch (error) {
-            errorEl.textContent = error.message;
-            errorEl.classList.add('show');
-        }
-    });
-}
-
 function setupGameListeners() {
     // Logout
     document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -202,7 +146,7 @@ function setupGameListeners() {
             clearInterval(updateInterval);
             updateInterval = null;
         }
-        showAuthScreen();
+        window.location.href = '/login.html';
     });
     
     // Navigation
@@ -264,13 +208,16 @@ async function loadGameState() {
 }
 
 function updateUI() {
-    if (!gameState) return;
+    if (!gameState || !currentUser) return;
     
     // Update fleet movements
     updateFleetMovements(gameState);
     
     // Update player name
-    document.getElementById('player-name').textContent = currentUser.username;
+    const playerNameEl = document.getElementById('player-name');
+    if (playerNameEl) {
+        playerNameEl.textContent = currentUser.username;
+    }
     
     // Get current planet by ID, or default to first planet
     let planet = null;
@@ -280,17 +227,18 @@ function updateUI() {
     if (!planet && gameState.planets.length > 0) {
         planet = gameState.planets[0];
         currentPlanetId = planet.id;
-        // Don't update URL here - it would overwrite URL params during page load
     }
     
     if (planet) {
         // Update resources (always visible in header)
         updateResources(planet);
         
-        // Update planet info
-        document.getElementById('planet-name').textContent = planet.name;
-        document.getElementById('planet-coords').textContent = 
-            `[${planet.coordinates.join(':')}]`;
+        // Update planet info in header
+        const planetNameHeader = document.getElementById('planet-name-header');
+        const planetCoordsHeader = document.getElementById('planet-coords-header');
+        
+        if (planetNameHeader) planetNameHeader.textContent = planet.name;
+        if (planetCoordsHeader) planetCoordsHeader.textContent = `[${planet.coordinates.join(':')}]`;
         
         // Update current view
         updateCurrentView();
@@ -310,7 +258,7 @@ function updateCurrentView() {
     
     switch (currentView) {
         case 'overview':
-            updateOverview(planet);
+            updateOverview(planet, gameState.planets);
             break;
         case 'buildings':
             updateBuildingsView(planet, loadGameState);
@@ -352,6 +300,17 @@ function startResourceUpdate() {
 }
 
 // Global window functions for onclick handlers
+window.selectPlanet = function(planetId) {
+    if (!gameState) return;
+    
+    const planet = gameState.planets.find(p => p.id === planetId);
+    if (planet) {
+        currentPlanetId = planet.id;
+        updateUrlParams(currentPlanetId, currentView);
+        updateUI();
+    }
+};
+
 window.upgradeBuilding = async function(buildingKey) {
     await buildingUpgrade(buildingKey, loadGameState);
 };
@@ -607,6 +566,10 @@ export function getCurrentPlanet() {
         return gameState?.planets?.[0] || null;
     }
     return gameState.planets.find(p => p.id === currentPlanetId) || gameState.planets[0] || null;
+}
+
+export function getCurrentPlanetId() {
+    return currentPlanetId;
 }
 
 // Start the app

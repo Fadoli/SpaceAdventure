@@ -11,8 +11,8 @@ import {
 } from '../../../shared/formulas.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
+import { getCurrentPlanetId } from '../main.js';
 
-let currentPlanetId = null;
 let currentPlanetBuildings = null;
 let researchData = null;
 let lastResearchStateHash = null;
@@ -53,7 +53,6 @@ function calculateResearchStateHash(data) {
  */
 export async function initializeResearch(planet) {
     console.log('Initializing research view for planet:', planet.id);
-    currentPlanetId = planet.id;
     currentPlanetBuildings = planet.buildings;
     await loadResearchData();
     console.log('Research data ready:', researchData);
@@ -358,7 +357,8 @@ async function renderPracticalResearch() {
 
     try {
         // Load available practical research
-        const response = await fetch(`/api/game/planet/${currentPlanetId}/research/available`);
+        const planetId = getCurrentPlanetId();
+        const response = await fetch(`/api/game/planet/${planetId}/research/available`);
         if (!response.ok) {
             throw new Error(`Failed to load available research: ${response.statusText}`);
         }
@@ -484,7 +484,8 @@ async function renderPracticalResearch() {
  */
 window.startResearchLevel = async function (researchKey) {
     try {
-        const response = await fetch(`/api/game/planet/${currentPlanetId}/research/practical`, {
+        const planetId = getCurrentPlanetId();
+        const response = await fetch(`/api/game/planet/${planetId}/research/practical`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -935,16 +936,17 @@ function capitalize(str) {
  */
 window.startTheoreticalResearch = async function (techKey) {
     try {
+        const planetId = getCurrentPlanetId();
         console.log('Starting theoretical research for tech:', techKey);
-        console.log('Current Planet ID:', currentPlanetId);
+        console.log('Current Planet ID:', planetId);
 
-        if (!currentPlanetId) {
+        if (!planetId) {
             alert('Error: Planet ID not set. Please refresh the page.');
             console.error('Planet ID is not set!');
             return;
         }
 
-        const url = `/api/game/planet/${currentPlanetId}/research/theoretical`;
+        const url = `/api/game/planet/${planetId}/research/theoretical`;
         const body = { techKey };
 
         console.log('Making request to:', url);
@@ -1077,8 +1079,9 @@ window.cancelTheoreticalResearch = async function (queueId) {
     if (!confirm('Cancel this research?')) return;
 
     try {
+        const planetId = getCurrentPlanetId();
         const response = await fetch(
-            `/api/game/planet/${currentPlanetId}/research/theoretical/${queueId}`,
+            `/api/game/planet/${planetId}/research/theoretical/${queueId}`,
             { method: 'DELETE' }
         );
 
@@ -1100,12 +1103,13 @@ window.cancelTheoreticalResearch = async function (queueId) {
  */
 window.startPracticalResearch = async function (baseType, type, focus) {
     try {
-        if (!currentPlanetId) {
+        const planetId = getCurrentPlanetId();
+        if (!planetId) {
             alert('Error: Planet ID not set. Please refresh the page.');
             return;
         }
 
-        const response = await fetch(`/api/game/planet/${currentPlanetId}/research/practical`, {
+        const response = await fetch(`/api/game/planet/${planetId}/research/practical`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ baseType, type, focus })
@@ -1131,8 +1135,9 @@ window.cancelPracticalResearch = async function (queueId) {
     if (!confirm('Cancel this research?')) return;
 
     try {
+        const planetId = getCurrentPlanetId();
         const response = await fetch(
-            `/api/game/planet/${currentPlanetId}/research/practical/${queueId}`,
+            `/api/game/planet/${planetId}/research/practical/${queueId}`,
             { method: 'DELETE' }
         );
 
@@ -1182,8 +1187,9 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
 
     try {
         // Determine the endpoint based on type (building or ship)
+        const planetId = getCurrentPlanetId();
         const endpoint = type === 'building'
-            ? `/api/game/planet/${currentPlanetId}/research/building-variant`
+            ? `/api/game/planet/${planetId}/research/building-variant`
             : `/api/game/research/ship-variant`;
 
         const variantResponse = await fetch(endpoint, {
@@ -1228,8 +1234,9 @@ window.buildCustomVariant = async function (baseType, type) {
 
     try {
         // Determine the endpoint based on type (building or ship)
+        const planetId = getCurrentPlanetId();
         const endpoint = type === 'building'
-            ? `/api/game/planet/${currentPlanetId}/research/building-variant`
+            ? `/api/game/planet/${planetId}/research/building-variant`
             : `/api/game/research/ship-variant`;
 
         const variantResponse = await fetch(endpoint, {
@@ -1266,15 +1273,13 @@ window.editVariant = function (baseType, type) {
  */
 export function updateResearchView(player, planetId = null) {
     // Called when player data updates during gameplay
-    if (planetId) {
-        currentPlanetId = planetId;
-        const planet = player.planets.find(p => p.id === planetId);
+    const targetPlanetId = planetId || getCurrentPlanetId() || (player?.planets?.[0]?.id);
+    
+    if (targetPlanetId) {
+        const planet = player.planets.find(p => p.id === targetPlanetId);
         if (planet) {
             currentPlanetBuildings = planet.buildings;
         }
-    } else if (!currentPlanetId && player?.planets?.[0]) {
-        currentPlanetId = player.planets[0].id;
-        currentPlanetBuildings = player.planets[0].buildings;
     }
     loadResearchData();
 }

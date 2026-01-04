@@ -2310,46 +2310,107 @@ body {
 .fleet-movements-bar {
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border-color);
-    padding: 0 10px;
-    height: 0;
-    overflow: hidden;
-    transition: height 0.3s ease;
+    transition: all 0.3s ease;
     display: flex;
-    align-items: center;
-    gap: 15px;
+    flex-direction: column;
+    position: relative;
+    z-index: 90;
 }
 
 .fleet-movements-bar.active {
-    height: 40px;
+    min-height: 40px;
 }
 
-.flying-fleet-item {
+.fleet-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    padding: 10px 20px;
     background: var(--bg-secondary);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    border: 1px solid var(--border-color);
-    cursor: default;
-    position: relative;
+    cursor: pointer;
     user-select: none;
+    border-bottom: 1px solid var(--border-color);
 }
 
-.flying-fleet-item:hover {
-    border-color: var(--accent-blue);
+.fleet-header:hover {
     background: var(--bg-tertiary);
 }
 
-.fleet-mission-icon {
-    font-size: 1rem;
+.header-title {
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+
+.toggle-icon {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.fleet-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 300px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease;
+}
+
+.fleet-list.collapsed {
+    max-height: 0;
+    overflow: hidden;
+}
+
+.fleet-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr;
+    align-items: center;
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    position: relative;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.fleet-row:hover {
+    background: var(--bg-tertiary);
+}
+
+.fleet-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.type-cell {
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.coords-cell {
+    justify-content: center;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+
+.coord-arrow {
+    color: var(--accent-blue);
+    font-size: 0.8rem;
+}
+
+.time-cell {
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.timer-cell {
+    justify-content: flex-end;
 }
 
 .fleet-timer {
     font-family: 'Courier New', monospace;
     font-weight: bold;
-    min-width: 60px;
+    font-size: 1rem;
 }
 
 /* Mission Types Colors */
@@ -2358,40 +2419,203 @@ body {
 .mission-colonize .fleet-timer { color: var(--accent-green); }
 .mission-transport .fleet-timer { color: var(--accent-blue); }
 .mission-deploy .fleet-timer { color: var(--text-secondary); }
-.mission-return .fleet-timer { color: var(--text-secondary); }
+
+.mission-return { opacity: 0.8; }
+.mission-return .mission-name { font-style: italic; }
 
 /* Tooltip */
-.fleet-details-tooltip {
+.fleet-tooltip {
     display: none;
     position: absolute;
     top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 20px;
     background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--accent-blue);
     border-radius: 6px;
-    padding: 8px;
-    width: 200px;
+    padding: 10px;
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    margin-top: 5px;
+    min-width: 200px;
+    pointer-events: none;
 }
 
-.flying-fleet-item:hover .fleet-details-tooltip {
+.fleet-row:hover .fleet-tooltip {
     display: block;
 }
 
-.fleet-tooltip-header {
+.tooltip-header {
     font-weight: bold;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 4px;
-    margin-bottom: 4px;
-    font-size: 0.8rem;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    color: var(--accent-blue);
+}
+
+.tooltip-body {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+
+/* Enhanced Overview Styles */
+.overview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.planet-selector {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-blue);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    min-width: 200px;
+}
+
+.planet-profile {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    align-items: center;
+}
+
+.planet-image {
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 30%, #2a3650, #0a0e1a);
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(74, 144, 226, 0.2);
+}
+
+.planet-visual {
+    font-size: 5rem;
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+.planet-details-table {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+.detail-value {
     color: var(--text-primary);
 }
 
-.fleet-tooltip-info {
+.resource-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.res-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.res-name {
+    font-weight: bold;
+}
+
+.res-name.metal { color: var(--metal-color); }
+.res-name.crystal { color: var(--crystal-color); }
+.res-name.deuterium { color: var(--deuterium-color); }
+.res-name.energy { color: var(--energy-color); }
+
+.total-row {
+    border-top: 1px solid var(--border-color);
+    margin-top: 5px;
+    padding-top: 10px;
+    font-weight: bold;
+}
+
+.energy-warning {
+    color: var(--accent-red);
+    background: rgba(217, 83, 79, 0.1);
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: bold;
+    border: 1px solid var(--accent-red);
+}
+
+.text-danger { color: var(--accent-red); }
+.text-success { color: var(--accent-green); }
+.text-warning { color: var(--accent-yellow); }
+
+@media (max-width: 768px) {
+    .planet-profile {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .planet-image {
+        margin: 0 auto;
+    }
+    
+    .overview-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+}
+
+
+/* Header Planet Info */
+.player-info-header {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-planet-info {
     font-size: 0.8rem;
+    color: var(--accent-blue);
+    font-weight: bold;
+}
+
+#planet-coords-header {
     color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    margin-left: 5px;
 }
 

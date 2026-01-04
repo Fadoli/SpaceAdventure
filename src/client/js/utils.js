@@ -42,3 +42,11 @@ export function formatCountdown(seconds) {
 export function formatDate(timestamp) {
     return new Date(timestamp).toLocaleString();
 }
+
+/**
+ * Format timestamp as readable time
+ */
+export function formatTime(timestamp) {
+    if (!timestamp) return '-';
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}

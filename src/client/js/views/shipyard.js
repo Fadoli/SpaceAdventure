@@ -4,9 +4,9 @@ import { formatNumber, formatCountdown } from '../utils.js';
 import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateBaseTime } from '../../../shared/time.js';
+import { getCurrentPlanetId } from '../main.js';
 
 let currentShipyardData = null;
-let currentPlanetId = null;
 let collapsedSections = {}; // Track collapsed state
 let lastShipyardStateHash = null;
 
@@ -317,40 +317,49 @@ function renderBuildQueue(shipyardData) {
  */
 function attachShipyardListeners(planet, shipyardData) {
     window.buildShip = async function(shipKey) {
+        const planetId = getCurrentPlanetId();
+        if (!planetId) return;
         const qty = parseInt(document.getElementById(`qty-${shipKey}`).value) || 1;
         
         try {
-            const response = await API.buildShips(planet.id, { [shipKey]: qty });
+            const response = await API.buildShips(planetId, { [shipKey]: qty });
             console.log('Ship build queued:', response);
             
             // Refresh shipyard view
-            updateShipyardView(planet);
+            const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
+            updateShipyardView(activePlanet);
         } catch (error) {
             alert(`Failed to build ship: ${error.message}`);
         }
     };
     
     window.buildDefense = async function(defenseKey) {
+        const planetId = getCurrentPlanetId();
+        if (!planetId) return;
         const qty = parseInt(document.getElementById(`qty-${defenseKey}`).value) || 1;
         
         try {
-            const response = await API.buildDefenses(planet.id, { [defenseKey]: qty });
+            const response = await API.buildDefenses(planetId, { [defenseKey]: qty });
             console.log('Defense build queued:', response);
             
             // Refresh shipyard view
-            updateShipyardView(planet);
+            const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
+            updateShipyardView(activePlanet);
         } catch (error) {
             alert(`Failed to build defense: ${error.message}`);
         }
     };
     
     window.cancelShipyardBuild = async function(queueId) {
+        const planetId = getCurrentPlanetId();
+        if (!planetId) return;
         try {
-            const response = await API.cancelShipyardProduction(planet.id, queueId);
+            const response = await API.cancelShipyardProduction(planetId, queueId);
             console.log('Build cancelled:', response);
             
             // Refresh shipyard view
-            updateShipyardView(planet);
+            const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
+            updateShipyardView(activePlanet);
         } catch (error) {
             alert(`Failed to cancel build: ${error.message}`);
         }

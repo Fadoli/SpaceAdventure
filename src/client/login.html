@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Space Adventure</title>
+    <link rel="stylesheet" href="/src/client/css/main.css">
+</head>
+<body>
+    <div id="app">
+        <div id="auth-screen" class="screen active">
+            <div class="auth-container">
+                <h1>🚀 Space Adventure</h1>
+                <p class="tagline">Build your empire among the stars</p>
+                
+                <div class="auth-tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form active">
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div class="error-message" id="login-error"></div>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required minlength="3" maxlength="20" autocomplete="username">
+                        <small>3-20 characters, letters, numbers, _ and - only</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required minlength="8" autocomplete="new-password">
+                        <small>Minimum 8 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email (optional)</label>
+                        <input type="email" id="register-email" autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <div class="error-message" id="register-error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/client/js/login.js"></script>
+</body>
+</html>

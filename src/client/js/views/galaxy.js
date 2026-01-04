@@ -257,5 +257,5 @@ window.colonizePlanetFromGalaxy = async function(position) {
 
 window.attackPlanetFromGalaxy = function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
-    alert(\Attack mission to \ coming soon!\);
+    alert("Not implemented yet: Attack planet at " + coords.join(':'));
 };
