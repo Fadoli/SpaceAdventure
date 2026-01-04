@@ -1,4 +1,5 @@
 import { formatCountdown, formatTime } from '../utils.js';
+import { isEmpty } from '../../../shared/utils.js';
 
 // Global toggle handler
 window.toggleFleetMovements = function() {
@@ -12,6 +13,60 @@ window.toggleFleetMovements = function() {
         localStorage.setItem('fleetViewCollapsed', list.classList.contains('collapsed'));
     }
 };
+
+/**
+ * Handle global tooltip positioning
+ */
+function setupTooltipHandlers() {
+    const tooltip = document.getElementById('fleet-tooltip-global') || createGlobalTooltip();
+    
+    document.querySelectorAll('.fleet-row').forEach(row => {
+        row.addEventListener('mouseenter', (e) => {
+            const content = row.querySelector('.fleet-tooltip-content').innerHTML;
+            const header = row.querySelector('.fleet-tooltip-header-text').textContent;
+            
+            tooltip.querySelector('.tooltip-header').textContent = header;
+            tooltip.querySelector('.tooltip-body').innerHTML = content;
+            tooltip.style.display = 'block';
+            
+            updateTooltipPosition(e, tooltip);
+        });
+        
+        row.addEventListener('mousemove', (e) => {
+            updateTooltipPosition(e, tooltip);
+        });
+        
+        row.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+    });
+}
+
+function createGlobalTooltip() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'fleet-tooltip-global';
+    tooltip.className = 'fleet-tooltip-fixed';
+    tooltip.innerHTML = `
+        <div class="tooltip-header"></div>
+        <div class="tooltip-body"></div>
+    `;
+    document.body.appendChild(tooltip);
+    return tooltip;
+}
+
+function updateTooltipPosition(e, tooltip) {
+    const x = e.clientX + 15;
+    const y = e.clientY + 15;
+    
+    // Keep inside viewport
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const maxX = window.innerWidth - width - 20;
+    const maxY = window.innerHeight - height - 20;
+    
+    tooltip.style.left = Math.min(x, maxX) + 'px';
+    tooltip.style.top = Math.min(y, maxY) + 'px';
+}
 
 /**
  * Update the global fleet movements display
@@ -105,7 +160,7 @@ export function updateFleetMovements(gameState) {
             .map(([type, count]) => `${type}: ${count}`)
             .join('<br>');
             
-        const resourceList = fleet.resources ? Object.entries(fleet.resources)
+        const resourceList = (fleet.resources && !isEmpty(fleet.resources)) ? Object.entries(fleet.resources)
             .filter(([_, amount]) => amount > 0)
             .map(([type, amount]) => `${type}: ${amount}`)
             .join('<br>') : '';
@@ -136,9 +191,10 @@ export function updateFleetMovements(gameState) {
                     <span class="fleet-timer">${formatCountdown(timeRemaining)}</span>
                 </div>
                 
-                <div class="fleet-tooltip">
-                    <div class="tooltip-header">${missionName} Details</div>
-                    <div class="tooltip-body">${tooltipContent}</div>
+                <!-- Hidden data for tooltip -->
+                <div class="fleet-tooltip-data" style="display: none;">
+                    <div class="fleet-tooltip-header-text">${missionName} Details</div>
+                    <div class="fleet-tooltip-content">${tooltipContent}</div>
                 </div>
             </div>
         `;
@@ -147,4 +203,7 @@ export function updateFleetMovements(gameState) {
     html += '</div>';
     
     container.innerHTML = html;
+    
+    // Attach handlers after rendering
+    setupTooltipHandlers();
 }

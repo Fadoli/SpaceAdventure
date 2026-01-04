@@ -2423,24 +2423,19 @@ body {
 .mission-return { opacity: 0.8; }
 .mission-return .mission-name { font-style: italic; }
 
-/* Tooltip */
-.fleet-tooltip {
+/* Tooltip (Fixed/Global) */
+.fleet-tooltip-fixed {
     display: none;
-    position: absolute;
-    top: 100%;
-    left: 20px;
+    position: fixed;
     background: var(--bg-secondary);
     border: 1px solid var(--accent-blue);
     border-radius: 6px;
     padding: 10px;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7);
     min-width: 200px;
     pointer-events: none;
-}
-
-.fleet-row:hover .fleet-tooltip {
-    display: block;
+    max-width: 300px;
 }
 
 .tooltip-header {
