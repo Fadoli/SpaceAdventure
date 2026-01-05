@@ -281,6 +281,9 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   console.log(`[RESEARCH] Resources deducted, remaining:`, planet.resources);
   
   // Calculate research time with unified formula
+  const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
+  const configMultiplier = getResearchTimeMultiplier();
+  
   const time = calculatePracticalResearchTime(
     practicalResearchConfig,
     totalFocusLevel,
