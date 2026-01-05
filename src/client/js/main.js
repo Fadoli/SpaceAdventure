@@ -358,13 +358,12 @@ window.switchBuildingVariant = async function(buildingKey, toCustom) {
 };
 
 window.selectCustomVariant = async function(buildingKey, focusLevels) {
-    if (!gameState || !gameState.planets[0]) return;
-    
-    const planet = gameState.planets[0];
+    const planetId = getCurrentPlanetId();
+    if (!planetId) return;
     
     try {
         const buildingsView = await import('./views/buildings.js');
-        await API.selectCustomVariant(planet.id, buildingKey, focusLevels);
+        await API.selectCustomVariant(planetId, buildingKey, focusLevels);
         await buildingsView.closeCustomVariantModal();
         await loadGameState();
     } catch (error) {

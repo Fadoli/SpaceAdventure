@@ -558,6 +558,10 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
     }
     
     const planet = currentGameState?.planets.find(p => p.id === planetId);
+    if (!planet) {
+        Notifications.showError('Planet not found');
+        return;
+    }
     showCustomVariantSelectionModal(buildingKey, building, planet, onStateChange);
 }
 
