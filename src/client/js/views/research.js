@@ -26,30 +26,16 @@ let researchQueueVisible = true;
 window.toggleResearchQueueVisibility = function () {
     researchQueueVisible = !researchQueueVisible;
     lastResearchStateHash = null; // Force re-render
-
-    // Find which tab is active and re-render it
-    const activeTab = document.querySelector('.research-tabs .tab-btn.active');
-    if (activeTab) {
-        const tab = activeTab.dataset.tab;
-        if (tab === 'theoretical') renderTheoreticalResearch();
-        else if (tab === 'practical') renderPracticalResearch();
-    }
+    loadResearchData();
 };
 
 /**
  * Calculate a hash of the research state to detect changes
  */
 function calculateResearchStateHash(data) {
-    const currentPlanet = getCurrentPlanet();
     const state = {
         planetId: getCurrentPlanetId(),
-        resources: currentPlanet ? {
-            metal: Math.floor(currentPlanet.resources.metal),
-            crystal: Math.floor(currentPlanet.resources.crystal),
-            deuterium: Math.floor(currentPlanet.resources.deuterium)
-        } : null,
         labLevel: currentPlanetBuildings?.researchLab || 0,
-        // Only include stable identifiers for the queue
         theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
         practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, level: q.level })),
         theoretical: data.theoretical,
@@ -62,10 +48,8 @@ function calculateResearchStateHash(data) {
  * Initialize research view
  */
 export async function initializeResearch(planet) {
-    console.log('Initializing research view for planet:', planet.id);
     currentPlanetBuildings = planet.buildings;
     await loadResearchData();
-    console.log('Research data ready:', researchData);
     renderResearchView();
 }
 
@@ -76,34 +60,30 @@ async function loadResearchData() {
     try {
         const response = await fetch('/api/game/research');
         const result = await response.json();
-        // Extract data from response wrapper
         const newResearchData = result.data || result;
 
-        // Check if state has changed
         const currentHash = calculateResearchStateHash(newResearchData);
         
-        // Find current container to see if it's empty
         const activeTab = document.querySelector('.research-tabs .tab-btn.active');
         const tabId = activeTab ? activeTab.dataset.tab : 'theoretical';
         const container = document.querySelector(`#${tabId}-tab .research-content`);
         const isContainerEmpty = !container || container.innerHTML.trim() === '';
 
-        if (currentHash === lastResearchStateHash && researchData !== null && !isContainerEmpty) {
-            // State hasn't changed and view is already rendered, skip
-            return;
-        }
+        const stateChanged = currentHash !== lastResearchStateHash;
         
-        const isFirstLoad = researchData === null;
-        lastResearchStateHash = currentHash;
         researchData = newResearchData;
-        console.log('Research data loaded and changed:', researchData);
-        
-        // Trigger re-render of current active tab
-        if (!isFirstLoad) {
-            const activeTab = document.querySelector('.research-tabs .tab-btn.active');
+        lastResearchStateHash = currentHash;
+
+        if (stateChanged || isContainerEmpty) {
+            // Only re-render full content if research levels or queue changed
             if (activeTab) {
                 switchTab(activeTab.dataset.tab);
+            } else {
+                renderTheoreticalResearch();
             }
+        } else {
+            // Just update button states and cost colors without re-rendering everything
+            updateCurrentTabStatus();
         }
     } catch (error) {
         console.error('Failed to load research data:', error);
@@ -116,84 +96,133 @@ async function loadResearchData() {
  */
 function renderResearchView() {
     const container = document.getElementById('research-view');
-    if (!container) {
-        console.error('Research view container not found');
-        return;
-    }
+    if (!container) return;
 
-    console.log('Clearing research view container');
-    // Clear the container first (remove the "coming soon" message)
-    container.innerHTML = '';
+    if (!container.querySelector('.research-container')) {
+        container.innerHTML = '';
+        const content = document.createElement('div');
+        content.className = 'research-container';
+        content.innerHTML = `
+            <h2>Research System</h2>
+            <div class="research-tabs">
+              <button class="tab-btn active" data-tab="theoretical">Theoretical Research</button>
+              <button class="tab-btn" data-tab="practical">Practical Customization</button>
+              <button class="tab-btn" data-tab="variants">Custom Variants</button>
+            </div>
+            <div id="theoretical-tab" class="research-tab active"><div class="research-content"></div></div>
+            <div id="practical-tab" class="research-tab"><div class="research-content"></div></div>
+            <div id="variants-tab" class="research-tab"><div class="research-content"></div></div>
+        `;
+        container.appendChild(content);
 
-    const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
-
-    const content = document.createElement('div');
-    content.className = 'research-container';
-    content.innerHTML = `
-    <h2>Research System</h2>
-    
-    <div class="research-tabs">
-      <button class="tab-btn active" data-tab="theoretical">Theoretical Research</button>
-      <button class="tab-btn" data-tab="practical">Practical Customization</button>
-      <button class="tab-btn" data-tab="variants">Custom Variants</button>
-    </div>
-
-    <div id="theoretical-tab" class="research-tab active">
-      <div class="research-content"></div>
-    </div>
-
-    <div id="practical-tab" class="research-tab">
-      <div class="research-content"></div>
-    </div>
-
-    <div id="variants-tab" class="research-tab">
-      <div class="research-content"></div>
-    </div>
-  `;
-
-    console.log('Appending research content to container');
-    container.appendChild(content);
-
-    // Add tab switching
-    document.querySelectorAll('.research-tabs .tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const tab = e.target.dataset.tab;
-            switchTab(tab);
+        document.querySelectorAll('.research-tabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                switchTab(e.target.dataset.tab);
+            });
         });
-    });
 
-    // Render initial tab content
-    renderTheoreticalResearch();
+        renderTheoreticalResearch();
+    }
 }
 
-/**
- * Switch between tabs
- */
 function switchTab(tab) {
-    // Hide all tabs
     document.querySelectorAll('.research-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
-    // Show selected tab
     const tabElement = document.getElementById(`${tab}-tab`);
-    if (tabElement) {
-        tabElement.classList.add('active');
-    }
-
-    // Update button state
+    if (tabElement) tabElement.classList.add('active');
     document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
 
-    // Render content
     switch (tab) {
-        case 'theoretical':
-            renderTheoreticalResearch();
-            break;
-        case 'practical':
-            renderPracticalResearch();
-            break;
-        case 'variants':
-            renderCustomVariants();
-            break;
+        case 'theoretical': renderTheoreticalResearch(); break;
+        case 'practical': renderPracticalResearch(); break;
+        case 'variants': renderCustomVariants(); break;
+    }
+}
+
+/**
+ * Update current tab without re-rendering
+ */
+function updateCurrentTabStatus() {
+    const activeTab = document.querySelector('.research-tabs .tab-btn.active');
+    if (!activeTab) return;
+    
+    if (activeTab.dataset.tab === 'theoretical') {
+        updateTheoreticalResearchButtons();
+    } else if (activeTab.dataset.tab === 'practical') {
+        // Practical research buttons are static until research level changes
+    }
+    
+    updateResearchQueueTimers();
+}
+
+/**
+ * Update theoretical research buttons and cost colors
+ */
+function updateTheoreticalResearchButtons() {
+    const currentPlanet = getCurrentPlanet();
+    if (!currentPlanet || !researchData) return;
+
+    const theoryResearch = getTheoreticalResearch();
+    const playerTech = researchData.theoretical || {};
+    const queue = researchData.progress?.theoretical || [];
+    const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+    const hasLab = researchLabLevel > 0;
+
+    for (const techKey in theoryResearch) {
+        const tech = theoryResearch[techKey];
+        const techData = playerTech[techKey];
+        const level = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
+        const queuedItems = queue.filter(q => q.techKey === techKey);
+        const queuedCount = queuedItems.length;
+        const nextLevelToQueue = level + 1 + queuedCount;
+        
+        const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
+        const requirementsMet = canResearchTheoretical(techKey, playerTech, currentPlanetBuildings);
+        
+        const canAffordMetal = currentPlanet.resources.metal >= nextLevelCost.metal;
+        const canAffordCrystal = currentPlanet.resources.crystal >= nextLevelCost.crystal;
+        const canAffordDeut = currentPlanet.resources.deuterium >= (nextLevelCost.deuterium || 0);
+        const canAfford = canAffordMetal && canAffordCrystal && canAffordDeut;
+
+        const isQueueFull = queue.length >= maxQueue;
+        const isDisabled = isQueueFull || !requirementsMet || !canAfford || !hasLab;
+
+        // Find elements in DOM
+        const card = document.querySelector(`.tech-card[data-tech="${techKey}"]`);
+        if (!card) continue;
+
+        // Update cost classes
+        const costs = card.querySelector('.tech-costs');
+        if (costs) {
+            const metalEl = costs.querySelector('[title="Metal"]');
+            const crystalEl = costs.querySelector('[title="Crystal"]');
+            const deutEl = costs.querySelector('[title="Deuterium"]');
+            
+            if (metalEl) metalEl.className = `cost-item ${canAffordMetal ? '' : 'text-error'}`;
+            if (crystalEl) crystalEl.className = `cost-item ${canAffordCrystal ? '' : 'text-error'}`;
+            if (deutEl) deutEl.className = `cost-item ${canAffordDeut ? '' : 'text-error'}`;
+        }
+
+        // Update button
+        const btn = card.querySelector('.btn-primary, .btn-secondary');
+        if (btn) {
+            btn.disabled = isDisabled;
+            btn.className = `btn ${isDisabled ? 'btn-secondary' : 'btn-primary'} btn-small`;
+            
+            // Update tooltip
+            let buttonTitle = 'Research next level';
+            if (isQueueFull) buttonTitle = 'Research queue is full';
+            else if (!hasLab) buttonTitle = 'A Research Lab is required';
+            else if (!requirementsMet) buttonTitle = 'Requirements not met';
+            else if (!canAfford) buttonTitle = 'Insufficient resources';
+            btn.title = buttonTitle;
+        }
+        
+        // Update locked class on card
+        if (!requirementsMet || !hasLab) card.classList.add('locked');
+        else card.classList.remove('locked');
     }
 }
 
@@ -208,21 +237,16 @@ function renderTheoreticalResearch() {
     const playerTech = researchData?.theoretical || {};
     const queue = researchData?.progress?.theoretical || [];
 
-    // Group by category
     const grouped = {};
     for (const key in theoryResearch) {
         const tech = theoryResearch[key];
-        if (!grouped[tech.category]) {
-            grouped[tech.category] = [];
-        }
+        if (!grouped[tech.category]) grouped[tech.category] = [];
         grouped[tech.category].push({ key, ...tech });
     }
 
     let html = '<div class="theory-research-list">';
-
     const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
-    // Show research queue at the top if there are items
     if (queue.length > 0) {
         html += `
       <div class="research-queue-section">
@@ -232,11 +256,9 @@ function renderTheoreticalResearch() {
         </div>
         <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
     `;
-
         for (const queueItem of queue) {
             const tech = theoryResearch[queueItem.techKey];
             if (!tech) continue;
-
             const isActive = queue.indexOf(queueItem) === 0;
             const elapsed = Date.now() - queueItem.startTime;
             const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
@@ -254,79 +276,27 @@ function renderTheoreticalResearch() {
             <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
             <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Cancel">✕</button>
           </div>
-        </div>
-      `;
+        </div>`;
         }
-
         html += '</div></div>';
     }
 
     for (const category in grouped) {
-        const techs = grouped[category];
-        html += `<div class="research-category">
-      <h3>${category}</h3>
-      <div class="tech-list">`;
-
-        const currentPlanet = getCurrentPlanet();
+        html += `<div class="research-category"><h3>${category}</h3><div class="tech-list">`;
         const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
         const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
         const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
 
-        for (const tech of techs) {
+        for (const tech of grouped[category]) {
             const techData = playerTech[tech.key];
             const level = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
-            const queuedItems = queue.filter(q => q.techKey === tech.key);
-            const isQueued = queuedItems.length > 0;
-            const queuedCount = queuedItems.length;
+            const queuedCount = queue.filter(q => q.techKey === tech.key).length;
             const nextLevelToQueue = level + 1 + queuedCount;
-            const isQueueFull = queue.length >= maxQueue;
-
-            // Calculate time and cost for next level to show on card
-            const nextLevelTime = calculateTheoreticalResearchTime(
-                tech,
-                nextLevelToQueue - 1,
-                researchLabLevel,
-                researchSpeedBonus,
-                configMultiplier
-            );
+            const nextLevelTime = calculateTheoreticalResearchTime(tech, nextLevelToQueue - 1, researchLabLevel, researchSpeedBonus, configMultiplier);
             const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
 
-            // Requirement checks
-            const hasLab = researchLabLevel > 0;
-            const requirementsMet = canResearchTheoretical(tech.key, playerTech, currentPlanetBuildings);
-            const canAfford = currentPlanet && 
-                             currentPlanet.resources.metal >= nextLevelCost.metal &&
-                             currentPlanet.resources.crystal >= nextLevelCost.crystal &&
-                             currentPlanet.resources.deuterium >= nextLevelCost.deuterium;
-            
-            const isDisabled = isQueueFull || !requirementsMet || !canAfford || !hasLab;
-            
-            let buttonTitle = 'Research next level';
-            if (isQueueFull) buttonTitle = 'Research queue is full';
-            else if (!hasLab) buttonTitle = 'A Research Lab is required to start research';
-            else if (!requirementsMet) {
-                const reqs = [];
-                if (tech.prerequisites) {
-                    tech.prerequisites.forEach(p => {
-                        const researchEntry = playerTech[p];
-                        const pLevel = typeof researchEntry === 'object' ? (researchEntry.level ?? 0) : (researchEntry ?? 0);
-                        if (pLevel === 0) reqs.push(theoryResearch[p]?.name || p);
-                    });
-                }
-                if (tech.requirements) {
-                    for (const b in tech.requirements) {
-                        if ((currentPlanetBuildings[b] || 0) < tech.requirements[b]) {
-                            const bName = b.replace(/([A-Z])/g, ' $1').trim();
-                            reqs.push(`${bName} Lvl ${tech.requirements[b]}`);
-                        }
-                    }
-                }
-                buttonTitle = `Requirements not met: ${reqs.join(', ')}`;
-            }
-            else if (!canAfford) buttonTitle = 'Insufficient resources';
-
             html += `
-        <div class="tech-card ${isQueued ? 'queued' : ''} ${!requirementsMet || !hasLab ? 'locked' : ''}">
+        <div class="tech-card" data-tech="${tech.key}">
           <div class="tech-header">
             <span class="tech-icon">${tech.icon}</span>
             <div class="tech-name">
@@ -335,40 +305,27 @@ function renderTheoreticalResearch() {
             </div>
             <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="View detailed information">ℹ️</button>
           </div>
-          
           <div class="tech-costs">
-            <div class="cost-item ${currentPlanet?.resources.metal < nextLevelCost.metal ? 'text-error' : ''}" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
-            <div class="cost-item ${currentPlanet?.resources.crystal < nextLevelCost.crystal ? 'text-error' : ''}" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
-            ${nextLevelCost.deuterium > 0 ? `<div class="cost-item ${currentPlanet?.resources.deuterium < nextLevelCost.deuterium ? 'text-error' : ''}" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
+            <div class="cost-item" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
+            <div class="cost-item" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
+            ${nextLevelCost.deuterium > 0 ? `<div class="cost-item" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
           </div>
-
           <div class="tech-footer">
             <span class="build-time">🕐 ${formatTime(nextLevelTime * 1000)}</span>
             <div class="tech-actions">
-              ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
-              <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-primary'} btn-small" 
-                      onclick="window.startTheoreticalResearch('${tech.key}')" 
-                      ${isDisabled ? 'disabled' : ''} 
-                      title="${buttonTitle}">
-                Research
-              </button>
+              ${queuedCount > 0 ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
+              <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')">Research</button>
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
         }
-
         html += '</div></div>';
     }
-
     html += '</div>';
     container.innerHTML = html;
-    updateResearchQueueTimers();
+    updateTheoreticalResearchButtons();
 }
 
-/**
- * Update research queue timers
- */
 function updateResearchQueueTimers() {
     document.querySelectorAll('.research-queue-section .timer').forEach(timer => {
         const finishTime = parseInt(timer.dataset.finish);
@@ -377,59 +334,40 @@ function updateResearchQueueTimers() {
         const now = Date.now();
         const remaining = Math.max(0, finishTime - now);
 
-        const hours = Math.floor(remaining / 3600000);
-        const minutes = Math.floor((remaining % 3600000) / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
-
         if (remaining === 0) {
             timer.textContent = 'Complete!';
         } else {
-            timer.textContent = `${hours}h ${minutes}m ${seconds}s`;
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            timer.textContent = `${h}h ${m}m ${s}s`;
         }
 
-        // Update progress bar if it exists
         if (id && startTime && finishTime) {
-            const theoryBar = document.getElementById(`research-theory-progress-${id}`);
-            const practicalBar = document.getElementById(`research-practical-progress-${id}`);
-            const progressBar = theoryBar || practicalBar;
-
-            if (progressBar) {
-                const total = finishTime - startTime;
-                const elapsed = now - startTime;
-                const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
-                progressBar.style.width = `${percent}%`;
+            const bar = document.getElementById(`research-theory-progress-${id}`) || document.getElementById(`research-practical-progress-${id}`);
+            if (bar) {
+                const percent = Math.min(100, Math.max(0, ((now - startTime) / (finishTime - startTime)) * 100));
+                bar.style.width = `${percent}%`;
             }
         }
     });
 }
 
-/**
- * Render practical research tab - compact investment level system
- */
 async function renderPracticalResearch() {
     const container = document.querySelector('#practical-tab .research-content');
     if (!container) return;
 
     try {
-        // Load available practical research
         const planetId = getCurrentPlanetId();
         const response = await fetch(`/api/game/planet/${planetId}/research/available`);
-        if (!response.ok) {
-            throw new Error(`Failed to load available research: ${response.statusText}`);
-        }
-        const result = await response.json();
-        const available = result.data || result || {};
-
+        const available = (await response.json()).data || {};
         const practical = getPracticalResearch();
         const playerPractical = researchData?.practical || {};
         const queue = researchData?.progress?.practical || [];
-
         const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
         let html = '<div class="practical-research-view">';
-
-        // Show active research queue
-        if (queue && queue.length > 0) {
+        if (queue.length > 0) {
             html += `
         <div class="research-queue-section">
           <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -438,962 +376,226 @@ async function renderPracticalResearch() {
           </div>
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
       `;
-            for (const queueItem of queue) {
-                let research = null;
-                for (const key in practical) {
-                    if (practical[key].baseType === queueItem.baseType) {
-                        research = practical[key];
-                        break;
-                    }
-                }
-                if (!research) continue;
-
-                const isActive = queue.indexOf(queueItem) === 0;
-                const elapsed = Date.now() - queueItem.startTime;
-                const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
-                const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
-
+            for (const q of queue) {
+                let r = Object.values(practical).find(p => p.baseType === q.baseType);
+                if (!r) continue;
+                const isActive = queue.indexOf(q) === 0;
+                const percent = Math.min(100, Math.max(0, ((Date.now() - q.startTime) / (q.endTime - q.startTime)) * 100));
                 html += `
           <div class="queue-item ${isActive ? 'active' : ''}">
             <div class="queue-item-row">
-              <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
-              <span class="q-name" title="${research.name}">${research.icon} ${research.name}</span>
-              <span class="q-level">Lvl ${queueItem.level || ''}</span>
-              <div class="progress-bar-mini">
-                <div class="progress-fill" id="research-practical-progress-${queueItem.id}" style="width: ${isActive ? percent : 0}%"></div>
-              </div>
-              <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
-              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${queueItem.id}')" title="Cancel">✕</button>
+              <span class="q-pos">${queue.indexOf(q) + 1}</span>
+              <span class="q-name">${r.icon} ${r.name}</span>
+              <span class="q-level">Lvl ${q.level || ''}</span>
+              <div class="progress-bar-mini"><div class="progress-fill" id="research-practical-progress-${q.id}" style="width: ${isActive ? percent : 0}%"></div></div>
+              <span class="q-time-mini timer" data-finish="${q.endTime}" data-start="${q.startTime}" data-id="${q.id}"></span>
+              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${q.id}')">✕</button>
             </div>
-          </div>
-        `;
+          </div>`;
             }
             html += '</div></div>';
         }
 
-        // Show available research as clickable cards
-        let foundAny = false;
-        html += '<div class="research-cards-section"><h3>Available Customizations</h3>';
-        html += '<div class="research-cards">';
-
+        html += '<div class="research-cards-section"><h3>Available Customizations</h3><div class="research-cards">';
         for (const key in practical) {
-            const research = practical[key];
+            const res = practical[key];
             if (!available[key]) continue;
-            foundAny = true;
-
-            const researchLevels = playerPractical[research.baseType];
-            let totalLevel = 0;
-            if (researchLevels) {
-                for (const focus in researchLevels) {
-                    totalLevel += researchLevels[focus];
-                }
-            }
-
+            const lvls = playerPractical[res.baseType];
+            let total = 0; if (lvls) Object.values(lvls).forEach(v => total += v);
             const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
-            const hasLab = researchLabLevel > 0;
-            const isQueueFull = queue.length >= maxQueue;
-            const isDisabled = isQueueFull || !hasLab;
-            
-            let buttonTitle = 'Customize Research →';
-            if (isQueueFull) buttonTitle = 'Research queue is full';
-            else if (!hasLab) buttonTitle = 'A Research Lab is required to start research';
-
+            const isDisabled = queue.length >= maxQueue || researchLabLevel === 0;
             html += `
-        <div class="research-card ${isDisabled ? 'locked' : ''}" onclick="${!isDisabled ? `openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}')` : ''}">
-          <div class="card-header">
-            <span class="icon">${research.icon}</span>
-            <span class="name">${research.name}</span>
-          </div>
+        <div class="research-card ${isDisabled ? 'locked' : ''}" onclick="${!isDisabled ? `openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}')` : ''}">
+          <div class="card-header"><span class="icon">${res.icon}</span><span class="name">${res.name}</span></div>
           <div class="card-body">
-            <p class="description">${research.description}</p>
-            <div class="current-level">
-              Current Level: <strong>${totalLevel}</strong>
-            </div>
-            <div class="focuses">
-              ${researchLevels ? `
-                <span class="focus output">📈 ${researchLevels.output}</span>
-                <span class="focus automation">🤖 ${researchLevels.automation}</span>
-                <span class="focus energy">⚡ ${researchLevels.energy}</span>
-                <span class="focus cost">💰 ${researchLevels.cost}</span>
-              ` : '<span class="focus">Not yet researched</span>'}
-            </div>
+            <p class="description">${res.description}</p>
+            <div class="current-level">Current Level: <strong>${total}</strong></div>
+            <div class="focuses">${lvls ? `<span class="focus output">📈 ${lvls.output}</span><span class="focus automation">🤖 ${lvls.automation}</span><span class="focus energy">⚡ ${lvls.energy}</span><span class="focus cost">💰 ${lvls.cost}</span>` : '<span class="focus">Not yet researched</span>'}</div>
           </div>
           <div class="card-footer">
-            ${totalLevel > 0 ? `
-              <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-success'} btn-small" 
-                      ${isDisabled ? 'disabled' : ''} 
-                      onclick="window.buildCustomVariantFromResearch('${research.baseType}', 'building', event)">
-                ✓ Create Variant
-              </button>
-            ` : ''}
-            <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-primary'}" 
-                    ${isDisabled ? 'disabled' : ''} 
-                    title="${buttonTitle}"
-                    onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}', event)">
-              ${buttonTitle}
-            </button>
+            ${total > 0 ? `<button class="btn ${isDisabled ? 'btn-secondary' : 'btn-success'} btn-small" ${isDisabled ? 'disabled' : ''} onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">✓ Create Variant</button>` : ''}
+            <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-primary'}" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">Customize →</button>
           </div>
-        </div>
-      `;
+        </div>`;
         }
-
-        if (!foundAny) {
-            html += '<p class="info">No practical research available. Build more buildings and ships.</p>';
-        }
-
         html += '</div></div></div>';
         container.innerHTML = html;
-    } catch (error) {
-        console.error('Error loading practical research:', error);
-        container.innerHTML = `<p class="error">Failed to load practical research: ${error.message}</p>`;
-    }
+    } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }
 }
 
-/**
- * Start research at next level
- */
 window.startResearchLevel = async function (researchKey) {
     try {
-        const planetId = getCurrentPlanetId();
-        const response = await fetch(`/api/game/planet/${planetId}/research/practical`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                researchKey
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            Notifications.showError(`Error: ${error.message}`);
-            return;
-        }
-
+        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ researchKey }) });
+        if (!response.ok) { Notifications.showError(`Error: ${(await response.json()).message}`); return; }
         await loadResearchData();
-        renderPracticalResearch();
-    } catch (error) {
-        Notifications.showError(`Failed to start research: ${error.message}`);
-    }
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-/**
- * Open allocation modal for practical research customization
- */
 window.openAllocationModal = function (researchKey, researchName, baseType, icon, event) {
-    // Stop propagation if called from a button
-    if (event) {
-        event.stopPropagation();
-    }
-
-    const practical = getPracticalResearch();
-    const research = practical[researchKey];
-
-    if (!research) {
-        Notifications.showError('Research not found');
-        return;
-    }
-
-    // Create modal HTML
-    const modalHtml = `
-    <div class="modal-overlay" onclick="closeAllocationModal()">
-      <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
-          <h2>${icon} ${researchName}</h2>
-          <button class="modal-close" onclick="closeAllocationModal()">✕</button>
-        </div>
-        
+    if (event) event.stopPropagation();
+    const res = getPracticalResearch()[researchKey];
+    if (!res) { Notifications.showError('Research not found'); return; }
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-overlay" onclick="closeAllocationModal()"><div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header"><h2>${icon} ${researchName}</h2><button class="modal-close" onclick="closeAllocationModal()">✕</button></div>
         <div class="modal-body">
-          <div class="allocation-intro">
-            <p>Customize your research by allocating focus across different aspects:</p>
-          </div>
-          
-          <div class="allocation-container">
-            <div class="allocation-sliders">
-              <div class="slider-group">
-                <label>📈 Output (Production/Efficiency)</label>
-                <div class="slider-row">
-                  <input type="range" min="0" max="100" value="0" id="slider-output" class="slider"
-                    oninput="updateAllocationSliders()">
-                  <span id="value-output" class="value">0%</span>
-                </div>
-                <p class="slider-hint">Increases production but costs more</p>
-              </div>
-              
-              <div class="slider-group">
-                <label>🤖 Automation (Reduce Workforce)</label>
-                <div class="slider-row">
-                  <input type="range" min="0" max="100" value="0" id="slider-automation" class="slider"
-                    oninput="updateAllocationSliders()">
-                  <span id="value-automation" class="value">0%</span>
-                </div>
-                <p class="slider-hint">Reduces workforce needs but uses more energy</p>
-              </div>
-              
-              <div class="slider-group">
-                <label>⚡ Energy (Efficiency)</label>
-                <div class="slider-row">
-                  <input type="range" min="0" max="100" value="0" id="slider-energy" class="slider"
-                    oninput="updateAllocationSliders()">
-                  <span id="value-energy" class="value">0%</span>
-                </div>
-                <p class="slider-hint">Reduces energy consumption but costs more</p>
-              </div>
-              
-              <div class="slider-group">
-                <label>💰 Cost (Economy)</label>
-                <div class="slider-row">
-                  <input type="range" min="0" max="100" value="0" id="slider-cost" class="slider"
-                    oninput="updateAllocationSliders()">
-                  <span id="value-cost" class="value">0%</span>
-                </div>
-                <p class="slider-hint">Reduces costs but less efficient</p>
-              </div>
-              
-              <div class="divider-line"></div>
-              
-              <div class="slider-group">
-                <label>💪 Research Strength</label>
-                <p class="slider-description">Affects how impactful the research is. Higher strength = more expensive & longer.</p>
-                <div class="slider-row">
-                  <input type="range" min="0" max="100" value="50" id="slider-strength" class="slider"
-                    oninput="updateAllocationSliders()">
-                  <span id="value-strength" class="value">50%</span>
-                </div>
-                <p class="slider-hint">Low strength = quick & cheap, High strength = powerful & costly</p>
-                <p class="strength-warning" id="strength-warning"></p>
-              </div>
+          <p>Customize focus (Total 100%):</p>
+          <div class="allocation-container"><div class="allocation-sliders">
+              ${['output', 'automation', 'energy', 'cost'].map(f => `<div class="slider-group"><label>${f.toUpperCase()}</label><div class="slider-row"><input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="updateAllocationSliders()"><span id="value-${f}" class="value">0%</span></div></div>`).join('')}
+              <div class="slider-group"><label>STRENGTH</label><div class="slider-row"><input type="range" min="0" max="100" value="50" id="slider-strength" class="slider" oninput="updateAllocationSliders()"><span id="value-strength" class="value">50%</span></div></div>
             </div>
-            
             <div class="allocation-preview">
-              <div class="preview-section">
-                <h4>Investment Total</h4>
-                <div class="total-allocation">
-                  <span id="total-percent">0%</span>
-                </div>
-                <p class="allocation-note">Distribute 100% across focus areas</p>
-              </div>
-              
-              <div class="preview-section">
-                <h4>Estimated Cost</h4>
-                <div class="cost-breakdown" id="cost-breakdown">
-                  <span>⚙️ Metal: --</span>
-                  <span>💎 Crystal: --</span>
-                  <span>🔷 Deuterium: --</span>
-                </div>
-              </div>
-              
-              <div class="preview-section">
-                <h4>Research Time</h4>
-                <div id="time-estimate">--</div>
-              </div>
+              <h4>Total: <span id="total-percent">0%</span></h4>
+              <div id="cost-breakdown"></div>
+              <h4>Time: <span id="time-estimate">--</span></h4>
             </div>
           </div>
         </div>
-        
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="closeAllocationModal()">Cancel</button>
-          <button class="btn btn-primary" id="start-research-btn" disabled
-            onclick="submitAllocationResearch('${researchKey}', '${baseType}')">
-            Start Research
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    // Store research data for later use
-    window.currentResearch = {
-        researchKey,
-        research,
-        baseType
-    };
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllocationModal()">Cancel</button><button class="btn btn-primary" id="start-research-btn" disabled onclick="submitAllocationResearch('${researchKey}', '${baseType}')">Start</button></div>
+    </div></div>`);
+    window.currentResearch = { researchKey, research: res, baseType };
 };
 
-/**
- * Close the allocation modal
- */
-window.closeAllocationModal = function () {
-    const modal = document.querySelector('.modal-overlay');
-    if (modal) {
-        modal.remove();
-    }
-    window.currentResearch = null;
-};
+window.closeAllocationModal = function () { const m = document.querySelector('.modal-overlay'); if (m) m.remove(); window.currentResearch = null; };
 
-/**
- * Update allocation sliders and show preview
- */
 window.updateAllocationSliders = function () {
-    const output = parseInt(document.getElementById('slider-output').value);
-    const automation = parseInt(document.getElementById('slider-automation').value);
-    const energy = parseInt(document.getElementById('slider-energy').value);
-    const cost = parseInt(document.getElementById('slider-cost').value);
-    const strength = parseInt(document.getElementById('slider-strength').value);
-
-    // Update display values
-    document.getElementById('value-output').textContent = output + '%';
-    document.getElementById('value-automation').textContent = automation + '%';
-    document.getElementById('value-energy').textContent = energy + '%';
-    document.getElementById('value-cost').textContent = cost + '%';
-    document.getElementById('value-strength').textContent = strength + '%';
-
-    const total = output + automation + energy + cost;
+    const vals = ['output', 'automation', 'energy', 'cost'].map(f => parseInt(document.getElementById(`slider-${f}`).value));
+    const str = parseInt(document.getElementById('slider-strength').value);
+    ['output', 'automation', 'energy', 'cost'].forEach((f, i) => document.getElementById(`value-${f}`).textContent = vals[i] + '%');
+    document.getElementById('value-strength').textContent = str + '%';
+    const total = vals.reduce((a, b) => a + b, 0);
     document.getElementById('total-percent').textContent = total + '%';
-
-    // Enable button only if total is exactly 100 and strength is valid
-    const isValid = (total === 100);
-    document.getElementById('start-research-btn').disabled = !isValid;
-
-    // Update cost and time estimates
     if (window.currentResearch) {
-        const research = window.currentResearch.research;
-
-        // Calculate weighted cost based on allocation
-        const allocation = { output, automation, energy, cost };
-        const weightedMultiplier = (output * 1.05 + automation * 1.12 + energy * 1.08 + cost * 0.88) / 100;
-
-        // Non-linear strength multiplier: 0% = 0.5x, 50% = 1x, 100% = 2.5x (quadratic)
-        const strengthNormalized = strength / 100;
-        const strengthMultiplier = 0.5 + (strengthNormalized * strengthNormalized * 2);  // 0.5 to 3
-
-        const costMultiplier = (1 + (weightedMultiplier - 1) * 0.5) * strengthMultiplier;
-
-        const estimatedCost = {
-            metal: Math.ceil(research.baseCost.metal * costMultiplier),
-            crystal: Math.ceil(research.baseCost.crystal * costMultiplier),
-            deuterium: Math.ceil(research.baseCost.deuterium * costMultiplier)
-        };
-
-        const costBreakdown = document.getElementById('cost-breakdown');
-        const currentPlanet = getCurrentPlanet();
-        const canAfford = currentPlanet && 
-                         currentPlanet.resources.metal >= estimatedCost.metal &&
-                         currentPlanet.resources.crystal >= estimatedCost.crystal &&
-                         currentPlanet.resources.deuterium >= estimatedCost.deuterium;
-
-        costBreakdown.innerHTML = `
-      <span class="${currentPlanet?.resources.metal < estimatedCost.metal ? 'text-error' : ''}">⚙️ Metal: ${formatNumber(estimatedCost.metal)}</span>
-      <span class="${currentPlanet?.resources.crystal < estimatedCost.crystal ? 'text-error' : ''}">💎 Crystal: ${formatNumber(estimatedCost.crystal)}</span>
-      <span class="${currentPlanet?.resources.deuterium < estimatedCost.deuterium ? 'text-error' : ''}">🔷 Deuterium: ${formatNumber(estimatedCost.deuterium)}</span>
-    `;
-
-        // Calculate time estimate with unified formula
-        const playerTech = researchData?.theoretical || {};
-        const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
-        const researchLabLevel = currentPlanetBuildings?.researchLab || 1;
-        const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
-
-        // Sum of current focus levels
-        const playerPractical = researchData?.practical || {};
-        const currentFocusLevels = playerPractical[window.currentResearch.baseType] || {};
-        let totalFocusLevel = 0;
-        for (const focus in currentFocusLevels) {
-            totalFocusLevel += currentFocusLevels[focus];
-        }
-
-        const estimatedTime = calculatePracticalResearchTime(
-            research,
-            totalFocusLevel,
-            researchLabLevel,
-            researchSpeedBonus,
-            configMultiplier,
-            strength / 100
-        );
-
-        document.getElementById('time-estimate').textContent = formatTime(estimatedTime * 1000);
-
-        const warningEl = document.getElementById('strength-warning');
-        if (warningEl) {
-            const maxDuration = 172800;
-            warningEl.textContent = estimatedTime >= maxDuration ? '⚠️ Capped at 2 days maximum' : '';
-        }
-
-        // Final button enabling logic: must have 100% distribution AND be able to afford it
-        const startBtn = document.getElementById('start-research-btn');
-        if (startBtn) {
-            const total = parseInt(document.getElementById('total-percent').textContent);
-            const isValidDistribution = (total === 100);
-            startBtn.disabled = !isValidDistribution || !canAfford;
-            startBtn.title = !canAfford ? 'Insufficient resources' : (isValidDistribution ? 'Start Research' : 'Distribute 100% to start');
-        }
+        const res = window.currentResearch.research;
+        const wMult = (vals[0] * 1.05 + vals[1] * 1.12 + vals[2] * 1.08 + vals[3] * 0.88) / 100;
+        const sMult = 0.5 + (str/100 * str/100 * 2);
+        const cMult = (1 + (wMult - 1) * 0.5) * sMult;
+        const cost = { metal: Math.ceil(res.baseCost.metal * cMult), crystal: Math.ceil(res.baseCost.crystal * cMult), deuterium: Math.ceil(res.baseCost.deuterium * cMult) };
+        const planet = getCurrentPlanet();
+        const canAfford = planet && planet.resources.metal >= cost.metal && planet.resources.crystal >= cost.crystal && planet.resources.deuterium >= (cost.deuterium || 0);
+        document.getElementById('cost-breakdown').innerHTML = `⚙️${formatNumber(cost.metal)} 💎${formatNumber(cost.crystal)} 🛢️${formatNumber(cost.deuterium)}`;
+        const time = calculatePracticalResearchTime(res, Object.values(researchData.practical[window.currentResearch.baseType] || {}).reduce((a, b) => a + b, 0), currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData.theoretical, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, str / 100);
+        document.getElementById('time-estimate').textContent = formatTime(time * 1000);
+        const btn = document.getElementById('start-research-btn');
+        if (btn) { btn.disabled = total !== 100 || !canAfford; btn.title = !canAfford ? 'Poor' : (total === 100 ? 'Start' : 'Need 100%'); }
     }
 };
 
-/**
- * Submit allocation-based research with strength
- */
 window.submitAllocationResearch = async function (researchKey, baseType) {
-    const output = parseInt(document.getElementById('slider-output').value);
-    const automation = parseInt(document.getElementById('slider-automation').value);
-    const energy = parseInt(document.getElementById('slider-energy').value);
-    const cost = parseInt(document.getElementById('slider-cost').value);
-    const strength = parseInt(document.getElementById('slider-strength').value);
-
-    const allocation = {
-        output: output / 100,
-        automation: automation / 100,
-        energy: energy / 100,
-        cost: cost / 100
-    };
-
+    const vals = ['output', 'automation', 'energy', 'cost'].map(f => parseInt(document.getElementById(`slider-${f}`).value) / 100);
+    const str = parseInt(document.getElementById('slider-strength').value) / 100;
     try {
-        const planetId = getCurrentPlanetId();
-        const response = await fetch(`/api/game/planet/${planetId}/research/practical`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                researchKey,
-                allocation,
-                strength: strength / 100
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            Notifications.showError(`Error: ${error.message}`);
-            return;
-        }
-
-        closeAllocationModal();
-        await loadResearchData();
-        renderPracticalResearch();
-    } catch (error) {
-        Notifications.showError(`Failed to start research: ${error.message}`);
-    }
+        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ researchKey, allocation: { output: vals[0], automation: vals[1], energy: vals[2], cost: vals[3] }, strength: str }) });
+        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        closeAllocationModal(); await loadResearchData();
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-/**
- * Render custom variants tab
- */
 async function renderCustomVariants() {
     const container = document.querySelector('#variants-tab .research-content');
     if (!container) return;
-
     try {
-        const planetId = getCurrentPlanetId();
-        const response = await fetch(`/api/game/planet/${planetId}/research/variants`);
-        const result = await response.json();
-        const { building, ships } = result.data || result;
-
+        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/variants`);
+        const { building, ships } = (await response.json()).data;
         let html = '<div class="variants-container">';
-
-        // Building variants
-        if (!isEmpty(building)) {
-            html += '<div class="variants-section">';
-            html += '<h3>Custom Building Variants</h3>';
-
-            for (const baseType in building) {
-                const variant = building[baseType];
-                html += renderVariantCard(baseType, variant, 'building');
-            }
-
-            html += '</div>';
-        }
-
-        // Ship variants
-        if (!isEmpty(ships)) {
-            html += '<div class="variants-section">';
-            html += '<h3>Custom Ship Variants</h3>';
-
-            for (const baseType in ships) {
-                const variant = ships[baseType];
-                html += renderVariantCard(baseType, variant, 'ship');
-            }
-
-            html += '</div>';
-        }
-
-        if (isEmpty(building) && isEmpty(ships)) {
-            html += '<p class="no-variants">No custom variants yet. Research practical customizations to create variants.</p>';
-        }
-
-        html += '</div>';
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = `<p class="error">Failed to load variants: ${error.message}</p>`;
-    }
+        if (!isEmpty(building)) { html += '<div class="variants-section"><h3>Buildings</h3>'; for (const b in building) html += renderVariantCard(b, building[b], 'building'); html += '</div>'; }
+        if (!isEmpty(ships)) { html += '<div class="variants-section"><h3>Ships</h3>'; for (const s in ships) html += renderVariantCard(s, ships[s], 'ship'); html += '</div>'; }
+        if (isEmpty(building) && isEmpty(ships)) html += '<p>No variants yet.</p>';
+        container.innerHTML = html + '</div>';
+    } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }
 }
 
-/**
- * Render a variant card
- */
 function renderVariantCard(baseType, variant, type) {
     const { focusLevels, modifiers } = variant;
-
-    let html = `
-    <div class="variant-card">
-      <h4>${baseType} - Custom Variant</h4>
-      <div class="focus-breakdown">
-  `;
-
-    for (const focus in focusLevels) {
-        const level = focusLevels[focus];
-        if (level > 0) {
-            html += `<span class="focus-badge focus-${focus}">+${level} ${focus}</span>`;
-        }
-    }
-
+    let html = `<div class="variant-card"><h4>${baseType}</h4><div class="focus-breakdown">`;
+    for (const f in focusLevels) if (focusLevels[f] > 0) html += `<span class="focus-badge">+${focusLevels[f]} ${f}</span>`;
     html += '</div><div class="modifiers-preview">';
-
-    // Show only building-related modifiers that have changed
-    const buildingModifiers = [
-        { key: 'productionMultiplier', label: 'Production', isPositive: true },  // More production is good
-        { key: 'costMultiplier', label: 'Build Cost', isPositive: false },  // More cost is bad
-        { key: 'energyMultiplier', label: 'Energy', isPositive: false },  // More energy is bad
-        { key: 'populationMultiplier', label: 'Population', isPositive: false }  // More population needed is bad
-    ];
-
-    // Show only ship-related modifiers if this is a ship variant
-    const shipModifiers = [
-        { key: 'cargoMultiplier', label: 'Cargo', isPositive: true },  // More cargo is good
-        { key: 'speedMultiplier', label: 'Speed', isPositive: true },  // More speed is good
-        { key: 'attackMultiplier', label: 'Attack', isPositive: true },  // More attack is good
-        { key: 'hullMultiplier', label: 'Hull', isPositive: true },  // More hull is good
-        { key: 'shieldMultiplier', label: 'Shield', isPositive: true },  // More shield is good
-        { key: 'fuelMultiplier', label: 'Fuel', isPositive: false }  // More fuel consumption is bad
-    ];
-
-    const modsToShow = type === 'building' ? buildingModifiers : shipModifiers;
-
-    for (const modInfo of modsToShow) {
-        const modValue = modifiers[modInfo.key];
-        // Only show if modifier is not 1 (which means no change)
-        if (modValue !== undefined && modValue !== 1) {
-            const percentChange = ((modValue - 1) * 100).toFixed(0);
-            const sign = modValue > 1 ? '+' : '';
-
-            // Determine color: if the modifier change is positive for this stat, show green; otherwise red
-            const isGoodChange = (modValue > 1) === modInfo.isPositive;
-            const colorClass = isGoodChange ? 'positive' : 'negative';
-
-            html += `<p class="${colorClass}" style="margin: 5px 0; color: ${isGoodChange ? 'var(--accent-green)' : 'var(--accent-red)'}"><small>${modInfo.label}: ${sign}${percentChange}%</small></p>`;
-        }
-    }
-
-    html += `
-      </div>
-      <button class="btn btn-primary btn-small" onclick="buildCustomVariant('${baseType}', '${type}')">Build Custom Variant</button>
-    </div>
-  `;
-
-    return html;
+    const mods = type === 'building' ? [{ key: 'productionMultiplier', label: 'Prod', isPos: true }, { key: 'costMultiplier', label: 'Cost', isPos: false }, { key: 'energyMultiplier', label: 'Energy', isPos: false }] : [{ key: 'speedMultiplier', label: 'Speed', isPos: true }, { key: 'attackMultiplier', label: 'Atk', isPos: true }];
+    mods.forEach(m => { const v = modifiers[m.key]; if (v && v !== 1) { const p = ((v - 1) * 100).toFixed(0); const good = (v > 1) === m.isPos; html += `<p style="color: ${good ? 'var(--accent-green)' : 'var(--accent-red)'}">${m.label}: ${v > 1 ? '+' : ''}${p}%</p>`; } });
+    return html + `<button class="btn btn-primary btn-small" onclick="buildCustomVariant('${baseType}', '${type}')">Activate</button></div></div>`;
 }
 
-/**
- * Get focus benefits description
- */
-function getFocusBenefits(focus) {
-    const benefits = {
-        output: 'Increases production output, but increases overall requirements',
-        manpower: 'Reduces workforce needs with automation, but increases cost and energy',
-        energy: 'Improves energy efficiency and reduces consumption',
-        cost: 'Reduces construction costs, but decreases efficiency'
-    };
-    return benefits[focus] || '';
-}
-
-/**
- * Format time (milliseconds) to readable string
- */
 function formatTime(ms) {
     if (!ms || ms < 0) return '0s';
-
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / 1000 / 60) % 60);
-    const hours = Math.floor((ms / 1000 / 60 / 60) % 24);
-    const days = Math.floor(ms / 1000 / 60 / 60 / 24);
-
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m ${seconds}s`;
-    return `${seconds}s`;
+    const s = Math.floor((ms / 1000) % 60);
+    const m = Math.floor((ms / 1000 / 60) % 60);
+    const h = Math.floor((ms / 1000 / 60 / 60) % 24);
+    const d = Math.floor(ms / 1000 / 60 / 60 / 24);
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
 }
 
-/**
- * Capitalize string
- */
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-/**
- * Start theoretical research
- */
 window.startTheoreticalResearch = async function (techKey) {
     try {
-        const planetId = getCurrentPlanetId();
-        console.log('Starting theoretical research for tech:', techKey);
-        console.log('Current Planet ID:', planetId);
-
-        if (!planetId) {
-            Notifications.showError('Error: Planet ID not set. Please refresh the page.');
-            console.error('Planet ID is not set!');
-            return;
-        }
-
-        const url = `/api/game/planet/${planetId}/research/theoretical`;
-        const body = { techKey };
-
-        console.log('Making request to:', url);
-        console.log('Request body:', body);
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('Server error response:', error);
-            Notifications.showError(`Error: ${error.message}`);
-            return;
-        }
-
-        const data = await response.json();
-        console.log('Success response:', data);
-
+        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/theoretical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ techKey }) });
+        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
         await loadResearchData();
-        renderTheoreticalResearch();
-    } catch (error) {
-        console.error('Failed to start research:', error);
-        Notifications.showError(`Failed to start research: ${error.message}`);
-    }
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-/**
- * Show research details modal
- */
 window.showResearchDetails = function (techKey) {
-    const theoryResearch = getTheoreticalResearch();
-    const tech = theoryResearch[techKey];
-    const playerTech = researchData?.theoretical || {};
-    const techData = playerTech[techKey];
-    const currentLevel = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
-
-    if (!tech) return;
-
-    let effectsHtml = '';
-
-    // Show bonuses/effects
-    if (tech.bonuses && !isEmpty(tech.bonuses)) {
-        effectsHtml += `<div class="research-effects">
-      <h3>Benefits:</h3>
-      <ul>`;
-        for (const bonus in tech.bonuses) {
-            const value = tech.bonuses[bonus];
-            const displayName = bonus
-                .replace(/([A-Z])/g, ' $1')
-                .toLowerCase()
-                .trim()
-                .split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-            const displayValue = (value * 100).toFixed(0);
-            effectsHtml += `<li>+${displayValue}% ${displayName}</li>`;
-        }
-        effectsHtml += `</ul></div>`;
-    }
-
-    // Show unlocks
-    if (tech.unlocks && tech.unlocks.length > 0) {
-        effectsHtml += `<div class="research-unlocks">
-      <h3>Unlocks:</h3>
-      <ul>`;
-        for (const unlock of tech.unlocks) {
-            effectsHtml += `<li>${unlock}</li>`;
-        }
-        effectsHtml += `</ul></div>`;
-    }
-
-    // Show building requirements
-    if (tech.requirements && !isEmpty(tech.requirements)) {
-        effectsHtml += `<div class="research-requirements">
-      <h3>Building Requirements:</h3>
-      <ul>`;
-        for (const building in tech.requirements) {
-            const level = tech.requirements[building];
-            const name = building.replace(/([A-Z])/g, ' $1').trim();
-            const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-            const currentLevel = currentPlanetBuildings?.[building] || 0;
-            const isMet = currentLevel >= level;
-            effectsHtml += `<li style="color: ${isMet ? 'var(--accent-green)' : 'var(--accent-red)'}">
-                ${capitalizedName}: Level ${level} (Current: ${currentLevel})
-            </li>`;
-        }
-        effectsHtml += `</ul></div>`;
-    }
-
-    // Prepare progression table
-    const headers = ['Level', '⚙️ Metal', '💎 Crystal', '🛢️ Deuterium', '⏱️ Time'];
+    const res = getTheoreticalResearch()[techKey];
+    const lv = typeof researchData.theoretical[techKey] === 'object' ? (researchData.theoretical[techKey].level ?? 0) : (researchData.theoretical[techKey] ?? 0);
+    if (!res) return;
+    let eff = '';
+    if (res.bonuses) { eff += '<ul>'; for (const b in res.bonuses) eff += `<li>+${(res.bonuses[b] * 100).toFixed(0)}% ${b}</li>`; eff += '</ul>'; }
+    if (res.requirements) { eff += '<h4>Reqs:</h4><ul>'; for (const b in res.requirements) eff += `<li>${b}: ${res.requirements[b]}</li>`; eff += '</ul>'; }
     const rows = [];
-
-    const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
-    const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
-    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
-
-    for (let level = currentLevel + 1; level <= Math.min(currentLevel + 5, 30); level++) {
-        const cost = calculateTheoreticalResearchCost(tech.baseCost, level - 1);
-        const timeInSeconds = calculateTheoreticalResearchTime(
-            tech,
-            level - 1,
-            researchLabLevel,
-            researchSpeedBonus,
-            configMultiplier
-        );
-        const timeStr = formatTime(timeInSeconds * 1000);
-
-        rows.push([
-            `Level ${level}`,
-            formatNumber(cost.metal),
-            formatNumber(cost.crystal),
-            formatNumber(cost.deuterium),
-            timeStr
-        ]);
+    for (let i = lv + 1; i <= lv + 5; i++) {
+        const c = calculateTheoreticalResearchCost(res.baseCost, i - 1);
+        const t = calculateTheoreticalResearchTime(res, i - 1, currentPlanetBuildings?.researchLab || 0, getResearchBonus(researchData.theoretical, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0);
+        rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatTime(t * 1000)]);
     }
-
-    renderDetailsModal({
-        title: `${tech.icon} ${tech.name} <span class="current-level">(Current: Level ${currentLevel})</span>`,
-        description: tech.description,
-        detailedDescription: tech.detailedDescription,
-        effects: effectsHtml,
-        table: {
-            headers: headers,
-            rows: rows
-        },
-        footer: `* Time estimate assumes Research Lab level ${researchLabLevel}`
-    });
+    renderDetailsModal({ title: `${res.icon} ${res.name}`, description: res.description, effects: eff, table: { headers: ['Lvl', 'Cost', 'Time'], rows } });
 };
 
-/**
- * Close research details modal
- */
-window.closeResearchModal = function () {
-    closeDetailsModal();
-};
+window.closeResearchModal = function () { closeDetailsModal(); };
 
-/**
- * Cancel theoretical research
- */
 window.cancelTheoreticalResearch = async function (queueId) {
-    const confirmed = await showConfirm('Cancel Research', 'Cancel this theoretical research?');
-    if (!confirmed) return;
-
+    if (!(await showConfirm('Cancel', 'Confirm?'))) return;
     try {
-        const planetId = getCurrentPlanetId();
-        const response = await fetch(
-            `/api/game/planet/${planetId}/research/theoretical/${queueId}`,
-            { method: 'DELETE' }
-        );
-
-        if (!response.ok) {
-            const error = await response.json();
-            Notifications.showError(`Error: ${error.message}`);
-            return;
-        }
-
+        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/theoretical/${queueId}`, { method: 'DELETE' });
+        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
         await loadResearchData();
-        renderTheoreticalResearch();
-    } catch (error) {
-        Notifications.showError(`Failed to cancel research: ${error.message}`);
-    }
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-/**
- * Start practical research
- */
-window.startPracticalResearch = async function (baseType, type, focus) {
-    try {
-        const planetId = getCurrentPlanetId();
-        if (!planetId) {
-            Notifications.showError('Error: Planet ID not set. Please refresh the page.');
-            return;
-        }
-
-        const response = await fetch(`/api/game/planet/${planetId}/research/practical`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ baseType, type, focus })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            Notifications.showError(`Error: ${error.message}`);
-            return;
-        }
-
-        await loadResearchData();
-        renderPracticalResearch();
-    } catch (error) {
-        Notifications.showError(`Failed to start customization research: ${error.message}`);
-    }
-};
-
-/**
- * Cancel practical research
- */
 window.cancelPracticalResearch = async function (queueId) {
-    const confirmed = await showConfirm('Cancel Customization', 'Cancel this research customization?');
-    if (!confirmed) return;
-
+    if (!(await showConfirm('Cancel', 'Confirm?'))) return;
     try {
-        const planetId = getCurrentPlanetId();
-        const response = await fetch(
-            `/api/game/planet/${planetId}/research/practical/${queueId}`,
-            { method: 'DELETE' }
-        );
-
-        if (!response.ok) {
-            const error = await response.json();
-            Notifications.showError(`Error: ${error.message}`);
-            return;
-        }
-
+        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical/${queueId}`, { method: 'DELETE' });
+        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
         await loadResearchData();
-        renderPracticalResearch();
-    } catch (error) {
-        Notifications.showError(`Failed to cancel research: ${error.message}`);
-    }
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-/**
- * Edit variant
- */
-/**
- * Build a custom variant directly from existing research levels
- */
 window.buildCustomVariantFromResearch = async function (baseType, type, event) {
-    if (event) {
-        event.stopPropagation();
-    }
-
-    // Get the current practical research levels for this base type
-    const response = await fetch('/api/game/research');
-    const result = await response.json();
-    const practical = result.data?.practical || result.practical || {};
-
-    const focusLevels = practical[baseType];
-    let hasAnyFocus = false;
-    if (focusLevels) {
-        for (const focus in focusLevels) {
-            if (focusLevels[focus] > 0) {
-                hasAnyFocus = true;
-                break;
-            }
-        }
-    }
-    if (!focusLevels || !hasAnyFocus) {
-        Notifications.showError(`No research available for ${baseType}`);
-        return;
-    }
-
+    if (event) event.stopPropagation();
+    const lvls = researchData.practical[baseType];
+    if (!lvls) return;
     try {
-        // Determine the endpoint based on type (building or ship)
-        const planetId = getCurrentPlanetId();
-        const endpoint = type === 'building'
-            ? `/api/game/planet/${planetId}/research/building-variant`
-            : `/api/game/research/ship-variant`;
-
-        const variantResponse = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                baseType,
-                focusLevels
-            })
-        });
-
-        if (!variantResponse.ok) {
-            const error = await variantResponse.json();
-            Notifications.showError(`Error: ${error.message || 'Failed to create variant'}`);
-            return;
-        }
-
-        Notifications.showSuccess(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
-
-        // Reload research data to show the variant
-        await loadResearchData();
-        renderCustomVariants();
-    } catch (error) {
-        Notifications.showError(`Failed to create variant: ${error.message}`);
-    }
+        const response = await fetch(type === 'building' ? `/api/game/planet/${getCurrentPlanetId()}/research/building-variant` : `/api/game/research/ship-variant`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseType, focusLevels: lvls }) });
+        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        Notifications.showSuccess('Created!'); await loadResearchData();
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-/**
- * Build a custom variant (activate it for building)
- */
 window.buildCustomVariant = async function (baseType, type) {
-    // Get the current practical research levels for this base type
-    const response = await fetch('/api/game/research');
-    const researchData = await response.json();
-    const practical = researchData.data?.practical || researchData.practical || {};
-
-    const focusLevels = practical[baseType];
-    if (!focusLevels) {
-        Notifications.showError(`No research available for ${baseType}`);
-        return;
-    }
-
+    const lvls = researchData.practical[baseType];
+    if (!lvls) return;
     try {
-        // Determine the endpoint based on type (building or ship)
-        const planetId = getCurrentPlanetId();
-        const endpoint = type === 'building'
-            ? `/api/game/planet/${planetId}/research/building-variant`
-            : `/api/game/research/ship-variant`;
-
-        const variantResponse = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                baseType,
-                focusLevels
-            })
-        });
-
-        if (!variantResponse.ok) {
-            const error = await variantResponse.json();
-            Notifications.showError(`Error: ${error.message || 'Failed to create variant'}`);
-            return;
-        }
-
-        Notifications.showSuccess(`✅ Custom ${baseType} variant created! You can now build it in the Buildings view.`);
-
-        // Reload research data to show the variant
-        await loadResearchData();
-        renderCustomVariants();
-    } catch (error) {
-        Notifications.showError(`Failed to create variant: ${error.message}`);
-    }
+        const response = await fetch(type === 'building' ? `/api/game/planet/${getCurrentPlanetId()}/research/building-variant` : `/api/game/research/ship-variant`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseType, focusLevels: lvls }) });
+        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        Notifications.showSuccess('Created!'); await loadResearchData();
+    } catch (e) { Notifications.showError(e.message); }
 };
 
-window.editVariant = function (baseType, type) {
-    Notifications.showError(`Edit variant for ${type} ${baseType} (coming soon)`);
-};
-
-/**
- * Update research view with player data
- */
 export function updateResearchView(player, planetId = null) {
-    // Called when player data updates during gameplay
-    const targetPlanetId = planetId || getCurrentPlanetId() || (player?.planets?.[0]?.id);
-    
-    if (targetPlanetId) {
-        const planet = player.planets.find(p => p.id === targetPlanetId);
-        if (planet) {
-            currentPlanetBuildings = planet.buildings;
-        }
-    }
+    const target = planetId || getCurrentPlanetId() || (player?.planets?.[0]?.id);
+    if (target) { const p = player.planets.find(pl => pl.id === target); if (p) currentPlanetBuildings = p.buildings; }
     loadResearchData();
 }
 
-/**
- * Update research timers (exported for main loop)
- */
-export function updateResearchTimers() {
-    updateResearchQueueTimers();
-}
+export function updateResearchTimers() { updateResearchQueueTimers(); }
