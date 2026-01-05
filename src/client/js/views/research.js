@@ -293,7 +293,7 @@ function renderTheoreticalResearch() {
 
             // Requirement checks
             const hasLab = researchLabLevel > 0;
-            const requirementsMet = canResearchTheoretical(tech.key, playerTech);
+            const requirementsMet = canResearchTheoretical(tech.key, playerTech, currentPlanetBuildings);
             const canAfford = currentPlanet && 
                              currentPlanet.resources.metal >= nextLevelCost.metal &&
                              currentPlanet.resources.crystal >= nextLevelCost.crystal &&
@@ -305,8 +305,23 @@ function renderTheoreticalResearch() {
             if (isQueueFull) buttonTitle = 'Research queue is full';
             else if (!hasLab) buttonTitle = 'A Research Lab is required to start research';
             else if (!requirementsMet) {
-                const reqs = tech.prerequisites?.map(p => theoryResearch[p]?.name || p).join(', ') || '';
-                buttonTitle = `Requirements not met: ${reqs}`;
+                const reqs = [];
+                if (tech.prerequisites) {
+                    tech.prerequisites.forEach(p => {
+                        const researchEntry = playerTech[p];
+                        const pLevel = typeof researchEntry === 'object' ? (researchEntry.level ?? 0) : (researchEntry ?? 0);
+                        if (pLevel === 0) reqs.push(theoryResearch[p]?.name || p);
+                    });
+                }
+                if (tech.requirements) {
+                    for (const b in tech.requirements) {
+                        if ((currentPlanetBuildings[b] || 0) < tech.requirements[b]) {
+                            const bName = b.replace(/([A-Z])/g, ' $1').trim();
+                            reqs.push(`${bName} Lvl ${tech.requirements[b]}`);
+                        }
+                    }
+                }
+                buttonTitle = `Requirements not met: ${reqs.join(', ')}`;
             }
             else if (!canAfford) buttonTitle = 'Insufficient resources';
 
@@ -1092,6 +1107,24 @@ window.showResearchDetails = function (techKey) {
       <ul>`;
         for (const unlock of tech.unlocks) {
             effectsHtml += `<li>${unlock}</li>`;
+        }
+        effectsHtml += `</ul></div>`;
+    }
+
+    // Show building requirements
+    if (tech.requirements && !isEmpty(tech.requirements)) {
+        effectsHtml += `<div class="research-requirements">
+      <h3>Building Requirements:</h3>
+      <ul>`;
+        for (const building in tech.requirements) {
+            const level = tech.requirements[building];
+            const name = building.replace(/([A-Z])/g, ' $1').trim();
+            const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+            const currentLevel = currentPlanetBuildings?.[building] || 0;
+            const isMet = currentLevel >= level;
+            effectsHtml += `<li style="color: ${isMet ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                ${capitalizedName}: Level ${level} (Current: ${currentLevel})
+            </li>`;
         }
         effectsHtml += `</ul></div>`;
     }

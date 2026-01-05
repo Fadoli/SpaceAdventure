@@ -5,11 +5,37 @@ import {
   calculatePracticalResearchCost,
   calculatePracticalResearchTime
 } from '../../src/shared/formulas.js';
-import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH } from '../../src/shared/research.js';
+import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH, canResearchTheoretical } from '../../src/shared/research.js';
 import { calculateShipSpeed, SHIPS } from '../../src/shared/ships.js';
 
 const energyTech = THEORETICAL_RESEARCH.energyTech; // baseTime 500
 const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 250
+
+describe('Research Availability (canResearchTheoretical)', () => {
+  it('should return true if no prerequisites or requirements', () => {
+    // energyTech has no requirements in our current definition (besides unlocks)
+    expect(canResearchTheoretical('energyTech', {}, {})).toBe(true);
+  });
+
+  it('should check research prerequisites', () => {
+    // weaponsTech requires computerTech
+    expect(canResearchTheoretical('weaponsTech', {}, { researchLab: 10 })).toBe(false);
+    expect(canResearchTheoretical('weaponsTech', { computerTech: 1 }, { researchLab: 10 })).toBe(true);
+  });
+
+  it('should check building requirements', () => {
+    // computerTech requires researchLab level 1
+    expect(canResearchTheoretical('computerTech', {}, {})).toBe(false);
+    expect(canResearchTheoretical('computerTech', {}, { researchLab: 1 })).toBe(true);
+  });
+
+  it('should check both research and building requirements', () => {
+    // astrophysics requires computerTech and researchLab level 3
+    expect(canResearchTheoretical('astrophysics', {}, { researchLab: 10 })).toBe(false);
+    expect(canResearchTheoretical('astrophysics', { computerTech: 1 }, { researchLab: 2 })).toBe(false);
+    expect(canResearchTheoretical('astrophysics', { computerTech: 1 }, { researchLab: 3 })).toBe(true);
+  });
+});
 
 describe('Research Cost Calculations', () => {
   describe('Theoretical Research Costs', () => {

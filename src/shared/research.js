@@ -36,6 +36,9 @@ export const THEORETICAL_RESEARCH = {
     bonuses: {
       globalResearchSpeed: 0.1, // 10% per level
       globalFleetCommand: 0.05
+    },
+    requirements: {
+      researchLab: 1
     }
   },
 
@@ -54,6 +57,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['heavyFighter', 'cruiser', 'battleship'],
     bonuses: {
       unitAttackPower: 0.2 // 20% per level
+    },
+    requirements: {
+      researchLab: 4
     }
   },
 
@@ -72,6 +78,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['defenses'],
     bonuses: {
       unitShieldStrength: 0.2 // 20% per level
+    },
+    requirements: {
+      researchLab: 6
     }
   },
 
@@ -89,6 +98,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['battleship'],
     bonuses: {
       unitHullStrength: 0.15 // 15% per level
+    },
+    requirements: {
+      researchLab: 2
     }
   },
 
@@ -106,6 +118,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['smallCargo', 'largeCargo'],
     bonuses: {
       shipCombustionSpeed: 0.2 // 20% per level
+    },
+    requirements: {
+      researchLab: 1
     }
   },
 
@@ -124,6 +139,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['lightFighter', 'heavyFighter'],
     bonuses: {
       shipImpulseSpeed: 0.3 // 30% per level
+    },
+    requirements: {
+      researchLab: 2
     }
   },
 
@@ -142,6 +160,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['cruiser', 'battleship'],
     bonuses: {
       shipHyperSpeed: 0.5 // 50% per level
+    },
+    requirements: {
+      researchLab: 7
     }
   },
 
@@ -160,6 +181,9 @@ export const THEORETICAL_RESEARCH = {
     unlocks: ['espionageProbe'],
     bonuses: {
       unitEspionageAbility: 0.1 // 10% per level
+    },
+    requirements: {
+      researchLab: 3
     }
   },
 
@@ -179,6 +203,9 @@ export const THEORETICAL_RESEARCH = {
     bonuses: {
       playerGalaxySlots: 1, // Adds 1 galaxy slot per level
       unitColonistCapacity: 0.2 // 20% more colonists per level
+    },
+    requirements: {
+      researchLab: 3
     }
   },
 
@@ -453,15 +480,28 @@ export function getPracticalResearch() {
 /**
  * Check if a theoretical technology is available based on prerequisites
  */
-export function canResearchTheoretical(techKey, playerResearch) {
+export function canResearchTheoretical(techKey, playerResearch, planetBuildings = {}) {
   const tech = THEORETICAL_RESEARCH[techKey];
   if (!tech) return false;
 
-  // Check prerequisites
+  // Check prerequisites (other research)
   if (tech.prerequisites && Array.isArray(tech.prerequisites)) {
-    return tech.prerequisites.every(prereq =>
-      playerResearch[prereq] && playerResearch[prereq] > 0
-    );
+    const met = tech.prerequisites.every(prereq => {
+      const researchEntry = playerResearch[prereq];
+      const level = typeof researchEntry === 'object' ? (researchEntry.level ?? 0) : (researchEntry ?? 0);
+      return level > 0;
+    });
+    if (!met) return false;
+  }
+
+  // Check building requirements
+  if (tech.requirements) {
+    for (const building in tech.requirements) {
+      const requiredLevel = tech.requirements[building];
+      if ((planetBuildings[building] || 0) < requiredLevel) {
+        return false;
+      }
+    }
   }
 
   return true;

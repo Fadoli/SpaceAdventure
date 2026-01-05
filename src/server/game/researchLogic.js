@@ -47,38 +47,15 @@ export function startTheoreticalResearch(player, techKey, planetId) {
     throw new Error(`Unknown technology: ${techKey}`);
   }
   
-  // Check prerequisites (based on current completed level)
-  console.log('Checking prerequisites for', techKey);
-  if (!canResearchTheoretical(techKey, player.research)) {
-    throw new Error(`Prerequisites not met for ${techKey}`);
-  }
-  
-  // Check build queue size
-  // Check build queue size
-  const maxQueueSize = getResearchQueueSize();
-  if (player.researchQueue && player.researchQueue.length >= maxQueueSize) {
-    throw new Error(`Research queue is full (max ${maxQueueSize})`);
-  }
-  
-  // Get current completed level
-  const currentCompletedLevel = player.research[techKey] || 0;
-  console.log('Current completed research level:', currentCompletedLevel);
-  
-  // Count how many items of this tech are already in the queue
-  const queuedCount = (player.researchQueue || []).filter(item => item.techKey === techKey).length;
-  console.log('Already queued items of this tech:', queuedCount);
-  
-  // The next level to queue is current completed level + 1 + queued items
-  const nextLevelToQueue = currentCompletedLevel + 1 + queuedCount;
-  console.log('Next level to queue:', nextLevelToQueue);
-  
-  // Calculate cost for the level we're actually queuing
-  const cost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
-  console.log('Research cost:', cost);
-  
   const planet = player.planets.find(p => p.id === planetId);
   if (!planet) {
     throw new Error('Planet not found');
+  }
+
+  // Check prerequisites (based on current completed level)
+  console.log('Checking prerequisites for', techKey);
+  if (!canResearchTheoretical(techKey, player.research, planet.buildings)) {
+    throw new Error(`Prerequisites not met for ${techKey}`);
   }
   
   console.log('Planet resources:', planet.resources);
