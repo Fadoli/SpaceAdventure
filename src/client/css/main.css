@@ -315,10 +315,18 @@ body {
 }
 
 /* Buildings Grid */
+#buildings-queue-container {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
 .buildings-grid {
+    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 8px;
+    width: 100%;
 }
 
 .building-card {
@@ -2961,5 +2969,153 @@ body {
 @keyframes slideOut {
     from { transform: translateX(0); opacity: 1; }
     to { transform: translateX(100%); opacity: 0; }
+}
+
+
+/* Command HUD - Wild Alternative UI */
+.buildings-controls {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+    gap: 10px;
+    width: 100%;
+}
+
+.btn-ui-toggle {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.btn-ui-toggle:hover {
+    background: var(--accent-blue);
+    color: white;
+}
+
+/* HUD Container */
+.buildings-hud {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: 'Segoe UI', 'Courier New', monospace;
+    width: 100%;
+}
+
+.hud-row {
+    display: grid;
+    grid-template-columns: 50px 2fr 80px 3fr 1.5fr 120px;
+    align-items: center;
+    background: rgba(20, 28, 45, 0.8);
+    border: 1px solid var(--border-color);
+    padding: 8px 20px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+.hud-row:hover {
+    border-color: var(--accent-blue);
+    background: rgba(30, 40, 60, 0.9);
+    transform: scale(1.005);
+}
+
+.hud-row.in-queue {
+    border-left: 4px solid var(--accent-yellow);
+}
+
+.hud-row.active-build::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(92, 184, 92, 0.1);
+    z-index: 0;
+    width: var(--progress, 0%);
+}
+
+.hud-cell {
+    position: relative;
+    z-index: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 10px;
+}
+
+.hud-icon { font-size: 1.2rem; text-align: center; }
+.hud-name { font-weight: bold; color: var(--text-primary); }
+.hud-level { color: var(--accent-blue); font-size: 0.85rem; }
+
+/* Mini Cost Gauges */
+.hud-costs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.cost-gauge {
+    flex: 1;
+    height: 14px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    position: relative;
+    border: 1px solid #333;
+    min-width: 60px;
+}
+
+.gauge-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease-out;
+}
+
+.gauge-fill.metal { background: #777; }
+.gauge-fill.crystal { background: var(--accent-blue); }
+.gauge-fill.deuterium { background: var(--accent-green); }
+.gauge-fill.insufficient { opacity: 0.4; }
+
+.gauge-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 0.65rem;
+    line-height: 12px;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+    font-weight: bold;
+}
+
+.hud-stats {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.hud-action .btn-success {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+/* Category Dividers */
+.hud-divider {
+    padding: 15px 10px 5px 10px;
+    font-size: 0.7rem;
+    color: var(--accent-yellow);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    border-bottom: 1px solid rgba(240, 173, 78, 0.2);
+    margin-bottom: 5px;
 }
 

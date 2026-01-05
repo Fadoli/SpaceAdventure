@@ -14,6 +14,24 @@ let currentGameState = null;
 let lastBuildingStateHash = null;
 let lastQueueStateHash = null;
 
+// Track preferred UI style
+let currentViewStyle = localStorage.getItem('buildingViewStyle') || 'grid';
+
+/**
+ * Toggle between grid and HUD style
+ */
+window.toggleBuildingUI = function() {
+    currentViewStyle = currentViewStyle === 'grid' ? 'hud' : 'grid';
+    localStorage.setItem('buildingViewStyle', currentViewStyle);
+    lastBuildingStateHash = null; // Force re-render
+    // Trigger a refresh of the current view
+    if (currentGameState && currentGameState.planets) {
+        const planetId = getCurrentPlanetId();
+        const planet = currentGameState.planets.find(p => p.id === planetId) || currentGameState.planets[0];
+        updateBuildingsView(planet);
+    }
+};
+
 /**
  * Calculate a hash of the building state to detect changes
  */
@@ -106,32 +124,45 @@ export async function updateBuildingsView(planet, onStateChange) {
 function renderBuildingCards(buildings, planet, queue, maxQueueSize) {
     const buildingsGrid = document.getElementById('buildings-grid');
     const queueFull = queue.length >= maxQueueSize;
-    const buildingHtmls = [];
+    
+    // Add UI toggle at the top
+    let html = `
+        <div class="buildings-controls">
+            <button class="btn-ui-toggle" onclick="window.toggleBuildingUI()">
+                Switch to ${currentViewStyle === 'grid' ? 'Command HUD (Dense)' : 'Classic Grid'}
+            </button>
+        </div>
+    `;
 
+    if (currentViewStyle === 'hud') {
+        html += renderHUDView(buildings, planet, queue);
+    } else {
+        html += renderGridView(buildings, planet, queue, maxQueueSize);
+    }
+    
+    buildingsGrid.innerHTML = html;
+    
+    // Initial update of dynamic elements
+    updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize);
+}
+
+function renderGridView(buildings, planet, queue, maxQueueSize) {
+    const buildingHtmls = [];
     for (const key in buildings) {
         const building = buildings[key];
         const queueCount = queue.filter(item => item.building === key).length;
         
-        // Show custom variant info if available
         let customVariantBadge = '';
         let variantButtons = '';
         if (building.hasCustomVariant && building.customVariant) {
             const isCustomActive = building.currentVariant === 'custom';
             customVariantBadge = `<div class="custom-variant-badge">🔧 ${isCustomActive ? 'Custom Active' : 'Custom Available'}</div>`;
-            
-            variantButtons = `
-                <div id="variant-actions-${key}" class="variant-actions-container">
-                    <!-- Populated by updateBuildingCostsAndAffordance -->
-                </div>
-            `;
+            variantButtons = `<div id="variant-actions-${key}" class="variant-actions-container"></div>`;
         }
 
-        // Allocation badge
         let allocationBadge = '';
         const allocatableBuildings = ['metalMine', 'crystalMine', 'deuteriumSynthesizer', 'waterExtractor', 'farm'];
-        const hasAllocation = allocatableBuildings.includes(key) && building.currentLevel > 0;
-        
-        if (hasAllocation) {
+        if (allocatableBuildings.includes(key) && building.currentLevel > 0) {
             allocationBadge = `<div id="allocation-badge-${key}" class="allocation-badge-container"></div>`;
         }
 
@@ -146,9 +177,7 @@ function renderBuildingCards(buildings, planet, queue, maxQueueSize) {
                 ${allocationBadge}
                 <div id="queue-badge-${key}"></div>
                 <p>${building.description}</p>
-                <div class="building-cost" id="cost-display-${key}">
-                    <!-- Dynamic cost info -->
-                </div>
+                <div class="building-cost" id="cost-display-${key}"></div>
                 <div class="building-stats">
                     <div class="build-time" id="time-display-${key}">🕐 Build time: --</div>
                     <div id="stats-info-${key}"></div>
@@ -161,11 +190,55 @@ function renderBuildingCards(buildings, planet, queue, maxQueueSize) {
             </div>
         `);
     }
+    return `<div class="buildings-grid">${buildingHtmls.join('')}</div>`;
+}
+
+function renderHUDView(buildings, planet, queue) {
+    let html = '<div class="buildings-hud">';
     
-    buildingsGrid.innerHTML = buildingHtmls.join('');
-    
-    // Initial update of dynamic elements
-    updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize);
+    // Group buildings loosely
+    const groups = [
+        { label: 'Resources', types: ['metalMine', 'crystalMine', 'deuteriumSynthesizer', 'solarPlant', 'fusionReactor', 'waterExtractor', 'farm'] },
+        { label: 'Facilities', types: ['roboticsFactory', 'naniteFactory', 'researchLab', 'shipyard', 'housing'] },
+        { label: 'Storage', types: ['metalStorage', 'crystalStorage', 'deuteriumTank', 'waterStorage', 'foodSilo'] }
+    ];
+
+    groups.forEach(group => {
+        html += `<div class="hud-divider">${group.label}</div>`;
+        group.types.forEach(key => {
+            const building = buildings[key];
+            if (!building) return;
+            
+            const queueCount = queue.filter(item => item.building === key).length;
+            const isBuilding = queue.length > 0 && queue[0].building === key;
+
+            html += `
+                <div class="hud-row ${queueCount > 0 ? 'in-queue' : ''} ${isBuilding ? 'active-build' : ''}" id="building-card-${key}" data-key="${key}">
+                    <div class="hud-cell hud-icon">${building.icon}</div>
+                    <div class="hud-cell hud-name" onclick="window.showBuildingDetails('${key}')" style="cursor:pointer" title="${building.description}">${building.name}</div>
+                    <div class="hud-cell hud-level">Lvl ${building.currentLevel}</div>
+                    
+                    <div class="hud-cell hud-costs" id="cost-display-${key}">
+                        <!-- Cost Gauges -->
+                    </div>
+                    
+                    <div class="hud-cell hud-stats">
+                        <div id="stats-info-${key}"></div>
+                        <div id="energy-info-${key}" style="font-size:0.7rem"></div>
+                    </div>
+
+                    <div class="hud-cell hud-action">
+                        <button class="btn btn-full upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
+                            + ${building.nextLevel}
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    });
+
+    html += '</div>';
+    return html;
 }
 
 /**
@@ -181,12 +254,36 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
         // Update cost display
         const costEl = document.getElementById(`cost-display-${key}`);
         if (costEl) {
-            costEl.innerHTML = `
-                <strong>Cost for level ${building.nextLevel}:</strong>
-                <div class="${planet.resources.metal < building.cost.metal ? 'text-error' : ''}">⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
-                <div class="${planet.resources.crystal < building.cost.crystal ? 'text-error' : ''}">💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
-                ${building.cost.deuterium > 0 ? `<div class="${planet.resources.deuterium < building.cost.deuterium ? 'text-error' : ''}">🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
-            `;
+            if (currentViewStyle === 'hud') {
+                // HUD Gauges
+                const metalPercent = Math.min(100, (planet.resources.metal / building.cost.metal) * 100);
+                const crystalPercent = Math.min(100, (planet.resources.crystal / building.cost.crystal) * 100);
+                const deutPercent = building.cost.deuterium > 0 ? Math.min(100, (planet.resources.deuterium / building.cost.deuterium) * 100) : 100;
+                
+                costEl.innerHTML = `
+                    <div class="cost-gauge" title="Metal: ${formatNumber(building.cost.metal)}">
+                        <div class="gauge-fill metal ${planet.resources.metal < building.cost.metal ? 'insufficient' : ''}" style="width:${metalPercent}%"></div>
+                        <div class="gauge-label">M: ${formatNumber(building.cost.metal)}</div>
+                    </div>
+                    <div class="cost-gauge" title="Crystal: ${formatNumber(building.cost.crystal)}">
+                        <div class="gauge-fill crystal ${planet.resources.crystal < building.cost.crystal ? 'insufficient' : ''}" style="width:${crystalPercent}%"></div>
+                        <div class="gauge-label">C: ${formatNumber(building.cost.crystal)}</div>
+                    </div>
+                    ${building.cost.deuterium > 0 ? `
+                    <div class="cost-gauge" title="Deuterium: ${formatNumber(building.cost.deuterium)}">
+                        <div class="gauge-fill deuterium ${planet.resources.deuterium < building.cost.deuterium ? 'insufficient' : ''}" style="width:${deutPercent}%"></div>
+                        <div class="gauge-label">D: ${formatNumber(building.cost.deuterium)}</div>
+                    </div>` : ''}
+                `;
+            } else {
+                // Classic Grid Cost
+                costEl.innerHTML = `
+                    <strong>Cost for level ${building.nextLevel}:</strong>
+                    <div class="${planet.resources.metal < building.cost.metal ? 'text-error' : ''}">⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
+                    <div class="${planet.resources.crystal < building.cost.crystal ? 'text-error' : ''}">💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
+                    ${building.cost.deuterium > 0 ? `<div class="${planet.resources.deuterium < building.cost.deuterium ? 'text-error' : ''}">🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
+                `;
+            }
         }
 
         // Update build time
@@ -504,6 +601,17 @@ export function updateTimers() {
         
         if (remaining === 0) {
             timer.textContent = 'Complete!';
+        }
+        
+        // If in HUD view, update the row background progress
+        if (currentViewStyle === 'hud' && queuePos === '1') {
+            const activeRow = document.querySelector('.hud-row.active-build');
+            if (activeRow && startTime && finishTime) {
+                const total = finishTime - startTime;
+                const elapsed = now - startTime;
+                const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                activeRow.style.setProperty('--progress', `${percent}%`);
+            }
         }
     });
 }
