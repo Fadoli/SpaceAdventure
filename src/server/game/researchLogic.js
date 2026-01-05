@@ -58,6 +58,22 @@ export function startTheoreticalResearch(player, techKey, planetId) {
     throw new Error(`Prerequisites not met for ${techKey}`);
   }
   
+  // Get current completed level
+  const currentCompletedLevel = player.research[techKey] || 0;
+  console.log('Current completed research level:', currentCompletedLevel);
+  
+  // Count how many items of this tech are already in the queue
+  const queuedCount = (player.researchQueue || []).filter(item => item.techKey === techKey).length;
+  console.log('Already queued items of this tech:', queuedCount);
+  
+  // The next level to queue is current completed level + 1 + queued items
+  const nextLevelToQueue = currentCompletedLevel + 1 + queuedCount;
+  console.log('Next level to queue:', nextLevelToQueue);
+  
+  // Calculate cost for the level we're actually queuing
+  const cost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
+  console.log('Research cost:', cost);
+  
   console.log('Planet resources:', planet.resources);
   for (const resource in cost) {
     if (planet.resources[resource] < cost[resource]) {
@@ -66,7 +82,6 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   }
   
   // Check for research lab
-  console.log('Research lab level:', planet.buildings.researchLab);
   if (!planet.buildings.researchLab || planet.buildings.researchLab === 0) {
     throw new Error('No research lab available');
   }
