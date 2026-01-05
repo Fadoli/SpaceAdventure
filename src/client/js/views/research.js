@@ -1,5 +1,5 @@
 // Research view - theoretical and practical research management
-import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus } from '../../../shared/research.js';
+import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical } from '../../../shared/research.js';
 import { formatNumber } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
@@ -13,7 +13,7 @@ import {
 } from '../../../shared/formulas.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
-import { getCurrentPlanetId } from '../main.js';
+import { getCurrentPlanetId, getCurrentPlanet } from '../main.js';
 
 let currentPlanetBuildings = null;
 let researchData = null;
@@ -40,8 +40,14 @@ window.toggleResearchQueueVisibility = function () {
  * Calculate a hash of the research state to detect changes
  */
 function calculateResearchStateHash(data) {
+    const currentPlanet = getCurrentPlanet();
     const state = {
         planetId: getCurrentPlanetId(),
+        resources: currentPlanet ? {
+            metal: Math.floor(currentPlanet.resources.metal),
+            crystal: Math.floor(currentPlanet.resources.crystal),
+            deuterium: Math.floor(currentPlanet.resources.deuterium)
+        } : null,
         labLevel: currentPlanetBuildings?.researchLab || 0,
         // Only include stable identifiers for the queue
         theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
@@ -75,8 +81,15 @@ async function loadResearchData() {
 
         // Check if state has changed
         const currentHash = calculateResearchStateHash(newResearchData);
-        if (currentHash === lastResearchStateHash && researchData !== null) {
-            // State hasn't changed, skip re-render
+        
+        // Find current container to see if it's empty
+        const activeTab = document.querySelector('.research-tabs .tab-btn.active');
+        const tabId = activeTab ? activeTab.dataset.tab : 'theoretical';
+        const container = document.querySelector(`#${tabId}-tab .research-content`);
+        const isContainerEmpty = !container || container.innerHTML.trim() === '';
+
+        if (currentHash === lastResearchStateHash && researchData !== null && !isContainerEmpty) {
+            // State hasn't changed and view is already rendered, skip
             return;
         }
         
@@ -254,6 +267,7 @@ function renderTheoreticalResearch() {
       <h3>${category}</h3>
       <div class="tech-list">`;
 
+        const currentPlanet = getCurrentPlanet();
         const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
         const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
         const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
@@ -277,8 +291,27 @@ function renderTheoreticalResearch() {
             );
             const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
 
+            // Requirement checks
+            const hasLab = researchLabLevel > 0;
+            const requirementsMet = canResearchTheoretical(tech.key, playerTech);
+            const canAfford = currentPlanet && 
+                             currentPlanet.resources.metal >= nextLevelCost.metal &&
+                             currentPlanet.resources.crystal >= nextLevelCost.crystal &&
+                             currentPlanet.resources.deuterium >= nextLevelCost.deuterium;
+            
+            const isDisabled = isQueueFull || !requirementsMet || !canAfford || !hasLab;
+            
+            let buttonTitle = 'Research next level';
+            if (isQueueFull) buttonTitle = 'Research queue is full';
+            else if (!hasLab) buttonTitle = 'A Research Lab is required to start research';
+            else if (!requirementsMet) {
+                const reqs = tech.prerequisites?.map(p => theoryResearch[p]?.name || p).join(', ') || '';
+                buttonTitle = `Requirements not met: ${reqs}`;
+            }
+            else if (!canAfford) buttonTitle = 'Insufficient resources';
+
             html += `
-        <div class="tech-card ${isQueued ? 'queued' : ''}">
+        <div class="tech-card ${isQueued ? 'queued' : ''} ${!requirementsMet || !hasLab ? 'locked' : ''}">
           <div class="tech-header">
             <span class="tech-icon">${tech.icon}</span>
             <div class="tech-name">
@@ -289,16 +322,19 @@ function renderTheoreticalResearch() {
           </div>
           
           <div class="tech-costs">
-            <div class="cost-item" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
-            <div class="cost-item" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
-            ${nextLevelCost.deuterium > 0 ? `<div class="cost-item" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
+            <div class="cost-item ${currentPlanet?.resources.metal < nextLevelCost.metal ? 'text-error' : ''}" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
+            <div class="cost-item ${currentPlanet?.resources.crystal < nextLevelCost.crystal ? 'text-error' : ''}" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
+            ${nextLevelCost.deuterium > 0 ? `<div class="cost-item ${currentPlanet?.resources.deuterium < nextLevelCost.deuterium ? 'text-error' : ''}" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
           </div>
 
           <div class="tech-footer">
             <span class="build-time">🕐 ${formatTime(nextLevelTime * 1000)}</span>
             <div class="tech-actions">
               ${isQueued ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
-              <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')" ${isQueueFull ? 'disabled' : ''} title="${isQueueFull ? 'Research queue is full' : ''}">
+              <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-primary'} btn-small" 
+                      onclick="window.startTheoreticalResearch('${tech.key}')" 
+                      ${isDisabled ? 'disabled' : ''} 
+                      title="${buttonTitle}">
                 Research
               </button>
             </div>
@@ -430,7 +466,6 @@ async function renderPracticalResearch() {
             if (!available[key]) continue;
             foundAny = true;
 
-            // Calculate total focus level for this research
             const researchLevels = playerPractical[research.baseType];
             let totalLevel = 0;
             if (researchLevels) {
@@ -439,10 +474,17 @@ async function renderPracticalResearch() {
                 }
             }
 
+            const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+            const hasLab = researchLabLevel > 0;
             const isQueueFull = queue.length >= maxQueue;
+            const isDisabled = isQueueFull || !hasLab;
+            
+            let buttonTitle = 'Customize Research →';
+            if (isQueueFull) buttonTitle = 'Research queue is full';
+            else if (!hasLab) buttonTitle = 'A Research Lab is required to start research';
 
             html += `
-        <div class="research-card" onclick="${!isQueueFull ? `openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}')` : ''}">
+        <div class="research-card ${isDisabled ? 'locked' : ''}" onclick="${!isDisabled ? `openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}')` : ''}">
           <div class="card-header">
             <span class="icon">${research.icon}</span>
             <span class="name">${research.name}</span>
@@ -463,9 +505,18 @@ async function renderPracticalResearch() {
           </div>
           <div class="card-footer">
             ${totalLevel > 0 ? `
-              <button class="btn btn-success btn-small" onclick="window.buildCustomVariantFromResearch('${research.baseType}', 'building', event)">✓ Create Variant</button>
+              <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-success'} btn-small" 
+                      ${isDisabled ? 'disabled' : ''} 
+                      onclick="window.buildCustomVariantFromResearch('${research.baseType}', 'building', event)">
+                ✓ Create Variant
+              </button>
             ` : ''}
-            <button class="btn btn-primary" ${isQueueFull ? 'disabled title="Research queue is full"' : ''} onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}', event)">Customize Research →</button>
+            <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-primary'}" 
+                    ${isDisabled ? 'disabled' : ''} 
+                    title="${buttonTitle}"
+                    onclick="openAllocationModal('${key}', '${research.name}', '${research.baseType}', '${research.icon}', event)">
+              ${buttonTitle}
+            </button>
           </div>
         </div>
       `;
@@ -701,10 +752,16 @@ window.updateAllocationSliders = function () {
         };
 
         const costBreakdown = document.getElementById('cost-breakdown');
+        const currentPlanet = getCurrentPlanet();
+        const canAfford = currentPlanet && 
+                         currentPlanet.resources.metal >= estimatedCost.metal &&
+                         currentPlanet.resources.crystal >= estimatedCost.crystal &&
+                         currentPlanet.resources.deuterium >= estimatedCost.deuterium;
+
         costBreakdown.innerHTML = `
-      <span>⚙️ Metal: ${formatNumber(estimatedCost.metal)}</span>
-      <span>💎 Crystal: ${formatNumber(estimatedCost.crystal)}</span>
-      <span>🔷 Deuterium: ${formatNumber(estimatedCost.deuterium)}</span>
+      <span class="${currentPlanet?.resources.metal < estimatedCost.metal ? 'text-error' : ''}">⚙️ Metal: ${formatNumber(estimatedCost.metal)}</span>
+      <span class="${currentPlanet?.resources.crystal < estimatedCost.crystal ? 'text-error' : ''}">💎 Crystal: ${formatNumber(estimatedCost.crystal)}</span>
+      <span class="${currentPlanet?.resources.deuterium < estimatedCost.deuterium ? 'text-error' : ''}">🔷 Deuterium: ${formatNumber(estimatedCost.deuterium)}</span>
     `;
 
         // Calculate time estimate with unified formula
@@ -736,6 +793,15 @@ window.updateAllocationSliders = function () {
         if (warningEl) {
             const maxDuration = 172800;
             warningEl.textContent = estimatedTime >= maxDuration ? '⚠️ Capped at 2 days maximum' : '';
+        }
+
+        // Final button enabling logic: must have 100% distribution AND be able to afford it
+        const startBtn = document.getElementById('start-research-btn');
+        if (startBtn) {
+            const total = parseInt(document.getElementById('total-percent').textContent);
+            const isValidDistribution = (total === 100);
+            startBtn.disabled = !isValidDistribution || !canAfford;
+            startBtn.title = !canAfford ? 'Insufficient resources' : (isValidDistribution ? 'Start Research' : 'Distribute 100% to start');
         }
     }
 };
@@ -771,7 +837,7 @@ window.submitAllocationResearch = async function (researchKey, baseType) {
 
         if (!response.ok) {
             const error = await response.json();
-            alert(`Error: ${error.message}`);
+            Notifications.showError(`Error: ${error.message}`);
             return;
         }
 
@@ -779,7 +845,7 @@ window.submitAllocationResearch = async function (researchKey, baseType) {
         await loadResearchData();
         renderPracticalResearch();
     } catch (error) {
-        alert(`Failed to start research: ${error.message}`);
+        Notifications.showError(`Failed to start research: ${error.message}`);
     }
 };
 
