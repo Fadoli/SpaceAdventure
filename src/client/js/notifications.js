@@ -18,6 +18,13 @@ export const Notifications = {
     },
 
     /**
+     * Show an info notification
+     */
+    showInfo(message, duration = 5000) {
+        this.show(message, 'info', duration);
+    },
+
+    /**
      * Internal generic show function
      */
     show(message, type, duration) {
@@ -27,7 +34,9 @@ export const Notifications = {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         
-        const icon = type === 'success' ? '✅' : '❌';
+        let icon = 'ℹ️';
+        if (type === 'success') icon = '✅';
+        else if (type === 'error') icon = '❌';
         
         notification.innerHTML = `
             <span class="notification-icon">${icon}</span>

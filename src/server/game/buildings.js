@@ -32,13 +32,28 @@ import {
 import { calculateBaseTime } from '../../shared/time.js';
 
 /**
- * Get the effective building definition for a planet (base or custom)
+ * Get the effective building definition for a planet (base or custom blueprint)
  */
 export function getEffectiveBuildingDefinition(buildingType, planet = null, player = null) {
-  const currentVariant = (planet?.activeVariants && planet.activeVariants[buildingType]) || 'base';
-  if (currentVariant === 'custom' && player && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+  const activeVariantId = (planet?.activeVariants && planet.activeVariants[buildingType]) || 'base';
+  
+  if (activeVariantId === 'base') {
+    return BUILDINGS[buildingType];
+  }
+  
+  // Try to find by blueprint ID
+  if (player && player.buildingBlueprints && player.buildingBlueprints[buildingType]) {
+    const blueprint = player.buildingBlueprints[buildingType].find(bp => bp.id === activeVariantId);
+    if (blueprint) {
+      return blueprint.customDefinition;
+    }
+  }
+  
+  // Fallback to legacy single variant if ID didn't match (for migration)
+  if (activeVariantId === 'custom' && player && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
     return player.customBuildingVariants[buildingType].customDefinition;
   }
+  
   return BUILDINGS[buildingType];
 }
 
@@ -1154,4 +1169,77 @@ export async function switchBuildingVariant(userId, planetId, buildingType, toCu
     switchCost,
     resources: planet.resources
   };
+}
+
+/**
+ * Create a new blueprint for a building type
+ */
+export async function createBuildingBlueprint(userId, baseType, focusLevels, name) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  if (!player.buildingBlueprints) player.buildingBlueprints = {};
+  if (!player.buildingBlueprints[baseType]) player.buildingBlueprints[baseType] = [];
+
+  // Verify research config
+  const { getPracticalResearch, calculateFocusModifiers, applyCustomization } = await import('../../shared/research.js');
+  const { calculateFocusLevel } = await import('../../shared/formulas.js');
+  
+  const practical = getPracticalResearch();
+  let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'building');
+  if (!researchConfig) throw new Error('No practical research available for ' + baseType);
+
+  // Validate focus levels
+  const currentExp = player.practicalResearch?.[baseType]?.experience || { output: 0, automation: 0, energy: 0, cost: 0 };
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
+    const maxLevel = calculateFocusLevel(currentExp[focus]);
+    if (level > maxLevel) throw new Error('Focus level ' + level + ' exceeds research level ' + maxLevel);
+  }
+
+  const blueprintId = 'bp_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  const modifiers = calculateFocusModifiers(researchConfig, focusLevels);
+  const customDefinition = applyCustomization(BUILDINGS[baseType], modifiers);
+
+  const blueprint = {
+    id: blueprintId,
+    name: name || (baseType + ' Variant ' + (player.buildingBlueprints[baseType].length + 1)),
+    baseType,
+    focusLevels,
+    modifiers,
+    customDefinition,
+    createdAt: Date.now()
+  };
+
+  player.buildingBlueprints[baseType].push(blueprint);
+  await updatePlayer(userId, player);
+  return blueprint;
+}
+
+/**
+ * Set the active blueprint for a specific planet and building
+ */
+export async function setActiveBlueprint(userId, planetId, baseType, blueprintId) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  const planet = player.planets.find(p => p.id === planetId);
+  if (!planet) throw new Error('Planet not found');
+
+  if (!planet.activeVariants) planet.activeVariants = {};
+
+  if (blueprintId === 'base') {
+    planet.activeVariants[baseType] = 'base';
+  } else {
+    // Verify blueprint exists
+    const blueprints = player.buildingBlueprints?.[baseType] || [];
+    const blueprint = blueprints.find(bp => bp.id === blueprintId);
+    if (!blueprint) throw new Error('Blueprint not found');
+    
+    planet.activeVariants[baseType] = blueprintId;
+  }
+
+  updatePlanetProduction(planet, player);
+  await updatePlayer(userId, player);
+  return { activeVariant: planet.activeVariants[baseType] };
 }

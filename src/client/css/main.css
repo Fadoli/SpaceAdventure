@@ -2936,6 +2936,10 @@ body {
     border-left: 4px solid var(--accent-red);
 }
 
+.notification.info {
+    border-left: 4px solid var(--accent-blue);
+}
+
 .notification.removing {
     animation: slideOut 0.3s ease-in forwards;
 }
@@ -3133,5 +3137,122 @@ body {
     font-weight: bold;
     border-bottom: 1px solid rgba(240, 173, 78, 0.2);
     margin-bottom: 5px;
+}
+
+
+/* Practical Research Overhaul */
+.xp-section {
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.xp-row {
+    font-size: 0.75rem;
+}
+
+.xp-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.xp-bar-container {
+    height: 8px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.xp-bar-fill {
+    height: 100%;
+    transition: width 0.5s ease-out;
+}
+
+.xp-bar-fill.focus-output { background: #5cb85c; }
+.xp-bar-fill.focus-automation { background: #5bc0de; }
+.xp-bar-fill.focus-energy { background: #f0ad4e; }
+.xp-bar-fill.focus-cost { background: #9b59b6; }
+
+.tree-bonus {
+    font-size: 0.8rem;
+    margin: 10px 0;
+    padding: 5px;
+    background: rgba(91, 192, 222, 0.1);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.last-result {
+    font-size: 0.75rem;
+    text-align: center;
+    font-weight: bold;
+    padding: 4px;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+}
+
+.research-header-info {
+    grid-column: 1 / -1;
+    background: rgba(20, 30, 50, 0.6);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--accent-blue);
+}
+
+.research-header-info h3 { margin: 0 0 5px 0; color: var(--accent-blue); }
+.research-header-info p { margin: 0; font-size: 0.9rem; color: var(--text-secondary); }
+
+
+/* Blueprint Selection UI */
+.blueprint-selection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.blueprint-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.blueprint-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-blue);
+}
+
+.blueprint-item.active {
+    border-left: 4px solid var(--accent-green);
+    background: rgba(92, 184, 92, 0.05);
+}
+
+.blueprint-info h4 { margin: 0 0 5px 0; color: white; }
+.blueprint-info p { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+
+.blueprint-focuses {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.blueprint-focuses .focus-badge {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-secondary);
 }
 

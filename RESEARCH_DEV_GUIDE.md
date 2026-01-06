@@ -6,7 +6,7 @@
 |------|---------|-------------|
 | `src/shared/research.js` | Definitions & configs | `THEORETICAL_RESEARCH`, `PRACTICAL_RESEARCH` |
 | `src/shared/formulas.js` | Calculations | Research cost/time formulas |
-| `src/server/game/researchLogic.js` | Server logic | `startTheoreticalResearch`, `startPracticalResearchLevel`, `getActiveBuildingVariant`, `getActiveShipVariant` |
+| `src/server/game/researchLogic.js` | Server logic | `startTheoreticalResearch`, `startPracticalResearchWithAllocation`, `getActiveBuildingVariant`, `getActiveShipVariant` |
 | `src/server/index.js` | API routes | Research endpoints |
 | `src/client/js/views/research.js` | UI | `initializeResearch()` |
 | `src/client/css/main.css` | Styling | Research view classes |

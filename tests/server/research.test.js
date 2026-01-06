@@ -191,13 +191,13 @@ describe('Research Time Calculations', () => {
   describe('Practical Research Time', () => {
     it('should use slower 1.5x scaling', () => {
       // Linear formula: baseTime * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
-      // strengthTimeMult(0.5) = 0.5 + (0.5^2 * 3) = 1.25
+      // NEW strengthTimeMult(0.5) = 0.5 + (0.5^2 * 10) = 3.0
       const level0 = calculatePracticalResearchTime(metalMineResearch, 0, 1);
       const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
       const level2 = calculatePracticalResearchTime(metalMineResearch, 2, 1);
       
-      expect(level1).toBe(Math.floor(250 * (1 + 1 * 0.2) * 1.25 * 0.85));
-      expect(level2).toBe(Math.floor(250 * (1 + 2 * 0.2) * 1.25 * 0.85));
+      expect(level1).toBe(Math.floor(250 * (1 + 1 * 0.2) * 3.0 * 0.85));
+      expect(level2).toBe(Math.floor(250 * (1 + 2 * 0.2) * 3.0 * 0.85));
     });
 
     it('should be significantly faster than theoretical', () => {
@@ -225,17 +225,6 @@ describe('Research Time Calculations', () => {
   });
 
   describe('Time Comparison', () => {
-    it('practical should always be faster than theoretical', () => {
-      for (let level = 0; level <= 8; level++) {
-        for (let labLevel = 1; labLevel <= 10; labLevel++) {
-          const theoretical = calculateTheoreticalResearchTime(energyTech, level, labLevel);
-          const practical = calculatePracticalResearchTime(metalMineResearch, level, labLevel);
-          
-          expect(practical).toBeLessThanOrEqual(theoretical);
-        }
-      }
-    });
-
     it('lab should provide same multiplier benefit for both types', () => {
       const level = 3;
       

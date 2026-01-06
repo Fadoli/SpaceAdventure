@@ -41,6 +41,8 @@ export async function getPlayerByUserId(userId) {
     if (!player.practicalResearchQueue) player.practicalResearchQueue = [];
     if (!player.customBuildingVariants) player.customBuildingVariants = {};
     if (!player.customShipVariants) player.customShipVariants = {};
+    if (!player.buildingBlueprints) player.buildingBlueprints = {};
+    if (!player.shipBlueprints) player.shipBlueprints = {};
   }
   
   return player;
@@ -245,6 +247,8 @@ export async function recomputeAllPlanetsOnStartup() {
       if (!player.practicalResearchQueue) player.practicalResearchQueue = [];
       if (!player.customBuildingVariants) player.customBuildingVariants = {};
       if (!player.customShipVariants) player.customShipVariants = {};
+      if (!player.buildingBlueprints) player.buildingBlueprints = {};
+      if (!player.shipBlueprints) player.shipBlueprints = {};
 
       for (const planet of player.planets) {
         // Initialize building allocations if missing

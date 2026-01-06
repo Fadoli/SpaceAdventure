@@ -278,8 +278,9 @@ export function calculatePracticalResearchTime(research, level, labLevel = 1, re
   // Linear scaling for practical research: 20% more time per level
   const timeMultiplier = 1 + (level * 0.2);
   
-  // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 3.5x)
-  const strengthTimeMultiplier = 0.5 + (strength * strength * 3);
+  // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 10x)
+  // Maps 0-1 to 0.5 - 10.5 using quadratic scaling
+  const strengthTimeMultiplier = 0.5 + (strength * strength * 10);
   
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
@@ -288,7 +289,7 @@ export function calculatePracticalResearchTime(research, level, labLevel = 1, re
   
   // Apply same constraints as server
   const minTime = 60; // 1 minute minimum
-  const maxTime = 172800; // 2 days maximum
+  const maxTime = 604800; // 7 days maximum (increased from 2)
   
   return Math.max(minTime, Math.min(maxTime, totalTime));
 }
@@ -302,8 +303,27 @@ export function applyTheoreticalBonus(baseValue, techLevel, bonusPerLevel) {
 }
 
 /**
+ * Calculate the outcome of a research run
+ * @returns {Object} { type: 'failure'|'success'|'breakthrough', multiplier: number }
+ */
+export function rollResearchOutcome() {
+  const roll = Math.random();
+  if (roll < 0.05) return { type: 'breakthrough', multiplier: 2.5 }; // 5% chance
+  if (roll < 0.55) return { type: 'failure', multiplier: 0.1 };    // 50% chance
+  return { type: 'success', multiplier: 1.0 };                     // 45% chance
+}
+
+/**
+ * Convert raw experience points to a functional level using a non-linear scale
+ * level = sqrt(xp / 100)
+ */
+export function calculateFocusLevel(xp) {
+  if (!xp || xp <= 0) return 0;
+  return Math.floor(Math.sqrt(xp / 100));
+}
+
+/**
  * Calculate combined modifiers from all practical research focuses
- * Used when retrieving a specific customized building/ship variant
  */
 export function calculatePracticalModifiers(baseDefinition, focusLevels, researchConfig) {
   const modifiers = {

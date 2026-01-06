@@ -8,8 +8,24 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet } from './game/player.js';
-import { upgradeBuilding, cancelBuilding, processCompletedBuildings, updateBuildingAllocation, updatePlanetAllocations, getBuildingCost, getBuildTime, getProduction, getStorageIncrease, updatePlanetProduction, queueVariantSwitch, processCompletedVariantSwitches, getEffectiveBuildingDefinition } from './game/buildings.js';
-import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails } from './game/shipyard.js';
+import { 
+  upgradeBuilding, 
+  cancelBuilding, 
+  processCompletedBuildings, 
+  updateBuildingAllocation, 
+  updatePlanetAllocations, 
+  getBuildingCost, 
+  getBuildTime, 
+  getProduction, 
+  getStorageIncrease, 
+  updatePlanetProduction, 
+  queueVariantSwitch, 
+  processCompletedVariantSwitches, 
+  getEffectiveBuildingDefinition,
+  createBuildingBlueprint,
+  setActiveBlueprint
+} from './game/buildings.js';
+import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails, createShipBlueprint } from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
 import { 
@@ -17,7 +33,6 @@ import {
   completeTheoreticalResearch, 
   cancelTheoreticalResearch,
   startPracticalResearchWithAllocation,
-  startPracticalResearchLevel,
   completePracticalResearch,
   cancelPracticalResearch,
   selectCustomBuildingVariant,
@@ -1278,8 +1293,9 @@ async function handleRequest(req) {
           // Allocation-based research (customization)
           queueItem = startPracticalResearchWithAllocation(player, researchKey, allocation, planetId, strength || 0.5);
         } else {
-          // Simple level-based research (for backward compatibility)
-          queueItem = startPracticalResearchLevel(player, researchKey, planetId);
+          // Simple default research (balanced)
+          const defaultAllocation = { output: 0.25, automation: 0.25, energy: 0.25, cost: 0.25 };
+          queueItem = startPracticalResearchWithAllocation(player, researchKey, defaultAllocation, planetId, 0.5);
         }
         console.log(`[PRACTICAL_RESEARCH] Successfully started research:`, queueItem);
         await updatePlayer(user.id, player);
@@ -1340,27 +1356,64 @@ async function handleRequest(req) {
       }
     }
 
-    // POST /api/game/planet/:planetId/research/building-variant - Set custom building variant
+    // POST /api/game/planet/:planetId/research/building-variant - Create a new blueprint
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/building-variant$/) && method === 'POST') {
       const user = await requireAuth(req);
-      if (!user) {
-        return errorResponse(req, 'Not authenticated', 401);
-      }
-
-      const planetId = path.split('/')[4];
-      const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
-      }
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
 
       const body = await req.json();
-      const { baseType, focusLevels } = body;
+      const { baseType, focusLevels, name } = body;
 
       try {
-        const variant = selectCustomBuildingVariant(player, planetId, baseType, focusLevels);
-        await updatePlayer(user.id, player);
+        const blueprint = await createBuildingBlueprint(user.id, baseType, focusLevels, name);
+        return successResponse(req, blueprint);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
 
-        return successResponse(req, variant);
+    // POST /api/game/planet/:planetId/building/:baseType/activate-blueprint - Set active variant
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/activate-blueprint$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const parts = path.split('/');
+      const planetId = parts[4];
+      const baseType = parts[6];
+      const body = await req.json();
+      const { blueprintId } = body;
+
+      try {
+        const result = await setActiveBlueprint(user.id, planetId, baseType, blueprintId);
+        return successResponse(req, result);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // GET /api/game/blueprints/:baseType - Get all blueprints for a type
+    if (path.match(/^\/api\/game\/blueprints\/[^/]+$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const baseType = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      
+      const blueprints = (player.buildingBlueprints && player.buildingBlueprints[baseType]) || [];
+      return successResponse(req, blueprints);
+    }
+
+    // POST /api/game/research/ship-blueprint - Create a new ship blueprint
+    if (path === '/api/game/research/ship-blueprint' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const body = await req.json();
+      const { baseType, focusLevels, name } = body;
+
+      try {
+        const blueprint = await createShipBlueprint(user.id, baseType, focusLevels, name);
+        return successResponse(req, blueprint);
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }
@@ -1398,19 +1451,18 @@ async function handleRequest(req) {
         return errorResponse(req, 'Not authenticated', 401);
       }
 
-      const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
       if (!player) {
         return errorResponse(req, 'Player not found', 404);
       }
 
       try {
-        const buildingVariants = getActiveCustomVariants(player, planetId);
-        const shipVariants = getActiveShipCustomVariants(player);
+        const buildingBlueprints = player.buildingBlueprints || {};
+        const shipBlueprints = player.shipBlueprints || {};
 
         return successResponse(req, {
-          building: buildingVariants,
-          ships: shipVariants
+          building: buildingBlueprints,
+          ships: shipBlueprints
         });
       } catch (error) {
         return errorResponse(req, error.message, 400);

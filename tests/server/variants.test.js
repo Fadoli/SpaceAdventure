@@ -19,14 +19,20 @@ describe('Building Variants System', () => {
       customBuildingVariants: {},
       practicalResearch: {
         metalMine: {
-          output: 5,      // Use correct focus names
-          automation: 3,
-          energy: 2
+          experience: {
+            output: 2500,      // sqrt(2500/100) = 5
+            automation: 900,   // sqrt(900/100) = 3
+            energy: 400,       // sqrt(400/100) = 2
+            cost: 0
+          }
         },
         crystalMine: {
-          output: 5,
-          automation: 3,
-          energy: 2
+          experience: {
+            output: 2500,
+            automation: 900,
+            energy: 400,
+            cost: 0
+          }
         }
       }
     };

@@ -328,6 +328,60 @@ const SHIP_MODIFIERS = {
   }
 };
 
+const MILITARY_SHIP_MODIFIERS = {
+  output: {
+    attackMultiplier: 1.02,
+    hullMultiplier: 1.01,
+    costMultiplier: 1.015,
+    speedMultiplier: 0.99
+  },
+  automation: {
+    crewRequirement: 0.98,
+    costMultiplier: 1.02,
+    fuelMultiplier: 1.02,
+    attackMultiplier: 0.99
+  },
+  energy: {
+    fuelMultiplier: 0.98,
+    shieldMultiplier: 1.02,
+    costMultiplier: 1.01,
+    speedMultiplier: 1.01
+  },
+  cost: {
+    costMultiplier: 0.98,
+    hullMultiplier: 0.99,
+    attackMultiplier: 0.99,
+    speedMultiplier: 1.001
+  }
+};
+
+const CIVILIAN_SHIP_MODIFIERS = {
+  output: {
+    cargoCapacityMultiplier: 1.02,
+    fuelMultiplier: 1.01,
+    costMultiplier: 1.01,
+    speedMultiplier: 0.99
+  },
+  automation: {
+    crewRequirement: 0.98,
+    costMultiplier: 1.02,
+    fuelMultiplier: 1.025,
+    cargoCapacityMultiplier: 0.99
+  },
+  energy: {
+    fuelMultiplier: 0.98,
+    speedMultiplier: 1.015,
+    costMultiplier: 1.01,
+    cargoCapacityMultiplier: 1.005
+  },
+  cost: {
+    costMultiplier: 0.98,
+    cargoCapacityMultiplier: 0.99,
+    fuelMultiplier: 1.002,
+    speedMultiplier: 1.001
+  }
+};
+
 /**
  * Practical research definitions - one per base building/ship type
  * Each tracks which focuses a player has invested in
@@ -405,14 +459,14 @@ export const PRACTICAL_RESEARCH = {
     type: 'ship',
     category: 'Civilian',
     icon: '📦',
-    description: 'Customize small cargo ship through practical research.',
+    description: 'Optimize small cargo ship logistics and efficiency.',
     baseCost: {
       metal: 100,
       crystal: 50,
       deuterium: 25
     },
     maxLevels: 30,
-    focusModifiers: SHIP_MODIFIERS
+    focusModifiers: CIVILIAN_SHIP_MODIFIERS
   },
 
   lightFighter: {
@@ -421,39 +475,14 @@ export const PRACTICAL_RESEARCH = {
     type: 'ship',
     category: 'Military',
     icon: '🛩️',
-    description: 'Customize light fighter ship through practical research.',
+    description: 'Enhance light fighter combat performance.',
     baseCost: {
       metal: 100,
       crystal: 50,
       deuterium: 25
     },
     maxLevels: 30,
-    focusModifiers: {
-      output: {
-        attackMultiplier: 1.02,          // Military variant: attack instead of cargo
-        hullMultiplier: 1.015,
-        costMultiplier: 1.01,
-        speedMultiplier: 0.99
-      },
-      automation: {
-        crewRequirement: 0.98,
-        costMultiplier: 1.02,
-        fuelMultiplier: 1.025,
-        attackMultiplier: 0.99
-      },
-      energy: {
-        fuelMultiplier: 0.98,
-        costMultiplier: 1.015,
-        speedMultiplier: 1.015,
-        attackMultiplier: 1.005
-      },
-      cost: {
-        costMultiplier: 0.98,
-        attackMultiplier: 0.99,
-        hullMultiplier: 0.99,
-        speedMultiplier: 1.001
-      }
-    }
+    focusModifiers: MILITARY_SHIP_MODIFIERS
   }
 };
 
@@ -569,8 +598,7 @@ export function getCustomVariant(baseType, type, focusLevels) {
 
 /**
  * Calculate the aggregated modifiers from all focus levels using exponential scaling
- * Modifiers are base multipliers: 1.02 = 2% per level, 0.98 = 2% reduction per level
- * Result is multiplier - 1: (1.02^level) - 1 = multiplicative bonus
+ * Result is multiplier: (baseMultiplier^level)
  */
 export function calculateFocusModifiers(research, focusLevels) {
   const modifiers = {
@@ -578,7 +606,7 @@ export function calculateFocusModifiers(research, focusLevels) {
     costMultiplier: 1,
     energyMultiplier: 1,
     populationMultiplier: 1,
-    cargoCapacityMultiplier: 1, // Corrected from cargoMultiplier
+    cargoCapacityMultiplier: 1,
     fuelMultiplier: 1,
     speedMultiplier: 1,
     attackMultiplier: 1,
@@ -590,13 +618,12 @@ export function calculateFocusModifiers(research, focusLevels) {
   // Apply exponential modifiers from each focus
   for (const focus in focusLevels) {
     const level = focusLevels[focus];
+    
     if (level > 0 && research.focusModifiers[focus]) {
       const focusModifiers = research.focusModifiers[focus];
       for (const stat in focusModifiers) {
         const baseMultiplier = focusModifiers[stat];
         if (modifiers.hasOwnProperty(stat)) {
-          // baseMultiplier is the base (e.g., 1.02 for +2% per level)
-          // Result is the multiplicative value: (1.02^level)
           const multipliedValue = Math.pow(baseMultiplier, level);
           modifiers[stat] *= multipliedValue;
         }

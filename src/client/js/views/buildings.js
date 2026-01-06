@@ -624,64 +624,121 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
     if (!planetId) return;
     
     if (!toCustom) {
-        // Switching to base - direct switch, no selection needed
-        const confirmed = await showConfirm('Switch Variant', 'Are you sure you want to switch back to the base variant? This will cost resources.');
+        // Switching to base
+        const confirmed = await showConfirm('Switch Variant', 'Switch back to the base version? Existing builds will be updated.');
         if (!confirmed) return;
         
         try {
-            await API.switchBuildingVariant(planetId, buildingKey, false);
+            await API.request(`/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
+                method: 'POST',
+                body: JSON.stringify({ blueprintId: 'base' })
+            });
             if (onStateChange) await onStateChange();
+            Notifications.showSuccess('Building reverted to base model.');
         } catch (error) {
             Notifications.showError('Error: ' + error.message);
         }
         return;
     }
     
-    // Switching to custom - show selection modal
-    let buildingDetails;
-    try {
-        buildingDetails = await API.getBuildingDetails(planetId);
-    } catch (error) {
-        console.error('Failed to load building details:', error);
-        Notifications.showError('Failed to load building details');
-        return;
-    }
-    
-    const building = buildingDetails.buildings[buildingKey];
-    if (!building || !building.customVariant) {
-        Notifications.showError('No custom variant available');
-        return;
-    }
-    
+    // Switching to custom - show blueprint selection modal
     const planet = currentGameState?.planets.find(p => p.id === planetId);
     if (!planet) {
         Notifications.showError('Planet not found');
         return;
     }
-    showCustomVariantSelectionModal(buildingKey, building, planet, onStateChange);
+    
+    showBlueprintSelectionModal(buildingKey, planet, onStateChange);
 }
 
 /**
- * Show modal for selecting custom variant details
+ * Show modal for selecting from multiple blueprints
  */
-export async function showCustomVariantSelectionModal(buildingKey, building, planet, onStateChange) {
+export async function showBlueprintSelectionModal(buildingKey, planet, onStateChange) {
     const modal = document.getElementById('custom-variant-modal') || createCustomVariantModal();
     modal.style.display = 'block';
     
     const modalTitle = document.getElementById('modal-variant-title');
     const modalBody = document.getElementById('modal-variant-body');
     
-    modalTitle.innerHTML = `Select ${building.name} Customization`;
+    modalTitle.innerHTML = `Select Blueprint for ${buildingKey.replace(/([A-Z])/g, ' $1')}`;
     
-    // Get available custom variants for this building
     try {
-        const variantDetails = await API.getCustomVariantDetails(planet.id, buildingKey);
-        renderCustomVariantOptions(modalBody, buildingKey, building, variantDetails, planet, onStateChange);
+        // Fetch all blueprints for this building type
+        const response = await fetch(`/api/game/blueprints/${buildingKey}`);
+        const result = await response.json();
+        const blueprints = result.data || [];
+        
+        renderBlueprintList(modalBody, buildingKey, blueprints, planet, onStateChange);
     } catch (error) {
-        console.error('Failed to load variant details:', error);
-        modalBody.innerHTML = `<p class="error">Failed to load customization options: ${error.message}</p>`;
+        console.error('Failed to load blueprints:', error);
+        modalBody.innerHTML = `<p class="error">Failed to load blueprints: ${error.message}</p>`;
     }
 }
+
+function renderBlueprintList(container, buildingKey, blueprints, planet, onStateChange) {
+    const activeBlueprintId = planet.activeVariants?.[buildingKey] || 'base';
+    
+    let html = '<div class="blueprint-selection-list">';
+    
+    // Base Model
+    html += `
+        <div class="blueprint-item ${activeBlueprintId === 'base' ? 'active' : ''}">
+            <div class="blueprint-info">
+                <h4>Standard Model (Base)</h4>
+                <p>Reliable and well-understood design.</p>
+            </div>
+            <button class="btn btn-primary" onclick="window.activateBlueprint('${buildingKey}', 'base')" ${activeBlueprintId === 'base' ? 'disabled' : ''}>
+                ${activeBlueprintId === 'base' ? 'Currently Active' : 'Select'}
+            </button>
+        </div>
+    `;
+
+    if (blueprints.length === 0) {
+        html += '<p class="info-text" style="margin-top: 20px;">No custom blueprints found. Research practical optimizations to create one.</p>';
+    } else {
+        for (const bp of blueprints) {
+            const isActive = activeBlueprintId === bp.id;
+            const focuses = Object.entries(bp.focusLevels)
+                .filter(([_, v]) => v > 0)
+                .map(([k, v]) => `<span class="focus-badge focus-${k}">${k}: ${v}</span>`)
+                .join(' ');
+
+            html += `
+                <div class="blueprint-item ${isActive ? 'active' : ''}">
+                    <div class="blueprint-info">
+                        <h4>${bp.name}</h4>
+                        <div class="blueprint-focuses">${focuses}</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.activateBlueprint('${buildingKey}', '${bp.id}')" ${isActive ? 'disabled' : ''}>
+                        ${isActive ? 'Currently Active' : 'Select'}
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+window.activateBlueprint = async function(baseType, blueprintId) {
+    const planetId = getCurrentPlanetId();
+    try {
+        await API.request(`/planet/${planetId}/building/${baseType}/activate-blueprint`, {
+            method: 'POST',
+            body: JSON.stringify({ blueprintId })
+        });
+        
+        Notifications.showSuccess('Blueprint activated successfully!');
+        window.closeCustomVariantModal();
+        
+        // Refresh the whole state to update buildings
+        if (window.loadGameState) await window.loadGameState();
+    } catch (error) {
+        Notifications.showError('Activation failed: ' + error.message);
+    }
+};
 
 /**
  * Create custom variant selection modal if it doesn't exist

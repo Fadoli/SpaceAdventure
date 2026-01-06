@@ -20,23 +20,59 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   const costReductionBonus = getResearchBonus(player?.research, 'globalCostReduction');
   const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
 
-  // Validate and calculate costs
-  for (const shipKey in ships) {
-    const quantity = ships[shipKey];
+  // ships object can now contain either base ship keys or blueprint IDs
+  // Format: { "smallCargo": 5, "sbp_12345": 2 }
+  
+  for (const identifier in ships) {
+    const quantity = ships[identifier];
     if (quantity <= 0) continue;
 
-    const ship = getShip(shipKey);
-    if (!ship) {
-      throw new Error(`Unknown ship: ${shipKey}`);
+    let shipDef;
+    let shipKey = identifier;
+
+    // Check if it's a blueprint
+    if (identifier.startsWith('sbp_')) {
+      // Find blueprint in player data
+      let blueprint = null;
+      for (const key in player.shipBlueprints || {}) {
+        blueprint = player.shipBlueprints[key].find(bp => bp.id === identifier);
+        if (blueprint) {
+          shipKey = key;
+          break;
+        }
+      }
+      if (!blueprint) throw new Error(`Unknown blueprint: ${identifier}`);
+      shipDef = blueprint.customDefinition;
+    } else {
+      shipDef = SHIPS[identifier];
     }
 
-    const cost = calculateShipCost(shipKey, quantity, costReductionBonus);
+    if (!shipDef) {
+      throw new Error(`Unknown ship type: ${identifier}`);
+    }
+
+    // Calculate cost based on the specific definition
+    const baseCost = shipDef.baseCost;
+    const cost = {
+      metal: Math.floor(baseCost.metal * quantity * (1 - costReductionBonus)),
+      crystal: Math.floor(baseCost.crystal * quantity * (1 - costReductionBonus)),
+      deuterium: Math.floor(baseCost.deuterium * quantity * (1 - costReductionBonus))
+    };
+
     totalCost.metal += cost.metal;
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const buildTime = calculateShipBuildTime(shipKey, quantity, shipyardLevel, roboticsLevel, naniteLevel, timeReductionBonus);
-    totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
+    // Calculate build time
+    const baseTime = calculateBaseTime(shipDef) * quantity;
+    const speedFactor = 2500; // units/hr
+    const timeInSeconds = (baseTime / speedFactor) * 3600;
+    const shipyardMultiplier = Math.pow(0.85, shipyardLevel);
+    const roboticsMultiplier = Math.pow(0.85, roboticsLevel);
+    const naniteMultiplier = Math.pow(2, naniteLevel);
+    
+    const buildTime = Math.max(1, Math.floor((timeInSeconds * shipyardMultiplier * (1 - timeReductionBonus) / roboticsMultiplier / naniteMultiplier)));
+    totalBuildTime = Math.max(totalBuildTime, buildTime);
   }
 
   // Check if can afford
@@ -283,6 +319,7 @@ export function getShipyardDetails(planet, player = null) {
 
   // Calculate effective speeds if player is provided
   const effectiveSpeeds = {};
+  const shipBlueprints = player?.shipBlueprints || {};
   if (player) {
     for (const shipKey in SHIPS) {
       effectiveSpeeds[shipKey] = calculateShipSpeed(shipKey, player.research);
@@ -294,6 +331,7 @@ export function getShipyardDetails(planet, player = null) {
     ships: planet.ships,
     defenses: planet.defenses,
     effectiveSpeeds,
+    shipBlueprints,
     shipQueue: planet.shipQueue.map(item => ({
       ...item,
       ships: item.ships || {},
@@ -311,4 +349,50 @@ export function getShipyardDetails(planet, player = null) {
       timeRemaining: Math.max(0, item.finishTime - Date.now())
     }))
   };
+}
+
+/**
+ * Create a new ship blueprint
+ */
+export async function createShipBlueprint(userId, baseType, focusLevels, name) {
+  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  if (!player.shipBlueprints) player.shipBlueprints = {};
+  if (!player.shipBlueprints[baseType]) player.shipBlueprints[baseType] = [];
+
+  // Verify research config
+  const { getPracticalResearch, calculateFocusModifiers, applyCustomization } = await import('../../shared/research.js');
+  const { calculateFocusLevel } = await import('../../shared/formulas.js');
+  
+  const practical = getPracticalResearch();
+  let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'ship');
+  if (!researchConfig) throw new Error('No practical research available for ' + baseType);
+
+  // Validate focus levels
+  const currentExp = player.practicalResearch?.[baseType]?.experience || { output: 0, automation: 0, energy: 0, cost: 0 };
+  for (const focus in focusLevels) {
+    const level = focusLevels[focus];
+    const maxLevel = calculateFocusLevel(currentExp[focus]);
+    if (level > maxLevel) throw new Error('Focus level ' + level + ' exceeds research level ' + maxLevel);
+  }
+
+  const blueprintId = 'sbp_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  const modifiers = calculateFocusModifiers(researchConfig, focusLevels);
+  const customDefinition = applyCustomization(SHIPS[baseType], modifiers);
+
+  const blueprint = {
+    id: blueprintId,
+    name: name || (SHIPS[baseType].name + ' Variant ' + (player.shipBlueprints[baseType].length + 1)),
+    baseType,
+    focusLevels,
+    modifiers,
+    customDefinition,
+    createdAt: Date.now()
+  };
+
+  player.shipBlueprints[baseType].push(blueprint);
+  await updatePlayer(userId, player);
+  return blueprint;
 }

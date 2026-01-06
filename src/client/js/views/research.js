@@ -37,7 +37,7 @@ function calculateResearchStateHash(data) {
         planetId: getCurrentPlanetId(),
         labLevel: currentPlanetBuildings?.researchLab || 0,
         theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
-        practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, level: q.level })),
+        practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, strength: q.strength })),
         theoretical: data.theoretical,
         practical: data.practical
     };
@@ -361,17 +361,27 @@ async function renderPracticalResearch() {
         const planetId = getCurrentPlanetId();
         const response = await fetch(`/api/game/planet/${planetId}/research/available`);
         const available = (await response.json()).data || {};
+        
         const practical = getPracticalResearch();
         const playerPractical = researchData?.practical || {};
         const queue = researchData?.progress?.practical || [];
         const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
         let html = '<div class="practical-research-view">';
+        
+        // Research Laboratory Header
+        html += `
+            <div class="research-header-info">
+                <h3>🧪 R&D Laboratory</h3>
+                <p>Run experiments to gain focus experience. Random outcomes can lead to breakthroughs or setbacks.</p>
+            </div>
+        `;
+
         if (queue.length > 0) {
             html += `
         <div class="research-queue-section">
           <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <h3 style="margin: 0;">🔬 Research Queue (${queue.length}/${maxQueue})</h3>
+            <h3 style="margin: 0;">🔬 Active Experiments (${queue.length}/${maxQueue})</h3>
             <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
           </div>
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
@@ -386,7 +396,7 @@ async function renderPracticalResearch() {
             <div class="queue-item-row">
               <span class="q-pos">${queue.indexOf(q) + 1}</span>
               <span class="q-name">${r.icon} ${r.name}</span>
-              <span class="q-level">Lvl ${q.level || ''}</span>
+              <span class="q-level">Strength: ${(q.strength * 100).toFixed(0)}%</span>
               <div class="progress-bar-mini"><div class="progress-fill" id="research-practical-progress-${q.id}" style="width: ${isActive ? percent : 0}%"></div></div>
               <span class="q-time-mini timer" data-finish="${q.endTime}" data-start="${q.startTime}" data-id="${q.id}"></span>
               <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${q.id}')">✕</button>
@@ -396,25 +406,88 @@ async function renderPracticalResearch() {
             html += '</div></div>';
         }
 
-        html += '<div class="research-cards-section"><h3>Available Customizations</h3><div class="research-cards">';
+        html += '<div class="research-cards-section"><h3>Available Research Trees</h3><div class="research-cards">';
         for (const key in practical) {
             const res = practical[key];
             if (!available[key]) continue;
-            const lvls = playerPractical[res.baseType];
-            let total = 0; if (lvls) Object.values(lvls).forEach(v => total += v);
+            
+            // Get tree and ensure experience object exists
+            let tree = playerPractical[res.baseType];
+            if (!tree || !tree.experience) {
+                // Handle possible old format (tree was just an object of levels) or missing tree
+                if (tree && !tree.experience && typeof tree === 'object' && 'output' in tree) {
+                    // Convert old format to new format locally for rendering
+                    tree = { 
+                        experience: { 
+                            output: Math.pow(tree.output || 0, 2) * 100, 
+                            automation: Math.pow(tree.automation || 0, 2) * 100, 
+                            energy: Math.pow(tree.energy || 0, 2) * 100, 
+                            cost: Math.pow(tree.cost || 0, 2) * 100 
+                        }, 
+                        treeBonus: 1.0, 
+                        history: [] 
+                    };
+                } else {
+                    tree = { experience: { output: 0, automation: 0, energy: 0, cost: 0 }, treeBonus: 1.0, history: [] };
+                }
+            }
+            
+            const exp = tree.experience;
+            
+            // Calculate levels for display
+            const levels = {
+                output: Math.floor(Math.sqrt((exp.output || 0) / 100)),
+                automation: Math.floor(Math.sqrt((exp.automation || 0) / 100)),
+                energy: Math.floor(Math.sqrt((exp.energy || 0) / 100)),
+                cost: Math.floor(Math.sqrt((exp.cost || 0) / 100))
+            };
+
             const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
             const isDisabled = queue.length >= maxQueue || researchLabLevel === 0;
+            
+            // Get last result status
+            let lastResultHtml = '';
+            if (tree.history && tree.history.length > 0) {
+                const last = tree.history[0];
+                const color = last.type === 'breakthrough' ? 'var(--accent-green)' : (last.type === 'failure' ? 'var(--accent-red)' : 'var(--text-primary)');
+                lastResultHtml = `<div class="last-result" style="color: ${color}">Last run: ${last.type.toUpperCase()} (+${last.xpGain} XP)</div>`;
+            }
+
             html += `
-        <div class="research-card ${isDisabled ? 'locked' : ''}" onclick="${!isDisabled ? `openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}')` : ''}">
+        <div class="research-card ${isDisabled ? 'locked' : ''}">
           <div class="card-header"><span class="icon">${res.icon}</span><span class="name">${res.name}</span></div>
           <div class="card-body">
             <p class="description">${res.description}</p>
-            <div class="current-level">Current Level: <strong>${total}</strong></div>
-            <div class="focuses">${lvls ? `<span class="focus output">📈 ${lvls.output}</span><span class="focus automation">🤖 ${lvls.automation}</span><span class="focus energy">⚡ ${lvls.energy}</span><span class="focus cost">💰 ${lvls.cost}</span>` : '<span class="focus">Not yet researched</span>'}</div>
+            
+            <div class="xp-section">
+                ${['output', 'automation', 'energy', 'cost'].map(f => {
+                    const level = levels[f];
+                    const nextXp = Math.pow(level + 1, 2) * 100;
+                    const currentXp = exp[f];
+                    const prevXp = Math.pow(level, 2) * 100;
+                    const progress = Math.min(100, ((currentXp - prevXp) / (nextXp - prevXp)) * 100);
+                    
+                    return `
+                        <div class="xp-row" title="${currentXp} / ${nextXp} XP">
+                            <div class="xp-label"><span>${f.toUpperCase()}</span><span>Lvl ${level}</span></div>
+                            <div class="xp-bar-container"><div class="xp-bar-fill focus-${f}" style="width: ${progress}%"></div></div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <div class="tree-bonus" title="Permanent XP gain bonus from breakthroughs">
+                ⚡ Tree Efficiency: <strong>${((tree.treeBonus || 1.0) * 100).toFixed(0)}%</strong>
+            </div>
+            
+            ${lastResultHtml}
           </div>
           <div class="card-footer">
-            ${total > 0 ? `<button class="btn ${isDisabled ? 'btn-secondary' : 'btn-success'} btn-small" ${isDisabled ? 'disabled' : ''} onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">✓ Create Variant</button>` : ''}
-            <button class="btn ${isDisabled ? 'btn-secondary' : 'btn-primary'}" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">Customize →</button>
+            <button class="btn btn-secondary btn-small" onclick="window.showResearchHistory('${res.baseType}')">📋 History</button>
+            <button class="btn btn-success btn-small" onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">🔧 Create Variant</button>
+            <button class="btn btn-primary" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
+              🔬 Run Experiment
+            </button>
           </div>
         </div>`;
         }
@@ -435,23 +508,60 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
     if (event) event.stopPropagation();
     const res = getPracticalResearch()[researchKey];
     if (!res) { Notifications.showError('Research not found'); return; }
+
+    const isShip = res.type === 'ship';
+    const focusHints = isShip ? {
+        output: 'Increases cargo capacity / firepower',
+        automation: 'Reduces crew requirement',
+        energy: 'Improves fuel efficiency',
+        cost: 'Reduces build costs'
+    } : {
+        output: 'Increases production output',
+        automation: 'Reduces workforce needs',
+        energy: 'Reduces energy consumption',
+        cost: 'Reduces construction costs'
+    };
+
+    const focusLabels = isShip ? {
+        output: '📦 OUTPUT',
+        automation: '🤖 AUTOMATION',
+        energy: '🛢️ FUEL',
+        cost: '💰 ECONOMY'
+    } : {
+        output: '📈 OUTPUT',
+        automation: '🤖 AUTOMATION',
+        energy: '⚡ ENERGY',
+        cost: '💰 ECONOMY'
+    };
+
     document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-overlay" onclick="closeAllocationModal()"><div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header"><h2>${icon} ${researchName}</h2><button class="modal-close" onclick="closeAllocationModal()">✕</button></div>
         <div class="modal-body">
           <p>Customize focus (Total 100%):</p>
           <div class="allocation-container"><div class="allocation-sliders">
-              ${['output', 'automation', 'energy', 'cost'].map(f => `<div class="slider-group"><label>${f.toUpperCase()}</label><div class="slider-row"><input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="updateAllocationSliders()"><span id="value-${f}" class="value">0%</span></div></div>`).join('')}
-              <div class="slider-group"><label>STRENGTH</label><div class="slider-row"><input type="range" min="0" max="100" value="50" id="slider-strength" class="slider" oninput="updateAllocationSliders()"><span id="value-strength" class="value">50%</span></div></div>
+              ${['output', 'automation', 'energy', 'cost'].map(f => `
+                <div class="slider-group">
+                  <label>${focusLabels[f]}</label>
+                  <div class="slider-row">
+                    <input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="updateAllocationSliders()">
+                    <span id="value-${f}" class="value">0%</span>
+                  </div>
+                  <p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">${focusHints[f]}</p>
+                </div>`).join('')}
+              <div class="divider-line" style="margin: 10px 0; border-top: 1px solid rgba(255,255,255,0.1);"></div>
+              <div class="slider-group"><label>💪 STRENGTH</label><div class="slider-row"><input type="range" min="0" max="100" value="50" id="slider-strength" class="slider" oninput="updateAllocationSliders()"><span id="value-strength" class="value">50%</span></div><p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">High strength = more XP but higher cost/time</p></div>
             </div>
             <div class="allocation-preview">
-              <h4>Total: <span id="total-percent">0%</span></h4>
-              <div id="cost-breakdown"></div>
-              <h4>Time: <span id="time-estimate">--</span></h4>
+              <div class="preview-card" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px;">
+                <h4 style="margin-top:0">Investment Total: <span id="total-percent">0%</span></h4>
+                <div id="cost-breakdown" style="font-family: monospace; font-size: 0.85rem; margin: 10px 0;"></div>
+                <h4 style="margin-bottom:0">Research Time: <span id="time-estimate">--</span></h4>
+              </div>
             </div>
           </div>
         </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllocationModal()">Cancel</button><button class="btn btn-primary" id="start-research-btn" disabled onclick="submitAllocationResearch('${researchKey}', '${baseType}')">Start</button></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllocationModal()">Cancel</button><button class="btn btn-primary" id="start-research-btn" disabled onclick="submitAllocationResearch('${researchKey}', '${baseType}')">Start Experiment</button></div>
     </div></div>`);
     window.currentResearch = { researchKey, research: res, baseType };
 };
@@ -468,16 +578,36 @@ window.updateAllocationSliders = function () {
     if (window.currentResearch) {
         const res = window.currentResearch.research;
         const wMult = (vals[0] * 1.05 + vals[1] * 1.12 + vals[2] * 1.08 + vals[3] * 0.88) / 100;
-        const sMult = 0.5 + (str/100 * str/100 * 2);
+        
+        // Strength multiplier: 0% = 0.5x, 50% = 1x, 100% = 5x (aligned with server)
+        const strNormalized = str / 100;
+        const sMult = 0.5 + (strNormalized * strNormalized * 4.5);
+        
         const cMult = (1 + (wMult - 1) * 0.5) * sMult;
         const cost = { metal: Math.ceil(res.baseCost.metal * cMult), crystal: Math.ceil(res.baseCost.crystal * cMult), deuterium: Math.ceil(res.baseCost.deuterium * cMult) };
         const planet = getCurrentPlanet();
         const canAfford = planet && planet.resources.metal >= cost.metal && planet.resources.crystal >= cost.crystal && planet.resources.deuterium >= (cost.deuterium || 0);
         document.getElementById('cost-breakdown').innerHTML = `⚙️${formatNumber(cost.metal)} 💎${formatNumber(cost.crystal)} 🛢️${formatNumber(cost.deuterium)}`;
-        const time = calculatePracticalResearchTime(res, Object.values(researchData.practical[window.currentResearch.baseType] || {}).reduce((a, b) => a + b, 0), currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData.theoretical, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, str / 100);
+        
+        // Sum current focus levels for time estimation
+        let tree = researchData?.practical?.[window.currentResearch.baseType];
+        let totalFocusLevel = 0;
+        if (tree) {
+            const exp = tree.experience || tree; // Handle new or old format
+            for (const f in exp) {
+                const val = exp[f];
+                // If it's the new XP format (large number), calculate level; otherwise it's already a level
+                totalFocusLevel += val > 500 ? Math.floor(Math.sqrt(val / 100)) : val;
+            }
+        }
+
+        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized);
         document.getElementById('time-estimate').textContent = formatTime(time * 1000);
         const btn = document.getElementById('start-research-btn');
-        if (btn) { btn.disabled = total !== 100 || !canAfford; btn.title = !canAfford ? 'Poor' : (total === 100 ? 'Start' : 'Need 100%'); }
+        if (btn) { 
+            btn.disabled = total !== 100 || !canAfford; 
+            btn.title = !canAfford ? 'Insufficient resources' : (total === 100 ? 'Start' : 'Need 100% distribution'); 
+        }
     }
 };
 
@@ -573,23 +703,101 @@ window.cancelPracticalResearch = async function (queueId) {
 
 window.buildCustomVariantFromResearch = async function (baseType, type, event) {
     if (event) event.stopPropagation();
-    const lvls = researchData.practical[baseType];
-    if (!lvls) return;
+    const tree = researchData?.practical?.[baseType];
+    if (!tree || !tree.experience) {
+        Notifications.showError(`No research available for ${baseType}`);
+        return;
+    }
+
+    // Prompt for name
+    const { showPrompt } = await import('./modals.js');
+    const name = await showPrompt('Blueprint Name', `Enter a name for your custom ${baseType}:`, `${baseType.replace(/([A-Z])/g, ' $1')} MK${Math.floor(Math.random()*900)+100}`);
+    if (!name) return;
+
+    // Convert XP to levels for the variant creation
+    const focusLevels = {};
+    for (const focus in tree.experience) {
+        focusLevels[focus] = Math.floor(Math.sqrt(tree.experience[focus] / 100));
+    }
+
     try {
-        const response = await fetch(type === 'building' ? `/api/game/planet/${getCurrentPlanetId()}/research/building-variant` : `/api/game/research/ship-variant`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseType, focusLevels: lvls }) });
+        const planetId = getCurrentPlanetId();
+        const endpoint = type === 'building' 
+            ? `/api/game/planet/${planetId}/research/building-variant` 
+            : `/api/game/research/ship-blueprint`;
+
+        const response = await fetch(endpoint, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ baseType, focusLevels, name }) 
+        });
         if (!response.ok) { Notifications.showError((await response.json()).message); return; }
-        Notifications.showSuccess('Created!'); await loadResearchData();
+        Notifications.showSuccess('Blueprint created!'); await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
 
 window.buildCustomVariant = async function (baseType, type) {
-    const lvls = researchData.practical[baseType];
-    if (!lvls) return;
+    const tree = researchData?.practical?.[baseType];
+    if (!tree || !tree.experience) {
+        Notifications.showError(`No research available for ${baseType}`);
+        return;
+    }
+
+    // Prompt for name
+    const { showPrompt } = await import('./modals.js');
+    const name = await showPrompt('Blueprint Name', `Enter a name for your custom ${baseType}:`, `${baseType.replace(/([A-Z])/g, ' $1')} MK${Math.floor(Math.random()*900)+100}`);
+    if (!name) return;
+
+    // Convert XP to levels for the variant creation
+    const focusLevels = {};
+    for (const focus in tree.experience) {
+        focusLevels[focus] = Math.floor(Math.sqrt(tree.experience[focus] / 100));
+    }
+
     try {
-        const response = await fetch(type === 'building' ? `/api/game/planet/${getCurrentPlanetId()}/research/building-variant` : `/api/game/research/ship-variant`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseType, focusLevels: lvls }) });
+        const planetId = getCurrentPlanetId();
+        const endpoint = type === 'building' 
+            ? `/api/game/planet/${planetId}/research/building-variant` 
+            : `/api/game/research/ship-blueprint`;
+
+        const response = await fetch(endpoint, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ baseType, focusLevels, name }) 
+        });
         if (!response.ok) { Notifications.showError((await response.json()).message); return; }
-        Notifications.showSuccess('Created!'); await loadResearchData();
+        Notifications.showSuccess('Blueprint created!'); await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
+};
+
+window.showResearchHistory = function (baseType) {
+    const tree = researchData?.practical?.[baseType];
+    if (!tree || !tree.history || tree.history.length === 0) {
+        Notifications.showInfo('No experiment history for this tree yet.');
+        return;
+    }
+
+    const headers = ['Result', 'XP Gain', 'Allocation', 'Date'];
+    const rows = tree.history.map(run => {
+        const date = new Date(run.timestamp).toLocaleTimeString();
+        const allocationStr = Object.entries(run.allocation)
+            .filter(([_, v]) => v > 0)
+            .map(([k, v]) => `${k.charAt(0).toUpperCase()}: ${(v * 100).toFixed(0)}%`)
+            .join(', ');
+        
+        return [
+            `<span style="color: ${run.type === 'breakthrough' ? 'var(--accent-green)' : (run.type === 'failure' ? 'var(--accent-red)' : 'white')}">${run.type.toUpperCase()}</span>`,
+            `+${run.xpGain} XP`,
+            allocationStr,
+            date
+        ];
+    });
+
+    renderDetailsModal({
+        title: `🧪 Experiment History: ${baseType}`,
+        description: 'Review the outcomes of your previous research runs in this tree.',
+        table: { headers, rows }
+    });
 };
 
 export function updateResearchView(player, planetId = null) {

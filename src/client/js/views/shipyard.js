@@ -123,48 +123,18 @@ function renderShipsList(planet, shipyardData) {
         if (!isCollapsed) {
             html += '<div class="ships-grid">';
             for (const shipKey in data.ships) {
-                const ship = data.ships[shipKey];
-                const count = ships[shipKey] || 0;
-                const cost = calculateShipCost(shipKey, 1);
-                const buildTime = calculateShipBuildTime(shipKey, 1, shipyardLevel);
+                const baseShip = data.ships[shipKey];
                 
-                const canBuild = !isLocked &&
-                               planet.resources.metal >= cost.metal &&
-                               planet.resources.crystal >= cost.crystal &&
-                               planet.resources.deuterium >= cost.deuterium;
+                // Get blueprints for this ship type
+                const blueprints = (currentShipyardData.shipBlueprints && currentShipyardData.shipBlueprints[shipKey]) || [];
                 
-                html += `
-                    <div class="ship-card ${isLocked ? 'locked' : ''}">
-                        <div class="ship-header">
-                            <h5>${ship.icon} ${ship.name}</h5>
-                            <span class="ship-count">${count}</span>
-                        </div>
-                        <p class="ship-description">${ship.description}</p>
-                        <div class="ship-stats">
-                            <div>⚔️ Attack: ${ship.attack}</div>
-                            <div>🛡️ Shield: ${ship.shield}</div>
-                            <div>❤️ Hull: ${ship.hull}</div>
-                            <div>🚀 Speed: ${formatNumber(ship.effectiveSpeed)}</div>
-                            ${ship.cargoCapacity > 0 ? `<div>📦 Cargo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
-                        </div>
-                        <div class="ship-cost">
-                            <div>⚙️${formatNumber(cost.metal)}</div>
-                            <div>💎${formatNumber(cost.crystal)}</div>
-                            ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
-                        </div>
-                        <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
-                        ${isLocked ? `
-                            <div class="locked-message">🔒 Unlock at Shipyard Level ${data.minLevel}</div>
-                        ` : `
-                            <input type="number" class="ship-quantity" id="qty-${shipKey}" value="1" min="1" max="100">
-                            <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                                    ${!canBuild ? 'disabled' : ''} 
-                                    onclick="window.buildShip('${shipKey}')">
-                                Build
-                            </button>
-                        `}
-                    </div>
-                `;
+                // Render the Base Model first
+                html += renderShipCard(planet, shipKey, baseShip, shipyardLevel, isLocked, null);
+                
+                // Render each blueprint
+                for (const blueprint of blueprints) {
+                    html += renderShipCard(planet, shipKey, blueprint.customDefinition, shipyardLevel, isLocked, blueprint);
+                }
             }
             html += '</div>';
         }
@@ -174,6 +144,70 @@ function renderShipsList(planet, shipyardData) {
     
     html += '</div>';
     return html;
+}
+
+function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprint = null) {
+    const identifier = blueprint ? blueprint.id : shipKey;
+    const name = blueprint ? blueprint.name : ship.name;
+    const count = currentShipyardData.ships[identifier] || 0; 
+    const cost = calculateShipCostForDef(ship, 1);
+    const buildTime = calculateShipBuildTimeForDef(ship, 1, shipyardLevel);
+    
+    const canBuild = !isLocked &&
+                   planet.resources.metal >= cost.metal &&
+                   planet.resources.crystal >= cost.crystal &&
+                   planet.resources.deuterium >= cost.deuterium;
+
+    return `
+        <div class="ship-card ${isLocked ? 'locked' : ''} ${blueprint ? 'blueprint-card' : ''}">
+            <div class="ship-header">
+                <h5>${ship.icon} ${name}</h5>
+                <span class="ship-count">${count}</span>
+            </div>
+            ${blueprint ? `<div class="blueprint-badge">Blueprint</div>` : ''}
+            <p class="ship-description">${ship.description}</p>
+            <div class="ship-stats">
+                <div>⚔️ Atk: ${ship.attack}</div>
+                <div>🛡️ Shd: ${ship.shield}</div>
+                <div>❤️ Hul: ${ship.hull}</div>
+                <div>🚀 Spd: ${formatNumber(ship.speed)}</div>
+                ${ship.cargoCapacity > 0 ? `<div>📦 Cgo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
+            </div>
+            <div class="ship-cost">
+                <div>⚙️${formatNumber(cost.metal)}</div>
+                <div>💎${formatNumber(cost.crystal)}</div>
+                ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+            </div>
+            <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
+            ${isLocked ? `
+                <div class="locked-message">🔒 Unlock at Shipyard Level ${shipyardLevel}</div>
+            ` : `
+                <input type="number" class="ship-quantity" id="qty-${identifier}" value="1" min="1" max="100">
+                <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                        ${!canBuild ? 'disabled' : ''} 
+                        onclick="window.buildShip('${identifier}')">
+                    Build
+                </button>
+            `}
+        </div>
+    `;
+}
+
+function calculateShipCostForDef(shipDef, quantity) {
+    return {
+        metal: Math.floor(shipDef.baseCost.metal * quantity),
+        crystal: Math.floor(shipDef.baseCost.crystal * quantity),
+        deuterium: Math.floor(shipDef.baseCost.deuterium * quantity)
+    };
+}
+
+function calculateShipBuildTimeForDef(shipDef, quantity, shipyardLevel) {
+    const baseTime = calculateBaseTime(shipDef) * quantity;
+    const speedFactor = 2500;
+    const timeInSeconds = (baseTime / speedFactor) * 3600;
+    const shipyardMultiplier = Math.pow(0.85, shipyardLevel);
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
+    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * configMultiplier));
 }
 
 /**
