@@ -18,6 +18,7 @@ import { updateMessagesView } from './views/messages.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 import { updateFleetMovements } from './views/fleetMovements.js';
 import { Notifications } from './notifications.js';
+import { showConfirm } from './views/modals.js';
 
 // State
 let currentUser = null;
@@ -142,6 +143,9 @@ async function showGameScreen() {
 function setupGameListeners() {
     // Logout
     document.getElementById('logout-btn').addEventListener('click', async () => {
+        const confirmed = await showConfirm('Logout', 'Are you sure you want to log out?');
+        if (!confirmed) return;
+        
         await API.logout();
         currentUser = null;
         gameState = null;

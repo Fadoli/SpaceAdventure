@@ -345,15 +345,6 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
             } else if (building.production && !isEmpty(building.production)) {
                 statsHtml = '<div class="building-production">';
                 
-                // Show current actual production
-                if (building.currentLevel > 0 && !isEmpty(building.actualProduction)) {
-                    statsHtml += `<div class="actual-value" title="Current actual production based on workers and power">Actual: `;
-                    for (const res in building.actualProduction) {
-                        statsHtml += `${RESOURCE_ICONS[res] || ''} ${formatNumber(building.actualProduction[res])}/h `;
-                    }
-                    statsHtml += `<span class="eff-label">(${(building.totalEffectiveness * 100).toFixed(0)}%)</span></div>`;
-                }
-
                 // Show expected gain for next level (based on current effectiveness)
                 if (!isEmpty(building.productionGains)) {
                     statsHtml += `<div class="expected-gain" title="Expected gain if you upgrade, keeping current allocations">Gain: `;
@@ -383,16 +374,10 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
         if (energyEl) {
             let energyHtml = '';
             if (key === 'fusionReactor') {
-                if (building.currentLevel > 0) {
-                    energyHtml += `<div class="building-energy actual-value">🛢️ Actual: -${formatNumber(building.actualDeuteriumConsumption)}/h</div>`;
-                }
                 if (building.deuteriumGain > 0) {
                     energyHtml += `<div class="building-energy expected-gain">🛢️ Cost: +${formatNumber(building.deuteriumGain)}/h</div>`;
                 }
             } else if (building.energyConsumption > 0) {
-                if (building.currentLevel > 0) {
-                    energyHtml += `<div class="building-energy actual-value">⚡ Actual: -${formatNumber(building.actualEnergyConsumption)}/h</div>`;
-                }
                 if (building.energyGain > 0) {
                     energyHtml += `<div class="building-energy expected-gain">⚡ Cost: +${formatNumber(building.energyGain)}/h</div>`;
                 }
@@ -640,6 +625,9 @@ export async function switchBuildingVariant(buildingKey, toCustom, onStateChange
     
     if (!toCustom) {
         // Switching to base - direct switch, no selection needed
+        const confirmed = await showConfirm('Switch Variant', 'Are you sure you want to switch back to the base variant? This will cost resources.');
+        if (!confirmed) return;
+        
         try {
             await API.switchBuildingVariant(planetId, buildingKey, false);
             if (onStateChange) await onStateChange();
