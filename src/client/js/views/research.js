@@ -641,8 +641,29 @@ async function renderCustomVariants() {
         const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/variants`);
         const { building, ships } = (await response.json()).data;
         let html = '<div class="variants-container">';
-        if (!isEmpty(building)) { html += '<div class="variants-section"><h3>Buildings</h3>'; for (const b in building) html += renderVariantCard(b, building[b], 'building'); html += '</div>'; }
-        if (!isEmpty(ships)) { html += '<div class="variants-section"><h3>Ships</h3>'; for (const s in ships) html += renderVariantCard(s, ships[s], 'ship'); html += '</div>'; }
+        
+        if (!isEmpty(building)) { 
+            html += '<div class="variants-section"><h3>Buildings</h3>'; 
+            for (const baseType in building) {
+                const blueprints = building[baseType];
+                blueprints.forEach(bp => {
+                    html += renderVariantCard(baseType, bp, 'building');
+                });
+            }
+            html += '</div>'; 
+        }
+        
+        if (!isEmpty(ships)) { 
+            html += '<div class="variants-section"><h3>Ships</h3>'; 
+            for (const baseType in ships) {
+                const blueprints = ships[baseType];
+                blueprints.forEach(bp => {
+                    html += renderVariantCard(baseType, bp, 'ship');
+                });
+            }
+            html += '</div>'; 
+        }
+        
         if (isEmpty(building) && isEmpty(ships)) html += '<p>No variants yet.</p>';
         container.innerHTML = html + '</div>';
     } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }

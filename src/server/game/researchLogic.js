@@ -273,12 +273,19 @@ export async function completePracticalResearch(player, queueItemId) {
   // Ensure data integrity
   if (!tree.experience) tree.experience = { output: 0, automation: 0, energy: 0, cost: 0 };
 
+  // Calculate level bonus: 1% per focus level
+  let totalFocusLevel = 0;
+  for (const focus in tree.experience) {
+    totalFocusLevel += Math.floor(Math.sqrt(tree.experience[focus] / 100));
+  }
+  const levelBonus = 1 + (totalFocusLevel * 0.01);
+
   const outcome = rollResearchOutcome();
   
   // Base XP gain scales linearly with actual strength (10 to 1M)
   const actualStrength = Math.pow(10, 1 + item.strength * 5);
   const baseGain = actualStrength * 10; 
-  const totalXpGain = Math.floor(baseGain * outcome.multiplier * (tree.treeBonus || 1.0));
+  const totalXpGain = Math.floor(baseGain * outcome.multiplier * (tree.treeBonus || 1.0) * levelBonus);
 
   const distribution = item.allocation || { output: 1.0 };
   const gains = {};

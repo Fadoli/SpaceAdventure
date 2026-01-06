@@ -272,13 +272,12 @@ export function calculatePracticalResearchCost(baseCost, level, allocation = { o
   }
   if (totalCostMultiplier === 0) totalCostMultiplier = 1;
 
-  const levelMultiplier = 1 + (level * 0.3);
   // Strength multiplier: Logarithmic scaling 10x to 1,000,000x
   // strength is 0-1. logValue is 1-6.
   const actualStrength = Math.pow(10, 1 + strength * 5);
   const strengthMultiplier = actualStrength;
   
-  const finalMultiplier = totalCostMultiplier * levelMultiplier * strengthMultiplier;
+  const finalMultiplier = totalCostMultiplier * strengthMultiplier;
   
   return {
     metal: Math.ceil(baseCost.metal * finalMultiplier),
