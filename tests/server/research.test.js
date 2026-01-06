@@ -9,7 +9,7 @@ import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH, canResearchTheoretical } from
 import { calculateShipSpeed, SHIPS } from '../../src/shared/ships.js';
 
 const energyTech = THEORETICAL_RESEARCH.energyTech; // baseTime 500
-const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 250
+const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 50
 
 describe('Research Availability (canResearchTheoretical)', () => {
   it('should return true if no prerequisites or requirements', () => {
@@ -211,19 +211,18 @@ describe('Research Time Calculations', () => {
       
       const strMult = Math.sqrt(Math.pow(10, 3.5));
       
-      // Level 1: 250 * 1.2 * 56.23... * 0.85
+      // Level 1: 50 * 1.2 * 56.23... * 0.85 = 2867
       expect(level1).toBeGreaterThan(level0);
-      expect(level1).toBe(Math.floor(250 * 1.2 * strMult * 0.85));
+      expect(level1).toBe(Math.floor(50 * 1.2 * strMult * 0.85));
     });
 
-    it('should be significantly slower than theoretical at high levels and default strength', () => {
-      // Theoretical: 1.5^10 = 57x
-      // Practical: (1 + 2) * 56.23 = 168x
-      // Practical is now SLOWER at moderate strength
+    it('should be significantly faster than theoretical at high levels and default strength', () => {
+      // Theoretical: 500 * 1.5^10 = 28832x
+      // Practical: 50 * (1 + 2) * 56.23 = 8435x
       const theoretical = calculateTheoreticalResearchTime(energyTech, 10, 3);
       const practical = calculatePracticalResearchTime(metalMineResearch, 10, 3);
       
-      expect(practical).toBeGreaterThan(theoretical);
+      expect(practical).toBeLessThan(theoretical);
     });
 
     it('should apply lab speedup', () => {

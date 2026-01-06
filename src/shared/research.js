@@ -396,9 +396,9 @@ export const PRACTICAL_RESEARCH = {
     icon: '⚙️',
     description: 'Customize metal mine extraction through practical research.',
     baseCost: {
-      metal: 100,
-      crystal: 50,
-      deuterium: 25
+      metal: 20,
+      crystal: 10,
+      deuterium: 5
     },
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
@@ -412,9 +412,9 @@ export const PRACTICAL_RESEARCH = {
     icon: '💎',
     description: 'Customize crystal mine extraction through practical research.',
     baseCost: {
-      metal: 100,
-      crystal: 50,
-      deuterium: 25
+      metal: 20,
+      crystal: 10,
+      deuterium: 5
     },
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
@@ -428,9 +428,9 @@ export const PRACTICAL_RESEARCH = {
     icon: '🛢️',
     description: 'Customize deuterium synthesizer extraction through practical research.',
     baseCost: {
-      metal: 150,
-      crystal: 100,
-      deuterium: 50
+      metal: 30,
+      crystal: 20,
+      deuterium: 10
     },
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
@@ -444,9 +444,9 @@ export const PRACTICAL_RESEARCH = {
     icon: '☀️',
     description: 'Customize solar energy production through practical research.',
     baseCost: {
-      metal: 150,
-      crystal: 100,
-      deuterium: 50
+      metal: 30,
+      crystal: 20,
+      deuterium: 10
     },
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
@@ -461,9 +461,9 @@ export const PRACTICAL_RESEARCH = {
     icon: '📦',
     description: 'Optimize small cargo ship logistics and efficiency.',
     baseCost: {
-      metal: 100,
-      crystal: 50,
-      deuterium: 25
+      metal: 20,
+      crystal: 10,
+      deuterium: 5
     },
     maxLevels: 30,
     focusModifiers: CIVILIAN_SHIP_MODIFIERS
@@ -477,9 +477,9 @@ export const PRACTICAL_RESEARCH = {
     icon: '🛩️',
     description: 'Enhance light fighter combat performance.',
     baseCost: {
-      metal: 100,
-      crystal: 50,
-      deuterium: 25
+      metal: 20,
+      crystal: 10,
+      deuterium: 5
     },
     maxLevels: 30,
     focusModifiers: MILITARY_SHIP_MODIFIERS
