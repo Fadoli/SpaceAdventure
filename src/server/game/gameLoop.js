@@ -126,7 +126,7 @@ async function gameTick() {
       }
       
       // Process completed research
-      const researchUpdated = processCompletedResearch(player);
+      const researchUpdated = await processCompletedResearch(player);
       if (researchUpdated) {
         updated = true;
       }
@@ -152,7 +152,7 @@ async function gameTick() {
 /**
  * Process completed research items
  */
-function processCompletedResearch(player) {
+async function processCompletedResearch(player) {
   let updated = false;
   let now = Date.now();
   
@@ -179,7 +179,7 @@ function processCompletedResearch(player) {
   while (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) {
     const item = player.practicalResearchQueue[0];
     if (item.endTime <= now) {
-      completePracticalResearch(player, item.id);
+      await completePracticalResearch(player, item.id);
       
       // If there's another item in the queue, update its start/end times
       if (player.practicalResearchQueue.length > 0) {

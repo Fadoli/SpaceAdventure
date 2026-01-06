@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { completePracticalResearch } from '../../src/server/game/researchLogic.js';
 
 describe('completePracticalResearch Fix', () => {
-  it('should handle missing experience/history in practicalResearch', () => {
+  it('should handle missing experience/history in practicalResearch', async () => {
     const player = {
       practicalResearch: {
         'metalMine': {
@@ -22,7 +22,7 @@ describe('completePracticalResearch Fix', () => {
     };
 
     // Should not throw
-    const logEntry = completePracticalResearch(player, 'test-queue-id');
+    const logEntry = await completePracticalResearch(player, 'test-queue-id');
 
     expect(logEntry).toBeDefined();
     expect(player.practicalResearch['metalMine'].experience).toBeDefined();
