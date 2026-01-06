@@ -703,8 +703,21 @@ async function handleRequest(req) {
         const requirementsList = getRequirementsList(buildingType);
         
         // Check if this building has a custom variant
-        const hasCustomVariant = player.customBuildingVariants && player.customBuildingVariants[buildingType] ? true : false;
-        const customVariant = (player.customBuildingVariants && player.customBuildingVariants[buildingType]) || null;
+        const activeVariantId = (planet.activeVariants && planet.activeVariants[buildingType]) || 'base';
+        let customVariant = null;
+        
+        if (activeVariantId !== 'base') {
+          // Check blueprints first
+          if (player.buildingBlueprints && player.buildingBlueprints[buildingType]) {
+            customVariant = player.buildingBlueprints[buildingType].find(bp => bp.id === activeVariantId);
+          }
+          // Fallback to legacy single variant
+          if (!customVariant && activeVariantId === 'custom' && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
+            customVariant = player.customBuildingVariants[buildingType];
+          }
+        }
+        
+        const hasCustomVariant = customVariant !== null;
         
         // Calculate current ACTUAL production and consumption (adjusted by effectiveness)
         const currentProdBase = currentLevel > 0 ? getProduction(buildingType, currentLevel, planet, player) : {};

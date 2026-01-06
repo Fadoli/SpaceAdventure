@@ -4,6 +4,7 @@ import { getShip, calculateShipCost, calculateShipBuildTime, calculateShipSpeed,
 import { getDefense, calculateDefenseCost, calculateDefenseBuildTime } from '../../shared/defenses.js';
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
+import { calculateBaseTime } from '../../shared/time.js';
 
 /**
  * Add ships to build queue
@@ -362,19 +363,15 @@ export async function createShipBlueprint(userId, baseType, focusLevels, name) {
   if (!player.shipBlueprints) player.shipBlueprints = {};
   if (!player.shipBlueprints[baseType]) player.shipBlueprints[baseType] = [];
 
-  // Verify research config
-  const { getPracticalResearch, calculateFocusModifiers, applyCustomization } = await import('../../shared/research.js');
-  const { calculateFocusLevel } = await import('../../shared/formulas.js');
-  
   const practical = getPracticalResearch();
   let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'ship');
   if (!researchConfig) throw new Error('No practical research available for ' + baseType);
 
   // Validate focus levels
-  const currentExp = player.practicalResearch?.[baseType]?.experience || { output: 0, automation: 0, energy: 0, cost: 0 };
   for (const focus in focusLevels) {
     const level = focusLevels[focus];
-    const maxLevel = calculateFocusLevel(currentExp[focus]);
+    const currentExp = player.practicalResearch?.[baseType]?.experience?.[focus] || 0;
+    const maxLevel = Math.floor(Math.sqrt(currentExp / 100));
     if (level > maxLevel) throw new Error('Focus level ' + level + ' exceeds research level ' + maxLevel);
   }
 

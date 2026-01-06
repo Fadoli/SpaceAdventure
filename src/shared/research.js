@@ -276,26 +276,26 @@ export const PRACTICAL_FOCUS_TYPES = {
  */
 const PRODUCTION_BUILDING_MODIFIERS = {
   output: {
-    productionMultiplier: 1.02,      // 1.02^level: +2% per focus level
-    costMultiplier: 1.01,            // 1.01^level: +1% cost per focus level
-    energyMultiplier: 1.015,         // 1.015^level: +1.5% energy per focus level
-    populationMultiplier: 1.005      // 1.005^level: +0.5% population (more workers needed for output)
+    productionMultiplier: 1.025,     // 1.025^level: +2.5% per focus level
+    costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level
+    energyMultiplier: 1.02,         // 1.02^level: +2% energy per focus level
+    populationMultiplier: 1.01      // 1.01^level: +1% population
   },
   automation: {
-    populationMultiplier: 0.98,      // 0.98^level: -2% workforce per focus level
-    costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level (machinery)
+    populationMultiplier: 0.975,     // 0.975^level: -2.5% workforce per focus level
+    costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level
     energyMultiplier: 1.025,         // 1.025^level: +2.5% energy per focus level
-    productionMultiplier: 0.99       // 0.99^level: -1% production (less efficient)
+    productionMultiplier: 0.998      // 0.998^level: -0.2% production (reduced penalty)
   },
   energy: {
-    energyMultiplier: 0.98,          // 0.98^level: -2% energy consumption per focus level
-    costMultiplier: 1.015,           // 1.015^level: +1.5% cost for efficiency tech
-    productionMultiplier: 1.005,     // 1.005^level: +0.5% production (better power = better output)
-    populationMultiplier: 1.008      // 1.008^level: +0.8% workforce needed for complex tech
+    energyMultiplier: 0.975,         // 0.975^level: -2.5% energy consumption per focus level
+    costMultiplier: 1.015,           // 1.015^level: +1.5% cost
+    productionMultiplier: 1.005,      // 1.01^level: +0.5% production
+    populationMultiplier: 1.01      // 1.01^level: +1% workforce
   },
   cost: {
-    costMultiplier: 0.98,            // 0.98^level: -2% cost per focus level
-    productionMultiplier: 0.99,      // 0.99^level: -1% production (simpler = less effective)
+    costMultiplier: 0.98,           // 0.98^level: -2% cost per focus level
+    productionMultiplier: 0.998,     // 0.998^level: -0.2% production (reduced penalty)
     energyMultiplier: 1.002,         // 1.002^level: minimal energy change
     populationMultiplier: 1.001      // 1.001^level: minimal population change
   }
@@ -303,82 +303,82 @@ const PRODUCTION_BUILDING_MODIFIERS = {
 
 const SHIP_MODIFIERS = {
   output: {
-    cargoMultiplier: 1.02,           // 1.02^level: +2% capacity per level (or attack for military)
+    cargoMultiplier: 1.03,           // +3% capacity
     costMultiplier: 1.01,
     fuelMultiplier: 1.015,
-    speedMultiplier: 0.99            // 0.99^level: -1% speed (tradeoff)
+    speedMultiplier: 0.995           // reduced penalty
   },
   automation: {
-    crewRequirement: 0.98,
+    crewRequirement: 0.975,          // -2.5%
     costMultiplier: 1.02,
     fuelMultiplier: 1.025,
-    cargoMultiplier: 0.99            // or attackMultiplier for military
+    cargoMultiplier: 0.998           // reduced penalty
   },
   energy: {
-    fuelMultiplier: 0.98,            // 0.98^level: Better fuel efficiency
+    fuelMultiplier: 0.975,           // -2.5%
     costMultiplier: 1.015,
-    speedMultiplier: 1.01,
-    cargoMultiplier: 1.005           // or attackMultiplier for military
+    speedMultiplier: 1.015,          // +1.5% speed
+    cargoMultiplier: 1.01            // +1% capacity
   },
   cost: {
-    costMultiplier: 0.98,
-    cargoMultiplier: 0.99,           // or attackMultiplier for military
+    costMultiplier: 0.975,           // -2.5%
+    cargoMultiplier: 0.998,          // reduced penalty
     fuelMultiplier: 1.002,
-    speedMultiplier: 1.001
+    speedMultiplier: 1.005
   }
 };
 
 const MILITARY_SHIP_MODIFIERS = {
   output: {
-    attackMultiplier: 1.02,
-    hullMultiplier: 1.01,
+    attackMultiplier: 1.03,          // +3%
+    hullMultiplier: 1.015,           // +1.5%
     costMultiplier: 1.015,
-    speedMultiplier: 0.99
+    speedMultiplier: 0.995           // reduced penalty
   },
   automation: {
-    crewRequirement: 0.98,
+    crewRequirement: 0.975,
     costMultiplier: 1.02,
     fuelMultiplier: 1.02,
-    attackMultiplier: 0.99
+    attackMultiplier: 0.998          // reduced penalty
   },
   energy: {
-    fuelMultiplier: 0.98,
-    shieldMultiplier: 1.02,
+    fuelMultiplier: 0.975,
+    shieldMultiplier: 1.025,         // +2.5%
     costMultiplier: 1.01,
-    speedMultiplier: 1.01
+    speedMultiplier: 1.015           // +1.5%
   },
   cost: {
-    costMultiplier: 0.98,
-    hullMultiplier: 0.99,
-    attackMultiplier: 0.99,
-    speedMultiplier: 1.001
+    costMultiplier: 0.975,
+    hullMultiplier: 0.998,           // reduced penalty
+    attackMultiplier: 0.998,         // reduced penalty
+    speedMultiplier: 1.005
   }
 };
 
 const CIVILIAN_SHIP_MODIFIERS = {
   output: {
-    cargoCapacityMultiplier: 1.02,
+    cargoCapacityMultiplier: 1.03,   // +3%
     fuelMultiplier: 1.01,
     costMultiplier: 1.01,
-    speedMultiplier: 0.99
+    speedMultiplier: 0.995           // reduced penalty
   },
   automation: {
-    crewRequirement: 0.98,
+    crewRequirement: 0.975,
     costMultiplier: 1.02,
     fuelMultiplier: 1.025,
-    cargoCapacityMultiplier: 0.99
+    cargoCapacityMultiplier: 0.998   // reduced penalty
   },
   energy: {
-    fuelMultiplier: 0.98,
-    speedMultiplier: 1.015,
+    fuelMultiplier: 0.975,
+    speedMultiplier: 1.02,           // +2%
     costMultiplier: 1.01,
-    cargoCapacityMultiplier: 1.005
+    cargoCapacityMultiplier: 1.01    // +1%
   },
   cost: {
-    costMultiplier: 0.98,
-    cargoCapacityMultiplier: 0.99,
+    costMultiplier: 0.975,
+    cargoCapacityMultiplier: 0.998,  // reduced penalty
     fuelMultiplier: 1.002,
-    speedMultiplier: 1.001
+    speedMultiplier: 1.005
   }
 };
 
@@ -612,6 +612,7 @@ export function calculateFocusModifiers(research, focusLevels) {
     attackMultiplier: 1,
     hullMultiplier: 1,
     shieldMultiplier: 1,
+    cargoMultiplier: 1,
     crewRequirement: 1
   };
 

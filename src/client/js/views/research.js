@@ -674,8 +674,10 @@ function renderVariantCard(baseType, variant, type) {
     let html = `<div class="variant-card"><h4>${baseType}</h4><div class="focus-breakdown">`;
     for (const f in focusLevels) if (focusLevels[f] > 0) html += `<span class="focus-badge">+${focusLevels[f]} ${f}</span>`;
     html += '</div><div class="modifiers-preview">';
-    const mods = type === 'building' ? [{ key: 'productionMultiplier', label: 'Prod', isPos: true }, { key: 'costMultiplier', label: 'Cost', isPos: false }, { key: 'energyMultiplier', label: 'Energy', isPos: false }] : [{ key: 'speedMultiplier', label: 'Speed', isPos: true }, { key: 'attackMultiplier', label: 'Atk', isPos: true }];
-    mods.forEach(m => { const v = modifiers[m.key]; if (v && v !== 1) { const p = ((v - 1) * 100).toFixed(0); const good = (v > 1) === m.isPos; html += `<p style="color: ${good ? 'var(--accent-green)' : 'var(--accent-red)'}">${m.label}: ${v > 1 ? '+' : ''}${p}%</p>`; } });
+    if (modifiers) {
+        const mods = type === 'building' ? [{ key: 'productionMultiplier', label: 'Prod', isPos: true }, { key: 'costMultiplier', label: 'Cost', isPos: false }, { key: 'energyMultiplier', label: 'Energy', isPos: false }] : [{ key: 'speedMultiplier', label: 'Speed', isPos: true }, { key: 'attackMultiplier', label: 'Atk', isPos: true }];
+        mods.forEach(m => { const v = modifiers[m.key]; if (v && v !== 1) { const p = ((v - 1) * 100).toFixed(0); const good = (v > 1) === m.isPos; html += `<p style="color: ${good ? 'var(--accent-green)' : 'var(--accent-red)'}">${m.label}: ${v > 1 ? '+' : ''}${p}%</p>`; } });
+    }
     return html + `<button class="btn btn-primary btn-small" onclick="buildCustomVariant('${baseType}', '${type}')">Activate</button></div></div>`;
 }
 

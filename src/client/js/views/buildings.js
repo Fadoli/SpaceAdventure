@@ -155,7 +155,7 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
         let customVariantBadge = '';
         let variantButtons = '';
         if (building.hasCustomVariant && building.customVariant) {
-            const isCustomActive = building.currentVariant === 'custom';
+            const isCustomActive = building.currentVariant !== 'base';
             customVariantBadge = `<div class="custom-variant-badge">🔧 ${isCustomActive ? 'Custom Active' : 'Custom Available'}</div>`;
             variantButtons = `<div id="variant-actions-${key}" class="variant-actions-container"></div>`;
         }
@@ -412,7 +412,7 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
         // Update variant switch buttons
         const variantActions = document.getElementById(`variant-actions-${key}`);
         if (variantActions && building.hasCustomVariant && building.customVariant) {
-            const isCustomActive = building.currentVariant === 'custom';
+            const isCustomActive = building.currentVariant !== 'base';
             // Logic for switchCost (simplified)
             const switchCost = calculateSwitchCostEstimate(building, isCustomActive);
             
@@ -926,7 +926,7 @@ function calculateSwitchCost(baseCost, customCost) {
 function getOutputDifferences(building, variant) {
     const diffs = [];
     
-    if (!variant.modifiers) {
+    if (!variant || !variant.modifiers) {
         return diffs;
     }
     
