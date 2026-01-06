@@ -366,6 +366,22 @@ export const PRACTICAL_RESEARCH = {
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
   },
 
+  deuteriumSynthesizer: {
+    name: 'Deuterium Synthesizer Specialization',
+    baseType: 'deuteriumSynthesizer',
+    type: 'building',
+    category: 'Mining',
+    icon: '🛢️',
+    description: 'Customize deuterium synthesizer extraction through practical research.',
+    baseCost: {
+      metal: 150,
+      crystal: 100,
+      deuterium: 50
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
   solarPlant: {
     name: 'Solar Plant Enhancement',
     baseType: 'solarPlant',
