@@ -298,7 +298,7 @@ export async function completePracticalResearch(player, queueItemId) {
     }
   }
 
-  if (outcome.type === 'breakthrough') tree.treeBonus = (tree.treeBonus || 1.0) + 0.05;
+  if (outcome.type === 'breakthrough') tree.treeBonus = (tree.treeBonus || 1.0) * 1.05;
 
   const logEntry = {
     id: generateId(),
