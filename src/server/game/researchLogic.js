@@ -281,6 +281,11 @@ export function completePracticalResearch(player, queueItemId) {
   }
 
   const tree = player.practicalResearch[baseType];
+
+  // Ensure data integrity
+  if (!tree.experience) tree.experience = { output: 0, automation: 0, energy: 0, cost: 0 };
+  if (!tree.history) tree.history = [];
+
   const outcome = rollResearchOutcome();
   
   // Base XP gain scales with strength: 0 strength = 0.5x, 1 strength = 5x

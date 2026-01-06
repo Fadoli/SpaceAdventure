@@ -6,7 +6,7 @@
  */
 export async function hashPassword(password) {
     // Try native crypto first (requires secure context - HTTPS or localhost)
-    if (window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
         try {
             const encoder = new TextEncoder();
             const data = encoder.encode(password);

@@ -1,4 +1,5 @@
 export function calculateBaseTime(entity) {
+  if (!entity) return 0;
   const cost = entity.baseCost;
   if (!cost) {
     return 0;
