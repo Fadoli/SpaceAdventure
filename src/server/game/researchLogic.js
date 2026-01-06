@@ -252,7 +252,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
 /**
  * Complete practical research
  */
-export function completePracticalResearch(player, queueItemId) {
+export async function completePracticalResearch(player, queueItemId) {
   const index = (player.practicalResearchQueue || []).findIndex(item => item.id === queueItemId);
   if (index === -1) throw new Error('Practical research queue item not found');
   
