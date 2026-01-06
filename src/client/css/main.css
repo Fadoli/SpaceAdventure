@@ -3420,5 +3420,103 @@ body {
     border-color: var(--accent-blue);
 }
 
+/* Blueprint Selection Modal Grid */
+.blueprint-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.blueprint-card-select {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.blueprint-card-select:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-3px);
+}
+
+.blueprint-card-select.active {
+    border: 2px solid var(--accent-green);
+    box-shadow: 0 0 15px rgba(92, 184, 92, 0.2);
+}
+
+.blueprint-card-header {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.blueprint-card-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--accent-blue);
+}
+
+.active-tag {
+    background: var(--accent-green);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.blueprint-card-body {
+    padding: 15px;
+    flex: 1;
+}
+
+.blueprint-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.blueprint-modifiers {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.blueprint-switch-cost {
+    font-size: 0.85rem;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.blueprint-switch-cost.cost {
+    background: rgba(217, 83, 79, 0.1);
+    color: var(--accent-red);
+}
+
+.blueprint-switch-cost.refund {
+    background: rgba(92, 184, 92, 0.1);
+    color: var(--accent-green);
+}
+
+.blueprint-switch-cost.hidden {
+    visibility: hidden;
+}
+
+.blueprint-card-footer {
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid var(--border-color);
+}
+
+
 
 

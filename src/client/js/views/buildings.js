@@ -123,7 +123,6 @@ export async function updateBuildingsView(planet, onStateChange) {
  */
 function renderBuildingCards(buildings, planet, queue, maxQueueSize) {
     const buildingsGrid = document.getElementById('buildings-grid');
-    const queueFull = queue.length >= maxQueueSize;
     
     // Add UI toggle at the top
     let html = `
@@ -154,19 +153,11 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
         
         let designSelector = '';
         if (building.availableBlueprints && building.availableBlueprints.length > 0) {
-            const options = [
-                `<option value="base" ${building.currentVariant === 'base' ? 'selected' : ''}>Standard Model</option>`
-            ];
-            building.availableBlueprints.forEach(bp => {
-                options.push(`<option value="${bp.id}" ${building.currentVariant === bp.id ? 'selected' : ''}>${bp.name}</option>`);
-            });
-            
             designSelector = `
-                <div class="design-selector-container">
-                    <label for="design-select-${key}">Design:</label>
-                    <select id="design-select-${key}" onchange="window.switchBuildingVariant('${key}', this.value)">
-                        ${options.join('')}
-                    </select>
+                <div class="design-btn-container" style="margin: 8px 0;">
+                    <button class="btn btn-secondary btn-small btn-full" onclick="window.openDesignSelection('${key}')">
+                        🎨 Change Design
+                    </button>
                 </div>
             `;
         }
@@ -425,11 +416,10 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
             }
         }
 
-        // Update variant switch buttons
+        // Update variant switch buttons (handled via modal now, but kept for HUD if needed)
         const variantActions = document.getElementById(`variant-actions-${key}`);
         if (variantActions && building.hasCustomVariant && building.customVariant) {
             const isCustomActive = building.currentVariant !== 'base';
-            // Logic for switchCost (simplified)
             const switchCost = calculateSwitchCostEstimate(building, isCustomActive);
             
             let canSwitchAfford = planet.resources.metal >= switchCost.metal &&
@@ -437,14 +427,8 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
                                  planet.resources.deuterium >= switchCost.deuterium;
             
             variantActions.innerHTML = `
-                <div class="building-cost" style="margin-top: 8px;">
-                    <strong>Switch cost:</strong>
-                    <div class="${planet.resources.metal < switchCost.metal ? 'text-error' : ''}">⚙️ ${formatNumber(switchCost.metal)}</div>
-                    <div class="${planet.resources.crystal < switchCost.crystal ? 'text-error' : ''}">💎 ${formatNumber(switchCost.crystal)}</div>
-                </div>
-                <button class="btn btn-full" ${!canSwitchAfford ? 'disabled' : ''} 
-                        onclick="window.switchBuildingVariant('${key}', ${!isCustomActive})">
-                    ${isCustomActive ? '↩️ Switch to Base' : '🔧 Switch to Custom'}
+                <button class="btn btn-full btn-secondary" onclick="window.openDesignSelection('${key}')">
+                    🎨 Design
                 </button>
             `;
         }
@@ -453,67 +437,21 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
 
 /** Helper for variant switch cost estimate */
 function calculateSwitchCostEstimate(building, isCustomActive) {
-    let baseCost = building.cost;
-    // Apply cost modifier to get custom cost
-    let customCost = { ...baseCost };
-    if (building.customVariant?.modifiers && building.customVariant.modifiers.costMultiplier !== 1) {
-        customCost = {
+    let baseCost = building.baseCost || building.cost;
+    let currentCost = building.cost;
+    
+    // For switching TO custom, we need to know the target custom cost.
+    // In this estimate, we use the specific customVariant attached to the building
+    let targetCost = baseCost;
+    if (!isCustomActive && building.customVariant?.modifiers?.costMultiplier) {
+        targetCost = {
             metal: Math.floor(baseCost.metal * building.customVariant.modifiers.costMultiplier),
             crystal: Math.floor(baseCost.crystal * building.customVariant.modifiers.costMultiplier),
             deuterium: Math.floor(baseCost.deuterium * building.customVariant.modifiers.costMultiplier)
         };
     }
     
-    let switchCost = { metal: 0, crystal: 0, deuterium: 0 };
-    
-    if (isCustomActive) {
-        // Currently custom, switching to base
-        const difference = {
-            metal: Math.abs(baseCost.metal - customCost.metal),
-            crystal: Math.abs(baseCost.crystal - customCost.crystal),
-            deuterium: Math.abs(baseCost.deuterium - customCost.deuterium)
-        };
-        const isCheaper = baseCost.metal + baseCost.crystal + baseCost.deuterium < 
-                         customCost.metal + customCost.crystal + customCost.deuterium;
-        
-        if (isCheaper) {
-            switchCost = {
-                metal: -Math.floor(difference.metal / 2),
-                crystal: -Math.floor(difference.crystal / 2),
-                deuterium: -Math.floor(difference.deuterium / 2)
-            };
-        } else {
-            switchCost = {
-                metal: difference.metal * 2,
-                crystal: difference.crystal * 2,
-                deuterium: difference.deuterium * 2
-            };
-        }
-    } else {
-        // Currently base, switching to custom
-        const difference = {
-            metal: Math.abs(customCost.metal - baseCost.metal),
-            crystal: Math.abs(customCost.crystal - baseCost.crystal),
-            deuterium: Math.abs(customCost.deuterium - baseCost.deuterium)
-        };
-        const isCheaper = customCost.metal + customCost.crystal + customCost.deuterium < 
-                         baseCost.metal + baseCost.crystal + baseCost.deuterium;
-        
-        if (isCheaper) {
-            switchCost = {
-                metal: -Math.floor(difference.metal / 2),
-                crystal: -Math.floor(difference.crystal / 2),
-                deuterium: -Math.floor(difference.deuterium / 2)
-            };
-        } else {
-            switchCost = {
-                metal: difference.metal * 2,
-                crystal: difference.crystal * 2,
-                deuterium: difference.deuterium * 2
-            };
-        }
-    }
-    return switchCost;
+    return calculateSwitchCost(currentCost, targetCost);
 }
 
 let queueVisible = true;
@@ -632,211 +570,176 @@ export async function upgradeBuilding(buildingKey, onStateChange) {
     }
 }
 
-/**
- * Switch building variant (exposed globally)
- */
-export async function switchBuildingVariant(buildingKey, targetBlueprintId, onStateChange) {
+export async function openDesignSelection(buildingKey) {
     const planetId = getCurrentPlanetId();
     if (!planetId) return;
     
-    // Fetch latest building details to get blueprint info
-    let buildingDetails;
     try {
-        buildingDetails = await API.getBuildingDetails(planetId);
-    } catch (error) {
-        Notifications.showError('Failed to load building info: ' + error.message);
-        return;
-    }
-
-    const building = buildingDetails.buildings[buildingKey];
-    if (!building) return;
-
-    const currentVariantId = building.currentVariant || 'base';
-    if (currentVariantId === targetBlueprintId) return;
-
-    // Calculate switch cost
-    let targetBlueprint = null;
-    if (targetBlueprintId !== 'base') {
-        targetBlueprint = building.availableBlueprints.find(bp => bp.id === targetBlueprintId);
-        if (!targetBlueprint) {
-            Notifications.showError('Selected blueprint not found');
-            return;
+        const buildingDetails = await API.getBuildingDetails(planetId);
+        const building = buildingDetails.buildings[buildingKey];
+        const planet = currentGameState?.planets.find(p => p.id === planetId);
+        
+        if (building && planet) {
+            showBlueprintSelectionModal(buildingKey, building, planet);
         }
-    }
-
-    const baseCost = building.baseCost || building.cost; // Fallback
-    const currentCost = building.cost;
-    
-    let targetCost = baseCost;
-    if (targetBlueprint && targetBlueprint.modifiers && targetBlueprint.modifiers.costMultiplier !== 1) {
-        targetCost = {
-            metal: Math.floor(baseCost.metal * targetBlueprint.modifiers.costMultiplier),
-            crystal: Math.floor(baseCost.crystal * targetBlueprint.modifiers.costMultiplier),
-            deuterium: Math.floor(baseCost.deuterium * targetBlueprint.modifiers.costMultiplier)
-        };
-    }
-
-    const switchCost = calculateSwitchCost(currentCost, targetCost);
-    const isCheaper = (targetCost.metal + targetCost.crystal + targetCost.deuterium) < 
-                     (currentCost.metal + currentCost.crystal + currentCost.deuterium);
-
-    const costText = `
-        Cost: ⚙️ ${formatNumber(Math.abs(switchCost.metal))} 💎 ${formatNumber(Math.abs(switchCost.crystal))}
-        ${isCheaper ? '(Refund)' : ''}
-    `;
-
-    const confirmed = await showConfirm(
-        'Switch Design', 
-        `Switch to ${targetBlueprint ? targetBlueprint.name : 'Standard Model'}? ${costText}`
-    );
-    
-    if (!confirmed) {
-        // Reset dropdown if cancelled
-        const select = document.getElementById(`design-select-${buildingKey}`);
-        if (select) select.value = currentVariantId;
-        return;
-    }
-    
-    try {
-        await API.request(`/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
-            method: 'POST',
-            body: JSON.stringify({ blueprintId: targetBlueprintId })
-        });
-        
-        if (onStateChange) await onStateChange();
-        // Fallback refresh
-        if (window.loadGameState) await window.loadGameState();
-        
-        Notifications.showSuccess(`Design switched to ${targetBlueprint ? targetBlueprint.name : 'Standard Model'}.`);
     } catch (error) {
-        Notifications.showError('Switch failed: ' + error.message);
-        // Reset dropdown
-        const select = document.getElementById(`design-select-${buildingKey}`);
-        if (select) select.value = currentVariantId;
+        Notifications.showError('Failed to open design selection: ' + error.message);
     }
 }
+
+window.openDesignSelection = openDesignSelection;
 
 /**
  * Show modal for selecting from multiple blueprints
  */
-export async function showBlueprintSelectionModal(buildingKey, planet, onStateChange) {
+export async function showBlueprintSelectionModal(buildingKey, building, planet) {
     const modal = document.getElementById('custom-variant-modal') || createCustomVariantModal();
     modal.style.display = 'block';
     
     const modalTitle = document.getElementById('modal-variant-title');
     const modalBody = document.getElementById('modal-variant-body');
     
-    modalTitle.innerHTML = `Select Blueprint for ${buildingKey.replace(/([A-Z])/g, ' $1')}`;
+    modalTitle.innerHTML = `Design Options: ${building.name}`;
     
-    try {
-        // Fetch all blueprints for this building type
-        const response = await fetch(`/api/game/blueprints/${buildingKey}`);
-        const result = await response.json();
-        const blueprints = result.data || [];
-        
-        renderBlueprintList(modalBody, buildingKey, blueprints, planet, onStateChange);
-    } catch (error) {
-        console.error('Failed to load blueprints:', error);
-        modalBody.innerHTML = `<p class="error">Failed to load blueprints: ${error.message}</p>`;
-    }
+    const blueprints = building.availableBlueprints || [];
+    renderBlueprintList(modalBody, buildingKey, building, blueprints, planet);
 }
 
-function renderBlueprintList(container, buildingKey, blueprints, planet, onStateChange) {
-    const activeBlueprintId = planet.activeVariants?.[buildingKey] || 'base';
+function renderBlueprintList(container, buildingKey, building, blueprints, planet) {
+    const activeBlueprintId = building.currentVariant || 'base';
+    const baseCost = building.baseCost || building.cost;
+    const currentCost = building.cost;
     
-    let html = '<div class="blueprint-selection-list">';
+    let html = '<div class="blueprint-selection-grid">';
     
-    // Base Model
+    // --- Option 1: Base Model ---
+    const isBaseActive = activeBlueprintId === 'base';
+    const baseSwitchCost = calculateSwitchCost(currentCost, baseCost);
+    const isBaseRefund = (baseCost.metal + baseCost.crystal + baseCost.deuterium) < 
+                        (currentCost.metal + currentCost.crystal + currentCost.deuterium);
+
     html += `
-        <div class="blueprint-item ${activeBlueprintId === 'base' ? 'active' : ''}">
-            <div class="blueprint-info">
-                <h4>Standard Model (Base)</h4>
-                <p>Reliable and well-understood design.</p>
+        <div class="blueprint-card-select ${isBaseActive ? 'active' : ''}">
+            <div class="blueprint-card-header">
+                <h4>Standard Model</h4>
+                ${isBaseActive ? '<span class="active-tag">Active</span>' : ''}
             </div>
-            <button class="btn btn-primary" onclick="window.activateBlueprint('${buildingKey}', 'base')" ${activeBlueprintId === 'base' ? 'disabled' : ''}>
-                ${activeBlueprintId === 'base' ? 'Currently Active' : 'Select'}
-            </button>
+            <div class="blueprint-card-body">
+                <p class="blueprint-desc">Reliable standard design.</p>
+                <div class="blueprint-modifiers">
+                    <div class="mod-row"><span class="mod-icon">📉</span> <span class="mod-label">No custom modifiers</span></div>
+                </div>
+                <div class="blueprint-switch-cost ${isBaseActive ? 'hidden' : (isBaseRefund ? 'refund' : 'cost')}">
+                    <strong>Switch ${isBaseRefund ? 'Refund' : 'Cost'}:</strong>
+                    <div>⚙️ ${formatNumber(Math.abs(baseSwitchCost.metal))} 💎 ${formatNumber(Math.abs(baseSwitchCost.crystal))}</div>
+                </div>
+            </div>
+            <div class="blueprint-card-footer">
+                <button class="btn btn-primary btn-full" onclick="window.selectAndActivateBlueprint('${buildingKey}', 'base')" ${isBaseActive ? 'disabled' : ''}>
+                    ${isBaseActive ? 'Current Design' : 'Select Design'}
+                </button>
+            </div>
         </div>
     `;
 
-    if (blueprints.length === 0) {
-        html += '<p class="info-text" style="margin-top: 20px;">No custom blueprints found. Research practical optimizations to create one.</p>';
-    } else {
-        for (const bp of blueprints) {
-            const isActive = activeBlueprintId === bp.id;
-            const focuses = Object.entries(bp.focusLevels)
-                .filter(([_, v]) => v > 0)
-                .map(([k, v]) => `<span class="focus-badge focus-${k}">${k}: ${v}</span>`)
-                .join(' ');
+    // --- Option 2+: Blueprints ---
+    for (const bp of blueprints) {
+        const isActive = activeBlueprintId === bp.id;
+        
+        let targetCost = baseCost;
+        if (bp.modifiers && bp.modifiers.costMultiplier !== 1) {
+            targetCost = {
+                metal: Math.floor(baseCost.metal * bp.modifiers.costMultiplier),
+                crystal: Math.floor(baseCost.crystal * bp.modifiers.costMultiplier),
+                deuterium: Math.floor(baseCost.deuterium * bp.modifiers.costMultiplier)
+            };
+        }
 
-            html += `
-                <div class="blueprint-item ${isActive ? 'active' : ''}">
-                    <div class="blueprint-info">
-                        <h4>${bp.name}</h4>
-                        <div class="blueprint-focuses">${focuses}</div>
+        const switchCost = calculateSwitchCost(currentCost, targetCost);
+        const isRefund = (targetCost.metal + targetCost.crystal + targetCost.deuterium) < 
+                         (currentCost.metal + currentCost.crystal + currentCost.deuterium);
+
+        const modifierLabels = {
+            productionMultiplier: { label: 'Production', icon: '📈', isPos: true },
+            costMultiplier: { label: 'Build Cost', icon: '💰', isPos: false },
+            energyMultiplier: { label: 'Energy Cons.', icon: '⚡', isPos: false },
+            populationMultiplier: { label: 'Workforce', icon: '👥', isPos: false }
+        };
+
+        let modifiersHtml = '';
+        if (bp.modifiers) {
+            for (const modKey in modifierLabels) {
+                const val = bp.modifiers[modKey];
+                if (val !== undefined && Math.abs(val - 1) > 0.001) {
+                    const config = modifierLabels[modKey];
+                    const percent = ((val - 1) * 100).toFixed(1);
+                    const isGood = (val > 1) === config.isPos;
+                    modifiersHtml += `<div class="mod-row ${isGood ? 'pos' : 'neg'}">
+                        <span class="mod-icon">${config.icon}</span>
+                        <span class="mod-label">${config.label}:</span>
+                        <span class="mod-value">${val > 1 ? '+' : ''}${percent}%</span>
+                    </div>`;
+                }
+            }
+        }
+
+        html += `
+            <div class="blueprint-card-select ${isActive ? 'active' : ''}">
+                <div class="blueprint-card-header">
+                    <h4>${bp.name}</h4>
+                    ${isActive ? '<span class="active-tag">Active</span>' : ''}
+                </div>
+                <div class="blueprint-card-body">
+                    <div class="blueprint-modifiers">
+                        ${modifiersHtml || '<div class="no-mods">No significant modifiers</div>'}
                     </div>
-                    <div class="blueprint-actions" style="display: flex; gap: 8px;">
-                        <button class="btn btn-primary" onclick="window.activateBlueprint('${buildingKey}', '${bp.id}')" ${isActive ? 'disabled' : ''}>
-                            ${isActive ? 'Currently Active' : 'Select'}
+                    <div class="blueprint-switch-cost ${isActive ? 'hidden' : (isRefund ? 'refund' : 'cost')}">
+                        <strong>Switch ${isRefund ? 'Refund' : 'Cost'}:</strong>
+                        <div>⚙️ ${formatNumber(Math.abs(switchCost.metal))} 💎 ${formatNumber(Math.abs(switchCost.crystal))}</div>
+                    </div>
+                </div>
+                <div class="blueprint-card-footer">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary btn-full" onclick="window.selectAndActivateBlueprint('${buildingKey}', '${bp.id}')" ${isActive ? 'disabled' : ''}>
+                            ${isActive ? 'Current Design' : 'Select Design'}
                         </button>
-                        <button class="btn btn-danger" onclick="window.deleteBlueprint('${buildingKey}', '${bp.id}')" title="Delete Blueprint">
+                        <button class="btn btn-danger" onclick="window.deleteBlueprintFromSelection('${buildingKey}', '${bp.id}')" title="Delete Blueprint">
                             🗑️
                         </button>
                     </div>
                 </div>
-            `;
-        }
+            </div>
+        `;
     }
     
     html += '</div>';
     container.innerHTML = html;
 }
 
-window.deleteBlueprint = async function(baseType, blueprintId) {
-    if (!(await showConfirm('Delete Blueprint', `Are you sure you want to delete this blueprint? Any planets using it will revert to the standard model.`))) return;
-    
-    try {
-        const response = await fetch(`/api/game/blueprints/${baseType}/${blueprintId}`, {
-            method: 'DELETE'
-        });
-        const result = await response.json();
-        
-        if (!result.success) {
-            Notifications.showError(result.error || 'Failed to delete blueprint');
-            return;
-        }
-        
-        Notifications.showSuccess('Blueprint deleted');
-        
-        // Refresh the modal content
-        const planetId = getCurrentPlanetId();
-        const planet = currentGameState?.planets.find(p => p.id === planetId);
-        if (planet) {
-            showBlueprintSelectionModal(baseType, planet);
-        }
-        
-        // Also refresh global state if needed
-        if (window.loadGameState) await window.loadGameState();
-    } catch (error) {
-        Notifications.showError('Error deleting blueprint: ' + error.message);
-    }
-};
-
-window.activateBlueprint = async function(baseType, blueprintId) {
+window.selectAndActivateBlueprint = async function(buildingKey, blueprintId) {
     const planetId = getCurrentPlanetId();
     try {
-        await API.request(`/planet/${planetId}/building/${baseType}/activate-blueprint`, {
+        await API.request(`/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
             method: 'POST',
             body: JSON.stringify({ blueprintId })
         });
         
-        Notifications.showSuccess('Blueprint activated successfully!');
+        Notifications.showSuccess('Design switched successfully!');
         window.closeCustomVariantModal();
-        
-        // Refresh the whole state to update buildings
         if (window.loadGameState) await window.loadGameState();
     } catch (error) {
-        Notifications.showError('Activation failed: ' + error.message);
+        Notifications.showError('Switch failed: ' + error.message);
+    }
+};
+
+window.deleteBlueprintFromSelection = async function(buildingKey, blueprintId) {
+    if (!(await showConfirm('Delete Blueprint', `Delete this design? It will no longer be available for selection.`))) return;
+    try {
+        await fetch(`/api/game/blueprints/${buildingKey}/${blueprintId}`, { method: 'DELETE' });
+        // Refresh modal
+        window.openDesignSelection(buildingKey);
+    } catch (error) {
+        Notifications.showError('Delete failed: ' + error.message);
     }
 };
 
@@ -844,6 +747,11 @@ window.activateBlueprint = async function(baseType, blueprintId) {
  * Create custom variant selection modal if it doesn't exist
  */
 function createCustomVariantModal() {
+    const modal = document.getElementById('custom-variant-modal') || createCustomVariantModalElement();
+    return modal;
+}
+
+function createCustomVariantModalElement() {
     const modal = document.createElement('div');
     modal.id = 'custom-variant-modal';
     modal.className = 'modal';
@@ -870,121 +778,7 @@ export function closeCustomVariantModal() {
     }
 }
 
-/**
- * Render custom variant selection options
- */
-function renderCustomVariantOptions(container, buildingKey, building, variantDetails, planet, onStateChange) {
-    const { availableVariants, baseCost, currentCost, currentVariant, currentVariantData } = variantDetails;
-    
-    // Determine current variant title
-    const currentVariantTitle = currentVariant === 'custom' ? 'Custom Variant (Current)' : 'Base Variant (Current)';
-    
-    let html = `
-        <div class="variant-selection">
-            <div class="current-variant-info">
-                <h3>${currentVariantTitle}</h3>
-                <div class="cost-display">
-                    <strong>Cost per level:</strong>
-                    <div>⚙️ ${formatNumber(currentCost.metal)}</div>
-                    <div>💎 ${formatNumber(currentCost.crystal)}</div>
-                    ${currentCost.deuterium > 0 ? `<div>🛢️ ${formatNumber(currentCost.deuterium)}</div>` : ''}
-                </div>
-    `;
-    
-    // Show focus levels if on custom variant
-    if (currentVariant === 'custom' && currentVariantData) {
-        const focuses = [];
-        for (const focus in (currentVariantData.focusLevels || {})) {
-            const level = currentVariantData.focusLevels[focus];
-            if (level > 0) {
-                focuses.push(`<span class="focus-badge">${focus} <strong>${level}</strong></span>`);
-            }
-        }
-        const focusDisplay = focuses.join('');
-        if (focusDisplay) {
-            html += `<div class="variant-focuses" style="margin-top: 10px;">${focusDisplay}</div>`;
-        }
-    }
-    
-    html += `
-            </div>
-            <div class="variant-options">
-                <h3>Switch To</h3>
-    `;
-    
-    if (!availableVariants || availableVariants.length === 0) {
-        html += `<p>No variants to switch to. </p>`;
-    } else {
-        for (const variant of availableVariants) {
-            const isBaseVariant = variant.isBase;
-            const switchCost = calculateSwitchCost(currentCost, variant.cost);
-            
-            const focuses = [];
-            for (const focus in (variant.focusLevels || {})) {
-                const level = variant.focusLevels[focus];
-                if (level > 0) {
-                    focuses.push(`<span class="focus-badge">${focus} <strong>${level}</strong></span>`);
-                }
-            }
-            const focusDisplay = focuses.join('');
-            
-            const isCheaper = (variant.cost.metal + variant.cost.crystal + variant.cost.deuterium) < 
-                            (currentCost.metal + currentCost.crystal + currentCost.deuterium);
-            
-            const switchCostDisplay = `
-                <div class="switch-cost ${isCheaper ? 'refund' : 'cost'}">
-                    ${isCheaper ? '💰 Refund:' : '💰 Cost:'}
-                    <div>⚙️ ${formatNumber(switchCost.metal)}</div>
-                    <div>💎 ${formatNumber(switchCost.crystal)}</div>
-                    ${switchCost.deuterium !== 0 ? `<div>🛢️ ${formatNumber(switchCost.deuterium)}</div>` : ''}
-                </div>
-            `;
-            
-            const outputDiffs = getOutputDifferences(building, variant);
-            let outputDisplay = '';
-            if (outputDiffs.length > 0) {
-                outputDisplay = `
-                    <div class="output-changes">
-                        <strong>Output Changes:</strong>
-                        ${outputDiffs.map(diff => {
-                            const multiplier = diff.change.toFixed(2);
-                            const percentChange = ((diff.change - 1) * 100).toFixed(1);
-                            const isPositive = diff.change > 1;
-                            return `<div class="${isPositive ? 'positive' : 'negative'}">
-                                ${diff.icon} ${diff.label}: ${multiplier}x (${isPositive ? '+' : ''}${percentChange}%)
-                            </div>`;
-                        }).join('')}
-                    </div>
-                `;
-            }
-            
-            const buttonText = isBaseVariant ? 'Switch to Base' : 'Select This Variant';
-            const focusLevels = isBaseVariant ? {} : variant.focusLevels;
-            
-            html += `
-                <div class="variant-option">
-                    ${focusDisplay ? `<div class="variant-focuses">${focusDisplay}</div>` : '<p><em>Standard Build</em></p>'}
-                    ${switchCostDisplay}
-                    ${outputDisplay}
-                    <button class="btn btn-success btn-full" 
-                            onclick="window.selectCustomVariant('${buildingKey}', ${JSON.stringify(focusLevels).replace(/"/g, '&quot;')})">
-                        ${buttonText}
-                    </button>
-                </div>
-            `;
-        }
-    }
-    
-    html += `
-            </div>
-            <div class="variant-actions">
-                <button class="btn btn-full" onclick="window.closeCustomVariantModal()">Cancel</button>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
+window.closeCustomVariantModal = closeCustomVariantModal;
 
 /**
  * Calculate switch cost between base and custom
