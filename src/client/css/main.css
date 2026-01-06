@@ -2442,9 +2442,12 @@ body {
 .mission-colonize .fleet-timer { color: var(--accent-green); }
 .mission-transport .fleet-timer { color: var(--accent-blue); }
 .mission-deploy .fleet-timer { color: var(--text-secondary); }
+.mission-expedition .fleet-timer { color: var(--accent-blue); }
 
 .mission-return { opacity: 0.8; }
 .mission-return .mission-name { font-style: italic; }
+.mission-stay { opacity: 0.9; }
+.mission-stay .fleet-timer { color: var(--energy-color); }
 
 /* Tooltip (Fixed/Global) */
 .fleet-tooltip-fixed {

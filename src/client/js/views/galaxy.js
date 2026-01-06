@@ -124,6 +124,9 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
             html += renderOGameEmptyRow(position);
         }
     }
+
+    // Add Position 16 for Expedition
+    html += renderExpeditionRow(16);
     
     html += `
                     </tbody>
@@ -204,7 +207,87 @@ function renderOGameEmptyRow(position) {
     `;
 }
 
+/**
+ * Render a table row for deep space (expedition)
+ */
+function renderExpeditionRow(position) {
+    return `
+        <tr class="expedition-row" style="background: rgba(74, 144, 226, 0.1);">
+            <td class="pos-col"><strong>${position}</strong></td>
+            <td class="planet-col" colspan="3" style="text-align: center; color: var(--accent-blue); font-weight: bold; letter-spacing: 2px;">
+                🌌 DEEP SPACE
+            </td>
+            <td class="action-col">
+                <button class="action-btn expedition-btn" onclick="window.sendExpeditionFromGalaxy()" title="Launch Expedition" style="background: var(--accent-blue); color: white;">🚀</button>
+            </td>
+        </tr>
+    `;
+}
+
 // Mission trigger functions
+window.sendExpeditionFromGalaxy = async function() {
+    const coords = [window.currentGalaxy, window.currentSystem, 16];
+    
+    // For simplicity, let's ask for a basic fleet composition or just send all small cargos + some fighters
+    const confirmed = await showConfirm('Launch Expedition', `Send an expedition fleet to Deep Space [${coords.join(':')}]?`);
+    if (!confirmed) return;
+
+    // We need to know which planet is currently selected to send ships from
+    // In main.js, getCurrentPlanetId() might be available.
+    const planetId = window.getCurrentPlanetId ? window.getCurrentPlanetId() : null;
+    if (!planetId) {
+        Notifications.showError('No origin planet selected');
+        return;
+    }
+
+    // Get current planet ships
+    const gameState = window.currentGameState;
+    const planet = gameState.planets.find(p => p.id === planetId);
+    if (!planet) {
+        Notifications.showError('Origin planet not found');
+        return;
+    }
+
+    // Filter ships that have count > 0
+    const shipsToSend = {};
+    let hasShips = false;
+    for (const shipKey in planet.ships) {
+        if (planet.ships[shipKey] > 0) {
+            shipsToSend[shipKey] = planet.ships[shipKey];
+            hasShips = true;
+        }
+    }
+
+    if (!hasShips) {
+        Notifications.showError('No ships available on this planet');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/game/galaxy/mission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                missionType: 'expedition',
+                targetCoords: coords,
+                ships: shipsToSend,
+                originPlanetId: planetId
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            Notifications.showSuccess(`Expedition fleet launched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
+            // Refresh game state to show ships gone
+            if (window.loadGameState) window.loadGameState();
+        } else {
+            Notifications.showError(`Failed: ${result.error}`);
+        }
+    } catch (error) {
+        Notifications.showError(`Error: ${error.message}`);
+    }
+};
+
 window.spyOnPlanetFromGalaxy = async function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
     const probeCountStr = await showPrompt('Send Espionage Probes', `How many probes to send to ${coords.join(':')}?`, '1');

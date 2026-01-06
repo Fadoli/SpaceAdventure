@@ -142,11 +142,18 @@ export function updateFleetMovements(gameState) {
                 missionIcon = '🏁';
                 missionClass = 'mission-deploy';
                 break;
+            case 'expedition':
+                missionIcon = '🚀';
+                missionClass = 'mission-expedition';
+                break;
         }
         
         if (isReturning) {
             missionClass += ' mission-return';
             missionName = `${missionName} (R)`;
+        } else if (fleet.waiting) {
+            missionClass += ' mission-stay';
+            missionName = `${missionName} (S)`;
         }
         
         const originCoords = `[${fleet.originCoords.join(':')}]`;

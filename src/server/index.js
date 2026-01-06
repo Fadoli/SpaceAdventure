@@ -1143,7 +1143,7 @@ async function handleRequest(req) {
       }
 
       const body = await req.json();
-      const { missionType, targetCoords, ships } = body;
+      const { missionType, targetCoords, ships, originPlanetId } = body;
 
       if (!missionType || !targetCoords || !ships) {
         return errorResponse(req, 'Missing mission details', 400);
@@ -1152,17 +1152,21 @@ async function handleRequest(req) {
       try {
         // Find a planet that has these ships
         let originPlanet = null;
-        for (const p of player.planets) {
-          let hasShips = true;
-          for (const shipKey in ships) {
-            if ((p.ships[shipKey] || 0) < ships[shipKey]) {
-              hasShips = false;
+        if (originPlanetId) {
+          originPlanet = player.planets.find(p => p.id === originPlanetId);
+        } else {
+          for (const p of player.planets) {
+            let hasShips = true;
+            for (const shipKey in ships) {
+              if ((p.ships[shipKey] || 0) < ships[shipKey]) {
+                hasShips = false;
+                break;
+              }
+            }
+            if (hasShips) {
+              originPlanet = p;
               break;
             }
-          }
-          if (hasShips) {
-            originPlanet = p;
-            break;
           }
         }
 

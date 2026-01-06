@@ -66,7 +66,8 @@ export const MISSION_TYPES = {
   TRANSPORT: 'transport',
   COLONIZE: 'colonize',
   ESPIONAGE: 'espionage',
-  HARVEST: 'harvest'
+  HARVEST: 'harvest',
+  EXPEDITION: 'expedition'
 };
 
 export const AI_TYPES = {

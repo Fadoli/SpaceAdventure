@@ -98,7 +98,23 @@ export async function processFleets(player, allPlayers) {
     const fleet = player.fleets[i];
 
     if (now >= fleet.arrivalTime) {
-      if (fleet.returning) {
+      if (fleet.waiting) {
+        // Stay time finished, start return journey
+        const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
+        let slowestSpeed = Infinity;
+        for (const shipKey in fleet.ships) {
+          const speed = calculateShipSpeed(shipKey, player.research);
+          if (speed < slowestSpeed) slowestSpeed = speed;
+        }
+        const fleetSpeedMultiplier = getFleetSpeedMultiplier();
+        const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
+        
+        fleet.returning = true;
+        fleet.waiting = false;
+        fleet.startTime = now;
+        fleet.arrivalTime = now + (travelTime * 1000);
+        updated = true;
+      } else if (fleet.returning) {
         // Fleet returned home
         await handleFleetReturn(player, fleet);
         player.fleets.splice(i, 1);
@@ -111,18 +127,26 @@ export async function processFleets(player, allPlayers) {
           player.fleets.splice(i, 1);
         } else {
           // Other missions reverse and return (spy, attack, transport)
-          const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
-          let slowestSpeed = Infinity;
-          for (const shipKey in fleet.ships) {
-            const speed = calculateShipSpeed(shipKey, player.research);
-            if (speed < slowestSpeed) slowestSpeed = speed;
+          // For expedition, it stays for a while
+          if (fleet.missionType === MISSION_TYPES.EXPEDITION) {
+            fleet.waiting = true;
+            fleet.startTime = now;
+            const stayTime = 60 * 60 * 1000; // 1 hour stay
+            fleet.arrivalTime = now + stayTime;
+          } else {
+            const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
+            let slowestSpeed = Infinity;
+            for (const shipKey in fleet.ships) {
+              const speed = calculateShipSpeed(shipKey, player.research);
+              if (speed < slowestSpeed) slowestSpeed = speed;
+            }
+            const fleetSpeedMultiplier = getFleetSpeedMultiplier();
+            const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
+            
+            fleet.returning = true;
+            fleet.startTime = now;
+            fleet.arrivalTime = now + (travelTime * 1000);
           }
-          const fleetSpeedMultiplier = getFleetSpeedMultiplier();
-          const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
-          
-          fleet.returning = true;
-          fleet.startTime = now;
-          fleet.arrivalTime = now + (travelTime * 1000);
         }
         updated = true;
       }
@@ -159,6 +183,9 @@ async function handleFleetArrival(player, fleet, allPlayers) {
       return false; // Returns home
     case MISSION_TYPES.COLONIZE:
       return await executeColonization(player, fleet, allPlayers);
+    case MISSION_TYPES.EXPEDITION:
+      await executeExpedition(player, fleet);
+      return false; // Returns home after stay
     default:
       return false;
   }
@@ -308,4 +335,55 @@ async function executeColonization(player, fleet, allPlayers) {
   });
 
   return true; // Mission completed, fleet record removed
+}
+
+async function executeExpedition(player, fleet) {
+  const roll = Math.random();
+  let resultType = 'nothing';
+  let body = '';
+  let subject = 'Expedition Report';
+
+  if (roll < 0.1) {
+    // Black hole (Lose some ships)
+    resultType = 'black_hole';
+    subject = 'Expedition: Disaster!';
+    const shipToLose = Object.keys(fleet.ships).find(k => fleet.ships[k] > 0);
+    if (shipToLose) {
+      const lostCount = Math.ceil(fleet.ships[shipToLose] * 0.5);
+      fleet.ships[shipToLose] -= lostCount;
+      body = `Your fleet entered a gravity well of a dark star. You lost ${lostCount} ${shipToLose}.`;
+    } else {
+      body = `Your fleet narrowly escaped a black hole. No ships were lost.`;
+    }
+  } else if (roll < 0.4) {
+    // Found resources
+    resultType = 'resources';
+    subject = 'Expedition: Resources Found';
+    const metalFound = Math.floor(Math.random() * 5000) + 1000;
+    const crystalFound = Math.floor(Math.random() * 2500) + 500;
+    fleet.resources.metal = (fleet.resources.metal || 0) + metalFound;
+    fleet.resources.crystal = (fleet.resources.crystal || 0) + crystalFound;
+    body = `Your explorers found an abandoned mining colony. You collected ${metalFound} Metal and ${crystalFound} Crystal.`;
+  } else if (roll < 0.6) {
+    // Found ships
+    resultType = 'ships';
+    subject = 'Expedition: New Ships Found';
+    const foundShips = { lightFighter: Math.floor(Math.random() * 3) + 1 };
+    for (const s in foundShips) {
+      fleet.ships[s] = (fleet.ships[s] || 0) + foundShips[s];
+    }
+    body = `Your fleet found some abandoned ships drifting in space. They have been integrated into your fleet.`;
+  } else {
+    // Nothing
+    resultType = 'nothing';
+    body = `Your expedition team explored the sector but found nothing of interest. They are preparing to return home.`;
+  }
+
+  await addMessage(player.userId, {
+    from: 'Expedition Command',
+    subject,
+    body,
+    type: 'expedition',
+    data: { resultType, coords: [...fleet.targetCoords] }
+  });
 }
