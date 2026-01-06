@@ -719,7 +719,7 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
 window.selectAndActivateBlueprint = async function(buildingKey, blueprintId) {
     const planetId = getCurrentPlanetId();
     try {
-        await API.request(`/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
+        await API.request(`/game/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
             method: 'POST',
             body: JSON.stringify({ blueprintId })
         });
