@@ -442,6 +442,10 @@ async function renderPracticalResearch() {
                 cost: Math.floor(Math.sqrt((exp.cost || 0) / 100))
             };
 
+            const totalFocusLevel = Object.values(levels).reduce((a, b) => a + b, 0);
+            const levelBonus = 1 + (totalFocusLevel * 0.01);
+            const totalEfficiency = (tree.treeBonus || 1.0) * levelBonus;
+
             const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
             const isDisabled = queue.length >= maxQueue || researchLabLevel === 0;
             
@@ -480,8 +484,8 @@ async function renderPracticalResearch() {
                 }).join('')}
             </div>
 
-            <div class="tree-bonus" title="Permanent XP gain bonus from breakthroughs">
-                ⚡ Tree Efficiency: <strong>${((tree.treeBonus || 1.0) * 100).toFixed(0)}%</strong>
+            <div class="tree-bonus" title="Total XP multiplier: Breakthroughs (${((tree.treeBonus || 1.0) * 100).toFixed(0)}%) × Level Bonus (+${(totalFocusLevel)}%)">
+                ⚡ Tree Efficiency: <strong>${(totalEfficiency * 100).toFixed(0)}%</strong>
             </div>
             
             ${lastResultHtml}

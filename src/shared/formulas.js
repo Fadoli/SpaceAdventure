@@ -321,9 +321,9 @@ export function applyTheoreticalBonus(baseValue, techLevel, bonusPerLevel) {
  */
 export function rollResearchOutcome() {
   const roll = Math.random();
-  if (roll < 0.05) return { type: 'breakthrough', multiplier: 2.5 }; // 5% chance
-  if (roll < 0.55) return { type: 'failure', multiplier: 0.1 };    // 50% chance
-  return { type: 'success', multiplier: 1.0 };                     // 45% chance
+  if (roll < 0.1) return { type: 'breakthrough', multiplier: 5.5 }; // 10% chance
+  if (roll < 0.6) return { type: 'failure', multiplier: 0.1 };    // 50% chance
+  return { type: 'success', multiplier: 1.0 };                     // 40% chance
 }
 
 /**
