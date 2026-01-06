@@ -217,6 +217,8 @@ async function loadGameState() {
     }
 }
 
+window.loadGameState = loadGameState;
+
 function updateUI() {
     if (!gameState || !currentUser) return;
     
@@ -610,6 +612,9 @@ export function getCurrentPlanet() {
 export function getCurrentPlanetId() {
     return currentPlanetId;
 }
+
+window.getCurrentPlanetId = getCurrentPlanetId;
+window.getCurrentPlanet = getCurrentPlanet;
 
 // Start the app
 init();

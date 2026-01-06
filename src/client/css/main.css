@@ -2449,6 +2449,79 @@ body {
 .mission-stay { opacity: 0.9; }
 .mission-stay .fleet-timer { color: var(--energy-color); }
 
+/* Expedition Ship Selection */
+.expedition-ship-selection {
+    padding: 10px;
+}
+
+.expedition-ships-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.expedition-ship-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expedition-ship-item .ship-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.expedition-ship-item .ship-name {
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+
+.expedition-ship-item .ship-available {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.expedition-ship-item .ship-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.exp-qty-input {
+    width: 80px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 5px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.btn-max {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--accent-yellow);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-max:hover {
+    background: var(--accent-yellow);
+    color: black;
+}
+
+
 /* Tooltip (Fixed/Global) */
 .fleet-tooltip-fixed {
     display: none;

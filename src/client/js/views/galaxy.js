@@ -227,65 +227,105 @@ function renderExpeditionRow(position) {
 // Mission trigger functions
 window.sendExpeditionFromGalaxy = async function() {
     const coords = [window.currentGalaxy, window.currentSystem, 16];
+    const planetId = window.getCurrentPlanetId();
+    const planet = window.getCurrentPlanet();
     
-    // For simplicity, let's ask for a basic fleet composition or just send all small cargos + some fighters
-    const confirmed = await showConfirm('Launch Expedition', `Send an expedition fleet to Deep Space [${coords.join(':')}]?`);
-    if (!confirmed) return;
-
-    // We need to know which planet is currently selected to send ships from
-    // In main.js, getCurrentPlanetId() might be available.
-    const planetId = window.getCurrentPlanetId ? window.getCurrentPlanetId() : null;
-    if (!planetId) {
+    if (!planet) {
         Notifications.showError('No origin planet selected');
         return;
     }
 
-    // Get current planet ships
-    const gameState = window.currentGameState;
-    const planet = gameState.planets.find(p => p.id === planetId);
-    if (!planet) {
-        Notifications.showError('Origin planet not found');
-        return;
-    }
-
-    // Filter ships that have count > 0
-    const shipsToSend = {};
-    let hasShips = false;
-    for (const shipKey in planet.ships) {
-        if (planet.ships[shipKey] > 0) {
-            shipsToSend[shipKey] = planet.ships[shipKey];
-            hasShips = true;
-        }
-    }
-
+    // Check if planet has any ships
+    const hasShips = Object.values(planet.ships || {}).some(count => count > 0);
     if (!hasShips) {
         Notifications.showError('No ships available on this planet');
         return;
     }
 
-    try {
-        const response = await fetch('/api/game/galaxy/mission', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                missionType: 'expedition',
-                targetCoords: coords,
-                ships: shipsToSend,
-                originPlanetId: planetId
-            })
+    // Create modal for ship selection
+    const modal = document.getElementById('details-modal');
+    const modalTitle = document.getElementById('details-modal-title');
+    const modalBody = document.getElementById('details-modal-body');
+
+    modalTitle.innerHTML = `🚀 Launch Expedition [${coords.join(':')}]`;
+    
+    let shipsHtml = '<div class="expedition-ship-selection">';
+    shipsHtml += '<p>Select ships to send on expedition:</p>';
+    shipsHtml += '<div class="expedition-ships-list">';
+    
+    for (const [shipKey, count] of Object.entries(planet.ships)) {
+        if (count > 0) {
+            const shipName = shipKey.replace(/([A-Z])/g, ' $1').trim();
+            shipsHtml += `
+                <div class="expedition-ship-item">
+                    <div class="ship-info">
+                        <span class="ship-name">${shipName}</span>
+                        <span class="ship-available">(Avail: ${formatNumber(count)})</span>
+                    </div>
+                    <div class="ship-input">
+                        <input type="number" class="exp-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
+                        <button class="btn-max" onclick="this.previousElementSibling.value=${count}">MAX</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    shipsHtml += '</div>';
+    shipsHtml += `
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="window.closeDetailsModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="window.submitExpedition()">Launch Fleet</button>
+        </div>
+    `;
+    shipsHtml += '</div>';
+
+    modalBody.innerHTML = shipsHtml;
+    modal.style.display = 'block';
+
+    // Store submit function
+    window.submitExpedition = async function() {
+        const shipsToSend = {};
+        let totalShips = 0;
+        
+        document.querySelectorAll('.exp-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                const shipKey = input.dataset.ship;
+                shipsToSend[shipKey] = qty;
+                totalShips += qty;
+            }
         });
 
-        const result = await response.json();
-        if (result.success) {
-            Notifications.showSuccess(`Expedition fleet launched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
-            // Refresh game state to show ships gone
-            if (window.loadGameState) window.loadGameState();
-        } else {
-            Notifications.showError(`Failed: ${result.error}`);
+        if (totalShips === 0) {
+            Notifications.showError('You must select at least one ship');
+            return;
         }
-    } catch (error) {
-        Notifications.showError(`Error: ${error.message}`);
-    }
+
+        try {
+            const response = await fetch('/api/game/galaxy/mission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    missionType: 'expedition',
+                    targetCoords: coords,
+                    ships: shipsToSend,
+                    originPlanetId: planetId
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                Notifications.showSuccess(`Expedition fleet launched!`);
+                window.closeDetailsModal();
+                if (window.loadGameState) await window.loadGameState();
+            } else {
+                Notifications.showError(`Failed: ${result.error}`);
+            }
+        } catch (error) {
+            Notifications.showError(`Error: ${error.message}`);
+        }
+    };
 };
 
 window.spyOnPlanetFromGalaxy = async function(position) {
