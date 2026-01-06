@@ -907,7 +907,7 @@ async function handleRequest(req) {
           cargoCapacity: ship.cargoCapacity,
           baseCost: ship.baseCost,
           baseTime: calculateBaseTime(ship),
-          effectiveSpeed: calculateShipSpeed(shipKey, player.research)
+          speed: calculateShipSpeed(shipKey, player.research)
         };
       }
       

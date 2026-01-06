@@ -170,7 +170,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                 <div>⚔️ Atk: ${ship.attack}</div>
                 <div>🛡️ Shd: ${ship.shield}</div>
                 <div>❤️ Hul: ${ship.hull}</div>
-                <div>🚀 Spd: ${formatNumber(ship.speed)}</div>
+                <div>🚀 Spd: ${formatNumber(ship.speed || 0)}</div>
                 ${ship.cargoCapacity > 0 ? `<div>📦 Cgo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
             </div>
             <div class="ship-cost">

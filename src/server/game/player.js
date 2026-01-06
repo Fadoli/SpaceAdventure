@@ -1,6 +1,7 @@
 // Player game state management
 import { generateId } from '../../shared/utils.js';
 import { STARTING_RESOURCES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
+import { SHIPS } from '../../shared/ships.js';
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { updatePlanetProduction } from './buildings.js';
 
@@ -249,6 +250,18 @@ export async function recomputeAllPlanetsOnStartup() {
       if (!player.customShipVariants) player.customShipVariants = {};
       if (!player.buildingBlueprints) player.buildingBlueprints = {};
       if (!player.shipBlueprints) player.shipBlueprints = {};
+
+      // Cleanup blueprints data integrity
+      for (const shipType in player.shipBlueprints) {
+        player.shipBlueprints[shipType].forEach(blueprint => {
+          if (blueprint.customDefinition) {
+            // Fix NaN speed if any
+            if (blueprint.customDefinition.speed === null || isNaN(blueprint.customDefinition.speed)) {
+              blueprint.customDefinition.speed = SHIPS[blueprint.baseType]?.speed || 0;
+            }
+          }
+        });
+      }
 
       for (const planet of player.planets) {
         // Initialize building allocations if missing
