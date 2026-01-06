@@ -658,6 +658,7 @@ async function handleRequest(req) {
         
         // Calculate cost for next level
         const cost = getBuildingCost(buildingType, nextLevel, planet, player);
+        const baseCostForNextLevel = getBuildingCost(buildingType, nextLevel); // cost without variant
         
         // Calculate build time
         const roboticsLevel = planet.buildings.roboticsFactory || 0;
@@ -772,6 +773,9 @@ async function handleRequest(req) {
         const energyGain = expectedNextEnergyConsumption - actualEnergyConsumption;
         const deuteriumGain = expectedNextDeuteriumConsumption - actualDeuteriumConsumption;
 
+        // Get all available blueprints for this type
+        const availableBlueprints = (player.buildingBlueprints && player.buildingBlueprints[buildingType]) || [];
+        
         buildingsDetails[buildingType] = {
           name: buildingDef.name,
           description: buildingDef.description,
@@ -780,6 +784,7 @@ async function handleRequest(req) {
           currentLevel,
           nextLevel,
           cost,
+          baseCost: baseCostForNextLevel,
           buildTime,
           production,
           storage,
@@ -797,7 +802,8 @@ async function handleRequest(req) {
           requirementsList,
           hasCustomVariant,
           customVariant,
-          currentVariant: (planet.activeVariants && planet.activeVariants[buildingType]) || 'base'
+          availableBlueprints,
+          currentVariant: activeVariantId
         };
       }
       

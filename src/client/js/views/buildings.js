@@ -152,12 +152,28 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
         const building = buildings[key];
         const queueCount = queue.filter(item => item.building === key).length;
         
+        let designSelector = '';
+        if (building.availableBlueprints && building.availableBlueprints.length > 0) {
+            const options = [
+                `<option value="base" ${building.currentVariant === 'base' ? 'selected' : ''}>Standard Model</option>`
+            ];
+            building.availableBlueprints.forEach(bp => {
+                options.push(`<option value="${bp.id}" ${building.currentVariant === bp.id ? 'selected' : ''}>${bp.name}</option>`);
+            });
+            
+            designSelector = `
+                <div class="design-selector-container">
+                    <label for="design-select-${key}">Design:</label>
+                    <select id="design-select-${key}" onchange="window.switchBuildingVariant('${key}', this.value)">
+                        ${options.join('')}
+                    </select>
+                </div>
+            `;
+        }
+
         let customVariantBadge = '';
-        let variantButtons = '';
-        if (building.hasCustomVariant && building.customVariant) {
-            const isCustomActive = building.currentVariant !== 'base';
-            customVariantBadge = `<div class="custom-variant-badge">🔧 ${isCustomActive ? 'Custom Active' : 'Custom Available'}</div>`;
-            variantButtons = `<div id="variant-actions-${key}" class="variant-actions-container"></div>`;
+        if (building.currentVariant !== 'base') {
+            customVariantBadge = `<div class="custom-variant-badge">🔧 Custom Blueprint Active</div>`;
         }
 
         let allocationBadge = '';
@@ -174,6 +190,7 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
                 </div>
                 <div class="building-level">Level ${building.currentLevel}</div>
                 ${customVariantBadge}
+                ${designSelector}
                 ${allocationBadge}
                 <div id="queue-badge-${key}"></div>
                 <p>${building.description}</p>
@@ -186,7 +203,6 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
                 <button class="btn btn-full upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
                     Upgrade
                 </button>
-                ${variantButtons}
             </div>
         `);
     }
@@ -619,36 +635,85 @@ export async function upgradeBuilding(buildingKey, onStateChange) {
 /**
  * Switch building variant (exposed globally)
  */
-export async function switchBuildingVariant(buildingKey, toCustom, onStateChange) {
+export async function switchBuildingVariant(buildingKey, targetBlueprintId, onStateChange) {
     const planetId = getCurrentPlanetId();
     if (!planetId) return;
     
-    if (!toCustom) {
-        // Switching to base
-        const confirmed = await showConfirm('Switch Variant', 'Switch back to the base version? Existing builds will be updated.');
-        if (!confirmed) return;
-        
-        try {
-            await API.request(`/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
-                method: 'POST',
-                body: JSON.stringify({ blueprintId: 'base' })
-            });
-            if (onStateChange) await onStateChange();
-            Notifications.showSuccess('Building reverted to base model.');
-        } catch (error) {
-            Notifications.showError('Error: ' + error.message);
+    // Fetch latest building details to get blueprint info
+    let buildingDetails;
+    try {
+        buildingDetails = await API.getBuildingDetails(planetId);
+    } catch (error) {
+        Notifications.showError('Failed to load building info: ' + error.message);
+        return;
+    }
+
+    const building = buildingDetails.buildings[buildingKey];
+    if (!building) return;
+
+    const currentVariantId = building.currentVariant || 'base';
+    if (currentVariantId === targetBlueprintId) return;
+
+    // Calculate switch cost
+    let targetBlueprint = null;
+    if (targetBlueprintId !== 'base') {
+        targetBlueprint = building.availableBlueprints.find(bp => bp.id === targetBlueprintId);
+        if (!targetBlueprint) {
+            Notifications.showError('Selected blueprint not found');
+            return;
         }
+    }
+
+    const baseCost = building.baseCost || building.cost; // Fallback
+    const currentCost = building.cost;
+    
+    let targetCost = baseCost;
+    if (targetBlueprint && targetBlueprint.modifiers && targetBlueprint.modifiers.costMultiplier !== 1) {
+        targetCost = {
+            metal: Math.floor(baseCost.metal * targetBlueprint.modifiers.costMultiplier),
+            crystal: Math.floor(baseCost.crystal * targetBlueprint.modifiers.costMultiplier),
+            deuterium: Math.floor(baseCost.deuterium * targetBlueprint.modifiers.costMultiplier)
+        };
+    }
+
+    const switchCost = calculateSwitchCost(currentCost, targetCost);
+    const isCheaper = (targetCost.metal + targetCost.crystal + targetCost.deuterium) < 
+                     (currentCost.metal + currentCost.crystal + currentCost.deuterium);
+
+    const costText = `
+        Cost: ⚙️ ${formatNumber(Math.abs(switchCost.metal))} 💎 ${formatNumber(Math.abs(switchCost.crystal))}
+        ${isCheaper ? '(Refund)' : ''}
+    `;
+
+    const confirmed = await showConfirm(
+        'Switch Design', 
+        `Switch to ${targetBlueprint ? targetBlueprint.name : 'Standard Model'}? ${costText}`
+    );
+    
+    if (!confirmed) {
+        // Reset dropdown if cancelled
+        const select = document.getElementById(`design-select-${buildingKey}`);
+        if (select) select.value = currentVariantId;
         return;
     }
     
-    // Switching to custom - show blueprint selection modal
-    const planet = currentGameState?.planets.find(p => p.id === planetId);
-    if (!planet) {
-        Notifications.showError('Planet not found');
-        return;
+    try {
+        await API.request(`/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
+            method: 'POST',
+            body: JSON.stringify({ blueprintId: targetBlueprintId })
+        });
+        
+        if (onStateChange) await onStateChange();
+        // Fallback refresh
+        if (window.loadGameState) await window.loadGameState();
+        
+        Notifications.showSuccess(`Design switched to ${targetBlueprint ? targetBlueprint.name : 'Standard Model'}.`);
+    } catch (error) {
+        Notifications.showError('Switch failed: ' + error.message);
+        // Reset dropdown
+        const select = document.getElementById(`design-select-${buildingKey}`);
+        if (select) select.value = currentVariantId;
     }
-    
-    showBlueprintSelectionModal(buildingKey, planet, onStateChange);
 }
 
 /**

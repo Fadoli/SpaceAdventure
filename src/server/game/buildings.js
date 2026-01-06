@@ -41,7 +41,12 @@ export function getEffectiveBuildingDefinition(buildingType, planet = null, play
     return BUILDINGS[buildingType];
   }
   
-  // Try to find by blueprint ID
+  // Try to find in planet's local blueprint storage first
+  if (planet && planet.localBlueprints && planet.localBlueprints[buildingType]) {
+    return planet.localBlueprints[buildingType].customDefinition;
+  }
+  
+  // Try to find by blueprint ID in player's global storage (legacy/fallback)
   if (player && player.buildingBlueprints && player.buildingBlueprints[buildingType]) {
     const blueprint = player.buildingBlueprints[buildingType].find(bp => bp.id === activeVariantId);
     if (blueprint) {
@@ -1228,16 +1233,20 @@ export async function setActiveBlueprint(userId, planetId, baseType, blueprintId
   if (!planet) throw new Error('Planet not found');
 
   if (!planet.activeVariants) planet.activeVariants = {};
+  if (!planet.localBlueprints) planet.localBlueprints = {};
 
   if (blueprintId === 'base') {
     planet.activeVariants[baseType] = 'base';
+    delete planet.localBlueprints[baseType];
   } else {
-    // Verify blueprint exists
+    // Verify blueprint exists in player's collection
     const blueprints = player.buildingBlueprints?.[baseType] || [];
     const blueprint = blueprints.find(bp => bp.id === blueprintId);
     if (!blueprint) throw new Error('Blueprint not found');
     
     planet.activeVariants[baseType] = blueprintId;
+    // Copy blueprint data to the planet locally
+    planet.localBlueprints[baseType] = JSON.parse(JSON.stringify(blueprint));
   }
 
   updatePlanetProduction(planet, player);
@@ -1260,14 +1269,6 @@ export async function deleteBuildingBlueprint(userId, baseType, blueprintId) {
   if (index === -1) throw new Error('Blueprint not found');
 
   player.buildingBlueprints[baseType].splice(index, 1);
-
-  // Revert planets using this blueprint back to 'base'
-  for (const planet of player.planets) {
-    if (planet.activeVariants && planet.activeVariants[baseType] === blueprintId) {
-      planet.activeVariants[baseType] = 'base';
-      updatePlanetProduction(planet, player);
-    }
-  }
 
   await updatePlayer(userId, player);
   return { success: true };

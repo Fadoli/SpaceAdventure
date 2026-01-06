@@ -3388,4 +3388,37 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+/* Design Selector on Building Cards */
+.design-selector-container {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.design-selector-container label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+.design-selector-container select {
+    flex: 1;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.design-selector-container select:hover {
+    border-color: var(--accent-blue);
+}
+
+
 
