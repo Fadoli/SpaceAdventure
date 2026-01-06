@@ -23,6 +23,9 @@ import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
 import { SHIPS } from '../../shared/ships.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
+import { addResearchHistoryEntry, getResearchHistory } from './researchHistory.js';
+
+export { getResearchHistory };
 
 import { 
   getBuildQueueSize, 
@@ -195,8 +198,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   if (!player.practicalResearch[baseType]) {
     player.practicalResearch[baseType] = {
       experience: { output: 0, automation: 0, energy: 0, cost: 0 },
-      treeBonus: 1.0,
-      history: []
+      treeBonus: 1.0
     };
   }
 
@@ -215,7 +217,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
-  const time = calculatePracticalResearchTime(practicalResearchConfig, totalFocusLevel, planet.buildings.researchLab || 1, researchSpeedBonus, configMultiplier, strength);
+  const time = calculatePracticalResearchTime(practicalResearchConfig, totalFocusLevel, planet.buildings.researchLab || 1, researchSpeedBonus, configMultiplier, strength, allocation);
   
   let startTime, endTime;
   if (!player.practicalResearchQueue || player.practicalResearchQueue.length === 0) {
@@ -270,7 +272,6 @@ export function completePracticalResearch(player, queueItemId) {
 
   // Ensure data integrity
   if (!tree.experience) tree.experience = { output: 0, automation: 0, energy: 0, cost: 0 };
-  if (!tree.history) tree.history = [];
 
   const outcome = rollResearchOutcome();
   
@@ -302,8 +303,11 @@ export function completePracticalResearch(player, queueItemId) {
     allocation: item.allocation
   };
   
-  tree.history.unshift(logEntry);
-  if (tree.history.length > 10) tree.history.pop();
+  // Save to external history file
+  await addResearchHistoryEntry(player.userId, baseType, logEntry);
+
+  // Store only the last result in the player object to avoid bloating
+  tree.lastResult = logEntry;
 
   player.practicalResearchQueue.splice(index, 1);
   return logEntry;

@@ -485,24 +485,23 @@ describe('calculatePracticalResearchCost', () => {
 
 describe('calculatePracticalResearchTime', () => {
     const research = PRACTICAL_RESEARCH.metalMine; // baseTime 50
-  it('should scale slower than theoretical', () => {
-    // Linear: baseTime(50) * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
-    // strengthTimeMult(0.5) = sqrt(10^3.5) = 56.234...
-    const result1 = calculatePracticalResearchTime(research, 1);
-    const strMult = Math.sqrt(Math.pow(10, 3.5));
-    const expectedTime = Math.floor(50 * (1 + 1 * 0.2) * strMult * 0.85);
-    expect(result1).toBe(expectedTime);
+  it('should derive duration from actual cost', () => {
+    // Formula: calculateBaseTime(cost) * labMult
+    // Cost mult: level(1.3) * strength(10^3.5) * alloc(1.05)
+    const result1 = calculatePracticalResearchTime(research, 1, 1, 0, 1.0, 0.5, { output: 1.0 });
+    const strMult = Math.pow(10, 3.5);
+    const expectedTime = Math.floor(50 * 1.3 * strMult * 1.05 * 0.85);
+    expect(Math.abs(result1 - expectedTime)).toBeLessThanOrEqual(5);
   });
 
   it('should be affected by lab level', () => {
-    // Linear: baseTime(50) * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
-    // strengthTimeMult(0.5) = 56.234...
-    const result1 = calculatePracticalResearchTime(research, 2, 1);
-    const result2 = calculatePracticalResearchTime(research, 2, 5);
-    const strMult = Math.sqrt(Math.pow(10, 3.5));
+    // Linear level cost: (1 + 2*0.3) = 1.6
+    const strMult = Math.pow(10, 3.5);
+    const result1 = calculatePracticalResearchTime(research, 2, 1, 0, 1.0, 0.5, { output: 1.0 });
+    const result2 = calculatePracticalResearchTime(research, 2, 5, 0, 1.0, 0.5, { output: 1.0 });
     expect(result2).toBeLessThan(result1);
-    const expected = Math.floor(50 * (1 + 2 * 0.2) * strMult * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
-    expect(result2).toBe(expected);
+    const expected = Math.floor(50 * 1.6 * strMult * 1.05 * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
+    expect(Math.abs(result2 - expected)).toBeLessThanOrEqual(5);
   });
 });
 

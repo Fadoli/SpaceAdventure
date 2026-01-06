@@ -42,7 +42,8 @@ import {
   getPracticalResearchProgress,
   getActiveCustomVariants,
   getActiveShipCustomVariants,
-  getAvailablePracticalResearchForPlayer
+  getAvailablePracticalResearchForPlayer,
+  getResearchHistory
 } from './game/researchLogic.js';
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
@@ -1192,6 +1193,20 @@ async function handleRequest(req) {
           theoretical,
           practical
         });
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // GET /api/game/research/history/:baseType - Get research history
+    if (path.match(/^\/api\/game\/research\/history\/[^/]+$/) && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const baseType = path.split('/')[5];
+      try {
+        const history = await getResearchHistory(user.id, baseType);
+        return successResponse(req, history);
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }

@@ -27,7 +27,7 @@ describe('completePracticalResearch Fix', () => {
     expect(logEntry).toBeDefined();
     expect(player.practicalResearch['metalMine'].experience).toBeDefined();
     expect(player.practicalResearch['metalMine'].experience.output).toBeDefined();
-    expect(player.practicalResearch['metalMine'].history).toBeDefined();
-    expect(player.practicalResearch['metalMine'].history.length).toBe(1);
+    expect(player.practicalResearch['metalMine'].lastResult).toBeDefined();
+    expect(player.practicalResearch['metalMine'].lastResult.id).toBe(logEntry.id);
   });
 });

@@ -203,26 +203,24 @@ describe('Research Time Calculations', () => {
   });
 
   describe('Practical Research Time', () => {
-    it('should use linear level scaling', () => {
-      // Formula: baseTime * (1 + level*0.2) * strengthMult * labMult
-      // Strength 0.5 -> 10^3.5 actual -> sqrt(3162) = 56.234...
-      const level0 = calculatePracticalResearchTime(metalMineResearch, 0, 1);
-      const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
+    it('should scale with cost (level, strength, and allocation)', () => {
+      // Formula: calculateBaseTime(calculatePracticalResearchCost(...)) * labMult
+      const allocation = { output: 1.0 };
+      const strength = 0.5;
+      const strMult = Math.pow(10, 3.5);
       
-      const strMult = Math.sqrt(Math.pow(10, 3.5));
+      const level0 = calculatePracticalResearchTime(metalMineResearch, 0, 1, 0, 1.0, strength, allocation);
+      const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1, 0, 1.0, strength, allocation);
       
-      // Level 1: 50 * 1.2 * 56.23... * 0.85 = 2867
+      const expected1 = Math.floor(50 * 1.3 * strMult * 1.05 * 0.85);
+      expect(Math.abs(level1 - expected1)).toBeLessThanOrEqual(5);
       expect(level1).toBeGreaterThan(level0);
-      expect(level1).toBe(Math.floor(50 * 1.2 * strMult * 0.85));
     });
 
-    it('should be significantly faster than theoretical at high levels and default strength', () => {
-      // Theoretical: 500 * 1.5^10 = 28832x
-      // Practical: 50 * (1 + 2) * 56.23 = 8435x
-      const theoretical = calculateTheoreticalResearchTime(energyTech, 10, 3);
-      const practical = calculatePracticalResearchTime(metalMineResearch, 10, 3);
-      
-      expect(practical).toBeLessThan(theoretical);
+    it('should be capped by maxTime (7 days)', () => {
+      // Max strength 1.0 (1M mult)
+      const time = calculatePracticalResearchTime(metalMineResearch, 30, 1, 0, 1.0, 1.0, { output: 1 });
+      expect(time).toBe(604800);
     });
 
     it('should apply lab speedup', () => {

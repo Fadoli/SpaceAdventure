@@ -424,11 +424,10 @@ async function renderPracticalResearch() {
                             energy: Math.pow(tree.energy || 0, 2) * 100, 
                             cost: Math.pow(tree.cost || 0, 2) * 100 
                         }, 
-                        treeBonus: 1.0, 
-                        history: [] 
+                        treeBonus: 1.0
                     };
                 } else {
-                    tree = { experience: { output: 0, automation: 0, energy: 0, cost: 0 }, treeBonus: 1.0, history: [] };
+                    tree = { experience: { output: 0, automation: 0, energy: 0, cost: 0 }, treeBonus: 1.0 };
                 }
             }
             
@@ -447,8 +446,8 @@ async function renderPracticalResearch() {
             
             // Get last result status
             let lastResultHtml = '';
-            if (tree.history && tree.history.length > 0) {
-                const last = tree.history[0];
+            if (tree.lastResult) {
+                const last = tree.lastResult;
                 const color = last.type === 'breakthrough' ? 'var(--accent-green)' : (last.type === 'failure' ? 'var(--accent-red)' : 'var(--text-primary)');
                 lastResultHtml = `<div class="last-result" style="color: ${color}">Last run: ${last.type.toUpperCase()} (+${last.xpGain} XP)</div>`;
             }
@@ -614,7 +613,7 @@ window.updateAllocationSliders = function () {
         const canAfford = planet && planet.resources.metal >= cost.metal && planet.resources.crystal >= cost.crystal && planet.resources.deuterium >= (cost.deuterium || 0);
         document.getElementById('cost-breakdown').innerHTML = `⚙️${formatNumber(cost.metal)} 💎${formatNumber(cost.crystal)} 🛢️${formatNumber(cost.deuterium)}`;
 
-        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized);
+        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized, allocation);
         document.getElementById('time-estimate').textContent = formatTime(time * 1000);
         const btn = document.getElementById('start-research-btn');
         if (btn) { 
@@ -784,34 +783,46 @@ window.buildCustomVariant = async function (baseType, type) {
     } catch (e) { Notifications.showError(e.message); }
 };
 
-window.showResearchHistory = function (baseType) {
-    const tree = researchData?.practical?.[baseType];
-    if (!tree || !tree.history || tree.history.length === 0) {
-        Notifications.showInfo('No experiment history for this tree yet.');
-        return;
-    }
-
-    const headers = ['Result', 'XP Gain', 'Allocation', 'Date'];
-    const rows = tree.history.map(run => {
-        const date = new Date(run.timestamp).toLocaleTimeString();
-        const allocationStr = Object.entries(run.allocation)
-            .filter(([_, v]) => v > 0)
-            .map(([k, v]) => `${k.charAt(0).toUpperCase()}: ${(v * 100).toFixed(0)}%`)
-            .join(', ');
+window.showResearchHistory = async function (baseType) {
+    try {
+        const response = await fetch(`/api/game/research/history/${baseType}`);
+        const result = await response.json();
         
-        return [
-            `<span style="color: ${run.type === 'breakthrough' ? 'var(--accent-green)' : (run.type === 'failure' ? 'var(--accent-red)' : 'white')}">${run.type.toUpperCase()}</span>`,
-            `+${run.xpGain} XP`,
-            allocationStr,
-            date
-        ];
-    });
+        if (!result.success) {
+            Notifications.showError(result.error || 'Failed to load history');
+            return;
+        }
 
-    renderDetailsModal({
-        title: `🧪 Experiment History: ${baseType}`,
-        description: 'Review the outcomes of your previous research runs in this tree.',
-        table: { headers, rows }
-    });
+        const history = result.data || [];
+        if (history.length === 0) {
+            Notifications.showInfo('No experiment history for this tree yet.');
+            return;
+        }
+
+        const headers = ['Result', 'XP Gain', 'Allocation', 'Date'];
+        const rows = history.map(run => {
+            const date = new Date(run.timestamp).toLocaleTimeString();
+            const allocationStr = Object.entries(run.allocation)
+                .filter(([_, v]) => v > 0)
+                .map(([k, v]) => `${k.charAt(0).toUpperCase()}: ${(v * 100).toFixed(0)}%`)
+                .join(', ');
+            
+            return [
+                `<span style="color: ${run.type === 'breakthrough' ? 'var(--accent-green)' : (run.type === 'failure' ? 'var(--accent-red)' : 'white')}">${run.type.toUpperCase()}</span>`,
+                `+${run.xpGain} XP`,
+                allocationStr,
+                date
+            ];
+        });
+
+        renderDetailsModal({
+            title: `🧪 Experiment History: ${baseType}`,
+            description: 'Review the outcomes of your previous research runs in this tree.',
+            table: { headers, rows }
+        });
+    } catch (e) {
+        Notifications.showError('Failed to fetch history: ' + e.message);
+    }
 };
 
 export function updateResearchView(player, planetId = null) {

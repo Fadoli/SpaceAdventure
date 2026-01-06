@@ -6,20 +6,14 @@ import { dirname } from 'path';
 const DATA_DIR = './data';
 
 /**
- * Ensure data directory exists
- */
-async function ensureDataDir() {
-  if (!existsSync(DATA_DIR)) {
-    await mkdir(DATA_DIR, { recursive: true });
-  }
-}
-
-/**
  * Read JSON file with backup fallback
  */
 export async function readJsonFile(filename) {
-  await ensureDataDir();
   const filepath = `${DATA_DIR}/${filename}`;
+  const dir = dirname(filepath);
+  if (!existsSync(dir)) {
+    await mkdir(dir, { recursive: true });
+  }
   const backupPath = `${DATA_DIR}/${filename}.backup`;
   
   // Try reading main file first
@@ -64,8 +58,12 @@ export async function readJsonFile(filename) {
  * Write JSON file with atomic backup strategy
  */
 export async function writeJsonFile(filename, data) {
-  await ensureDataDir();
   const filepath = `${DATA_DIR}/${filename}`;
+  const dir = dirname(filepath);
+  if (!existsSync(dir)) {
+    await mkdir(dir, { recursive: true });
+  }
+  
   const backupPath = `${DATA_DIR}/${filename}.backup`;
   const tempPath = `${DATA_DIR}/${filename}.tmp`;
   
@@ -102,8 +100,6 @@ export async function writeJsonFile(filename, data) {
  * Initialize storage files with default data
  */
 export async function initializeStorage() {
-  await ensureDataDir();
-  
   // Initialize users.json if it doesn't exist
   const users = await readJsonFile('users.json');
   if (!users) {
