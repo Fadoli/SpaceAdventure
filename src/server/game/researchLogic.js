@@ -201,25 +201,11 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   }
 
   // Cost calculation
-  const baseCost = practicalResearchConfig.baseCost;
-  const costModifiers = { output: 1.05, automation: 1.12, energy: 1.08, cost: 0.88 };
-  let totalCostMultiplier = 0;
-  for (const focus in allocation) totalCostMultiplier += (costModifiers[focus] || 1) * allocation[focus];
-  
   const currentExp = player.practicalResearch[baseType].experience;
   let totalFocusLevel = 0;
   for (const focus in currentExp) totalFocusLevel += Math.floor(Math.sqrt(currentExp[focus] / 100));
   
-  const levelMultiplier = 1 + (totalFocusLevel * 0.3);
-  // Apply non-linear strength multiplier (0 = 0.5x, 0.5 = 1x, 1 = 5x)
-  const strengthMultiplier = 0.5 + (strength * strength * 4.5);
-  const finalCostMultiplier = totalCostMultiplier * levelMultiplier * strengthMultiplier;
-  
-  const cost = {
-    metal: Math.ceil(baseCost.metal * finalCostMultiplier),
-    crystal: Math.ceil(baseCost.crystal * finalCostMultiplier),
-    deuterium: Math.ceil(baseCost.deuterium * finalCostMultiplier)
-  };
+  const cost = calculatePracticalResearchCost(practicalResearchConfig.baseCost, totalFocusLevel, allocation, strength);
   
   for (const resource in cost) {
     if (planet.resources[resource] < cost[resource]) throw new Error(`Insufficient ${resource}`);
@@ -288,9 +274,9 @@ export function completePracticalResearch(player, queueItemId) {
 
   const outcome = rollResearchOutcome();
   
-  // Base XP gain scales with strength: 0 strength = 0.5x, 1 strength = 5x
-  const strengthMultiplier = 0.5 + (item.strength * item.strength * 4.5);
-  const baseGain = 100 * strengthMultiplier * 5; 
+  // Base XP gain scales linearly with actual strength (10 to 1M)
+  const actualStrength = Math.pow(10, 1 + item.strength * 5);
+  const baseGain = actualStrength * 10; 
   const totalXpGain = Math.floor(baseGain * outcome.multiplier * (tree.treeBonus || 1.0));
 
   const distribution = item.allocation || { output: 1.0 };

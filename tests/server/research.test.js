@@ -83,65 +83,79 @@ describe('Research Cost Calculations', () => {
   });
 
   describe('Practical Research Costs', () => {
-    it('should use slower 1.5x scaling', () => {
+    it('should use linear level scaling (1 + 0.3*level)', () => {
       const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
+      const allocation = { output: 1.0 }; // cost modifier 1.05
+      const strength = 0.5; // multiplier 10^(1+2.5) = 10^3.5 = 3162.277...
+      const strengthMult = Math.pow(10, 3.5);
       
-      const level0 = calculatePracticalResearchCost(baseCost, 0);
-      const level1 = calculatePracticalResearchCost(baseCost, 1);
-      const level2 = calculatePracticalResearchCost(baseCost, 2);
-      const level3 = calculatePracticalResearchCost(baseCost, 3);
-      
-      expect(level1.metal).toBe(Math.floor(baseCost.metal * 1.5));
-      expect(level2.metal).toBe(Math.floor(baseCost.metal * Math.pow(1.5, 2)));
-      expect(level3.metal).toBe(Math.floor(baseCost.metal * Math.pow(1.5, 3)));
+      // Level 0: 1.05 * 1.0 * 3162 = ~332k
+      const level0 = calculatePracticalResearchCost(baseCost, 0, allocation, strength);
+      const expected0 = Math.ceil(100 * 1.05 * 1.0 * strengthMult);
+      expect(level0.metal).toBe(expected0);
+
+      // Level 1: 1.05 * 1.3 * 3162 = ~431k
+      const level1 = calculatePracticalResearchCost(baseCost, 1, allocation, strength);
+      const expected1 = Math.ceil(100 * 1.05 * 1.3 * strengthMult);
+      expect(level1.metal).toBe(expected1);
     });
 
-    it('should scale at the same rate as theoretical at high levels', () => {
+    it('should scale significantly with strength', () => {
       const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
       
-      const theoreticalLevel5 = calculateTheoreticalResearchCost(baseCost, 5);
-      const practicalLevel5 = calculatePracticalResearchCost(baseCost, 5);
+      // Strength 0 (multiplier 10)
+      const lowStr = calculatePracticalResearchCost(baseCost, 0, { output: 1 }, 0);
       
-      expect(practicalLevel5.metal).toBe(theoreticalLevel5.metal);
-      expect(practicalLevel5.crystal).toBe(theoreticalLevel5.crystal);
+      // Strength 1 (multiplier 1,000,000)
+      const highStr = calculatePracticalResearchCost(baseCost, 0, { output: 1 }, 1);
+      
+      // Ratio should be 1,000,000 / 10 = 100,000x
+      expect(highStr.metal).toBeGreaterThan(lowStr.metal * 90000);
     });
 
-    it('should apply cost multiplier to all resources', () => {
+    it('should apply allocation cost modifiers', () => {
       const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
-      const level4 = calculatePracticalResearchCost(baseCost, 4);
       
-      const multiplier = Math.pow(1.5, 4);
-      expect(level4.metal).toBe(Math.floor(baseCost.metal * multiplier));
-      expect(level4.crystal).toBe(Math.floor(baseCost.crystal * multiplier));
-      expect(level4.deuterium).toBe(Math.floor(baseCost.deuterium * multiplier));
+      // Cost focus (0.88 multiplier)
+      const costFocus = calculatePracticalResearchCost(baseCost, 0, { cost: 1.0 });
+      
+      // Output focus (1.05 multiplier)
+      const outputFocus = calculatePracticalResearchCost(baseCost, 0, { output: 1.0 });
+      
+      expect(costFocus.metal).toBeLessThan(outputFocus.metal);
     });
   });
 
   describe('Cost Comparison', () => {
-    it('practical should be cheaper than theoretical at same level', () => {
+    it('practical should be cheaper than theoretical at high levels AND low strength', () => {
       const baseCost = { metal: 200, crystal: 100, deuterium: 50 };
+      const level = 10;
       
-      for (let level = 0; level <= 10; level++) {
-        const theoretical = calculateTheoreticalResearchCost(baseCost, level);
-        const practical = calculatePracticalResearchCost(baseCost, level);
-        
-        expect(practical.metal).toBeLessThanOrEqual(theoretical.metal);
-      }
+      const theoretical = calculateTheoreticalResearchCost(baseCost, level);
+      // Use strength 0 (10x multiplier)
+      const practical = calculatePracticalResearchCost(baseCost, level, { output: 1 }, 0.0);
+      
+      // Theoretical: 1.5^10 ~= 57x
+      // Practical: (1 + 3) * 10 * 1.05 ~= 42x
+      expect(practical.metal).toBeLessThan(theoretical.metal);
     });
 
-    it('both should increase consistently with level', () => {
+    it('both should increase with level', () => {
       const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
+      const allocation = { output: 1 };
       
       const theoretical = [
         calculateTheoreticalResearchCost(baseCost, 0),
-        calculateTheoreticalResearchCost(baseCost, 1),
-        calculateTheoreticalResearchCost(baseCost, 2),
-        calculateTheoreticalResearchCost(baseCost, 3)
+        calculateTheoreticalResearchCost(baseCost, 1)
       ];
       
-      for (let i = 1; i < theoretical.length; i++) {
-        expect(theoretical[i].metal).toBeGreaterThan(theoretical[i - 1].metal);
-      }
+      const practical = [
+        calculatePracticalResearchCost(baseCost, 0, allocation),
+        calculatePracticalResearchCost(baseCost, 1, allocation)
+      ];
+      
+      expect(theoretical[1].metal).toBeGreaterThan(theoretical[0].metal);
+      expect(practical[1].metal).toBeGreaterThan(practical[0].metal);
     });
   });
 });
@@ -189,22 +203,27 @@ describe('Research Time Calculations', () => {
   });
 
   describe('Practical Research Time', () => {
-    it('should use slower 1.5x scaling', () => {
-      // Linear formula: baseTime * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
-      // NEW strengthTimeMult(0.5) = 0.5 + (0.5^2 * 10) = 3.0
+    it('should use linear level scaling', () => {
+      // Formula: baseTime * (1 + level*0.2) * strengthMult * labMult
+      // Strength 0.5 -> 10^3.5 actual -> sqrt(3162) = 56.234...
       const level0 = calculatePracticalResearchTime(metalMineResearch, 0, 1);
       const level1 = calculatePracticalResearchTime(metalMineResearch, 1, 1);
-      const level2 = calculatePracticalResearchTime(metalMineResearch, 2, 1);
       
-      expect(level1).toBe(Math.floor(250 * (1 + 1 * 0.2) * 3.0 * 0.85));
-      expect(level2).toBe(Math.floor(250 * (1 + 2 * 0.2) * 3.0 * 0.85));
+      const strMult = Math.sqrt(Math.pow(10, 3.5));
+      
+      // Level 1: 250 * 1.2 * 56.23... * 0.85
+      expect(level1).toBeGreaterThan(level0);
+      expect(level1).toBe(Math.floor(250 * 1.2 * strMult * 0.85));
     });
 
-    it('should be significantly faster than theoretical', () => {
-      const theoretical = calculateTheoreticalResearchTime(energyTech, 5, 3);
-      const practical = calculatePracticalResearchTime(metalMineResearch, 5, 3);
+    it('should be significantly slower than theoretical at high levels and default strength', () => {
+      // Theoretical: 1.5^10 = 57x
+      // Practical: (1 + 2) * 56.23 = 168x
+      // Practical is now SLOWER at moderate strength
+      const theoretical = calculateTheoreticalResearchTime(energyTech, 10, 3);
+      const practical = calculatePracticalResearchTime(metalMineResearch, 10, 3);
       
-      expect(practical).toBeLessThan(theoretical);
+      expect(practical).toBeGreaterThan(theoretical);
     });
 
     it('should apply lab speedup', () => {

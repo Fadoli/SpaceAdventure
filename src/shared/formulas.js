@@ -260,12 +260,30 @@ export function calculateTheoreticalResearchTime(research, level, labLevel = 1, 
 
 /**
  * Calculate practical research (customization) cost at a given level
+ * Applies allocation modifiers, level scaling, and strength multiplier
  */
-export function calculatePracticalResearchCost(baseCost, level) {
+export function calculatePracticalResearchCost(baseCost, level, allocation = { output: 1.0 }, strength = 0.5) {
+  const costModifiers = { output: 1.05, automation: 1.12, energy: 1.08, cost: 0.88 };
+  
+  let totalCostMultiplier = 0;
+  // Ensure allocation sums to approx 1, but we just sum the weighted parts
+  for (const focus in allocation) {
+    totalCostMultiplier += (costModifiers[focus] || 1) * (allocation[focus] || 0);
+  }
+  if (totalCostMultiplier === 0) totalCostMultiplier = 1;
+
+  const levelMultiplier = 1 + (level * 0.3);
+  // Strength multiplier: Logarithmic scaling 10x to 1,000,000x
+  // strength is 0-1. logValue is 1-6.
+  const actualStrength = Math.pow(10, 1 + strength * 5);
+  const strengthMultiplier = actualStrength;
+  
+  const finalMultiplier = totalCostMultiplier * levelMultiplier * strengthMultiplier;
+  
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(SCALING.RESEARCH_COST, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.RESEARCH_COST, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.RESEARCH_COST, level))
+    metal: Math.ceil(baseCost.metal * finalMultiplier),
+    crystal: Math.ceil(baseCost.crystal * finalMultiplier),
+    deuterium: Math.ceil(baseCost.deuterium * finalMultiplier)
   };
 }
 
@@ -278,9 +296,10 @@ export function calculatePracticalResearchTime(research, level, labLevel = 1, re
   // Linear scaling for practical research: 20% more time per level
   const timeMultiplier = 1 + (level * 0.2);
   
-  // Non-linear strength time multiplier (0 = 0.5x, 0.5 = 1x, 1 = 10x)
-  // Maps 0-1 to 0.5 - 10.5 using quadratic scaling
-  const strengthTimeMultiplier = 0.5 + (strength * strength * 10);
+  // Non-linear strength time multiplier (Sqrt of actual strength)
+  // Maps 0-1 strength -> 10-1M actual -> 3.16x - 1000x time
+  const actualStrength = Math.pow(10, 1 + strength * 5);
+  const strengthTimeMultiplier = Math.sqrt(actualStrength);
   
   const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);

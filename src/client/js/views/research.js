@@ -550,7 +550,21 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
                   <p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">${focusHints[f]}</p>
                 </div>`).join('')}
               <div class="divider-line" style="margin: 10px 0; border-top: 1px solid rgba(255,255,255,0.1);"></div>
-              <div class="slider-group"><label>💪 STRENGTH</label><div class="slider-row"><input type="range" min="0" max="100" value="50" id="slider-strength" class="slider" oninput="updateAllocationSliders()"><span id="value-strength" class="value">50%</span></div><p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">High strength = more XP but higher cost/time</p></div>
+              <div class="slider-group"><label>💪 STRENGTH</label>
+                  <div class="slider-row">
+                      <input type="range" min="1" max="6" step="0.1" value="2" id="slider-strength" class="slider" oninput="updateAllocationSliders()" list="strength-markers">
+                      <datalist id="strength-markers">
+                        <option value="1" label="10"></option>
+                        <option value="2" label="100"></option>
+                        <option value="3" label="1k"></option>
+                        <option value="4" label="10k"></option>
+                        <option value="5" label="100k"></option>
+                        <option value="6" label="1M"></option>
+                      </datalist>
+                      <span id="value-strength" class="value">100</span>
+                  </div>
+                  <p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">High strength = more XP but higher cost/time (Logarithmic Scale)</p>
+              </div>
             </div>
             <div class="allocation-preview">
               <div class="preview-card" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px;">
@@ -570,36 +584,35 @@ window.closeAllocationModal = function () { const m = document.querySelector('.m
 
 window.updateAllocationSliders = function () {
     const vals = ['output', 'automation', 'energy', 'cost'].map(f => parseInt(document.getElementById(`slider-${f}`).value));
-    const str = parseInt(document.getElementById('slider-strength').value);
+    const sliderVal = parseFloat(document.getElementById('slider-strength').value);
+    const strLog = Math.pow(10, sliderVal);
+    
     ['output', 'automation', 'energy', 'cost'].forEach((f, i) => document.getElementById(`value-${f}`).textContent = vals[i] + '%');
-    document.getElementById('value-strength').textContent = str + '%';
+    document.getElementById('value-strength').textContent = formatNumber(strLog);
+    
     const total = vals.reduce((a, b) => a + b, 0);
     document.getElementById('total-percent').textContent = total + '%';
     if (window.currentResearch) {
         const res = window.currentResearch.research;
-        const wMult = (vals[0] * 1.05 + vals[1] * 1.12 + vals[2] * 1.08 + vals[3] * 0.88) / 100;
-        
-        // Strength multiplier: 0% = 0.5x, 50% = 1x, 100% = 5x (aligned with server)
-        const strNormalized = str / 100;
-        const sMult = 0.5 + (strNormalized * strNormalized * 4.5);
-        
-        const cMult = (1 + (wMult - 1) * 0.5) * sMult;
-        const cost = { metal: Math.ceil(res.baseCost.metal * cMult), crystal: Math.ceil(res.baseCost.crystal * cMult), deuterium: Math.ceil(res.baseCost.deuterium * cMult) };
-        const planet = getCurrentPlanet();
-        const canAfford = planet && planet.resources.metal >= cost.metal && planet.resources.crystal >= cost.crystal && planet.resources.deuterium >= (cost.deuterium || 0);
-        document.getElementById('cost-breakdown').innerHTML = `⚙️${formatNumber(cost.metal)} 💎${formatNumber(cost.crystal)} 🛢️${formatNumber(cost.deuterium)}`;
-        
-        // Sum current focus levels for time estimation
+        const strNormalized = (sliderVal - 1) / 5;
+
+        // Sum current focus levels
         let tree = researchData?.practical?.[window.currentResearch.baseType];
         let totalFocusLevel = 0;
         if (tree) {
             const exp = tree.experience || tree; // Handle new or old format
             for (const f in exp) {
                 const val = exp[f];
-                // If it's the new XP format (large number), calculate level; otherwise it's already a level
                 totalFocusLevel += val > 500 ? Math.floor(Math.sqrt(val / 100)) : val;
             }
         }
+        
+        const allocation = { output: vals[0]/100, automation: vals[1]/100, energy: vals[2]/100, cost: vals[3]/100 };
+        const cost = calculatePracticalResearchCost(res.baseCost, totalFocusLevel, allocation, strNormalized);
+
+        const planet = getCurrentPlanet();
+        const canAfford = planet && planet.resources.metal >= cost.metal && planet.resources.crystal >= cost.crystal && planet.resources.deuterium >= (cost.deuterium || 0);
+        document.getElementById('cost-breakdown').innerHTML = `⚙️${formatNumber(cost.metal)} 💎${formatNumber(cost.crystal)} 🛢️${formatNumber(cost.deuterium)}`;
 
         const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized);
         document.getElementById('time-estimate').textContent = formatTime(time * 1000);
@@ -613,7 +626,8 @@ window.updateAllocationSliders = function () {
 
 window.submitAllocationResearch = async function (researchKey, baseType) {
     const vals = ['output', 'automation', 'energy', 'cost'].map(f => parseInt(document.getElementById(`slider-${f}`).value) / 100);
-    const str = parseInt(document.getElementById('slider-strength').value) / 100;
+    const sliderVal = parseFloat(document.getElementById('slider-strength').value);
+    const str = (sliderVal - 1) / 5;
     try {
         const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ researchKey, allocation: { output: vals[0], automation: vals[1], energy: vals[2], cost: vals[3] }, strength: str }) });
         if (!response.ok) { Notifications.showError((await response.json()).message); return; }

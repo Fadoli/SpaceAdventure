@@ -465,31 +465,43 @@ describe('calculateTheoreticalResearchTime', () => {
 
 // ============ Practical Research Tests ============
 describe('calculatePracticalResearchCost', () => {
-  it(`should scale slower than theoretical (${SCALING.RESEARCH_COST}x per level)`, () => {
-    const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
-    const result1 = calculatePracticalResearchCost(baseCost, 1);
-    const result2 = calculatePracticalResearchCost(baseCost, 2);
+      it(`should scale linearly with level`, () => {
+        const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
+        // Level 1: 1.3 mult. 
+        // Strength 0.5: 10^3.5 = 3162.277... mult. 
+        // Allocation: 1.05 mult.
+        const strMult = Math.pow(10, 3.5);
+        const result1 = calculatePracticalResearchCost(baseCost, 1, { output: 1.0 }, 0.5);
     
-    expect(result1.metal).toBe(Math.floor(baseCost.metal * SCALING.RESEARCH_COST));
-    expect(result2.metal).toBe(Math.floor(baseCost.metal * Math.pow(SCALING.RESEARCH_COST, 2)));
-  });
-});
+        expect(result1.metal).toBe(Math.ceil(100 * 1.3 * strMult * 1.05));
+      });  
+    it('should scale with strength', () => {
+      const baseCost = { metal: 100, crystal: 50, deuterium: 25 };
+      const lowStr = calculatePracticalResearchCost(baseCost, 1, { output: 1 }, 0.1);
+      const highStr = calculatePracticalResearchCost(baseCost, 1, { output: 1 }, 0.9);
+      
+      expect(highStr.metal).toBeGreaterThan(lowStr.metal);
+    });});
 
 describe('calculatePracticalResearchTime', () => {
     const research = PRACTICAL_RESEARCH.metalMine; // baseTime 250
   it('should scale slower than theoretical', () => {
-    // Linear: baseTime(250) * (1 + level*0.2) * strengthTimeMult(0.5=3.0) * labMult(0.85^1)
+    // Linear: baseTime(250) * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
+    // strengthTimeMult(0.5) = sqrt(10^3.5) = 56.234...
     const result1 = calculatePracticalResearchTime(research, 1);
-    const expectedTime = Math.floor(250 * (1 + 1 * 0.2) * 3.0 * 0.85);
+    const strMult = Math.sqrt(Math.pow(10, 3.5));
+    const expectedTime = Math.floor(250 * (1 + 1 * 0.2) * strMult * 0.85);
     expect(result1).toBe(expectedTime);
   });
 
   it('should be affected by lab level', () => {
-    // Linear: baseTime(250) * (1 + level*0.2) * strengthTimeMult(0.5=3.0) * labMult(0.85^5)
+    // Linear: baseTime(250) * (1 + level*0.2) * strengthTimeMult(0.5) * labMult
+    // strengthTimeMult(0.5) = 56.234...
     const result1 = calculatePracticalResearchTime(research, 2, 1);
     const result2 = calculatePracticalResearchTime(research, 2, 5);
+    const strMult = Math.sqrt(Math.pow(10, 3.5));
     expect(result2).toBeLessThan(result1);
-    const expected = Math.floor(250 * (1 + 2 * 0.2) * 3.0 * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
+    const expected = Math.floor(250 * (1 + 2 * 0.2) * strMult * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
     expect(result2).toBe(expected);
   });
 });
