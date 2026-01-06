@@ -39,7 +39,8 @@ function calculateResearchStateHash(data) {
         theoreticalQueue: (data.progress?.theoretical || []).map(q => ({ id: q.id, techKey: q.techKey, level: q.level })),
         practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, strength: q.strength })),
         theoretical: data.theoretical,
-        practical: data.practical
+        practical: data.practical,
+        blueprints: data.blueprints
     };
     return JSON.stringify(state);
 }
@@ -452,6 +453,10 @@ async function renderPracticalResearch() {
                 lastResultHtml = `<div class="last-result" style="color: ${color}">Last run: ${last.type.toUpperCase()} (+${last.xpGain} XP)</div>`;
             }
 
+            const currentBlueprints = (researchData?.blueprints?.[res.baseType] || []).length;
+            const MAX_BLUEPRINTS = 5;
+            const canCreate = currentBlueprints < MAX_BLUEPRINTS;
+
             html += `
         <div class="research-card ${isDisabled ? 'locked' : ''}">
           <div class="card-header"><span class="icon">${res.icon}</span><span class="name">${res.name}</span></div>
@@ -480,10 +485,17 @@ async function renderPracticalResearch() {
             </div>
             
             ${lastResultHtml}
+            <div class="blueprint-count" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
+                Blueprints: ${currentBlueprints} / ${MAX_BLUEPRINTS}
+            </div>
           </div>
           <div class="card-footer">
             <button class="btn btn-secondary btn-small" onclick="window.showResearchHistory('${res.baseType}')">📋 History</button>
-            <button class="btn btn-success btn-small" onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">🔧 Create Variant</button>
+            <button class="btn btn-success btn-small" ${!canCreate ? 'disabled' : ''} 
+                    title="${!canCreate ? 'Max blueprints reached' : 'Create a new blueprint with current levels'}"
+                    onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">
+                🔧 ${!canCreate ? 'Limit Reached' : 'Create Variant'}
+            </button>
             <button class="btn btn-primary" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
               🔬 Run Experiment
             </button>
@@ -642,9 +654,10 @@ async function renderCustomVariants() {
         const { building, ships } = (await response.json()).data;
         let html = '<div class="variants-container">';
         
-        if (!isEmpty(building)) { 
+        const buildingTypes = Object.keys(building).filter(type => building[type].length > 0);
+        if (buildingTypes.length > 0) { 
             html += '<div class="variants-section"><h3>Buildings</h3>'; 
-            for (const baseType in building) {
+            for (const baseType of buildingTypes) {
                 const blueprints = building[baseType];
                 blueprints.forEach(bp => {
                     html += renderVariantCard(baseType, bp, 'building');
@@ -653,9 +666,10 @@ async function renderCustomVariants() {
             html += '</div>'; 
         }
         
-        if (!isEmpty(ships)) { 
+        const shipTypes = Object.keys(ships).filter(type => ships[type].length > 0);
+        if (shipTypes.length > 0) { 
             html += '<div class="variants-section"><h3>Ships</h3>'; 
-            for (const baseType in ships) {
+            for (const baseType of shipTypes) {
                 const blueprints = ships[baseType];
                 blueprints.forEach(bp => {
                     html += renderVariantCard(baseType, bp, 'ship');
@@ -664,22 +678,97 @@ async function renderCustomVariants() {
             html += '</div>'; 
         }
         
-        if (isEmpty(building) && isEmpty(ships)) html += '<p>No variants yet.</p>';
+        if (buildingTypes.length === 0 && shipTypes.length === 0) html += '<p>No variants yet.</p>';
         container.innerHTML = html + '</div>';
     } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }
 }
 
 function renderVariantCard(baseType, variant, type) {
-    const { focusLevels, modifiers } = variant;
-    let html = `<div class="variant-card"><h4>${baseType}</h4><div class="focus-breakdown">`;
-    for (const f in focusLevels) if (focusLevels[f] > 0) html += `<span class="focus-badge">+${focusLevels[f]} ${f}</span>`;
-    html += '</div><div class="modifiers-preview">';
-    if (modifiers) {
-        const mods = type === 'building' ? [{ key: 'productionMultiplier', label: 'Prod', isPos: true }, { key: 'costMultiplier', label: 'Cost', isPos: false }, { key: 'energyMultiplier', label: 'Energy', isPos: false }] : [{ key: 'speedMultiplier', label: 'Speed', isPos: true }, { key: 'attackMultiplier', label: 'Atk', isPos: true }];
-        mods.forEach(m => { const v = modifiers[m.key]; if (v && v !== 1) { const p = ((v - 1) * 100).toFixed(0); const good = (v > 1) === m.isPos; html += `<p style="color: ${good ? 'var(--accent-green)' : 'var(--accent-red)'}">${m.label}: ${v > 1 ? '+' : ''}${p}%</p>`; } });
+    const { id, name, focusLevels, modifiers } = variant;
+    
+    let focusesHtml = '';
+    for (const f in focusLevels) {
+        if (focusLevels[f] > 0) {
+            focusesHtml += `<span class="focus-badge focus-${f}" title="${f.toUpperCase()} level ${focusLevels[f]}">${f.charAt(0).toUpperCase()}${f.slice(1)}: ${focusLevels[f]}</span>`;
+        }
     }
-    return html + `<button class="btn btn-primary btn-small" onclick="buildCustomVariant('${baseType}', '${type}')">Activate</button></div></div>`;
+
+    let modifiersHtml = '';
+    if (modifiers) {
+        const modifierLabels = {
+            productionMultiplier: { label: 'Production', icon: '📈', isPos: true },
+            costMultiplier: { label: 'Build Cost', icon: '💰', isPos: false },
+            energyMultiplier: { label: 'Energy Cons.', icon: '⚡', isPos: false },
+            populationMultiplier: { label: 'Workforce', icon: '👥', isPos: false },
+            cargoMultiplier: { label: 'Cargo', icon: '📦', isPos: true },
+            cargoCapacityMultiplier: { label: 'Cargo', icon: '📦', isPos: true },
+            fuelMultiplier: { label: 'Fuel Cons.', icon: '🛢️', isPos: false },
+            speedMultiplier: { label: 'Speed', icon: '🚀', isPos: true },
+            attackMultiplier: { label: 'Attack', icon: '⚔️', isPos: true },
+            hullMultiplier: { label: 'Hull', icon: '🛡️', isPos: true },
+            shieldMultiplier: { label: 'Shield', icon: '🛡️', isPos: true },
+            crewRequirement: { label: 'Crew', icon: '🤖', isPos: false }
+        };
+
+        for (const modKey in modifiers) {
+            const val = modifiers[modKey];
+            if (val !== undefined && Math.abs(val - 1) > 0.001) {
+                const config = modifierLabels[modKey] || { label: modKey, icon: '❓', isPos: true };
+                const percent = ((val - 1) * 100).toFixed(1);
+                const isGood = (val > 1) === config.isPos;
+                modifiersHtml += `<div class="mod-row ${isGood ? 'pos' : 'neg'}">
+                    <span class="mod-icon">${config.icon}</span>
+                    <span class="mod-label">${config.label}:</span>
+                    <span class="mod-value">${val > 1 ? '+' : ''}${percent}%</span>
+                </div>`;
+            }
+        }
+    }
+
+    return `
+        <div class="variant-card-improved" id="variant-${id}">
+            <div class="variant-card-header">
+                <h4>${name || baseType}</h4>
+                <div class="variant-card-actions">
+                    <button class="btn-icon-delete" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete Blueprint">🗑️</button>
+                </div>
+            </div>
+            <div class="variant-card-body">
+                <div class="variant-focuses-list">${focusesHtml}</div>
+                <div class="variant-modifiers-list">
+                    ${modifiersHtml || '<div class="no-mods">No significant modifiers</div>'}
+                </div>
+            </div>
+            <div class="variant-card-footer">
+                <button class="btn btn-primary btn-small btn-full" onclick="window.buildCustomVariant('${baseType}', '${type}')">Activate on Planet</button>
+            </div>
+        </div>
+    `;
 }
+
+window.deleteVariant = async function(baseType, blueprintId, type) {
+    if (!(await showConfirm('Delete Blueprint', `Are you sure you want to delete this blueprint? Any planets using it will revert to the standard model.`))) return;
+    
+    try {
+        const endpoint = type === 'building' 
+            ? `/api/game/blueprints/${baseType}/${blueprintId}`
+            : `/api/game/research/ship-blueprint/${baseType}/${blueprintId}`;
+            
+        const response = await fetch(endpoint, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (!result.success) {
+            Notifications.showError(result.error || 'Failed to delete blueprint');
+            return;
+        }
+        
+        Notifications.showSuccess('Blueprint deleted');
+        await loadResearchData();
+        if (window.loadGameState) await window.loadGameState();
+    } catch (e) {
+        Notifications.showError('Error deleting blueprint: ' + e.message);
+    }
+};
 
 function formatTime(ms) {
     if (!ms || ms < 0) return '0s';

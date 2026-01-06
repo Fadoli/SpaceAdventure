@@ -1181,6 +1181,11 @@ export async function createBuildingBlueprint(userId, baseType, focusLevels, nam
   if (!player.buildingBlueprints) player.buildingBlueprints = {};
   if (!player.buildingBlueprints[baseType]) player.buildingBlueprints[baseType] = [];
 
+  const MAX_BLUEPRINTS = 5;
+  if (player.buildingBlueprints[baseType].length >= MAX_BLUEPRINTS) {
+    throw new Error(`Maximum limit of ${MAX_BLUEPRINTS} blueprints reached for ${baseType}.`);
+  }
+
   const practical = getPracticalResearch();
   let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'building');
   if (!researchConfig) throw new Error('No practical research available for ' + baseType);
@@ -1238,4 +1243,32 @@ export async function setActiveBlueprint(userId, planetId, baseType, blueprintId
   updatePlanetProduction(planet, player);
   await updatePlayer(userId, player);
   return { activeVariant: planet.activeVariants[baseType] };
+}
+
+/**
+ * Delete a building blueprint
+ */
+export async function deleteBuildingBlueprint(userId, baseType, blueprintId) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  if (!player.buildingBlueprints || !player.buildingBlueprints[baseType]) {
+    throw new Error('Blueprint not found');
+  }
+
+  const index = player.buildingBlueprints[baseType].findIndex(bp => bp.id === blueprintId);
+  if (index === -1) throw new Error('Blueprint not found');
+
+  player.buildingBlueprints[baseType].splice(index, 1);
+
+  // Revert planets using this blueprint back to 'base'
+  for (const planet of player.planets) {
+    if (planet.activeVariants && planet.activeVariants[baseType] === blueprintId) {
+      planet.activeVariants[baseType] = 'base';
+      updatePlanetProduction(planet, player);
+    }
+  }
+
+  await updatePlayer(userId, player);
+  return { success: true };
 }

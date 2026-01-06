@@ -710,9 +710,14 @@ function renderBlueprintList(container, buildingKey, blueprints, planet, onState
                         <h4>${bp.name}</h4>
                         <div class="blueprint-focuses">${focuses}</div>
                     </div>
-                    <button class="btn btn-primary" onclick="window.activateBlueprint('${buildingKey}', '${bp.id}')" ${isActive ? 'disabled' : ''}>
-                        ${isActive ? 'Currently Active' : 'Select'}
-                    </button>
+                    <div class="blueprint-actions" style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="window.activateBlueprint('${buildingKey}', '${bp.id}')" ${isActive ? 'disabled' : ''}>
+                            ${isActive ? 'Currently Active' : 'Select'}
+                        </button>
+                        <button class="btn btn-danger" onclick="window.deleteBlueprint('${buildingKey}', '${bp.id}')" title="Delete Blueprint">
+                            🗑️
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -721,6 +726,36 @@ function renderBlueprintList(container, buildingKey, blueprints, planet, onState
     html += '</div>';
     container.innerHTML = html;
 }
+
+window.deleteBlueprint = async function(baseType, blueprintId) {
+    if (!(await showConfirm('Delete Blueprint', `Are you sure you want to delete this blueprint? Any planets using it will revert to the standard model.`))) return;
+    
+    try {
+        const response = await fetch(`/api/game/blueprints/${baseType}/${blueprintId}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (!result.success) {
+            Notifications.showError(result.error || 'Failed to delete blueprint');
+            return;
+        }
+        
+        Notifications.showSuccess('Blueprint deleted');
+        
+        // Refresh the modal content
+        const planetId = getCurrentPlanetId();
+        const planet = currentGameState?.planets.find(p => p.id === planetId);
+        if (planet) {
+            showBlueprintSelectionModal(baseType, planet);
+        }
+        
+        // Also refresh global state if needed
+        if (window.loadGameState) await window.loadGameState();
+    } catch (error) {
+        Notifications.showError('Error deleting blueprint: ' + error.message);
+    }
+};
 
 window.activateBlueprint = async function(baseType, blueprintId) {
     const planetId = getCurrentPlanetId();

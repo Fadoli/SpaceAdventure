@@ -363,6 +363,11 @@ export async function createShipBlueprint(userId, baseType, focusLevels, name) {
   if (!player.shipBlueprints) player.shipBlueprints = {};
   if (!player.shipBlueprints[baseType]) player.shipBlueprints[baseType] = [];
 
+  const MAX_BLUEPRINTS = 5;
+  if (player.shipBlueprints[baseType].length >= MAX_BLUEPRINTS) {
+    throw new Error(`Maximum limit of ${MAX_BLUEPRINTS} blueprints reached for ${baseType}.`);
+  }
+
   const practical = getPracticalResearch();
   let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'ship');
   if (!researchConfig) throw new Error('No practical research available for ' + baseType);
@@ -392,4 +397,25 @@ export async function createShipBlueprint(userId, baseType, focusLevels, name) {
   player.shipBlueprints[baseType].push(blueprint);
   await updatePlayer(userId, player);
   return blueprint;
+}
+
+/**
+ * Delete a ship blueprint
+ */
+export async function deleteShipBlueprint(userId, baseType, blueprintId) {
+  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  if (!player.shipBlueprints || !player.shipBlueprints[baseType]) {
+    throw new Error('Blueprint not found');
+  }
+
+  const index = player.shipBlueprints[baseType].findIndex(bp => bp.id === blueprintId);
+  if (index === -1) throw new Error('Blueprint not found');
+
+  player.shipBlueprints[baseType].splice(index, 1);
+
+  await updatePlayer(userId, player);
+  return { success: true };
 }

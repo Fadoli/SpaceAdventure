@@ -3256,3 +3256,136 @@ body {
     color: var(--text-secondary);
 }
 
+/* Improved Variant Cards */
+.variants-container {
+    padding: 20px 0;
+}
+
+.variants-section {
+    margin-bottom: 40px;
+}
+
+.variants-section h3 {
+    color: var(--accent-yellow);
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.variant-card-improved {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.variant-card-improved:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.variant-card-header {
+    background: var(--bg-tertiary);
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.variant-card-header h4 {
+    margin: 0;
+    color: var(--accent-blue);
+    font-size: 1.1rem;
+}
+
+.variant-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon-delete {
+    background: transparent;
+    border: 1px solid rgba(217, 83, 79, 0.3);
+    color: var(--accent-red);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.btn-icon-delete:hover {
+    background: var(--accent-red);
+    color: white;
+    border-color: var(--accent-red);
+}
+
+.variant-card-body {
+    padding: 15px;
+    flex: 1;
+}
+
+.variant-focuses-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.variant-modifiers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 6px;
+}
+
+.mod-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.mod-row.pos {
+    color: var(--accent-green);
+}
+
+.mod-row.neg {
+    color: var(--accent-red);
+}
+
+.mod-icon {
+    font-size: 1rem;
+    min-width: 20px;
+}
+
+.mod-label {
+    color: var(--text-secondary);
+}
+
+.mod-value {
+    font-weight: bold;
+    margin-left: auto;
+}
+
+.no-mods {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.variant-card-footer {
+    padding: 12px 15px;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+}
+
+

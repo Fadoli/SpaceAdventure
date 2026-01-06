@@ -23,9 +23,10 @@ import {
   processCompletedVariantSwitches, 
   getEffectiveBuildingDefinition,
   createBuildingBlueprint,
-  setActiveBlueprint
+  setActiveBlueprint,
+  deleteBuildingBlueprint
 } from './game/buildings.js';
-import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails, createShipBlueprint } from './game/shipyard.js';
+import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails, createShipBlueprint, deleteShipBlueprint } from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
 import { 
@@ -1201,10 +1202,16 @@ async function handleRequest(req) {
           };
         }
 
+        const blueprints = {
+          ...(player.buildingBlueprints || {}),
+          ...(player.shipBlueprints || {})
+        };
+
         return successResponse(req, {
           progress,
           theoretical,
-          practical
+          practical,
+          blueprints
         });
       } catch (error) {
         return errorResponse(req, error.message, 400);
@@ -1431,6 +1438,23 @@ async function handleRequest(req) {
       return successResponse(req, blueprints);
     }
 
+    // DELETE /api/game/blueprints/:baseType/:blueprintId - Delete building blueprint
+    if (path.match(/^\/api\/game\/blueprints\/[^/]+\/[^/]+$/) && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const parts = path.split('/');
+      const baseType = parts[4];
+      const blueprintId = parts[5];
+
+      try {
+        const result = await deleteBuildingBlueprint(user.id, baseType, blueprintId);
+        return successResponse(req, result);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
     // POST /api/game/research/ship-blueprint - Create a new ship blueprint
     if (path === '/api/game/research/ship-blueprint' && method === 'POST') {
       const user = await requireAuth(req);
@@ -1442,6 +1466,23 @@ async function handleRequest(req) {
       try {
         const blueprint = await createShipBlueprint(user.id, baseType, focusLevels, name);
         return successResponse(req, blueprint);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // DELETE /api/game/research/ship-blueprint/:baseType/:blueprintId - Delete ship blueprint
+    if (path.match(/^\/api\/game\/research\/ship-blueprint\/[^/]+\/[^/]+$/) && method === 'DELETE') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const parts = path.split('/');
+      const baseType = parts[5];
+      const blueprintId = parts[6];
+
+      try {
+        const result = await deleteShipBlueprint(user.id, baseType, blueprintId);
+        return successResponse(req, result);
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }
