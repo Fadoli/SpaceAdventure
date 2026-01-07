@@ -40,7 +40,7 @@ describe('Player Management', () => {
     expect(player.research).toBeDefined();
   });
 
-  it('should assign unoccupied coordinates to new players', async () => {
+  it('should assign unique coordinates to new players', async () => {
     const p1 = await playerModule.createPlayer('u1', 'Player1');
     const p2 = await playerModule.createPlayer('u2', 'Player2');
     const p3 = await playerModule.createPlayer('u3', 'Player3');
@@ -53,10 +53,15 @@ describe('Player Management', () => {
     expect(c1).not.toBe(c3);
     expect(c2).not.toBe(c3);
     
-    // Check if they are systematic [1,1,1], [1,1,2], [1,1,3]
-    expect(p1.planets[0].coordinates).toEqual([1, 1, 1]);
-    expect(p2.planets[0].coordinates).toEqual([1, 1, 2]);
-    expect(p3.planets[0].coordinates).toEqual([1, 1, 3]);
+    // Coordinates should be within valid ranges [1-10, 1-499, 4-12]
+    p1.planets[0].coordinates.forEach((val, i) => {
+        if (i === 0) expect(val).toBeGreaterThanOrEqual(1);
+        if (i === 0) expect(val).toBeLessThanOrEqual(10);
+        if (i === 1) expect(val).toBeGreaterThanOrEqual(1);
+        if (i === 1) expect(val).toBeLessThanOrEqual(499);
+        if (i === 2) expect(val).toBeGreaterThanOrEqual(4);
+        if (i === 2) expect(val).toBeLessThanOrEqual(12);
+    });
   });
 
   it('should not create duplicate players for same userId', async () => {

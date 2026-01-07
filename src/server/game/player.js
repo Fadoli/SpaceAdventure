@@ -50,33 +50,57 @@ export async function getPlayerByUserId(userId) {
 }
 
 /**
- * Find the first available planet slot [G, S, P]
+ * Find a suitable available planet slot [G, S, P] for a new player.
+ * Implements randomization and population bias: 
+ * - Avoids first 50 and last 50 systems if possible.
+ * - Randomizes selection rather than sequential filling.
  */
 async function findAvailablePlanetSlot() {
   const players = await getPlayers();
   const occupied = new Set();
   
-  // Collect all occupied coordinates
   players.forEach(p => {
     p.planets.forEach(pl => {
       occupied.add(pl.coordinates.join(':'));
     });
   });
+
+  // Galaxy: 1-10
+  // System: 1-499
+  // Position: 1-15 (Home worlds usually 4-12, but we allow 1-15)
+
+  const maxAttempts = 1000;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const g = Math.floor(Math.random() * 10) + 1;
+    
+    // Bias: 80% chance to pick from middle systems (51-449)
+    let s;
+    if (Math.random() < 0.8) {
+      s = Math.floor(Math.random() * 399) + 51;
+    } else {
+      s = Math.floor(Math.random() * 499) + 1;
+    }
+
+    // Homeworlds are usually not on the extremes
+    const p = Math.floor(Math.random() * 9) + 4; // 4 to 12
+    
+    const coords = [g, s, p];
+    if (!occupied.has(coords.join(':'))) {
+      return coords;
+    }
+  }
   
-  // Systematic search for first free slot
-  // Max Galaxy: 10, Max System: 499, Max Position: 15
+  // Fallback to systematic search if randomization fails
   for (let g = 1; g <= 10; g++) {
-    for (let s = 1; s <= 499; s++) {
-      for (let p = 1; p <= 15; p++) {
+    for (let s = 51; s <= 449; s++) { // Prefer middle
+      for (let p = 4; p <= 12; p++) {
         const coords = [g, s, p];
-        if (!occupied.has(coords.join(':'))) {
-          return coords;
-        }
+        if (!occupied.has(coords.join(':'))) return coords;
       }
     }
   }
   
-  throw new Error('No available planet slots found in the universe');
+  throw new Error('No available planet slots found in preferred sectors');
 }
 
 /**
