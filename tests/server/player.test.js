@@ -40,6 +40,25 @@ describe('Player Management', () => {
     expect(player.research).toBeDefined();
   });
 
+  it('should assign unoccupied coordinates to new players', async () => {
+    const p1 = await playerModule.createPlayer('u1', 'Player1');
+    const p2 = await playerModule.createPlayer('u2', 'Player2');
+    const p3 = await playerModule.createPlayer('u3', 'Player3');
+    
+    const c1 = p1.planets[0].coordinates.join(':');
+    const c2 = p2.planets[0].coordinates.join(':');
+    const c3 = p3.planets[0].coordinates.join(':');
+    
+    expect(c1).not.toBe(c2);
+    expect(c1).not.toBe(c3);
+    expect(c2).not.toBe(c3);
+    
+    // Check if they are systematic [1,1,1], [1,1,2], [1,1,3]
+    expect(p1.planets[0].coordinates).toEqual([1, 1, 1]);
+    expect(p2.planets[0].coordinates).toEqual([1, 1, 2]);
+    expect(p3.planets[0].coordinates).toEqual([1, 1, 3]);
+  });
+
   it('should not create duplicate players for same userId', async () => {
     const p1 = await playerModule.createPlayer('user123', 'TestUser');
     const p2 = await playerModule.createPlayer('user123', 'TestUser');

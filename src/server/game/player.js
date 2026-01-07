@@ -50,6 +50,36 @@ export async function getPlayerByUserId(userId) {
 }
 
 /**
+ * Find the first available planet slot [G, S, P]
+ */
+async function findAvailablePlanetSlot() {
+  const players = await getPlayers();
+  const occupied = new Set();
+  
+  // Collect all occupied coordinates
+  players.forEach(p => {
+    p.planets.forEach(pl => {
+      occupied.add(pl.coordinates.join(':'));
+    });
+  });
+  
+  // Systematic search for first free slot
+  // Max Galaxy: 10, Max System: 499, Max Position: 15
+  for (let g = 1; g <= 10; g++) {
+    for (let s = 1; s <= 499; s++) {
+      for (let p = 1; p <= 15; p++) {
+        const coords = [g, s, p];
+        if (!occupied.has(coords.join(':'))) {
+          return coords;
+        }
+      }
+    }
+  }
+  
+  throw new Error('No available planet slots found in the universe');
+}
+
+/**
  * Create new player for a user
  */
 export async function createPlayer(userId, username) {
@@ -61,12 +91,15 @@ export async function createPlayer(userId, username) {
     return existing;
   }
   
+  // Find an empty planet slot
+  const startingCoords = await findAvailablePlanetSlot();
+  
   // Create starting planet
   const planetId = generateId();
   const planet = {
     id: planetId,
     name: 'Homeworld',
-    coordinates: [1, 1, Math.floor(Math.random() * 15) + 1], // Random position in galaxy 1, system 1
+    coordinates: startingCoords,
     resources: { ...STARTING_RESOURCES },
     buildings: { ...STARTING_BUILDINGS },
     production: {
