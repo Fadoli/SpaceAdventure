@@ -272,6 +272,21 @@ window.sendExpeditionFromGalaxy = async function() {
     }
     
     shipsHtml += '</div>';
+
+    // Add duration selector
+    shipsHtml += `
+        <div class="expedition-duration-selector" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold; color: var(--accent-yellow);">⌚ Exploration Duration:</label>
+            <select id="exp-stay-time" class="modal-input" style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; border-radius: 4px;">
+                <option value="1" selected>1 Hour (Normal chance)</option>
+                <option value="2">2 Hours (Increased chance of finding things)</option>
+                <option value="4">4 Hours (High chance of finding things)</option>
+                <option value="8">8 Hours (Very high chance, but higher risk)</option>
+            </select>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">Longer duration increases the likelihood of a major discovery, but increases exposure to deep space hazards.</p>
+        </div>
+    `;
+
     shipsHtml += `
         <div class="modal-footer" style="margin-top: 20px;">
             <button class="btn btn-secondary" onclick="window.closeDetailsModal()">Cancel</button>
@@ -287,6 +302,7 @@ window.sendExpeditionFromGalaxy = async function() {
     window.submitExpedition = async function() {
         const shipsToSend = {};
         let totalShips = 0;
+        const stayTime = parseInt(document.getElementById('exp-stay-time').value) || 1;
         
         document.querySelectorAll('.exp-qty-input').forEach(input => {
             const qty = parseInt(input.value) || 0;
@@ -310,7 +326,8 @@ window.sendExpeditionFromGalaxy = async function() {
                     missionType: 'expedition',
                     targetCoords: coords,
                     ships: shipsToSend,
-                    originPlanetId: planetId
+                    originPlanetId: planetId,
+                    stayTime: stayTime
                 })
             });
 

@@ -26,7 +26,7 @@ export function calculateDistance(coord1, coord2) {
 /**
  * Start a new mission
  */
-export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}) {
+export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0) {
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
 
@@ -69,7 +69,8 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     targetCoords: [...targetCoords],
     startTime: Date.now(),
     arrivalTime: Date.now() + (travelTime * 1000),
-    returning: false
+    returning: false,
+    stayTime: stayTime // Store requested stay duration
   };
 
   // Deduct ships from planet
@@ -131,7 +132,7 @@ export async function processFleets(player, allPlayers) {
           if (fleet.missionType === MISSION_TYPES.EXPEDITION) {
             fleet.waiting = true;
             fleet.startTime = now;
-            const stayTime = 60 * 60 * 1000; // 1 hour stay
+            const stayTime = (fleet.stayTime || 1) * 60 * 60 * 1000; // Use stored hours or default to 1h
             fleet.arrivalTime = now + stayTime;
           } else {
             const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);

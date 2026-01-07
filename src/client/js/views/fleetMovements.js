@@ -150,12 +150,14 @@ export function updateFleetMovements(gameState) {
         
         if (isReturning) {
             missionClass += ' mission-return';
-            missionName = `${missionName} (R)`;
+            missionName = `${missionName} (Returning)`;
         } else if (fleet.waiting) {
             missionClass += ' mission-stay';
-            missionName = `${missionName} (S)`;
+            missionName = `${missionName} (Exploring)`;
+        } else if (fleet.missionType === 'expedition') {
+            missionName = `${missionName} (Traveling)`;
         }
-        
+
         const originCoords = `[${fleet.originCoords.join(':')}]`;
         const targetCoords = `[${fleet.targetCoords.join(':')}]`;
         const startTime = formatTime(fleet.startTime);
@@ -172,9 +174,28 @@ export function updateFleetMovements(gameState) {
             .map(([type, amount]) => `${type}: ${amount}`)
             .join('<br>') : '';
             
+        // Calculate estimated final return time for traveling/exploring expeditions
+        let timelineHtml = '';
+        if (fleet.missionType === 'expedition' && !isReturning) {
+            const travelDuration = (fleet.arrivalTime - fleet.startTime); // Approximate
+            let finalReturn;
+            if (fleet.waiting) {
+                // Already exploring, final return = now + remaining explore + travel
+                finalReturn = formatTime(fleet.arrivalTime + travelDuration);
+            } else {
+                // Still traveling, final return = now + travel to + stay + travel back
+                const stayMs = (fleet.stayTime || 1) * 60 * 60 * 1000;
+                finalReturn = formatTime(fleet.arrivalTime + stayMs + travelDuration);
+            }
+            timelineHtml = `<br><br><strong>Estimated Timeline:</strong><br>
+                • Arrives at Target: ${arrivalTime}<br>
+                • Return Arrival: ${finalReturn}`;
+        }
+
         const tooltipContent = `
             <strong>Ships:</strong><br>${shipList}
             ${resourceList ? `<br><br><strong>Resources:</strong><br>${resourceList}` : ''}
+            ${timelineHtml}
         `;
         
         html += `
