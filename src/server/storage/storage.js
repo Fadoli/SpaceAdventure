@@ -2,6 +2,7 @@
 import { existsSync } from 'fs';
 import { readFile, writeFile, mkdir, rename } from 'fs/promises';
 import { dirname } from 'path';
+import { AI_TYPES } from '../../shared/constants.js';
 
 const DATA_DIR = './data';
 
@@ -119,6 +120,12 @@ export async function initializeStorage() {
   const ai = await readJsonFile('ai.json');
   if (!ai) {
     await writeJsonFile('ai.json', { aiPlayers: [] });
+    
+    // Auto-spawn some AI for initial life in the galaxy
+    const { createAiPlayer } = await import('../game/aiManager.js');
+    await createAiPlayer('Nova Bot', AI_TYPES.BALANCED);
+    await createAiPlayer('Nebula AI', AI_TYPES.BALANCED);
+    console.log('Spawned initial AI bots');
   }
   
   console.log('Storage initialized');

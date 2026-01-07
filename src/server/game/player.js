@@ -80,6 +80,7 @@ export async function getPlayerByUserId(userId) {
     if (!player.customShipVariants) player.customShipVariants = {};
     if (!player.buildingBlueprints) player.buildingBlueprints = {};
     if (!player.shipBlueprints) player.shipBlueprints = {};
+    if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
   }
   
   return player;
@@ -138,13 +139,31 @@ export async function createPlayer(userId, username) {
     practicalResearchQueue: [],
     customBuildingVariants: {},
     customShipVariants: {},
-    fleets: []
+    fleets: [],
+    statistics: {
+      totalResourcesSpent: 0
+    }
   };
   
   await updatePlayer(userId, player);
   await registerPlayer(userId, username, planet.coordinates);
   
   return player;
+}
+
+/**
+ * Track spent resources for ranking
+ */
+export function trackSpentResources(player, cost) {
+  if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
+  
+  const metal = cost.metal || 0;
+  const crystal = cost.crystal || 0;
+  const deuterium = cost.deuterium || 0;
+  const food = cost.food || 0;
+  const water = cost.water || 0;
+  
+  player.statistics.totalResourcesSpent += (metal + crystal + deuterium + food + water);
 }
 
 /**

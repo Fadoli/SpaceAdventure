@@ -7,6 +7,8 @@ import { processFleets } from './fleet.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
 import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
+import { getAllAiPlayers } from './aiManager.js';
+import { processAiPlayer } from './aiLogic.js';
 
 let gameLoopInterval = null;
 let lastSaveTime = 0;
@@ -136,6 +138,13 @@ async function gameTick() {
       if (fleetsUpdated) {
         updated = true;
       }
+    }
+
+    // Process AI turns
+    const aiPlayers = await getAllAiPlayers();
+    for (const ai of aiPlayers) {
+      const aiUpdated = await processAiPlayer(ai);
+      if (aiUpdated) updated = true;
     }
     
     // Save if anything changed and enough time has passed

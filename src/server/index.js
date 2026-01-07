@@ -28,6 +28,8 @@ import {
 } from './game/buildings.js';
 import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails, createShipBlueprint, deleteShipBlueprint } from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
+import { getAiMetadata, createAiPlayer } from './game/aiManager.js';
+import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
 import { 
   startTheoreticalResearch, 
@@ -64,6 +66,15 @@ await loadConfig();
 
 // Initialize storage on startup
 await initializeStorage();
+
+// Auto-spawn AI if none exist
+const aiMetadata = await getAiMetadata();
+if (!aiMetadata.aiPlayers || aiMetadata.aiPlayers.length === 0) {
+  await createAiPlayer('Nova Bot', AI_TYPES.BALANCED);
+  await createAiPlayer('Nebula AI', AI_TYPES.BALANCED);
+  await createAiPlayer('Void AI', AI_TYPES.BALANCED);
+  console.log('Spawned initial AI bots');
+}
 
 // Recompute all planets on startup (in-memory, no persistence)
 await recomputeAllPlanetsOnStartup();
