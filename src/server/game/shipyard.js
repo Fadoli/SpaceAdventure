@@ -327,6 +327,7 @@ export function getShipyardDetails(planet, player = null) {
   }
 
   return {
+    planetId: planet.id,
     shipyardLevel,
     roboticsLevel,
     naniteLevel,

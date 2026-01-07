@@ -296,6 +296,9 @@ function updateCurrentView() {
         case 'shipyard':
             updateShipyardView(planet);
             break;
+        case 'defenses':
+            updateShipyardView(planet, 'defenses');
+            break;
         case 'fleet':
             updateFleetView(gameState);
             break;

@@ -221,11 +221,11 @@ async function handleRequest(req) {
       if (await file.exists()) {
         // Determine content type based on file extension
         let contentType = 'text/html; charset=utf-8';
-        let cacheTime = 3600; // 1 hour for most files
+        let cacheTime = 5; // 5 seconds for most files (dev)
         
         if (filePath.endsWith('.js')) {
           contentType = 'application/javascript; charset=utf-8';
-          cacheTime = 3600; // 1 hour for JS
+          cacheTime = 5; // 5 seconds for JS (dev)
         } else if (filePath.endsWith('.css')) {
           contentType = 'text/css; charset=utf-8';
           cacheTime = 86400; // 1 day for CSS

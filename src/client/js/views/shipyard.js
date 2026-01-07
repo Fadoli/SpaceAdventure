@@ -10,77 +10,109 @@ import { Notifications } from '../notifications.js';
 
 let currentShipyardData = null;
 let collapsedSections = {}; // Track collapsed state
-let lastShipyardStateHash = null;
+let lastStructuralHash = null;
+
+/**
+ * Calculate structural hash (planet, subview, levels)
+ */
+function calculateStructuralHash(shipyardData, planet, subView) {
+    return JSON.stringify({
+        planetId: planet.id,
+        subView,
+        shipyardLevel: shipyardData.shipyardLevel,
+        roboticsLevel: shipyardData.roboticsLevel,
+        naniteLevel: shipyardData.naniteLevel
+    });
+}
+
+/**
+ * Calculate content hash (ships counts and queue structure)
+ */
+function calculateContentHash(shipyardData) {
+    const queue = [...(shipyardData.shipQueue || []), ...(shipyardData.defenseQueue || [])].map(q => ({
+        id: q.id,
+        ships: q.ships,
+        defenses: q.defenses,
+        pos: q.queuePosition
+    }));
+    
+    return JSON.stringify({
+        ships: shipyardData.ships,
+        queue: queue
+    });
+}
 
 /**
  * Calculate a hash of the shipyard state to detect changes
  */
-function calculateShipyardStateHash(shipyardData, planet) {
-    const state = {
-        planetId: planet.id,
-        ships: shipyardData.ships,
-        queue: shipyardData.queue,
-        shipyardLevel: shipyardData.shipyardLevel,
-        roboticsLevel: shipyardData.roboticsLevel,
-        naniteLevel: shipyardData.naniteLevel
-    };
-    return JSON.stringify(state);
+function calculateShipyardStateHash(shipyardData, planet, subView) {
+    // Legacy hash for backward compatibility if needed, 
+    // but we will primarily use the specific ones below
+    return calculateStructuralHash(shipyardData, planet, subView) + calculateContentHash(shipyardData);
 }
+
+let lastContentHash = null;
 
 /**
  * Update shipyard view with planet data
  */
-export async function updateShipyardView(planet) {
+export async function updateShipyardView(planet, subView = 'ships') {
     try {
         const shipyardData = await API.getShipyardDetails(planet.id);
-        
-        // Check if state has changed
-        const currentHash = calculateShipyardStateHash(shipyardData, planet);
-        if (currentHash === lastShipyardStateHash) {
-            // State hasn't changed, skip re-render
-            return;
-        }
-        lastShipyardStateHash = currentHash;
-        
         currentShipyardData = shipyardData;
-        
-        const container = document.getElementById('shipyard-view');
-        
-        // Shipyard header
-        const shipyardLevel = shipyardData.shipyardLevel || 0;
-        const shipyardHeader = `
-            <div class="shipyard-header">
-                <h3>⚙️ Shipyard Level ${shipyardLevel}</h3>
-                ${shipyardLevel < 12 ? `
-                    <p>Upgrade to Level ${shipyardLevel + 1} to improve production speed and unlock ships</p>
-                ` : '<p>Maximum level reached</p>'}
-            </div>
-        `;
-        
-        // Ships section
-        const shipsHtml = renderShipsList(planet, shipyardData);
-        
-        // Defenses section
-        const defensesHtml = renderDefensesList(planet, shipyardData);
-        
-        // Queue section
-        const queueHtml = renderBuildQueue(shipyardData);
-        
-        container.innerHTML = `
-            ${shipyardHeader}
-            <div class="shipyard-content">
-                ${shipsHtml}
-                ${defensesHtml}
-                ${queueHtml}
-            </div>
-        `;
-        
-        // Add event listeners
-        attachShipyardListeners(planet, shipyardData);
+
+        const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        // 1. Initialize structural layout if needed
+        const structuralHash = calculateStructuralHash(shipyardData, planet, subView);
+        if (structuralHash !== lastStructuralHash || !container.querySelector('.shipyard-content')) {
+            const shipyardLevel = shipyardData.shipyardLevel || 0;
+            const isDefenses = subView === 'defenses';
+            
+            container.innerHTML = `
+                <div class="shipyard-header">
+                    <h3>⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardLevel}</h3>
+                </div>
+                <div class="shipyard-content">
+                    <div class="shipyard-queue-container"></div>
+                    <div class="shipyard-list-container"></div>
+                </div>
+            `;
+            lastStructuralHash = structuralHash;
+            lastContentHash = null; // Force content update on structural change
+        }
+
+        const shipyardContent = container.querySelector('.shipyard-content');
+        const queueContainer = shipyardContent.querySelector('.shipyard-queue-container');
+        const listContainer = shipyardContent.querySelector('.shipyard-list-container');
+
+        // 2. Update Content (Queue and Lists)
+        const contentHash = calculateContentHash(shipyardData);
+        if (contentHash !== lastContentHash) {
+            // Update Queue (ALWAYS ON TOP)
+            queueContainer.innerHTML = renderBuildQueue(shipyardData);
+            
+            // Update Ships/Defenses list
+            // Note: We only update the list if the counts or availability change.
+            // This is where user input is preserved.
+            const isDefenses = subView === 'defenses';
+            listContainer.innerHTML = isDefenses 
+                ? renderDefensesList(planet, shipyardData)
+                : renderShipsList(planet, shipyardData);
+            
+            lastContentHash = contentHash;
+            
+            // Re-attach listeners after content update
+            attachShipyardListeners(planet, shipyardData);
+        }
         
     } catch (error) {
         console.error('Failed to load shipyard details:', error);
-        document.getElementById('shipyard-view').innerHTML = `<p class="error">Failed to load shipyard: ${error.message}</p>`;
+        const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
+        const el = document.getElementById(containerId);
+        if (el) el.innerHTML = `<p class="error">Failed to load shipyard: ${error.message}</p>`;
     }
 }
 
@@ -104,8 +136,7 @@ function renderShipsList(planet, shipyardData) {
         }
     }
     
-    let html = '<div class="shipyard-section">';
-    html += '<h3>🛰️ Ships</h3>';
+    let html = '<div class="ship-categories-container">';
     
     for (const category in shipCategories) {
         const data = shipCategories[category];
@@ -183,10 +214,10 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
             ${isLocked ? `
                 <div class="locked-message">🔒 Unlock at Shipyard Level ${shipyardLevel}</div>
             ` : `
-                <input type="number" class="ship-quantity" id="qty-${identifier}" value="1" min="1" max="100">
+                <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="Quantity" min="1" max="100">
                 <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
                         ${!canBuild ? 'disabled' : ''} 
-                        onclick="window.buildShip('${identifier}')">
+                        onclick="window.buildShip('${identifier}', '${name}')">
                     Build
                 </button>
             `}
@@ -264,10 +295,10 @@ function renderDefensesList(planet, shipyardData) {
                     ${isLocked ? `
                         <div class="locked-message">🔒 Unlock at Shipyard Level ${minLevel}</div>
                     ` : `
-                        <input type="number" class="defense-quantity" id="qty-${defenseKey}" value="1" min="1" max="100">
+                        <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="Quantity" min="1" max="100">
                         <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
                                 ${!canBuild ? 'disabled' : ''} 
-                                onclick="window.buildDefense('${defenseKey}')">
+                                onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
                             Build
                         </button>
                     `}
@@ -333,9 +364,12 @@ function renderBuildQueue(shipyardData) {
                         <span class="q-pos">${item.queuePosition}.</span>
                         <span class="q-name">${itemDetails}</span>
                         <div class="progress-bar-mini">
-                            <div class="progress-fill" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
+                            <div class="progress-fill" id="build-progress-${item.queuePosition}" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
                         </div>
-                        <span class="q-time-mini">${isActive ? formatCountdown(timeRemaining) : 'Waiting'}</span>
+                        <span class="q-time-mini ${isActive ? 'timer' : ''}" 
+                              data-finish="${item.finishTime}" 
+                              data-start="${item.startTime}" 
+                              data-queue-pos="${item.queuePosition}">${isActive ? formatCountdown(timeRemaining) : 'Waiting'}</span>
                         <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>
                     </div>
                 </div>
@@ -353,35 +387,43 @@ function renderBuildQueue(shipyardData) {
  * Attach event listeners
  */
 function attachShipyardListeners(planet, shipyardData) {
-    window.buildShip = async function(shipKey) {
+    window.buildShip = async function(shipKey, shipName) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
-        const qty = parseInt(document.getElementById(`qty-${shipKey}`).value) || 1;
+        const input = document.getElementById(`qty-${shipKey}`);
+        const qty = parseInt(input.value) || 0;
         
+        if (qty <= 0) return;
+
         try {
             const response = await API.buildShips(planetId, { [shipKey]: qty });
-            console.log('Ship build queued:', response);
+            Notifications.showSuccess(`${qty}x ${shipName} added to build queue`);
+            input.value = ''; // Clear field
             
             // Refresh shipyard view
             const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
-            updateShipyardView(activePlanet);
+            updateShipyardView(activePlanet, 'ships');
         } catch (error) {
             Notifications.showError(`Failed to build ship: ${error.message}`);
         }
     };
     
-    window.buildDefense = async function(defenseKey) {
+    window.buildDefense = async function(defenseKey, defenseName) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
-        const qty = parseInt(document.getElementById(`qty-${defenseKey}`).value) || 1;
+        const input = document.getElementById(`qty-${defenseKey}`);
+        const qty = parseInt(input.value) || 0;
         
+        if (qty <= 0) return;
+
         try {
             const response = await API.buildDefenses(planetId, { [defenseKey]: qty });
-            console.log('Defense build queued:', response);
+            Notifications.showSuccess(`${qty}x ${defenseName} added to build queue`);
+            input.value = ''; // Clear field
             
             // Refresh shipyard view
             const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
-            updateShipyardView(activePlanet);
+            updateShipyardView(activePlanet, 'defenses');
         } catch (error) {
             Notifications.showError(`Failed to build defense: ${error.message}`);
         }
@@ -396,11 +438,11 @@ function attachShipyardListeners(planet, shipyardData) {
 
         try {
             const response = await API.cancelShipyardProduction(planetId, queueId);
-            console.log('Build cancelled:', response);
             
             // Refresh shipyard view
             const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
-            updateShipyardView(activePlanet);
+            const currentSubView = document.getElementById('defenses-view')?.classList.contains('active') ? 'defenses' : 'ships';
+            updateShipyardView(activePlanet, currentSubView);
         } catch (error) {
             Notifications.showError(`Failed to cancel build: ${error.message}`);
         }
@@ -408,7 +450,9 @@ function attachShipyardListeners(planet, shipyardData) {
     
     window.toggleCategory = function(categoryId) {
         collapsedSections[categoryId] = !collapsedSections[categoryId];
-        updateShipyardView(planet);
+        lastContentHash = null; // Force content re-render
+        const subView = categoryId.startsWith('ships') ? 'ships' : 'defenses';
+        updateShipyardView(planet, subView);
     };
 }
 
