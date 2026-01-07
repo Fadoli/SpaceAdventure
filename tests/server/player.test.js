@@ -1,18 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 
+let mockStorage = {};
+export const _resetStorage = () => { mockStorage = {}; };
+
 // Mock dependencies BEFORE importing the module under test
 mock.module('../../src/server/storage/storage.js', () => {
-  // Simple in-memory storage for tests
-  let storage = {};
   return {
     readJsonFile: async (filename) => {
-      return storage[filename] || null;
+      return mockStorage[filename] || null;
     },
     writeJsonFile: async (filename, data) => {
-      storage[filename] = data;
+      mockStorage[filename] = data;
       return true;
-    },
-    _reset: () => { storage = {}; } // Helper for tests
+    }
+  };
+});
+
+let mockGalaxy = { debrisFields: {}, playerRegistry: {} };
+
+// Mock galaxyData
+mock.module('../../src/server/game/galaxyData.js', () => {
+  return {
+    getGalaxyData: async () => mockGalaxy,
+    saveGalaxyData: async (data) => { mockGalaxy = data; return true; },
+    registerPlayer: async (userId, username, homeworld) => {
+      mockGalaxy.playerRegistry[userId] = { username, homeworld };
+    }
   };
 });
 
@@ -20,12 +33,11 @@ mock.module('../../src/server/storage/storage.js', () => {
 import * as playerModule from '../../src/server/game/player.js';
 
 describe('Player Management', () => {
-  // We need to reset the internal cache of playerModule. 
-  // Since we can't access it directly, we can use savePlayers to reset it.
   
   beforeEach(async () => {
-    // Reset internal cache to empty array
-    await playerModule.savePlayers([]);
+    // Reset internal cache/mocks
+    _resetStorage();
+    mockGalaxy = { debrisFields: {}, playerRegistry: {} };
   });
 
   it('should create a new player with default values', async () => {
@@ -68,7 +80,9 @@ describe('Player Management', () => {
     const p1 = await playerModule.createPlayer('user123', 'TestUser');
     const p2 = await playerModule.createPlayer('user123', 'TestUser');
     
-    expect(p1).toBe(p2); // Should be same reference or at least same ID
+    // In the new system, it loads from file, so they might not be same reference
+    // but should have same ID
+    expect(p1.userId).toBe(p2.userId); 
     
     const players = await playerModule.getPlayers();
     expect(players.length).toBe(1);
@@ -85,7 +99,7 @@ describe('Player Management', () => {
     expect(p2.username).toBe('UserTwo');
     
     const p3 = await playerModule.getPlayerByUserId('unknown');
-    expect(p3).toBeUndefined();
+    expect(p3).toBeNull();
   });
 
   it('should update player data', async () => {

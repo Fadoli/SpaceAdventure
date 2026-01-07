@@ -3,13 +3,11 @@ import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 
-const HISTORY_DIR = 'research_history';
-
 /**
  * Get history for a player
  */
 export async function getPlayerResearchHistory(userId) {
-  const filename = `${HISTORY_DIR}/${userId}.json`;
+  const filename = `players/${userId}/research_history.json`;
   const data = await readJsonFile(filename);
   return data || {};
 }
@@ -34,12 +32,12 @@ export async function addResearchHistoryEntry(userId, baseType, entry) {
   
   history[baseType].unshift(entry);
   
-  // Cap at 50 entries for each type (more than before to make use of external file)
+  // Cap at 50 entries for each type
   if (history[baseType].length > 50) {
     history[baseType].pop();
   }
   
-  const filename = `${HISTORY_DIR}/${userId}.json`;
+  const filename = `players/${userId}/research_history.json`;
   await writeJsonFile(filename, history);
   return history[baseType];
 }

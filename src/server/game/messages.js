@@ -5,7 +5,7 @@ import { generateId } from '../../shared/utils.js';
  * Get the filename for a user's messages
  */
 function getMessagesFilename(userId) {
-  return `messages_${userId}.json`;
+  return `players/${userId}/messages.json`;
 }
 
 /**

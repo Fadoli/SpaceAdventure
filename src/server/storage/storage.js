@@ -106,10 +106,13 @@ export async function initializeStorage() {
     await writeJsonFile('users.json', { users: [] });
   }
   
-  // Initialize players.json if it doesn't exist
-  const players = await readJsonFile('players.json');
-  if (!players) {
-    await writeJsonFile('players.json', { players: [] });
+  // Initialize galaxy.json if it doesn't exist
+  const galaxy = await readJsonFile('galaxy.json');
+  if (!galaxy) {
+    await writeJsonFile('galaxy.json', { 
+      debrisFields: {}, 
+      playerRegistry: {} 
+    });
   }
   
   // Initialize ai.json if it doesn't exist
