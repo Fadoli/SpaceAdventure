@@ -21,7 +21,7 @@ import {
   calculateFoodConsumption
 } from '../../shared/formulas.js';
 import { CONFIG, BUILDING_SPEED_MULTIPLIER, SCALING } from '../../shared/constants.js';
-import { getPlayerByUserId, updatePlayer } from './player.js';
+import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.js';
 import { 
   getBuildQueueSize, 
   getResourceProductionMultiplier,
@@ -216,6 +216,9 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   planet.resources.metal -= cost.metal;
   planet.resources.crystal -= cost.crystal;
   planet.resources.deuterium -= cost.deuterium;
+  
+  // Track spending for ranking
+  trackSpentResources(player, cost);
   
   // Add to build queue
   if (!planet.buildQueue) {

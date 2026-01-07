@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings } from './game/player.js';
 import { 
   upgradeBuilding, 
   cancelBuilding, 
@@ -1195,6 +1195,19 @@ async function handleRequest(req) {
     // ============================================
     // RESEARCH ROUTES
     // ============================================
+
+    // GET /api/game/rankings - Get player rankings
+    if (path === '/api/game/rankings' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      try {
+        const rankings = await getRankings();
+        return successResponse(req, rankings);
+      } catch (error) {
+        return errorResponse(req, error.message, 500);
+      }
+    }
 
     // GET /api/game/research - Get all research info
     if (path === '/api/game/research' && method === 'GET') {

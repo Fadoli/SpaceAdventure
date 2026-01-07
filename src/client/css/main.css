@@ -2521,6 +2521,53 @@ body {
     color: black;
 }
 
+/* Ranking Table */
+.ranking-wrapper {
+    margin-top: 20px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ranking-table th {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    text-align: left;
+    font-weight: bold;
+    color: var(--accent-blue);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.ranking-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ranking-table tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.rank-col { width: 80px; text-align: center !important; font-weight: bold; }
+.player-col { font-weight: bold; color: var(--text-primary); }
+.planets-col { width: 100px; text-align: center !important; }
+.score-col { text-align: right !important; color: var(--accent-yellow); font-family: monospace; font-size: 1.1rem; }
+
+.current-player-row {
+    background: rgba(74, 144, 226, 0.15) !important;
+}
+
+.current-player-row td {
+    border-top: 1px solid var(--accent-blue);
+    border-bottom: 1px solid var(--accent-blue);
+}
+
+
 
 /* Tooltip (Fixed/Global) */
 .fleet-tooltip-fixed {

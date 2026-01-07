@@ -217,6 +217,29 @@ export async function renamePlanet(userId, planetId, newName) {
 }
 
 /**
+ * Get player rankings based on total resources spent
+ */
+export async function getRankings() {
+  const players = await getPlayers();
+  
+  const rankings = players.map(p => ({
+    userId: p.userId,
+    username: p.username,
+    totalSpent: p.statistics?.totalResourcesSpent || 0,
+    planets: p.planets.length
+  }));
+  
+  // Sort by total spent descending
+  rankings.sort((a, b) => b.totalSpent - a.totalSpent);
+  
+  // Add rank position
+  return rankings.map((r, index) => ({
+    rank: index + 1,
+    ...r
+  }));
+}
+
+/**
  * Recompute all planets on startup
  */
 export async function recomputeAllPlanetsOnStartup() {

@@ -98,8 +98,12 @@ export const API = {
     async getBuildingDetails(planetId) {
         return await this.request(`/game/planet/${planetId}/buildings-details`);
     },
-    
-    async getShipyardDetails(planetId) {
+
+    async getRankings() {
+        return await this.request('/game/rankings');
+    },
+
+    async getTheoreticalResearch(planetId) {
         return await this.request(`/game/planet/${planetId}/shipyard`);
     },
     

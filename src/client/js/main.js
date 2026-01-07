@@ -13,6 +13,7 @@ import {
 import { updateResearchView, initializeResearch, updateResearchTimers } from './views/research.js';
 import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
+import { updateRankingView } from './views/ranking.js';
 import { updateGalaxyView } from './views/galaxy.js';
 import { updateMessagesView } from './views/messages.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
@@ -200,6 +201,8 @@ function switchView(view, updateHistory = true) {
             initializeResearch(planet);
         } else if (view === 'messages') {
             updateMessagesView();
+        } else if (view === 'ranking') {
+            updateRankingView();
         } else {
             updateCurrentView();
         }
@@ -308,6 +311,9 @@ function updateCurrentView() {
             break;
         case 'messages':
             updateMessagesView();
+            break;
+        case 'ranking':
+            updateRankingView();
             break;
         case 'allocation':
             // Don't re-render allocation view during auto-updates to preserve user input

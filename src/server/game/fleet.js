@@ -3,7 +3,7 @@ import { generateId } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
-import { getPlayerByUserId, updatePlayer } from './player.js';
+import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
 
@@ -87,6 +87,13 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
   for (const shipKey in ships) {
     originPlanet.ships[shipKey] -= ships[shipKey];
   }
+
+  // Track spending for ranking
+  trackSpentResources(player, {
+    deuterium: fuelCost,
+    food: survivalNeeds.food,
+    water: survivalNeeds.water
+  });
 
   // Add to player's active fleets
   if (!player.fleets) player.fleets = [];
