@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
-import { calculateDistance, sendFleet, processFleets } from '../../src/server/game/fleet.js';
+import { sendFleet, processFleets } from '../../src/server/game/fleet.js';
+import { calculateDistance } from '../../src/shared/formulas.js';
 import { MISSION_TYPES } from '../../src/shared/constants.js';
 import { savePlayers } from '../../src/server/game/player.js';
 
@@ -14,7 +15,7 @@ const mockPlayer = {
       name: 'Origin',
       coordinates: [1, 1, 1],
       ships: { lightFighter: 10, colonyShip: 1, espionageProbe: 5 },
-      resources: { metal: 0, crystal: 0, deuterium: 0 },
+      resources: { metal: 10000, crystal: 10000, deuterium: 10000, food: 10000, water: 10000, population: 1000 },
       buildings: {},
       production: {},
       storage: {},
@@ -145,12 +146,9 @@ describe('Fleet Management', () => {
       await processFleets(mockPlayer, [mockPlayer]);
       
       expect(mockPlayer.fleets.length).toBe(0);
-      // Ships should be back (10 original - 5 sent + 5 returned = 10)
-      // But wait, in beforeEach we reset to 10. If we manually added fleet without deducting, it's 10 + 5 = 15.
-      // Let's adjust expectation based on mock setup:
-      // Planet ships: 10. Fleet ships: 5. Return -> 15.
+      // Ships should be back: 10 original + 5 from fleet = 15
       expect(mockPlayer.planets[0].ships.lightFighter).toBe(15);
-      expect(mockPlayer.planets[0].resources.metal).toBe(100);
+      expect(mockPlayer.planets[0].resources.metal).toBe(10100);
     });
 
     it('should process fleet arrival and turn back (Attack)', async () => {

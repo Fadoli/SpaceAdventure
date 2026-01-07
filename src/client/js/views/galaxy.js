@@ -3,6 +3,9 @@ import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { showConfirm, showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
+import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds } from '../../../shared/ships.js';
+import { calculateDistance } from '../../../shared/formulas.js';
+import { SCALING } from '../../../shared/constants.js';
 
 let currentGalaxy = 1;
 let currentSystem = 1;
@@ -264,7 +267,7 @@ window.sendExpeditionFromGalaxy = async function() {
                     </div>
                     <div class="ship-input">
                         <input type="number" class="exp-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
-                        <button class="btn-max" onclick="this.previousElementSibling.value=${count}">MAX</button>
+                        <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateExpeditionCosts();">MAX</button>
                     </div>
                 </div>
             `;
@@ -284,6 +287,9 @@ window.sendExpeditionFromGalaxy = async function() {
                 <option value="8">8 Hours (Very high chance, but higher risk)</option>
             </select>
             <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">Longer duration increases the likelihood of a major discovery, but increases exposure to deep space hazards.</p>
+        </div>
+        <div id="exp-cost-estimate" style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid var(--border-color);">
+            <!-- Costs will be rendered here -->
         </div>
     `;
 
@@ -343,8 +349,65 @@ window.sendExpeditionFromGalaxy = async function() {
             Notifications.showError(`Error: ${error.message}`);
         }
     };
-};
 
+    // Add cost estimation logic
+    window.updateExpeditionCosts = function() {
+        const stayTime = parseInt(document.getElementById('exp-stay-time').value) || 1;
+        let totalCrew = 0;
+        const shipsToSend = {};
+        
+        document.querySelectorAll('.exp-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                const shipKey = input.dataset.ship;
+                shipsToSend[shipKey] = qty;
+                const ship = SHIPS[shipKey];
+                if (ship) {
+                    totalCrew += (ship.populationRequired || 0) * qty;
+                } else {
+                    console.warn('Ship definition not found for key:', shipKey);
+                }
+            }
+        });
+
+        // Calculate actual distance
+        const originPlanet = window.getCurrentPlanet();
+        const targetCoords = [window.currentGalaxy, window.currentSystem, 16];
+        const distance = originPlanet ? calculateDistance(originPlanet.coordinates, targetCoords) : 0;
+        
+        // Calculate fuel cost
+        const fuelCost = calculateFleetFuelCost(shipsToSend, distance);
+
+        // Estimate survival needs (Travel both ways + stay time)
+        // Simplified travel time estimate: 300s each way if origin planet not fully known for speed
+        const travelTimeSeconds = 300; 
+        const totalDurationSeconds = (travelTimeSeconds * 2) + (stayTime * 3600);
+        const survivalNeeds = calculateFleetSurvivalNeeds(totalCrew, totalDurationSeconds);
+
+        const costDisplay = document.getElementById('exp-cost-estimate');
+        if (costDisplay) {
+            costDisplay.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
+                    <div>👥 Crew: <strong>${totalCrew}</strong></div>
+                    <div>🛢️ Deut: <strong>${formatNumber(fuelCost)}</strong></div>
+                    <div>🍞 Food: <strong>${formatNumber(survivalNeeds.food)}</strong></div>
+                    <div>💦 Water: <strong>${formatNumber(survivalNeeds.water)}</strong></div>
+                </div>
+            `;
+        }
+    };
+
+    // Attach listeners to inputs
+    document.querySelectorAll('.exp-qty-input, #exp-stay-time').forEach(el => {
+        el.addEventListener('input', window.updateExpeditionCosts);
+    });
+    
+    // Initial call
+    if (!SHIPS) {
+        console.error('SHIPS constant is not loaded in galaxy.js');
+    }
+    window.updateExpeditionCosts();
+};
 window.spyOnPlanetFromGalaxy = async function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
     const probeCountStr = await showPrompt('Send Espionage Probes', `How many probes to send to ${coords.join(':')}?`, '1');

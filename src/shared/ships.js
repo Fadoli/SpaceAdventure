@@ -1,6 +1,6 @@
 // Ship definitions and stats
 
-import { BUILDING_SPEED_MULTIPLIER, CONFIG } from './constants.js';
+import { BUILDING_SPEED_MULTIPLIER, CONFIG, SCALING } from './constants.js';
 import { calculateBaseTime } from './time.js';
 import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
 
@@ -22,7 +22,8 @@ export const SHIPS = {
     speed: 5000, // Units per hour
     attack: 5,
     shield: 10,
-    hull: 400
+    hull: 400,
+    populationRequired: 2
   },
 
   largeCargo: {
@@ -41,7 +42,8 @@ export const SHIPS = {
     speed: 4000, // Units per hour
     attack: 5,
     shield: 20,
-    hull: 1200
+    hull: 1200,
+    populationRequired: 5
   },
 
   colonyShip: {
@@ -60,7 +62,8 @@ export const SHIPS = {
     speed: 2500, // Units per hour
     attack: 50,
     shield: 100,
-    hull: 3000
+    hull: 3000,
+    populationRequired: 100 // Large crew for colonization
   },
 
   recycler: {
@@ -79,7 +82,8 @@ export const SHIPS = {
     speed: 2000, // Units per hour
     attack: 1,
     shield: 10,
-    hull: 1600
+    hull: 1600,
+    populationRequired: 15
   },
 
   espionageProbe: {
@@ -98,7 +102,8 @@ export const SHIPS = {
     speed: 100000000, // Crazy fast!
     attack: 0,
     shield: 1,
-    hull: 10
+    hull: 10,
+    populationRequired: 0 // Unmanned
   },
 
   // Military Ships - Fighters
@@ -118,7 +123,8 @@ export const SHIPS = {
     speed: 7500, // Units per hour
     attack: 50,
     shield: 10,
-    hull: 400
+    hull: 400,
+    populationRequired: 1
   },
 
   heavyFighter: {
@@ -137,7 +143,8 @@ export const SHIPS = {
     speed: 6000, // Units per hour
     attack: 150,
     shield: 25,
-    hull: 1000
+    hull: 1000,
+    populationRequired: 1
   },
 
   // Medium Ships
@@ -157,7 +164,8 @@ export const SHIPS = {
     speed: 4000, // Units per hour
     attack: 400,
     shield: 50,
-    hull: 2700
+    hull: 2700,
+    populationRequired: 15
   },
 
   bomber: {
@@ -176,7 +184,8 @@ export const SHIPS = {
     speed: 3000, // Units per hour
     attack: 1000,
     shield: 25,
-    hull: 7500
+    hull: 7500,
+    populationRequired: 20
   },
 
   // Heavy Ships
@@ -196,7 +205,8 @@ export const SHIPS = {
     speed: 2000, // Units per hour
     attack: 1000,
     shield: 200,
-    hull: 6000
+    hull: 6000,
+    populationRequired: 60
   },
 
   destroyer: {
@@ -215,7 +225,8 @@ export const SHIPS = {
     speed: 3500, // Units per hour
     attack: 2000,
     shield: 500,
-    hull: 11000
+    hull: 11000,
+    populationRequired: 120
   }
 };
 
@@ -359,6 +370,39 @@ export function calculateCargoCapacity(ships) {
   }
 
   return totalCapacity;
+}
+
+/**
+ * Calculate total crew required for a fleet
+ */
+export function calculateFleetCrew(ships) {
+  let totalCrew = 0;
+  for (const shipKey in ships) {
+    const count = ships[shipKey];
+    const ship = getShip(shipKey);
+    if (ship && ship.populationRequired) {
+      totalCrew += ship.populationRequired * count;
+    }
+  }
+  return totalCrew;
+}
+
+/**
+ * Calculate food and water needed for a fleet based on crew and travel time
+ * Formula: crew * timeInHours * consumptionRate
+ */
+export function calculateFleetSurvivalNeeds(crew, travelTimeInSeconds) {
+  const hours = travelTimeInSeconds / 3600;
+  const foodRate = CONFIG.FOOD_CONSUMPTION_PER_POPULATION || 0.1;
+  const waterRate = 0.2; // Standard water consumption
+  
+  const foodFactor = SCALING.MISSION_FOOD_COST_FACTOR || 1.0;
+  const waterFactor = SCALING.MISSION_WATER_COST_FACTOR || 1.0;
+  
+  return {
+    food: Math.ceil(crew * hours * foodRate * foodFactor),
+    water: Math.ceil(crew * hours * waterRate * waterFactor)
+  };
 }
 
 /**

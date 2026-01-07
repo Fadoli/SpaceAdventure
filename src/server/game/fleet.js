@@ -1,27 +1,11 @@
 // Fleet and Mission management logic
 import { generateId } from '../../shared/utils.js';
-import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS } from '../../shared/constants.js';
-import { calculateShipSpeed } from '../../shared/ships.js';
-import { calculateTravelTime } from '../../shared/formulas.js';
+import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
+import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds } from '../../shared/ships.js';
+import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
-
-/**
- * Calculate distance between two sets of coordinates [G, S, P]
- */
-export function calculateDistance(coord1, coord2) {
-  if (coord1[0] !== coord2[0]) {
-    return Math.abs(coord1[0] - coord2[0]) * 20000;
-  }
-  if (coord1[1] !== coord2[1]) {
-    return Math.abs(coord1[1] - coord2[1]) * 95 + 2700;
-  }
-  if (coord1[2] !== coord2[2]) {
-    return Math.abs(coord1[2] - coord2[2]) * 5 + 1000;
-  }
-  return 5; // Same planet
-}
 
 /**
  * Start a new mission
@@ -57,6 +41,20 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
   const fleetSpeedMultiplier = getFleetSpeedMultiplier();
   const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
   
+  // Calculate mission costs
+  const fuelCost = calculateFleetFuelCost(ships, distance);
+  const crewCount = calculateFleetCrew(ships);
+  
+  // Total mission duration (travel both ways + stay time for expeditions)
+  const totalDuration = (travelTime * 2) + (missionType === MISSION_TYPES.EXPEDITION ? (stayTime || 1) * 3600 : 0);
+  const survivalNeeds = calculateFleetSurvivalNeeds(crewCount, totalDuration);
+
+  // Check origin planet resources
+  if (originPlanet.resources.deuterium < fuelCost) throw new Error(`Insufficient Deuterium (Need ${fuelCost})`);
+  if (originPlanet.resources.food < survivalNeeds.food) throw new Error(`Insufficient Food (Need ${survivalNeeds.food})`);
+  if (originPlanet.resources.water < survivalNeeds.water) throw new Error(`Insufficient Water (Need ${survivalNeeds.water})`);
+  if ((originPlanet.resources.population || 0) < crewCount) throw new Error(`Insufficient Population (Need ${crewCount})`);
+
   // Create fleet object
   const fleet = {
     id: generateId(),
@@ -65,6 +63,12 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     missionType,
     ships: { ...ships },
     resources: { ...resources },
+    costs: {
+      deuterium: fuelCost,
+      food: survivalNeeds.food,
+      water: survivalNeeds.water,
+      crew: crewCount // Total crew sent
+    },
     originCoords: [...originPlanet.coordinates],
     targetCoords: [...targetCoords],
     startTime: Date.now(),
@@ -72,6 +76,12 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     returning: false,
     stayTime: stayTime // Store requested stay duration
   };
+
+  // Deduct resources from planet
+  originPlanet.resources.deuterium -= fuelCost;
+  originPlanet.resources.food -= survivalNeeds.food;
+  originPlanet.resources.water -= survivalNeeds.water;
+  originPlanet.resources.population -= crewCount;
 
   // Deduct ships from planet
   for (const shipKey in ships) {
@@ -173,6 +183,11 @@ async function handleFleetReturn(player, fleet) {
     // Add resources back
     for (const res in fleet.resources) {
       planet.resources[res] += fleet.resources[res];
+    }
+    // Return surviving crew to population
+    if (fleet.costs && fleet.costs.crew) {
+      const currentCrew = calculateFleetCrew(fleet.ships);
+      planet.resources.population = (planet.resources.population || 0) + currentCrew;
     }
   }
 }

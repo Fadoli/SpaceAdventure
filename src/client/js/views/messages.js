@@ -82,6 +82,12 @@ function renderMessageData(msg) {
             return renderEspionageData(msg.data);
         case 'colonization':
             return `<div class="msg-data-info">Coordinates: [${msg.data.coords.join(':')}]</div>`;
+        case 'expedition':
+            let resHtml = '';
+            if (msg.data.resultType === 'resources') {
+                resHtml = `<p>Surviving crew has rejoined the planetary population.</p>`;
+            }
+            return `<div class="msg-data-info">Location: Deep Space [${msg.data.coords.join(':')}]<br>${resHtml}</div>`;
         default:
             return '';
     }

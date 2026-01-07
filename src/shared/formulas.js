@@ -68,6 +68,22 @@ export function calculateStorage(baseStorage, level) {
 }
 
 /**
+ * Calculate distance between two sets of coordinates [G, S, P]
+ */
+export function calculateDistance(coord1, coord2) {
+  if (coord1[0] !== coord2[0]) {
+    return Math.abs(coord1[0] - coord2[0]) * 20000;
+  }
+  if (coord1[1] !== coord2[1]) {
+    return Math.abs(coord1[1] - coord2[1]) * 95 + 2700;
+  }
+  if (coord1[2] !== coord2[2]) {
+    return Math.abs(coord1[2] - coord2[2]) * 5 + 1000;
+  }
+  return 5; // Same planet
+}
+
+/**
  * Calculate fleet fuel consumption
  */
 export function calculateFuelConsumption(distance, ships) {

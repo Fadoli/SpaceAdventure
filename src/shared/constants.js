@@ -134,7 +134,9 @@ export const SCALING = {
   BUILDING_POPULATION: 1.12,
   BUILDING_HOUSING: 1.15,
   RESEARCH_COST: 1.5,
-  RESEARCH_TIME: 1.5
+  RESEARCH_TIME: 1.5,
+  MISSION_FOOD_COST_FACTOR: 50, // Multiplier for mission food requirements
+  MISSION_WATER_COST_FACTOR: 50  // Multiplier for mission water requirements
 };
 
 export const PLANET_TYPES = {}
