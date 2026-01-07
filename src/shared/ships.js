@@ -258,7 +258,7 @@ export function calculateShipCost(shipKey, quantity = 1, costReductionBonus = 0)
 /**
  * Calculate build time for ships
  */
-export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1, roboticsLevel = 0, naniteLevel = 0, timeReductionBonus = 0) {
+export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1, naniteLevel = 0, timeReductionBonus = 0) {
   const ship = getShip(shipKey);
   if (!ship) return 0;
 
@@ -266,21 +266,17 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   const baseTime = calculateBaseTime(ship) * quantity;
   
   // Apply build speed factor (converting cost units to seconds)
-  // We use hours-based speed: time = cost / speed * 3600
   const speedFactor = CONFIG.SHIP_BUILD_SPEED || 2500;
   const timeInSeconds = (baseTime / speedFactor) * 3600;
 
   // Shipyard level speeds up construction (20% per level, 0.8^n)
   const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
 
-  // Robotics factory speeds up construction (20% per level, 0.8^n)
-  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
-
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
 
   const reduction = 1 - timeReductionBonus;
-  const totalTime = (timeInSeconds * shipyardMultiplier * roboticsMultiplier * reduction) / naniteMultiplier;
+  const totalTime = (timeInSeconds * shipyardMultiplier * reduction) / naniteMultiplier;
 
   return Math.max(1, Math.floor(totalTime));
 }

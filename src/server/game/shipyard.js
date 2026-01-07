@@ -69,10 +69,9 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
     const speedFactor = 2500; // units/hr
     const timeInSeconds = (baseTime / speedFactor) * 3600;
     const shipyardMultiplier = Math.pow(0.85, shipyardLevel);
-    const roboticsMultiplier = Math.pow(0.85, roboticsLevel);
     const naniteMultiplier = Math.pow(2, naniteLevel);
     
-    const buildTime = Math.max(1, Math.floor((timeInSeconds * shipyardMultiplier * (1 - timeReductionBonus) / roboticsMultiplier / naniteMultiplier)));
+    const buildTime = Math.max(1, Math.floor((timeInSeconds * shipyardMultiplier * (1 - timeReductionBonus) / naniteMultiplier)));
     totalBuildTime = Math.max(totalBuildTime, buildTime);
   }
 
@@ -143,7 +142,7 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, roboticsLevel, naniteLevel, timeReductionBonus);
+    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }
 
@@ -329,6 +328,8 @@ export function getShipyardDetails(planet, player = null) {
 
   return {
     shipyardLevel,
+    roboticsLevel,
+    naniteLevel,
     ships: planet.ships,
     defenses: planet.defenses,
     effectiveSpeeds,

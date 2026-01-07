@@ -21,7 +21,8 @@ function calculateShipyardStateHash(shipyardData, planet) {
         ships: shipyardData.ships,
         queue: shipyardData.queue,
         shipyardLevel: shipyardData.shipyardLevel,
-        resources: planet.resources
+        roboticsLevel: shipyardData.roboticsLevel,
+        naniteLevel: shipyardData.naniteLevel
     };
     return JSON.stringify(state);
 }
@@ -151,7 +152,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
     const name = blueprint ? blueprint.name : ship.name;
     const count = currentShipyardData.ships[identifier] || 0; 
     const cost = calculateShipCostForDef(ship, 1);
-    const buildTime = calculateShipBuildTimeForDef(ship, 1, shipyardLevel);
+    const buildTime = calculateShipBuildTimeForDef(ship, 1, shipyardLevel, currentShipyardData.naniteLevel || 0);
     
     const canBuild = !isLocked &&
                    planet.resources.metal >= cost.metal &&
@@ -201,13 +202,14 @@ function calculateShipCostForDef(shipDef, quantity) {
     };
 }
 
-function calculateShipBuildTimeForDef(shipDef, quantity, shipyardLevel) {
+function calculateShipBuildTimeForDef(shipDef, quantity, shipyardLevel, naniteLevel = 0) {
     const baseTime = calculateBaseTime(shipDef) * quantity;
     const speedFactor = 2500;
     const timeInSeconds = (baseTime / speedFactor) * 3600;
     const shipyardMultiplier = Math.pow(0.85, shipyardLevel);
+    const naniteMultiplier = Math.pow(2, naniteLevel);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
-    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * configMultiplier));
+    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier / naniteMultiplier * configMultiplier));
 }
 
 /**
@@ -234,7 +236,7 @@ function renderDefensesList(planet, shipyardData) {
             const defense = availableDefenses[defenseKey];
             const count = defenses[defenseKey] || 0;
             const cost = calculateDefenseCost(defenseKey, 1);
-            const buildTime = calculateDefenseBuildTime(defenseKey, 1, shipyardLevel);
+            const buildTime = calculateDefenseBuildTime(defenseKey, 1, shipyardLevel, shipyardData.naniteLevel || 0);
             
             const canBuild = !isLocked &&
                            planet.resources.metal >= cost.metal &&
@@ -441,7 +443,7 @@ function calculateDefenseCost(defenseKey, quantity) {
 /**
  * Calculate ship build time (client-side estimate)
  */
-function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
+function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 0) {
     const ship = currentShipyardData.availableShips[shipKey];
     if (!ship) return 0;
     
@@ -454,15 +456,16 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel) {
 
     // Shipyard level speeds up construction (20% per level, multiplier^n)
     const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
+    const naniteMultiplier = Math.pow(2, naniteLevel);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * configMultiplier));
+    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier / naniteMultiplier * configMultiplier));
 }
 
 /**
  * Calculate defense build time (client-side estimate)
  */
-function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1) {
+function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1, naniteLevel = 0) {
     const defense = currentShipyardData.availableDefenses[defenseKey];
     if (!defense) return 0;
     
@@ -475,7 +478,8 @@ function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1) {
 
     // Shipyard level speeds up construction (20% per level, multiplier^n)
     const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
+    const naniteMultiplier = Math.pow(2, naniteLevel);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * configMultiplier));
+    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier / naniteMultiplier * configMultiplier));
 }
