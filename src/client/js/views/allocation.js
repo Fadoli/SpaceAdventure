@@ -428,21 +428,24 @@ async function applyAllAllocations() {
   
   // Send to server
   try {
-    await API.request(`/game/planet/${planet.id}/allocations`, {
-      method: 'POST',
-      body: JSON.stringify({ allocations })
-    });
+    await API.updatePlanetAllocations(planet.id, allocations);
     
     // Save these allocations as the new baseline for undo
     savedAllocations = { ...allocations };
     
-    // Show success message without refreshing the view
+    // Show success message
     Notifications.showSuccess('Allocations updated successfully!');
     
-    // Small delay and refresh state to show actuals
-    setTimeout(async () => {
-        if (window.loadGameState) await window.loadGameState();
-    }, 500);
+    // Refresh game state and RE-RENDER the allocation view to show actuals
+    if (window.loadGameState) {
+        await window.loadGameState();
+        const html = await renderAllocation();
+        const el = document.getElementById('allocation-view');
+        if (el) {
+            el.innerHTML = html;
+            setupAllocationHandlers();
+        }
+    }
   } catch (error) {
     console.error('Failed to update allocations:', error);
     Notifications.showError('Failed to update allocations: ' + error.message);

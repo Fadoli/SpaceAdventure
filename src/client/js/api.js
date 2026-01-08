@@ -99,6 +99,13 @@ export const API = {
         return await this.request(`/game/planet/${planetId}/buildings-details`);
     },
 
+    async updatePlanetAllocations(planetId, allocations) {
+        return await this.request(`/game/planet/${planetId}/allocations`, {
+            method: 'POST',
+            body: JSON.stringify({ allocations })
+        });
+    },
+
     async getRankings() {
         return await this.request('/game/rankings');
     },
