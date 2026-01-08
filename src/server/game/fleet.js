@@ -1,7 +1,7 @@
 // Fleet and Mission management logic
 import { generateId } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
-import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds } from '../../shared/ships.js';
+import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
@@ -22,6 +22,20 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     if ((originPlanet.ships[shipKey] || 0) < ships[shipKey]) {
       throw new Error(`Insufficient ships: ${shipKey}`);
     }
+  }
+
+  // Calculate cargo capacity
+  const cargoCapacity = calculateCargoCapacity(ships);
+  let totalResources = 0;
+  for (const res in resources) {
+    totalResources += resources[res];
+    if (originPlanet.resources[res] < resources[res]) {
+      throw new Error(`Insufficient ${res} on planet`);
+    }
+  }
+
+  if (totalResources > cargoCapacity) {
+    throw new Error(`Insufficient cargo capacity: ${totalResources} / ${cargoCapacity}`);
   }
 
   // Calculate stats
@@ -50,9 +64,9 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
   const survivalNeeds = calculateFleetSurvivalNeeds(crewCount, totalDuration);
 
   // Check origin planet resources
-  if (originPlanet.resources.deuterium < fuelCost) throw new Error(`Insufficient Deuterium (Need ${fuelCost})`);
-  if (originPlanet.resources.food < survivalNeeds.food) throw new Error(`Insufficient Food (Need ${survivalNeeds.food})`);
-  if (originPlanet.resources.water < survivalNeeds.water) throw new Error(`Insufficient Water (Need ${survivalNeeds.water})`);
+  if (originPlanet.resources.deuterium < fuelCost + (resources.deuterium || 0)) throw new Error(`Insufficient Deuterium (Need ${fuelCost + (resources.deuterium || 0)})`);
+  if (originPlanet.resources.food < survivalNeeds.food + (resources.food || 0)) throw new Error(`Insufficient Food (Need ${survivalNeeds.food + (resources.food || 0)})`);
+  if (originPlanet.resources.water < survivalNeeds.water + (resources.water || 0)) throw new Error(`Insufficient Water (Need ${survivalNeeds.water + (resources.water || 0)})`);
   if ((originPlanet.resources.population || 0) < crewCount) throw new Error(`Insufficient Population (Need ${crewCount})`);
 
   // Create fleet object
@@ -77,7 +91,10 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     stayTime: stayTime // Store requested stay duration
   };
 
-  // Deduct resources from planet
+  // Deduct resources from planet (transported + mission costs)
+  for (const res in resources) {
+    originPlanet.resources[res] -= resources[res];
+  }
   originPlanet.resources.deuterium -= fuelCost;
   originPlanet.resources.food -= survivalNeeds.food;
   originPlanet.resources.water -= survivalNeeds.water;
@@ -214,8 +231,76 @@ async function handleFleetArrival(player, fleet, allPlayers) {
     case MISSION_TYPES.EXPEDITION:
       await executeExpedition(player, fleet);
       return false; // Returns home after stay
+    case MISSION_TYPES.TRANSPORT:
+      await executeTransport(player, fleet, allPlayers);
+      return false; // Returns home empty
     default:
       return false;
+  }
+}
+
+async function executeTransport(player, fleet, allPlayers) {
+  // Find target planet
+  let targetPlanet = null;
+  let targetPlayer = null;
+
+  for (const p of allPlayers) {
+    const planet = p.planets.find(pl => 
+      pl.coordinates[0] === fleet.targetCoords[0] &&
+      pl.coordinates[1] === fleet.targetCoords[1] &&
+      pl.coordinates[2] === fleet.targetCoords[2]
+    );
+    if (planet) {
+      targetPlanet = planet;
+      targetPlayer = p;
+      break;
+    }
+  }
+
+  if (targetPlanet) {
+    // Deliver resources
+    for (const res in fleet.resources) {
+      targetPlanet.resources[res] = (targetPlanet.resources[res] || 0) + fleet.resources[res];
+      // Cap at storage
+      if (targetPlanet.storage && targetPlanet.storage[res]) {
+        targetPlanet.resources[res] = Math.min(targetPlanet.resources[res], targetPlanet.storage[res]);
+      }
+    }
+
+    // Clear resources from fleet
+    const deliveredResources = { ...fleet.resources };
+    for (const res in fleet.resources) {
+      fleet.resources[res] = 0;
+    }
+
+    // Message to target player
+    if (targetPlayer.userId !== player.userId) {
+      await addMessage(targetPlayer.userId, {
+        from: 'Trade Office',
+        subject: `Incoming Transport from ${player.username}`,
+        body: `A transport fleet from ${player.username} has delivered resources to your planet at [${fleet.targetCoords.join(':')}].`,
+        type: 'transport',
+        data: { from: player.username, resources: deliveredResources }
+      });
+    }
+
+    // Message to sender
+    await addMessage(player.userId, {
+      from: 'Fleet Command',
+      subject: `Transport Mission Arrived: [${fleet.targetCoords.join(':')}]`,
+      body: `Your fleet has delivered resources to [${fleet.targetCoords.join(':')}]. They are now returning home.`,
+      type: 'transport',
+      data: { target: fleet.targetCoords, resources: deliveredResources }
+    });
+  } else {
+    // Target is empty space, fleet returns with resources
+    await addMessage(player.userId, {
+      from: 'Fleet Command',
+      subject: `Transport Mission Failed: [${fleet.targetCoords.join(':')}]`,
+      body: `Your fleet reached the coordinates [${fleet.targetCoords.join(':')}] but found no planet. They are returning with the resources.`,
+      type: 'transport',
+      data: { target: fleet.targetCoords }
+    });
   }
 }
 

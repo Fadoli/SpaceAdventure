@@ -3,15 +3,256 @@ import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { showConfirm, showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
-import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds } from '../../../shared/ships.js';
+import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../../shared/ships.js';
 import { calculateDistance } from '../../../shared/formulas.js';
-import { SCALING } from '../../../shared/constants.js';
+import { SCALING, MISSION_TYPES } from '../../../shared/constants.js';
 
 let currentGalaxy = 1;
 let currentSystem = 1;
 let currentGameState = null;
 let lastRenderedGalaxy = null;
 let lastRenderedSystem = null;
+
+/**
+ * Open a generic mission modal
+ */
+async function openMissionModal(missionType, targetCoords) {
+    const planetId = window.getCurrentPlanetId();
+    const planet = window.getCurrentPlanet();
+    
+    if (!planet) {
+        Notifications.showError('No origin planet selected');
+        return;
+    }
+
+    // Check if planet has any ships
+    const hasShips = Object.values(planet.ships || {}).some(count => count > 0);
+    if (!hasShips) {
+        Notifications.showError('No ships available on this planet');
+        return;
+    }
+
+    // Create modal for ship and resource selection
+    const modal = document.getElementById('details-modal');
+    const modalTitle = document.getElementById('details-modal-title');
+    const modalBody = document.getElementById('details-modal-body');
+
+    const typeLabel = missionType.charAt(0).toUpperCase() + missionType.slice(1);
+    modalTitle.innerHTML = `🚀 ${typeLabel} Mission [${targetCoords.join(':')}]`;
+    
+    let html = '<div class="mission-setup-container">';
+    
+    // --- Ship Selection Section ---
+    html += '<div class="mission-section">';
+    html += '<h4>🚢 Select Ships</h4>';
+    html += '<div class="mission-ships-list">';
+    
+    for (const [shipKey, count] of Object.entries(planet.ships)) {
+        if (count > 0) {
+            const shipName = shipKey.replace(/([A-Z])/g, ' $1').trim();
+            html += `
+                <div class="mission-ship-item">
+                    <div class="ship-info">
+                        <span class="ship-name">${shipName}</span>
+                        <span class="ship-available">(Avail: ${formatNumber(count)})</span>
+                    </div>
+                    <div class="ship-input">
+                        <input type="number" class="ship-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
+                        <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateMissionCalculations();">MAX</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    html += '</div></div>';
+
+    // --- Resource Selection Section (Only for transport or if ships have cargo) ---
+    if (missionType === MISSION_TYPES.TRANSPORT) {
+        html += '<div class="mission-section" style="margin-top: 20px;">';
+        html += '<h4>📦 Select Resources</h4>';
+        html += '<div id="cargo-status" style="margin-bottom: 10px; font-weight: bold; color: var(--accent-blue);">Cargo: 0 / 0</div>';
+        html += '<div class="mission-resources-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
+        
+        const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
+        for (const res of resourceKeys) {
+            const amount = Math.floor(planet.resources[res] || 0);
+            const resIcon = { metal: '⚙️', crystal: '💎', deuterium: '🛢️', water: '💦', food: '🍞' }[res];
+            html += `
+                <div class="mission-res-item" style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;">
+                    <div style="font-size: 0.85rem; margin-bottom: 5px;">${resIcon} ${res.charAt(0).toUpperCase() + res.slice(1)}: ${formatNumber(amount)}</div>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" class="res-qty-input" data-res="${res}" min="0" max="${amount}" value="0" style="flex: 1; padding: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white;">
+                        <button class="btn-max" style="padding: 2px 6px; font-size: 0.7rem;" onclick="window.maxResource('${res}', ${amount})">MAX</button>
+                    </div>
+                </div>
+            `;
+        }
+        html += '</div></div>';
+    }
+
+    // --- Summary & Action Section ---
+    html += `
+        <div id="mission-calc-summary" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border-color);">
+            <!-- Stats like travel time, fuel, crew, etc will be shown here -->
+        </div>
+        
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="window.closeDetailsModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="window.submitMission()">Launch Fleet</button>
+        </div>
+    </div>`;
+
+    modalBody.innerHTML = html;
+    modal.style.display = 'block';
+
+    // Global helpers for this modal
+    window.maxResource = function(res, maxAmount) {
+        const inputs = document.querySelectorAll('.res-qty-input');
+        const input = Array.from(inputs).find(i => i.dataset.res === res);
+        if (input) {
+            // We need to check remaining cargo capacity
+            const currentTotal = Array.from(inputs)
+                .filter(i => i.dataset.res !== res)
+                .reduce((sum, i) => sum + (parseInt(i.value) || 0), 0);
+            
+            const currentShips = {};
+            document.querySelectorAll('.ship-qty-input').forEach(i => {
+                const qty = parseInt(i.value) || 0;
+                if (qty > 0) currentShips[i.dataset.ship] = qty;
+            });
+            
+            const totalCapacity = calculateCargoCapacity(currentShips);
+            const remaining = Math.max(0, totalCapacity - currentTotal);
+            
+            input.value = Math.min(maxAmount, remaining);
+            window.updateMissionCalculations();
+        }
+    };
+
+    window.updateMissionCalculations = function() {
+        const shipsToSend = {};
+        let totalCrew = 0;
+        
+        document.querySelectorAll('.ship-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                const shipKey = input.dataset.ship;
+                shipsToSend[shipKey] = qty;
+                const shipDef = SHIPS[shipKey];
+                if (shipDef) totalCrew += (shipDef.populationRequired || 0) * qty;
+            }
+        });
+
+        const cargoCapacity = calculateCargoCapacity(shipsToSend);
+        
+        const resourcesToSend = {};
+        let totalCargo = 0;
+        document.querySelectorAll('.res-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                resourcesToSend[input.dataset.res] = qty;
+                totalCargo += qty;
+            }
+        });
+
+        const cargoStatus = document.getElementById('cargo-status');
+        if (cargoStatus) {
+            cargoStatus.innerHTML = `Cargo: ${formatNumber(totalCargo)} / ${formatNumber(cargoCapacity)}`;
+            cargoStatus.style.color = totalCargo > cargoCapacity ? 'var(--accent-red)' : 'var(--accent-blue)';
+        }
+
+        // Stats
+        const distance = calculateDistance(planet.coordinates, targetCoords);
+        const fuelCost = calculateFleetFuelCost(shipsToSend, distance);
+        
+        // Simplified travel time (300s each way for now)
+        const travelTimeSeconds = 300; 
+        const totalDurationSeconds = travelTimeSeconds * 2;
+        const survivalNeeds = calculateFleetSurvivalNeeds(totalCrew, totalDurationSeconds);
+
+        const summary = document.getElementById('mission-calc-summary');
+        if (summary) {
+            summary.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
+                    <div>👥 Crew: <strong>${totalCrew}</strong></div>
+                    <div>🛢️ Fuel: <strong>${formatNumber(fuelCost)}</strong></div>
+                    <div>🍞 Food: <strong>${formatNumber(survivalNeeds.food)}</strong></div>
+                    <div>💦 Water: <strong>${formatNumber(survivalNeeds.water)}</strong></div>
+                </div>
+            `;
+        }
+    };
+
+    window.submitMission = async function() {
+        const shipsToSend = {};
+        let totalShips = 0;
+        document.querySelectorAll('.ship-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                shipsToSend[input.dataset.ship] = qty;
+                totalShips += qty;
+            }
+        });
+
+        if (totalShips === 0) {
+            Notifications.showError('No ships selected');
+            return;
+        }
+
+        const resourcesToSend = {};
+        let totalCargo = 0;
+        document.querySelectorAll('.res-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                resourcesToSend[input.dataset.res] = qty;
+                totalCargo += qty;
+            }
+        });
+
+        const cargoCapacity = calculateCargoCapacity(shipsToSend);
+        if (totalCargo > cargoCapacity) {
+            Notifications.showError('Cargo exceeds fleet capacity');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/game/galaxy/mission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    missionType,
+                    targetCoords,
+                    ships: shipsToSend,
+                    resources: resourcesToSend,
+                    originPlanetId: planet.id
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                Notifications.showSuccess(`${typeLabel} fleet launched!`);
+                window.closeDetailsModal();
+                if (window.loadGameState) await window.loadGameState();
+            } else {
+                Notifications.showError(`Failed: ${result.error}`);
+            }
+        } catch (error) {
+            Notifications.showError(`Error: ${error.message}`);
+        }
+    };
+
+    // Listeners
+    document.querySelectorAll('.ship-qty-input, .res-qty-input').forEach(el => {
+        el.addEventListener('input', window.updateMissionCalculations);
+    });
+
+    window.updateMissionCalculations();
+}
+
+window.transportToPlanetFromGalaxy = function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    openMissionModal(MISSION_TYPES.TRANSPORT, coords);
+};
 
 /**
  * Update galaxy view with current system data
@@ -183,8 +424,10 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                 <div class="action-buttons">
                     ${isPlayerPlanet ? `
                         <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy('${planet.player}')" title="View planet">👁️</button>
+                        <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
                     ` : `
                         <button class="action-btn info-btn" onclick="window.spyOnPlanetFromGalaxy(${position})" title="Spy">🕵️</button>
+                        <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
                         <button class="action-btn attack-btn" onclick="window.attackPlanetFromGalaxy(${position})" title="Attack">⚔️</button>
                     `}
                 </div>
