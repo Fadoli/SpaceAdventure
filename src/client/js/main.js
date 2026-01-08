@@ -622,6 +622,11 @@ export function getCurrentPlanetId() {
     return currentPlanetId;
 }
 
+export function getGameState() {
+    return gameState;
+}
+
+window.getGameState = getGameState;
 window.getCurrentPlanetId = getCurrentPlanetId;
 window.getCurrentPlanet = getCurrentPlanet;
 
