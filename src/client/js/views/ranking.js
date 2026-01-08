@@ -34,6 +34,7 @@ function renderRankingTable(container, rankings) {
                     <tr>
                         <th class="rank-col">Rank</th>
                         <th class="player-col">Player</th>
+                        <th class="coords-col">Homeworld</th>
                         <th class="planets-col">Planets</th>
                         <th class="score-col">Total Resources Spent</th>
                     </tr>
@@ -43,10 +44,18 @@ function renderRankingTable(container, rankings) {
 
     rankings.forEach(player => {
         const isCurrentPlayer = player.userId === window.currentUser?.id;
+        const coords = player.homeworldCoords || [1, 1, 1];
+        const coordsStr = `[${coords.join(':')}]`;
+        
         html += `
             <tr class="${isCurrentPlayer ? 'current-player-row' : ''}">
                 <td class="rank-col">${player.rank}</td>
                 <td class="player-col">${player.username}</td>
+                <td class="coords-col">
+                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); window.navigateToCoords(${coords[0]}, ${coords[1]}, ${coords[2]})">
+                        ${coordsStr}
+                    </a>
+                </td>
                 <td class="planets-col">${player.planets}</td>
                 <td class="score-col">${formatNumber(player.totalSpent)}</td>
             </tr>
@@ -61,3 +70,20 @@ function renderRankingTable(container, rankings) {
 
     container.innerHTML = html;
 }
+
+// Global navigation helper
+window.navigateToCoords = async function(galaxy, system, position) {
+    // 1. Set current coordinates for galaxy view
+    window.currentGalaxy = galaxy;
+    window.currentSystem = system;
+    
+    // 2. Switch to galaxy view
+    if (window.showView) {
+        window.showView('galaxy');
+    }
+    
+    // 3. Trigger navigation within galaxy view
+    if (window.navigateGalaxySystem) {
+        await window.navigateGalaxySystem(galaxy, system);
+    }
+};

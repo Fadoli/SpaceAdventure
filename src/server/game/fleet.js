@@ -115,7 +115,12 @@ export async function processFleets(player, allPlayers) {
   for (let i = player.fleets.length - 1; i >= 0; i--) {
     const fleet = player.fleets[i];
 
+    // Prevent double-processing in the same tick
+    if (fleet.processedAt === now) continue;
+
     if (now >= fleet.arrivalTime) {
+      fleet.processedAt = now; // Mark as processed in this tick
+      
       if (fleet.waiting) {
         // Stay time finished, start return journey
         const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);

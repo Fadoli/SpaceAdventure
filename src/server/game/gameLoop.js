@@ -138,13 +138,12 @@ async function gameTick() {
       if (fleetsUpdated) {
         updated = true;
       }
-    }
 
-    // Process AI turns
-    const aiPlayers = await getAllAiPlayers();
-    for (const ai of aiPlayers) {
-      const aiUpdated = await processAiPlayer(ai);
-      if (aiUpdated) updated = true;
+      // Process AI decisions if it's an AI player
+      if (player.isAI) {
+        const aiUpdated = await processAiPlayer(player);
+        if (aiUpdated) updated = true;
+      }
     }
     
     // Save if anything changed and enough time has passed

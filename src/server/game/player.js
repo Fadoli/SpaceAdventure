@@ -6,6 +6,8 @@ import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { updatePlanetProduction } from './buildings.js';
 import { registerPlayer, getGalaxyData } from './galaxyData.js';
 
+const playersCache = new Map();
+
 /**
  * Find a suitable available planet slot [G, S, P] for a new player.
  */
@@ -65,9 +67,13 @@ export async function savePlayers(players) {
 }
 
 /**
- * Get player by user ID (reads from individual file)
+ * Get player by user ID (reads from cache or individual file)
  */
 export async function getPlayerByUserId(userId) {
+  if (playersCache.has(userId)) {
+    return playersCache.get(userId);
+  }
+
   const player = await readJsonFile(`players/${userId}/data.json`);
   
   if (player) {
@@ -81,6 +87,8 @@ export async function getPlayerByUserId(userId) {
     if (!player.buildingBlueprints) player.buildingBlueprints = {};
     if (!player.shipBlueprints) player.shipBlueprints = {};
     if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
+    
+    playersCache.set(userId, player);
   }
   
   return player;
@@ -140,9 +148,7 @@ export async function createPlayer(userId, username) {
     customBuildingVariants: {},
     customShipVariants: {},
     fleets: [],
-    statistics: {
-      totalResourcesSpent: 0
-    }
+    statistics: { totalResourcesSpent: 0 }
   };
   
   await updatePlayer(userId, player);
@@ -152,24 +158,10 @@ export async function createPlayer(userId, username) {
 }
 
 /**
- * Track spent resources for ranking
- */
-export function trackSpentResources(player, cost) {
-  if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
-  
-  const metal = cost.metal || 0;
-  const crystal = cost.crystal || 0;
-  const deuterium = cost.deuterium || 0;
-  const food = cost.food || 0;
-  const water = cost.water || 0;
-  
-  player.statistics.totalResourcesSpent += (metal + crystal + deuterium + food + water);
-}
-
-/**
  * Update player data (writes to individual file)
  */
 export async function updatePlayer(userId, playerData) {
+  playersCache.set(userId, playerData);
   await writeJsonFile(`players/${userId}/data.json`, playerData);
   return playerData;
 }
@@ -217,6 +209,21 @@ export async function renamePlanet(userId, planetId, newName) {
 }
 
 /**
+ * Track spent resources for ranking
+ */
+export function trackSpentResources(player, cost) {
+  if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
+  
+  const metal = cost.metal || 0;
+  const crystal = cost.crystal || 0;
+  const deuterium = cost.deuterium || 0;
+  const food = cost.food || 0;
+  const water = cost.water || 0;
+  
+  player.statistics.totalResourcesSpent += (metal + crystal + deuterium + food + water);
+}
+
+/**
  * Get player rankings based on total resources spent
  */
 export async function getRankings() {
@@ -226,7 +233,8 @@ export async function getRankings() {
     userId: p.userId,
     username: p.username,
     totalSpent: p.statistics?.totalResourcesSpent || 0,
-    planets: p.planets.length
+    planets: p.planets.length,
+    homeworldCoords: p.planets[0]?.coordinates || [1, 1, 1]
   }));
   
   // Sort by total spent descending

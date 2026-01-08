@@ -2555,8 +2555,24 @@ body {
 
 .rank-col { width: 80px; text-align: center !important; font-weight: bold; }
 .player-col { font-weight: bold; color: var(--text-primary); }
+.coords-col { width: 120px; text-align: center !important; }
 .planets-col { width: 100px; text-align: center !important; }
 .score-col { text-align: right !important; color: var(--accent-yellow); font-family: monospace; font-size: 1.1rem; }
+
+.galaxy-link {
+    color: var(--accent-blue);
+    text-decoration: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(74, 144, 226, 0.1);
+    transition: all 0.2s;
+}
+
+.galaxy-link:hover {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+}
 
 .current-player-row {
     background: rgba(74, 144, 226, 0.15) !important;
@@ -2772,9 +2788,37 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
     padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
 }
+
+.message-filters {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.filter-btn.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
 
 .messages-list {
     display: flex;

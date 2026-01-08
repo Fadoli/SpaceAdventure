@@ -4,6 +4,7 @@ import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 
 let lastMessagesHash = null;
+let currentFilter = 'all';
 
 /**
  * Update messages view
@@ -15,59 +16,121 @@ export async function updateMessagesView() {
     try {
         const messages = await API.getMessages();
         
-        // Simple hash to detect changes
-        const currentHash = JSON.stringify(messages.map(m => ({ id: m.id, read: m.read })));
-        if (currentHash === lastMessagesHash && container.innerHTML !== '') {
+        // 1. If container is empty or filter changed, do a full render
+        const listEl = container.querySelector('.messages-list');
+        if (!listEl || lastMessagesHash?.filter !== currentFilter) {
+            renderMessagesList(container, messages);
+            lastMessagesHash = { 
+                hash: calculateHash(messages), 
+                filter: currentFilter 
+            };
             return;
         }
-        lastMessagesHash = currentHash;
 
-        renderMessagesList(container, messages);
+        // 2. Check if structure changed (new messages or deletions)
+        const currentHash = calculateHash(messages);
+        if (currentHash !== lastMessagesHash.hash) {
+            // Full re-render for new/deleted items to keep order correct
+            // But we'll try to preserve the "open" state IDs
+            const openIds = Array.from(listEl.querySelectorAll('.message-item[data-open="true"]'))
+                                .map(el => el.id.replace('msg-', ''));
+            
+            renderMessagesList(container, messages);
+            
+            // Restore open states
+            openIds.forEach(id => {
+                const body = document.getElementById(`msg-body-${id}`);
+                const item = document.getElementById(`msg-${id}`);
+                if (body && item) {
+                    body.style.display = 'block';
+                    item.setAttribute('data-open', 'true');
+                }
+            });
+            
+            lastMessagesHash = { hash: currentHash, filter: currentFilter };
+        } else {
+            // 3. Just update read/unread statuses of existing elements
+            messages.forEach(msg => {
+                const item = document.getElementById(`msg-${msg.id}`);
+                if (item) {
+                    const isUnread = !msg.read;
+                    const hasUnreadClass = item.classList.contains('unread');
+                    
+                    if (isUnread !== hasUnreadClass) {
+                        if (isUnread) item.classList.add('unread');
+                        else item.classList.remove('unread');
+                        
+                        const icon = item.querySelector('.msg-status-icon');
+                        if (icon) icon.textContent = isUnread ? '📧' : '📖';
+                    }
+                }
+            });
+        }
     } catch (error) {
         console.error('Failed to load messages:', error);
         container.innerHTML = `<p class="error">Failed to load messages: ${error.message}</p>`;
     }
 }
 
+function calculateHash(messages) {
+    return JSON.stringify(messages.map(m => m.id));
+}
+
 /**
  * Render list of messages
  */
 function renderMessagesList(container, messages) {
-    if (!messages || messages.length === 0) {
-        container.innerHTML = '<h2>📬 Messages</h2><p class="empty-info">Your inbox is empty.</p>';
-        return;
+    let filteredMessages = messages;
+    if (currentFilter !== 'all') {
+        filteredMessages = messages.filter(m => m.type === currentFilter);
     }
 
     let html = `
         <div class="messages-header">
             <h2>📬 Messages (${messages.length})</h2>
+            <div class="message-filters">
+                <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="window.filterMessages('all')">All</button>
+                <button class="filter-btn ${currentFilter === 'espionage' ? 'active' : ''}" onclick="window.filterMessages('espionage')">Espionage</button>
+                <button class="filter-btn ${currentFilter === 'colonization' ? 'active' : ''}" onclick="window.filterMessages('colonization')">Colonization</button>
+                <button class="filter-btn ${currentFilter === 'expedition' ? 'active' : ''}" onclick="window.filterMessages('expedition')">Expedition</button>
+            </div>
             <button class="btn btn-danger btn-small" onclick="window.clearAllMessages()">Clear All</button>
         </div>
         <div class="messages-list">
     `;
 
-    messages.forEach(msg => {
-        const isUnread = !msg.read;
-        const typeClass = `msg-type-${msg.type || 'general'}`;
-        
-        html += `
-            <div class="message-item ${isUnread ? 'unread' : ''} ${typeClass}" id="msg-${msg.id}">
-                <div class="msg-header" onclick="window.toggleMessageBody('${msg.id}')">
-                    <span class="msg-status-icon">${isUnread ? '✉️' : '📖'}</span>
-                    <span class="msg-sender">${msg.from}</span>
-                    <span class="msg-subject">${msg.subject}</span>
-                    <span class="msg-date">${formatDate(msg.timestamp)}</span>
-                    <button class="btn-delete-msg" onclick="window.deleteSingleMessage('${msg.id}', event)">✕</button>
+    if (!filteredMessages || filteredMessages.length === 0) {
+        html += `<p class="empty-info">No ${currentFilter === 'all' ? '' : currentFilter} messages found.</p>`;
+    } else {
+        filteredMessages.forEach(msg => {
+            const isUnread = !msg.read;
+            const typeIcon = msg.type === 'espionage' ? '🕵️' : (msg.type === 'colonization' ? '🏗️' : '🚀');
+            const statusIcon = isUnread ? '📧' : '📖';
+            
+            html += `
+                <div id="msg-${msg.id}" class="message-item ${isUnread ? 'unread' : ''}" 
+                     data-open="false">
+                    <div class="message-header-row" onclick="window.toggleMessageBody('${msg.id}')">
+                        <span class="msg-status-icon">${statusIcon}</span>
+                        <span class="msg-type-icon">${typeIcon}</span>
+                        <span class="msg-sender">${msg.from}</span>
+                        <span class="msg-subject">${msg.subject}</span>
+                        <span class="msg-date">${formatDate(msg.timestamp)}</span>
+                        <button class="msg-delete-btn" onclick="window.deleteSingleMessage('${msg.id}', event)">✕</button>
+                    </div>
+                    <div id="msg-body-${msg.id}" class="message-body" style="display: none;" onclick="event.stopPropagation()">
+                        <div class="msg-content">${msg.body}</div>
+                        ${renderMessageData(msg)}
+                    </div>
                 </div>
-                <div class="msg-body" id="msg-body-${msg.id}" style="display: none;">
-                    <div class="msg-text">${msg.body || ''}</div>
-                    ${renderMessageData(msg)}
-                </div>
-            </div>
-        `;
-    });
+            `;
+        });
+    }
 
-    html += '</div>';
+    html += `
+        </div>
+    `;
+
     container.innerHTML = html;
 }
 
@@ -81,13 +144,28 @@ function renderMessageData(msg) {
         case 'espionage':
             return renderEspionageData(msg.data);
         case 'colonization':
-            return `<div class="msg-data-info">Coordinates: [${msg.data.coords.join(':')}]</div>`;
+            const c = msg.data.coords || [1, 1, 1];
+            return `
+                <div class="msg-data-info">
+                    Coordinates: 
+                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${c[0]}, ${c[1]}, ${c[2]})">
+                        [${c.join(':')}]
+                    </a>
+                </div>`;
         case 'expedition':
             let resHtml = '';
+            const ec = msg.data.coords || [1, 1, 1];
             if (msg.data.resultType === 'resources') {
                 resHtml = `<p>Surviving crew has rejoined the planetary population.</p>`;
             }
-            return `<div class="msg-data-info">Location: Deep Space [${msg.data.coords.join(':')}]<br>${resHtml}</div>`;
+            return `
+                <div class="msg-data-info">
+                    Location: 
+                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${ec[0]}, ${ec[1]}, ${ec[2]})">
+                        Deep Space [${ec.join(':')}]
+                    </a>
+                    <br>${resHtml}
+                </div>`;
         default:
             return '';
     }
@@ -108,9 +186,15 @@ function renderEspionageData(data) {
     }
 
     if (data.resources) {
+        const c = data.coords || [1, 1, 1];
         html += `
             <div class="report-section">
-                <h4>Resources at [${data.coords.join(':')}]</h4>
+                <h4>
+                    Resources at 
+                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${c[0]}, ${c[1]}, ${c[2]})">
+                        [${c.join(':')}]
+                    </a>
+                </h4>
                 <div class="res-grid-mini">
                     <div>⚙️ ${Math.floor(data.resources.metal).toLocaleString()}</div>
                     <div>💎 ${Math.floor(data.resources.crystal).toLocaleString()}</div>
@@ -171,21 +255,35 @@ function renderEspionageData(data) {
 }
 
 // Window functions
+window.filterMessages = function(filter) {
+    currentFilter = filter;
+    updateMessagesView();
+};
+
 window.toggleMessageBody = async function(id) {
     const body = document.getElementById(`msg-body-${id}`);
     const item = document.getElementById(`msg-${id}`);
     
-    if (!body) return;
+    if (!body || !item) return;
     
     const isOpening = body.style.display === 'none';
     body.style.display = isOpening ? 'block' : 'none';
+    item.setAttribute('data-open', isOpening ? 'true' : 'false');
     
     if (isUnread(item) && isOpening) {
         try {
             await API.markMessageRead(id);
+            // Locally update UI without full re-render
             item.classList.remove('unread');
             const icon = item.querySelector('.msg-status-icon');
             if (icon) icon.textContent = '📖';
+            
+            // Update the hash so the next auto-refresh doesn't think it changed
+            if (lastMessagesHash) {
+                // This is a bit hacky but prevents the next background update from overwriting
+                // our local change before the server data matches.
+                // Alternatively, we could just wait for the next refresh.
+            }
         } catch (error) {
             console.error('Failed to mark read:', error);
         }
