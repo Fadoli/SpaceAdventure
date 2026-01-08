@@ -131,6 +131,13 @@ export function calculateFoodConsumption(population, consumptionRate) {
 }
 
 /**
+ * Calculate total water consumption based on population
+ */
+export function calculateWaterConsumption(population, consumptionRate) {
+  return population * consumptionRate;
+}
+
+/**
  * Calculate effectiveness based on allocation percentage
  * Non-linear: 50% = 70.7%, 100% = 100%, 200% = 141.4%
  * Formula: effectiveness = sqrt(allocation%) * 10
@@ -155,17 +162,17 @@ export function calculatePopulationEffectiveness(populationPercent) {
 }
 
 /**
- * Calculate population growth/decay based on food availability
- * Growth: max(1% per hour, 60 per hour) when food available and under max population
- * Decay: 2% per hour when food unavailable
+ * Calculate population growth/decay based on resource availability
+ * Growth: max(1% per hour, 60 per hour) when food and water available and under max population
+ * Decay: 2% per hour when food or water unavailable
  * Minimum: 10 population (never goes to 0)
  * Maximum: maxPopulation
  */
-export function calculatePopulationChange(currentPopulation, maxPopulation, foodAvailable, hoursElapsed, productionMultiplier = 1.0) {
+export function calculatePopulationChange(currentPopulation, maxPopulation, foodAvailable, waterAvailable, hoursElapsed, productionMultiplier = 1.0) {
   const minPopulation = 10;
   const minGrowthPerHour = CONFIG.MIN_POPULATION_GROWTH || 60;
   
-  if (foodAvailable && currentPopulation < maxPopulation) {
+  if (foodAvailable && waterAvailable && currentPopulation < maxPopulation) {
     // Grow population (take max of 1% per hour or 60 per hour)
     const percentGrowth = currentPopulation * 0.01 * hoursElapsed * productionMultiplier;
     const flatGrowth = minGrowthPerHour * hoursElapsed * productionMultiplier;
@@ -175,8 +182,8 @@ export function calculatePopulationChange(currentPopulation, maxPopulation, food
       maxPopulation,
       currentPopulation + totalGrowth
     );
-  } else if (!foodAvailable && currentPopulation > minPopulation) {
-    // Lose population when no food (2% per hour)
+  } else if ((!foodAvailable || !waterAvailable) && currentPopulation > minPopulation) {
+    // Lose population when no food or water (2% per hour)
     const decayRate = 0.02;
     return Math.max(
       minPopulation,
@@ -222,16 +229,22 @@ export function calculatePositionMultiplier(position, resourceType) {
  * Get building energy consumption at a given level
  * @param {string} buildingType - The building type key
  * @param {number} level - The building level
- * @param {object} buildings - Optional: The BUILDINGS object from shared/buildings.js. If not provided, uses imported BUILDINGS.
+ * @param {object} buildingsObj - Optional: The BUILDINGS object
+ * @param {number} efficiencyBonus - Optional: Efficiency bonus from research (0.0 to 1.0)
  */
-export function getBuildingEnergyConsumption(buildingType, level, buildingsObj = BUILDINGS) {
+export function getBuildingEnergyConsumption(buildingType, level, buildingsObj = BUILDINGS, efficiencyBonus = 0) {
   const building = buildingsObj[buildingType];
   if (!building || !building.energyConsumption) return 0;
   
   // Energy consumption scales exponentially: base * level * (energyScaling ^ level) * 10
-  // This matches the buildings view calculation
   const energyMultiplier = 10.0;
-  return Math.floor(building.energyConsumption * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
+  let consumption = Math.floor(building.energyConsumption * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
+  
+  // Apply efficiency bonus (never reduce below 50% of base consumption)
+  const reduction = 1 - efficiencyBonus;
+  consumption = Math.floor(consumption * Math.max(0.5, reduction));
+  
+  return consumption;
 }
 
 /**

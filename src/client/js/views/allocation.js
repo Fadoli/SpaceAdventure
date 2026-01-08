@@ -2,6 +2,7 @@ import { getCurrentPlanet, getGameState } from '../main.js';
 import { API } from '../api.js';
 import { calculateAllocationEffectiveness, getBuildingEnergyConsumption, getBuildingPopulationRequired } from '../../../shared/formulas.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
+import { getResearchBonus } from '../../../shared/research.js';
 import { Notifications } from '../notifications.js';
 
 // Track saved allocation state to avoid overwriting user input during updates
@@ -45,19 +46,15 @@ function getLimitingFactorBadge(baseEnergyRequired, basePopulationRequired, powe
   // If no energy required, population is the only limiter
   if (baseEnergyRequired === 0) {
     // Check if we have population shortfall
-    if (totalPopulationAllocated > populationAvailable) {
+    if (totalPopulationAllocated > populationAvailable + 0.01) {
       return '<span class="limiting-badge limiting-population" title="Population shortage - not enough workers available">Limited by: 👥</span>';
     }
     return '';
   }
   
-  // Check if we have shortages for this specific building
-  const energyRequired = baseEnergyRequired * powerAllocation;
-  const populationRequired = basePopulationRequired * populationAllocation;
-  
   // Determine limiting factors
-  const hasEnergyShortage = totalEnergyAllocated > energyAvailable;
-  const hasPopulationShortage = totalPopulationAllocated > populationAvailable;
+  const hasEnergyShortage = totalEnergyAllocated > energyAvailable + 0.01;
+  const hasPopulationShortage = totalPopulationAllocated > populationAvailable + 0.01;
   
   // If both have shortages
   if (hasEnergyShortage && hasPopulationShortage) {
@@ -109,6 +106,8 @@ export async function renderAllocation() {
   let totalPowerAllocated = 0;
   let totalPopulationAllocated = 0;
   
+  const energyEfficiencyBonus = getResearchBonus(gameState?.research, 'buildingEnergyEfficiency');
+
   for (const buildingType of allocatableBuildings) {
     const level = planet.buildings[buildingType] || 0;
     if (level > 0) {
@@ -119,11 +118,11 @@ export async function renderAllocation() {
       const effectiveBuildingsObj = { ...BUILDINGS, [buildingType]: effectiveDef };
 
       // Calculate actual power consumption using shared function
-      const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj);
+      const baseEnergyRequired = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj, energyEfficiencyBonus);
       totalPowerAllocated += baseEnergyRequired * allocation.power;
       
       // Calculate actual population requirement using shared function
-      const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
+      const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
       totalPopulationAllocated += basePopulationRequired * allocation.population;
     }
   }
@@ -152,9 +151,9 @@ export async function renderAllocation() {
           </div>
           <p><strong>Produced:</strong> ${producedPower.toFixed(0)}</p>
           <p><strong>Consumed (Total):</strong> ${consumedPowerTotal.toFixed(0)}</p>
-          <p style="margin-left: 20px; font-size: 0.9em; color: var(--text-secondary);">└─ Allocatable: ${allocatableEnergyConsumption.toFixed(0)}</p>
+          <p style="margin-left: 20px; font-size: 0.9em; color: var(--text-secondary);">└─ Buildings: ${allocatableEnergyConsumption.toFixed(0)}</p>
           <p style="margin-left: 20px; font-size: 0.9em; color: var(--text-secondary);">└─ Other: ${otherEnergyConsumption.toFixed(0)}</p>
-          <p><strong>Balance:</strong> <span style="color: ${(producedPower - consumedPowerTotal) >= 0 ? '#5cb85c' : '#d9534f'}">${(producedPower - consumedPowerTotal).toFixed(0)}</span></p>
+          <p><strong>Balance:</strong> <span style="color: ${(producedPower - consumedPowerTotal) >= -0.01 ? '#5cb85c' : '#d9534f'}">${(producedPower - consumedPowerTotal).toFixed(0)}</span></p>
         </div>
         
         <div class="summary-card">
@@ -196,8 +195,8 @@ export async function renderAllocation() {
     const isCustom = effectiveDef !== BUILDINGS[buildingType];
 
     // Calculate base requirements for this building at current level using shared functions
-    const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj);
-    const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
+    const baseEnergyRequired = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj, energyEfficiencyBonus);
+    const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
     
     // Calculate desired requirements based on user-set allocation
     const energyRequired = baseEnergyRequired * allocation.power;
@@ -315,6 +314,8 @@ export function setupAllocationHandlers() {
     savedAllocations[buildingType] = { ...allocation };
   }
   
+  const energyEfficiencyBonus = getResearchBonus(gameState?.research, 'buildingEnergyEfficiency');
+
   // Update slider value displays
   document.querySelectorAll('.power-slider, .population-slider').forEach(slider => {
     slider.addEventListener('input', async (e) => {
@@ -336,14 +337,14 @@ export function setupAllocationHandlers() {
         const effectiveBuildingsObj = { ...BUILDINGS, [buildingType]: effectiveDef };
 
         if (e.target.classList.contains('power-slider')) {
-          const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj);
+          const baseEnergyRequired = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj, energyEfficiencyBonus);
           const energyRequired = baseEnergyRequired * (value / 100);
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
           const sign = effectivenessPercent >= 100 ? '+' : '';
           labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${value}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         } else {
-          const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
+          const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
           const populationRequired = basePopulationRequired * (value / 100);
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
@@ -393,9 +394,9 @@ function updateEffectivenessBadge(buildingType) {
   const popEff = calculateAllocationEffectiveness(populationPercent) / 100;
   const totalEff = powerEff * popEff;
   
-  const badge = item.querySelector('.effectiveness-badge');
+  const badge = item.querySelectorAll('.effectiveness-badge')[0]; // Desired badge
   if (badge) {
-    badge.textContent = `${(totalEff * 100).toFixed(0)}% Effective`;
+    badge.textContent = `Desired: ${(totalEff * 100).toFixed(0)}%`;
     badge.className = `effectiveness-badge ${getEffectivenessClass(totalEff)}`;
   }
 }
@@ -427,7 +428,7 @@ async function applyAllAllocations() {
   
   // Send to server
   try {
-    await API.request(`/planet/${planet.id}/allocations`, {
+    await API.request(`/game/planet/${planet.id}/allocations`, {
       method: 'POST',
       body: JSON.stringify({ allocations })
     });
@@ -437,6 +438,11 @@ async function applyAllAllocations() {
     
     // Show success message without refreshing the view
     Notifications.showSuccess('Allocations updated successfully!');
+    
+    // Small delay and refresh state to show actuals
+    setTimeout(async () => {
+        if (window.loadGameState) await window.loadGameState();
+    }, 500);
   } catch (error) {
     console.error('Failed to update allocations:', error);
     Notifications.showError('Failed to update allocations: ' + error.message);
@@ -448,6 +454,8 @@ async function applyAllAllocations() {
  */
 async function undoAllAllocations() {
   const gameState = getGameState();
+  const energyEfficiencyBonus = getResearchBonus(gameState?.research, 'buildingEnergyEfficiency');
+
   document.querySelectorAll('.allocation-item').forEach(async item => {
     const buildingType = item.dataset.building;
     const saved = savedAllocations[buildingType];
@@ -469,7 +477,7 @@ async function undoAllAllocations() {
         if (labelRow) {
           const effectiveness = calculateAllocationEffectiveness(saved.power * 100) / 100;
           const effectivenessPercent = effectiveness * 100;
-          const baseEnergyRequired = await getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj);
+          const baseEnergyRequired = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj, energyEfficiencyBonus);
           const energyRequired = baseEnergyRequired * saved.power;
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
@@ -484,7 +492,7 @@ async function undoAllAllocations() {
         if (labelRow) {
           const effectiveness = calculateAllocationEffectiveness(saved.population * 100) / 100;
           const effectivenessPercent = effectiveness * 100;
-          const basePopulationRequired = await getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
+          const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
           const populationRequired = basePopulationRequired * saved.population;
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';

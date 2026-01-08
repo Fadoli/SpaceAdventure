@@ -826,15 +826,15 @@ async function handleRequest(req) {
       });
     }
     
-    // POST /api/planet/:planetId/allocations - Update all building allocations at once
-    if (path.match(/^\/api\/planet\/[^\/]+\/allocations$/) && method === 'POST') {
+    // POST /api/game/planet/:planetId/allocations - Update all building allocations at once
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/allocations$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
         return errorResponse(req, 'Not authenticated', 401);
       }
       
       const parts = path.split('/');
-      const planetId = parts[3];
+      const planetId = parts[4];
       
       const body = await req.json();
       const { allocations } = body;
@@ -851,16 +851,16 @@ async function handleRequest(req) {
       }
     }
     
-    // POST /api/planet/:planetId/building/:buildingType/allocation
-    if (path.match(/^\/api\/planet\/[^\/]+\/building\/[^\/]+\/allocation$/) && method === 'POST') {
+    // POST /api/game/planet/:planetId/building/:buildingType/allocation
+    if (path.match(/^\/api\/game\/planet\/[^\/]+\/building\/[^\/]+\/allocation$/) && method === 'POST') {
       const user = await requireAuth(req);
       if (!user) {
         return errorResponse(req, 'Not authenticated', 401);
       }
       
       const parts = path.split('/');
-      const planetId = parts[3];
-      const buildingType = parts[5];
+      const planetId = parts[4];
+      const buildingType = parts[6];
       
       const body = await req.json();
       const { power, population, priority } = body;

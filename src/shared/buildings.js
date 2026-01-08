@@ -285,7 +285,7 @@ export const BUILDINGS = {
       deuterium: 0
     },
     maxLevel: 50,
-    housingCapacity: 50, // Updated to 50 to match server constant usage
+    housingCapacity: 100,
     energyConsumption: 3,
     requirements: {}
   },

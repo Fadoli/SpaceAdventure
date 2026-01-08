@@ -116,6 +116,7 @@ export const CONFIG = {
   DEBRIS_PERCENTAGE: 0.3,
   MAX_PLANETS_PER_PLAYER: 9,
   FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
+  WATER_CONSUMPTION_PER_POPULATION: 0.2, // Per hour
   POPULATION_HOUSING_RATIO: 50, // Population per housing level
   MIN_POPULATION_GROWTH: 60, // Minimum population growth per hour when food available
   SHIP_BUILD_SPEED: 2500, // Cost units per hour at base speed

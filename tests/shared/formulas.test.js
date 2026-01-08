@@ -21,7 +21,8 @@ import {
   calculatePracticalResearchCost,
   calculatePracticalResearchTime,
   applyTheoreticalBonus,
-  calculateFoodConsumption
+  calculateFoodConsumption,
+  calculateWaterConsumption
 } from '../../src/shared/formulas.js';
 import { BUILDINGS } from '../../src/shared/buildings.js';
 import { SCALING, BUILDING_SPEED_MULTIPLIER } from '../../src/shared/constants.js';
@@ -302,48 +303,55 @@ describe('calculatePowerEffectiveness and calculatePopulationEffectiveness', () 
 
 // ============ Population Change Tests ============
 describe('calculatePopulationChange', () => {
-  it('should maintain population when food available and at max', () => {
+  it('should maintain population when food/water available and at max', () => {
     const maxPop = 1000;
-    const result = calculatePopulationChange(1000, maxPop, true, 1);
+    const result = calculatePopulationChange(1000, maxPop, true, true, 1);
     expect(result).toBe(1000);
   });
 
-  it('should grow population when food available and below max', () => {
-    const result = calculatePopulationChange(100, 1000, true, 1);
+  it('should grow population when food and water available and below max', () => {
+    const result = calculatePopulationChange(100, 1000, true, true, 1);
     expect(result).toBeGreaterThan(100);
   });
 
   it('should apply minimum growth of 60 per hour', () => {
-    const result = calculatePopulationChange(100, 1000, true, 1);
+    const result = calculatePopulationChange(100, 1000, true, true, 1);
     expect(result).toBe(Math.min(1000, 100 + 60));
   });
 
   it('should decay population when no food (2% per hour)', () => {
-    const result = calculatePopulationChange(1000, 5000, false, 1);
+    const result = calculatePopulationChange(1000, 5000, false, true, 1);
+    expect(result).toBeLessThan(1000);
+    const expected = Math.max(10, 1000 - (1000 * 0.02));
+    expect(result).toBe(expected);
+  });
+
+  it('should decay population when no water (2% per hour)', () => {
+    const result = calculatePopulationChange(1000, 5000, true, false, 1);
     expect(result).toBeLessThan(1000);
     const expected = Math.max(10, 1000 - (1000 * 0.02));
     expect(result).toBe(expected);
   });
 
   it('should maintain minimum population of 10', () => {
-    const result = calculatePopulationChange(100, 5000, false, 100);
+    const result = calculatePopulationChange(100, 5000, false, true, 100);
     expect(result).toBeGreaterThanOrEqual(10);
   });
 
   it('should not exceed maximum population', () => {
     const maxPop = 500;
-    const result = calculatePopulationChange(100, maxPop, true, 100);
+    const result = calculatePopulationChange(100, maxPop, true, true, 100);
     expect(result).toBeLessThanOrEqual(maxPop);
   });
 
   it('should apply production multiplier', () => {
-    const result1 = calculatePopulationChange(100, 1000, true, 1, 1.0);
-    const result2 = calculatePopulationChange(100, 1000, true, 1, 2.0);
+    const result1 = calculatePopulationChange(100, 1000, true, true, 1, 1.0);
+    const result2 = calculatePopulationChange(100, 1000, true, true, 1, 2.0);
     expect(result2).toBeGreaterThan(result1);
   });
 });
 
-// ============ Food Consumption Tests ============
+// ============ Food/Water/Energy Consumption Tests ============
 describe('calculateFoodConsumption', () => {
   it('should calculate food consumption based on population', () => {
     const population = 1000;
@@ -354,6 +362,15 @@ describe('calculateFoodConsumption', () => {
 
   it('should return 0 for zero population', () => {
     expect(calculateFoodConsumption(0, 0.1)).toBe(0);
+  });
+});
+
+describe('calculateWaterConsumption', () => {
+  it('should calculate water consumption based on population', () => {
+    const population = 1000;
+    const rate = 0.2;
+    const result = calculateWaterConsumption(population, rate);
+    expect(result).toBe(200);
   });
 });
 

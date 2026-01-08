@@ -123,10 +123,14 @@ function sha256_fallback(ascii) {
  * Format large numbers with abbreviations
  */
 export function formatNumber(num) {
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return Math.floor(num).toLocaleString();
+    const sign = num < 0 ? '-' : '';
+    const absNum = Math.abs(num);
+    
+    if (absNum >= 1e9) return sign + (absNum / 1e9).toFixed(2) + 'B';
+    if (absNum >= 1e6) return sign + (absNum / 1e6).toFixed(2) + 'M';
+    if (absNum >= 1e3) return sign + (absNum / 1e3).toFixed(2) + 'K';
+    
+    return (num >= 0 ? Math.floor(num) : Math.ceil(num)).toLocaleString();
 }
 
 /**

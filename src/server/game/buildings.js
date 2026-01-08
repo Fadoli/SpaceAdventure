@@ -18,7 +18,8 @@ import {
   getBuildingPopulationRequired,
   calculateAllocationEffectiveness,
   calculatePositionMultiplier,
-  calculateFoodConsumption
+  calculateFoodConsumption,
+  calculateWaterConsumption
 } from '../../shared/formulas.js';
 import { CONFIG, BUILDING_SPEED_MULTIPLIER, SCALING } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.js';
@@ -395,7 +396,7 @@ export async function processCompletedBuildings(player) {
 /**
  * Calculate total energy production from all energy-producing buildings
  */
-function calculateTotalEnergyProduction(planet, player = null) {
+function calculateTotalEnergyProduction(planet, player = null, allocations = null) {
   let totalEnergy = 0;
   
   // Get energy tech bonus: data-driven buildingEnergyProduction
@@ -409,12 +410,16 @@ function calculateTotalEnergyProduction(planet, player = null) {
     const building = getEffectiveBuildingDefinition(buildingType, planet, player);
     if (!building || !building.production || !building.production.energy) continue;
     
-    const allocation = planet.buildingAllocations[buildingType] || { power: 1.0, population: 1.0 };
+    // Use provided allocations or fall back to planet desired allocations
+    const allocation = (allocations && allocations[buildingType]) 
+      ? allocations[buildingType] 
+      : (planet.buildingAllocations[buildingType] || { power: 1.0, population: 1.0 });
+      
     const production = getProduction(buildingType, level, planet, player);
     
     if (production.energy) {
       // For energy producers, apply population effectiveness only (they don't consume power)
-      const populationEff = Math.sqrt(allocation.population); // Simplified effectiveness
+      const populationEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
       totalEnergy += production.energy * populationEff * bonus;
     }
   }
@@ -423,22 +428,25 @@ function calculateTotalEnergyProduction(planet, player = null) {
 }
 
 /**
- * Apply priority-based allocation when resources are scarce
- * Returns actual allocations based on available resources and priorities
+ * Resolve population allocation based on priority
  */
-function applyPriorityBasedAllocation(planet, availablePopulation, availableEnergy) {
-  // Initialize actual allocations object
+function resolvePopulationAllocation(planet, availablePopulation, player = null) {
+  // Initialize actual allocations object from desired
   const actualAllocations = {};
   
-  // Collect all buildings with their demands based on DESIRED allocations
+  // Collect all buildings with their demands
   const buildings = [];
   
   for (const buildingType in planet.buildings) {
     const level = planet.buildings[buildingType];
     if (level === 0) continue;
     
-    const building = BUILDINGS[buildingType];
-    if (!building) continue;
+    // Get effective definition to calculate correct demand (blueprints support)
+    const effectiveDef = getEffectiveBuildingDefinition(buildingType, planet, player);
+    const effectiveBuildingsObj = { [buildingType]: effectiveDef };
+    
+    // Check if building still exists in effective definitions (it should)
+    if (!effectiveDef) continue;
     
     const desiredAllocation = planet.buildingAllocations[buildingType] || { 
       power: 1.0, 
@@ -446,58 +454,23 @@ function applyPriorityBasedAllocation(planet, availablePopulation, availableEner
       priority: 3
     };
     
-    // Calculate base demands using DESIRED allocation and shared functions
-    let energyDemand = 0;
-    const baseEnergyConsumption = getBuildingEnergyConsumption(buildingType, level, BUILDINGS);
-    energyDemand = baseEnergyConsumption * desiredAllocation.power;
-    
-    let populationDemand = 0;
-    const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, BUILDINGS);
-    populationDemand = basePopulationRequired * desiredAllocation.population;
+    // Calculate population demand using effective definition
+    const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
+    const populationDemand = basePopulationRequired * desiredAllocation.population;
     
     buildings.push({
       type: buildingType,
       desiredAllocation,
-      energyDemand,
       populationDemand,
       priority: desiredAllocation.priority || 3
     });
     
-    // Initialize actual allocation to desired (will be adjusted below)
+    // Initialize actual allocation to desired
     actualAllocations[buildingType] = {
       power: desiredAllocation.power,
-      population: desiredAllocation.population
+      population: desiredAllocation.population,
+      priority: desiredAllocation.priority || 3
     };
-  }
-  
-  // Allocate energy by priority
-  let remainingEnergy = availableEnergy;
-  for (let priority = 1; priority <= 3; priority++) {
-    const buildingsAtPriority = buildings.filter(b => b.priority === priority && b.energyDemand > 0);
-    
-    if (buildingsAtPriority.length === 0) continue;
-    
-    const totalDemand = buildingsAtPriority.reduce((sum, b) => sum + b.energyDemand, 0);
-    
-    if (totalDemand <= remainingEnergy) {
-      // Enough energy for all at this priority - keep desired allocation
-      remainingEnergy -= totalDemand;
-    } else {
-      // Not enough energy, distribute proportionally
-      const ratio = remainingEnergy / totalDemand;
-      for (const b of buildingsAtPriority) {
-        actualAllocations[b.type].power = b.desiredAllocation.power * ratio;
-      }
-      remainingEnergy = 0;
-      
-      // Zero out lower priorities
-      for (let p = priority + 1; p <= 3; p++) {
-        buildings.filter(b => b.priority === p).forEach(b => {
-          actualAllocations[b.type].power = 0;
-        });
-      }
-      break;
-    }
   }
   
   // Allocate population by priority
@@ -510,7 +483,7 @@ function applyPriorityBasedAllocation(planet, availablePopulation, availableEner
     const totalDemand = buildingsAtPriority.reduce((sum, b) => sum + b.populationDemand, 0);
     
     if (totalDemand <= remainingPopulation) {
-      // Enough population for all at this priority - keep desired allocation
+      // Enough population for all at this priority
       remainingPopulation -= totalDemand;
     } else {
       // Not enough population, distribute proportionally
@@ -534,6 +507,72 @@ function applyPriorityBasedAllocation(planet, availablePopulation, availableEner
 }
 
 /**
+ * Resolve energy allocation based on priority
+ * Uses existing actualAllocations (already processed for population) and updates power
+ */
+function resolveEnergyAllocation(planet, availableEnergy, actualAllocations, player = null) {
+  // Collect all buildings with energy demands
+  const buildings = [];
+  
+  for (const buildingType in planet.buildings) {
+    const level = planet.buildings[buildingType];
+    if (level === 0) continue;
+    
+    // Get effective definition (blueprints support)
+    const effectiveDef = getEffectiveBuildingDefinition(buildingType, planet, player);
+    const effectiveBuildingsObj = { [buildingType]: effectiveDef };
+    if (!effectiveDef) continue;
+    
+    // Use the allocation that might already exist (for desired power/priority)
+    const allocation = actualAllocations[buildingType];
+    if (!allocation) continue; // Should have been initialized in population step
+    
+    // Calculate energy demand based on desired power using effective definition
+    const baseEnergyConsumption = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj);
+    const energyDemand = baseEnergyConsumption * allocation.power;
+    
+    buildings.push({
+      type: buildingType,
+      energyDemand,
+      priority: allocation.priority || 3
+    });
+  }
+  
+  // Allocate energy by priority
+  let remainingEnergy = availableEnergy;
+  for (let priority = 1; priority <= 3; priority++) {
+    const buildingsAtPriority = buildings.filter(b => b.priority === priority && b.energyDemand > 0);
+    
+    if (buildingsAtPriority.length === 0) continue;
+    
+    const totalDemand = buildingsAtPriority.reduce((sum, b) => sum + b.energyDemand, 0);
+    
+    if (totalDemand <= remainingEnergy) {
+      // Enough energy
+      remainingEnergy -= totalDemand;
+    } else {
+      // Not enough energy, distribute proportionally
+      const ratio = remainingEnergy / totalDemand;
+      for (const b of buildingsAtPriority) {
+        // Here we modify the actual allocation directly
+        actualAllocations[b.type].power *= ratio;
+      }
+      remainingEnergy = 0;
+      
+      // Zero out lower priorities
+      for (let p = priority + 1; p <= 3; p++) {
+        buildings.filter(b => b.priority === p).forEach(b => {
+          actualAllocations[b.type].power = 0;
+        });
+      }
+      break;
+    }
+  }
+  
+  return actualAllocations;
+}
+
+/**
  * Update planet production based on buildings
  */
 export function updatePlanetProduction(planet, player = null) {
@@ -545,11 +584,18 @@ export function updatePlanetProduction(planet, player = null) {
     planet.buildingAllocations = {};
   }
   
-  // First pass: Calculate demands and apply priority-based allocation
+  // 1. Resolve Population Allocation first
+  // This ensures we know exactly which buildings are staffed
   const currentPopulation = planet.resources?.population || 0;
-  const totalEnergyProduced = calculateTotalEnergyProduction(planet, player);
+  let actualAllocations = resolvePopulationAllocation(planet, currentPopulation, player);
   
-  const actualAllocations = applyPriorityBasedAllocation(planet, currentPopulation, totalEnergyProduced);
+  // 2. Calculate Energy Production based on resolved population
+  // Solar plants etc might produce less if understaffed
+  const totalEnergyProduced = calculateTotalEnergyProduction(planet, player, actualAllocations);
+  
+  // 3. Resolve Energy Allocation based on the actual energy produced
+  // This turns off mines if there isn't enough power
+  actualAllocations = resolveEnergyAllocation(planet, totalEnergyProduced, actualAllocations, player);
   
   // Store actual allocations for display purposes
   if (!planet.actualAllocations) {
@@ -647,39 +693,52 @@ export function updatePlanetProduction(planet, player = null) {
     }
   }
   
-  // Store consumption
-  planet.energyConsumption = totalEnergyConsumption;
-  planet.consumption.energy = totalEnergyConsumption;
-  planet.consumption.water = totalWaterConsumption;
-  planet.consumption.population = totalPopulationRequired;
-  
   // Calculate max population from housing
   const housingLevel = planet.buildings.housing || 0;
   const housingDef = BUILDINGS.housing;
   const housingRatio = housingDef.housingCapacity || CONFIG.POPULATION_HOUSING_RATIO;
   planet.maxPopulation = housingRatio * housingLevel * Math.pow(SCALING.BUILDING_HOUSING, housingLevel);
   
-  // Food consumption based on current population
+  // Calculate total consumption (Buildings + Population)
   const currentPop = planet.resources.population || 0;
+  
+  // 1. Food
   planet.consumption.food = calculateFoodConsumption(currentPop, CONFIG.FOOD_CONSUMPTION_PER_POPULATION);
   
+  // 2. Water (Buildings already added to totalWaterConsumption, now add population need)
+  const populationWaterNeed = calculateWaterConsumption(currentPop, CONFIG.WATER_CONSUMPTION_PER_POPULATION);
+  planet.consumption.water = totalWaterConsumption + populationWaterNeed;
+  
+  // 3. Energy (Buildings already added to totalEnergyConsumption)
+  // 4. Workers (Calculated in loop as totalPopulationRequired)
+  planet.consumption.population = totalPopulationRequired;
+  
+  // Store final totals
+  planet.energyConsumption = totalEnergyConsumption;
+  planet.consumption.energy = totalEnergyConsumption;
+
   // Energy balance
-  const netEnergy = planet.production.energy - totalEnergyConsumption;
   const originalEnergy = planet.production.energy;
+  const netEnergy = originalEnergy - totalEnergyConsumption;
   planet.production.energy = netEnergy;
   
-  // If not enough energy, reduce production efficiency
-  if (netEnergy < 0 && totalEnergyConsumption > 0) {
-    const efficiency = Math.max(0, originalEnergy / totalEnergyConsumption);
-    planet.production.metal = Math.floor(planet.production.metal * efficiency);
-    planet.production.crystal = Math.floor(planet.production.crystal * efficiency);
-    planet.production.deuterium = Math.floor(planet.production.deuterium * efficiency);
-    planet.production.water = Math.floor(planet.production.water * efficiency);
-    planet.production.food = Math.floor(planet.production.food * efficiency);
-    planet.energyEfficiency = Math.floor(efficiency * 100);
-  } else {
-    planet.energyEfficiency = 100;
+  // Calculate global efficiencies for reporting (UI)
+  // Note: Production reduction is already handled by allocation logic
+  // which adjusts actualAllocations for individual buildings.
+  
+  let populationEfficiency = 1.0;
+  if (currentPop < totalPopulationRequired && totalPopulationRequired > 0) {
+    populationEfficiency = currentPop / totalPopulationRequired;
   }
+
+  let energyEfficiency = 1.0;
+  if (netEnergy < 0 && totalEnergyConsumption > 0) {
+    energyEfficiency = Math.max(0, originalEnergy / totalEnergyConsumption);
+  }
+
+  // Store efficiencies for UI display
+  planet.energyEfficiency = Math.floor(energyEfficiency * 100);
+  planet.populationEfficiency = Math.floor(populationEfficiency * 100);
   
   // Update storage capacity
   updatePlanetStorage(planet);

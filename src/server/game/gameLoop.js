@@ -81,12 +81,14 @@ async function gameTick() {
           const currentPopulation = planet.resources.population || 0;
           const maxPopulation = planet.maxPopulation || 0;
           const foodAvailable = planet.resources.food > 0;
+          const waterAvailable = planet.resources.water > 0;
           const productionMultiplier = getResourceProductionMultiplier();
           
           planet.resources.population = calculatePopulationChange(
             currentPopulation,
             maxPopulation,
             foodAvailable,
+            waterAvailable,
             hoursElapsed,
             productionMultiplier
           );

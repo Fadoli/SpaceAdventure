@@ -3,6 +3,7 @@ import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
+import { calculatePopulationChange } from '../../../shared/formulas.js';
 
 let lastOverviewPlanetId = null;
 
@@ -173,7 +174,7 @@ export function updateOverview(planet, allPlanets = []) {
         lastOverviewPlanetId = planet.id;
     }
 
-    const { resources, storage, production, energyConsumption, energyEfficiency, coordinates, ships, defenses } = planet;
+    const { resources, storage, production, energyConsumption, energyEfficiency, populationEfficiency, coordinates, ships, defenses } = planet;
     const [galaxy, system, position] = coordinates;
     const { used, total } = calculateFields(planet);
     const { min, max } = calculateTemperature(position);
@@ -214,15 +215,14 @@ export function updateOverview(planet, allPlanets = []) {
 
     const warningContainer = document.getElementById('ov-energy-warning-container');
     if (warningContainer) {
-        if (energyEfficiency < 100) {
-            warningContainer.innerHTML = `
-                <div class="energy-warning">
-                    ⚠️ Efficiency: ${energyEfficiency}%
-                </div>
-            `;
-        } else {
-            warningContainer.innerHTML = '';
+        let warnings = '';
+        if (energyEfficiency !== undefined && energyEfficiency < 100) {
+            warnings += `<div class="energy-warning">⚠️ Power Efficiency: ${energyEfficiency}%</div>`;
         }
+        if (populationEfficiency !== undefined && populationEfficiency < 100) {
+            warnings += `<div class="energy-warning">⚠️ Pop. Efficiency: ${populationEfficiency}%</div>`;
+        }
+        warningContainer.innerHTML = warnings;
     }
 
     const visualEl = document.getElementById('ov-planet-visual');
@@ -235,7 +235,7 @@ export function updateOverview(planet, allPlanets = []) {
  * Update resource display in header (unchanged, but ensuring null checks from previous step)
  */
 export function updateResources(planet) {
-    const { resources, production, energyConsumption, energyEfficiency, maxPopulation } = planet;
+    const { resources, production, consumption, energyConsumption, energyEfficiency, populationEfficiency, maxPopulation } = planet;
     
     const metalAmt = document.getElementById('metal-amount');
     const crystalAmt = document.getElementById('crystal-amount');
@@ -247,36 +247,80 @@ export function updateResources(planet) {
     
     const energyAmt = document.getElementById('energy-amount');
     if (energyAmt) {
+        // Balance is already net in production.energy
         const energyDisplay = production.energy >= 0 
             ? `${formatNumber(production.energy)}` 
             : `<span style="color: var(--accent-red)">${formatNumber(production.energy)}</span>`;
         energyAmt.innerHTML = energyDisplay;
+    }
+
+    const energyProdEl = document.getElementById('energy-production');
+    if (energyProdEl) {
+        const grossEnergyProd = (production.energy || 0) + (energyConsumption || 0);
+        energyProdEl.textContent = `+${formatNumber(grossEnergyProd)} -${formatNumber(energyConsumption || 0)}`;
     }
     
     const metalProdEl = document.getElementById('metal-production');
     const crystalProdEl = document.getElementById('crystal-production');
     const deutProdEl = document.getElementById('deuterium-production');
     
-    const metalProdValue = energyEfficiency < 100 ? `${formatNumber(production.metal)} (${energyEfficiency}%)` : formatNumber(production.metal);
-    const crystalProdValue = energyEfficiency < 100 ? `${formatNumber(production.crystal)} (${energyEfficiency}%)` : formatNumber(production.crystal);
-    const deutProdValue = energyEfficiency < 100 ? `${formatNumber(production.deuterium)} (${energyEfficiency}%)` : formatNumber(production.deuterium);
+    // Determine lowest efficiency to display
+    let efficiency = 100;
+    if (energyEfficiency !== undefined && energyEfficiency < 100) efficiency = energyEfficiency;
+    if (populationEfficiency !== undefined && populationEfficiency < efficiency) efficiency = populationEfficiency;
+    
+    const displaySuffix = efficiency < 100 ? ` (${efficiency}%)` : '';
+    
+    const formatProd = (val) => (val >= 0 ? '+' : '') + formatNumber(val) + displaySuffix;
 
-    if (metalProdEl) metalProdEl.textContent = metalProdValue;
-    if (crystalProdEl) crystalProdEl.textContent = crystalProdValue;
-    if (deutProdEl) deutProdEl.textContent = deutProdValue;
+    if (metalProdEl) metalProdEl.textContent = formatProd(production.metal);
+    if (crystalProdEl) crystalProdEl.textContent = formatProd(production.crystal);
+    if (deutProdEl) deutProdEl.textContent = formatProd(production.deuterium);
     
     const waterAmt = document.getElementById('water-amount');
     const waterProd = document.getElementById('water-production');
     if (waterAmt) waterAmt.textContent = formatNumber(resources.water || 0);
-    if (waterProd) waterProd.textContent = formatNumber(production.water || 0);
+    if (waterProd) {
+        const netWater = (production.water || 0) - (consumption?.water || 0);
+        waterProd.textContent = formatProd(netWater);
+        waterProd.style.color = netWater < 0 ? 'var(--accent-red)' : '';
+    }
     
     const foodAmt = document.getElementById('food-amount');
     const foodProd = document.getElementById('food-production');
     if (foodAmt) foodAmt.textContent = formatNumber(resources.food || 0);
-    if (foodProd) foodProd.textContent = formatNumber(production.food || 0);
+    if (foodProd) {
+        const netFood = (production.food || 0) - (consumption?.food || 0);
+        foodProd.textContent = formatProd(netFood);
+        foodProd.style.color = netFood < 0 ? 'var(--accent-red)' : '';
+    }
     
     const popAmt = document.getElementById('population-amount');
     const popMax = document.getElementById('population-max');
+    const popProd = document.getElementById('population-production');
+    
     if (popAmt) popAmt.textContent = formatNumber(resources.population || 0);
     if (popMax) popMax.textContent = formatNumber(maxPopulation || 0);
+    
+    if (popProd) {
+        const currentPopulation = resources.population || 0;
+        const foodAvailable = (resources.food || 0) > 0;
+        const waterAvailable = (resources.water || 0) > 0;
+        const prodMult = window.GAME_CONFIG?.gameSpeed?.resourceProduction || 1.0;
+        
+        // Calculate population after 1 hour to see net change
+        const nextPop = calculatePopulationChange(
+            currentPopulation,
+            maxPopulation,
+            foodAvailable,
+            waterAvailable,
+            1, // 1 hour
+            prodMult
+        );
+        
+        const netChange = nextPop - currentPopulation;
+        const sign = netChange >= 0 ? '+' : '';
+        popProd.textContent = sign + formatNumber(netChange);
+        popProd.style.color = netChange < 0 ? 'var(--accent-red)' : (netChange > 0 ? 'var(--accent-green)' : '');
+    }
 }
