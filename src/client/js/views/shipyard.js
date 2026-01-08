@@ -205,17 +205,18 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                 <div>🚀 Spd: ${formatNumber(ship.speed || 0)}</div>
                 ${ship.cargoCapacity > 0 ? `<div>📦 Cgo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
             </div>
-            <div class="ship-cost">
-                <div>⚙️${formatNumber(cost.metal)}</div>
-                <div>💎${formatNumber(cost.crystal)}</div>
-                ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+            <div class="ship-cost" id="cost-${identifier}">
+                <div class="cost-metal">⚙️${formatNumber(cost.metal)}</div>
+                <div class="cost-crystal">💎${formatNumber(cost.crystal)}</div>
+                ${cost.deuterium > 0 ? `<div class="cost-deuterium">🛢️${formatNumber(cost.deuterium)}</div>` : ''}
             </div>
-            <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
+            <div class="build-time" id="time-${identifier}">🕐 ${formatCountdown(buildTime)}</div>
             ${isLocked ? `
                 <div class="locked-message">🔒 Unlock at Shipyard Level ${shipyardLevel}</div>
             ` : `
-                <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="Quantity" min="1" max="100">
+                <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="Quantity" min="1" max="100" data-id="${identifier}">
                 <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                        id="btn-${identifier}"
                         ${!canBuild ? 'disabled' : ''} 
                         onclick="window.buildShip('${identifier}', '${name}')">
                     Build
@@ -286,17 +287,18 @@ function renderDefensesList(planet, shipyardData) {
                         <div>🛡️ Shield: ${defense.shield}</div>
                         <div>❤️ Hull: ${defense.hull}</div>
                     </div>
-                    <div class="defense-cost">
-                        <div>⚙️${formatNumber(cost.metal)}</div>
-                        <div>💎${formatNumber(cost.crystal)}</div>
-                        ${cost.deuterium > 0 ? `<div>🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+                    <div class="defense-cost" id="cost-${defenseKey}">
+                        <div class="cost-metal">⚙️${formatNumber(cost.metal)}</div>
+                        <div class="cost-crystal">💎${formatNumber(cost.crystal)}</div>
+                        ${cost.deuterium > 0 ? `<div class="cost-deuterium">🛢️${formatNumber(cost.deuterium)}</div>` : ''}
                     </div>
-                    <div class="build-time">🕐 ${formatCountdown(buildTime)}</div>
+                    <div class="build-time" id="time-${defenseKey}">🕐 ${formatCountdown(buildTime)}</div>
                     ${isLocked ? `
                         <div class="locked-message">🔒 Unlock at Shipyard Level ${minLevel}</div>
                     ` : `
-                        <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="Quantity" min="1" max="100">
+                        <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="Quantity" min="1" max="100" data-id="${defenseKey}">
                         <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                                id="btn-${defenseKey}"
                                 ${!canBuild ? 'disabled' : ''} 
                                 onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
                             Build
@@ -454,6 +456,95 @@ function attachShipyardListeners(planet, shipyardData) {
         const subView = categoryId.startsWith('ships') ? 'ships' : 'defenses';
         updateShipyardView(planet, subView);
     };
+
+    // Add input listeners for real-time cost updates
+    const inputs = document.querySelectorAll('.ship-quantity, .defense-quantity');
+    inputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const qty = parseInt(e.target.value) || 1;
+            const id = e.target.dataset.id;
+            const isShip = e.target.classList.contains('ship-quantity');
+            updateProductionInfo(isShip ? 'ship' : 'defense', id, qty, planet);
+        });
+    });
+}
+
+/**
+ * Update cost and time info based on quantity
+ */
+function updateProductionInfo(type, id, quantity, planet) {
+    if (quantity < 1) quantity = 1;
+    
+    let cost, buildTime, def;
+    
+    if (type === 'ship') {
+        // Find ship definition (base or blueprint)
+        def = currentShipyardData.availableShips[id];
+        if (!def && currentShipyardData.shipBlueprints) {
+             for (const baseKey in currentShipyardData.shipBlueprints) {
+                const blueprints = currentShipyardData.shipBlueprints[baseKey];
+                const found = blueprints.find(b => b.id === id);
+                if (found) {
+                    def = found.customDefinition;
+                    break;
+                }
+            }
+        }
+        
+        if (!def) return;
+        
+        cost = calculateShipCostForDef(def, quantity);
+        buildTime = calculateShipBuildTimeForDef(def, quantity, currentShipyardData.shipyardLevel, currentShipyardData.naniteLevel);
+    } else {
+        // Defense
+        def = currentShipyardData.availableDefenses[id];
+        if (!def) return;
+        
+        cost = {
+            metal: Math.floor(def.baseCost.metal * quantity),
+            crystal: Math.floor(def.baseCost.crystal * quantity),
+            deuterium: Math.floor(def.baseCost.deuterium * quantity)
+        };
+        
+        const baseTime = calculateBaseTime(def) * quantity;
+        const speedFactor = CONFIG.DEFENSE_BUILD_SPEED || 2500;
+        const timeInSeconds = (baseTime / speedFactor) * 3600;
+        const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, currentShipyardData.shipyardLevel);
+        const naniteMultiplier = Math.pow(2, currentShipyardData.naniteLevel || 0);
+        const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
+        
+        buildTime = Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier / naniteMultiplier * configMultiplier));
+    }
+    
+    // Update UI
+    const costEl = document.getElementById(`cost-${id}`);
+    const timeEl = document.getElementById(`time-${id}`);
+    const btn = document.getElementById(`btn-${id}`);
+    
+    if (costEl) {
+        costEl.innerHTML = `
+            <div class="cost-metal">⚙️${formatNumber(cost.metal)}</div>
+            <div class="cost-crystal">💎${formatNumber(cost.crystal)}</div>
+            ${cost.deuterium > 0 ? `<div class="cost-deuterium">🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+        `;
+    }
+    
+    if (timeEl) {
+        timeEl.innerHTML = `🕐 ${formatCountdown(buildTime)}`;
+    }
+    
+    if (btn) {
+        const canAfford = planet.resources.metal >= cost.metal &&
+                          planet.resources.crystal >= cost.crystal &&
+                          planet.resources.deuterium >= cost.deuterium;
+        
+        btn.disabled = !canAfford;
+        if (canAfford) {
+            btn.classList.add('btn-success');
+        } else {
+            btn.classList.remove('btn-success');
+        }
+    }
 }
 
 /**
