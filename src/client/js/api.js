@@ -103,7 +103,7 @@ export const API = {
         return await this.request('/game/rankings');
     },
 
-    async getTheoreticalResearch(planetId) {
+    async getShipyardDetails(planetId) {
         return await this.request(`/game/planet/${planetId}/shipyard`);
     },
     
