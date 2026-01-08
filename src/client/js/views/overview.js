@@ -102,39 +102,73 @@ function initializeOverviewStructure(container, planet, allPlanets) {
         
         <div class="overview-grid">
             <div class="overview-card resources-card">
-                <h3>Resource Storage</h3>
+                <h3>📦 Storage & Production</h3>
                 <div class="resource-detail-list">
+                    <div class="res-row header-row">
+                        <span class="res-name">Resource</span>
+                        <span class="res-val">Current / Max</span>
+                        <span class="res-prod">Net Production</span>
+                    </div>
                     <div class="res-row">
                         <span class="res-name metal">Metal</span>
                         <span class="res-val" id="ov-res-metal">-</span>
+                        <span class="res-prod" id="ov-prod-metal">-</span>
                     </div>
                     <div class="res-row">
                         <span class="res-name crystal">Crystal</span>
                         <span class="res-val" id="ov-res-crystal">-</span>
+                        <span class="res-prod" id="ov-prod-crystal">-</span>
                     </div>
                     <div class="res-row">
                         <span class="res-name deuterium">Deuterium</span>
                         <span class="res-val" id="ov-res-deuterium">-</span>
+                        <span class="res-prod" id="ov-prod-deuterium">-</span>
+                    </div>
+                    <div class="res-row">
+                        <span class="res-name water">Water</span>
+                        <span class="res-val" id="ov-res-water">-</span>
+                        <span class="res-prod" id="ov-prod-water">-</span>
+                    </div>
+                    <div class="res-row">
+                        <span class="res-name food">Food</span>
+                        <span class="res-val" id="ov-res-food">-</span>
+                        <span class="res-prod" id="ov-prod-food">-</span>
                     </div>
                 </div>
             </div>
             
             <div class="overview-card energy-card">
-                <h3>Energy Systems</h3>
+                <h3>⚡ Energy & Population</h3>
                 <div class="resource-detail-list">
                     <div class="res-row">
-                        <span class="res-name energy">Production</span>
-                        <span class="res-val text-success" id="ov-energy-prod">-</span>
-                    </div>
-                    <div class="res-row">
-                        <span class="res-name energy">Consumption</span>
-                        <span class="res-val text-warning" id="ov-energy-cons">-</span>
-                    </div>
-                    <div class="res-row total-row">
-                        <span class="res-name energy">Net Balance</span>
+                        <span class="res-name energy">Energy Balance</span>
                         <span class="res-val" id="ov-energy-net">-</span>
                     </div>
-                    <div id="ov-energy-warning-container"></div>
+                    <div class="res-row sub-row">
+                        <span class="res-name">└ Production</span>
+                        <span class="res-val text-success" id="ov-energy-prod">-</span>
+                    </div>
+                    <div class="res-row sub-row">
+                        <span class="res-name">└ Consumption</span>
+                        <span class="res-val text-warning" id="ov-energy-cons">-</span>
+                    </div>
+                    
+                    <div class="res-row" style="margin-top: 10px;">
+                        <span class="res-name population">Population</span>
+                        <span class="res-val" id="ov-pop-val">-</span>
+                    </div>
+                    <div class="res-row sub-row">
+                        <span class="res-name">└ Change Rate</span>
+                        <span class="res-val" id="ov-pop-prod">-</span>
+                    </div>
+                    <div id="ov-efficiency-warning-container"></div>
+                </div>
+            </div>
+
+            <div class="overview-card queue-card">
+                <h3>🔨 Active Queues</h3>
+                <div class="queue-summary-list" id="ov-queue-list">
+                    <p class="empty-text">No active construction or production</p>
                 </div>
             </div>
         </div>
@@ -174,7 +208,7 @@ export function updateOverview(planet, allPlanets = []) {
         lastOverviewPlanetId = planet.id;
     }
 
-    const { resources, storage, production, energyConsumption, energyEfficiency, populationEfficiency, coordinates, ships, defenses } = planet;
+    const { resources, storage, production, consumption, energyConsumption, energyEfficiency, populationEfficiency, coordinates, ships, defenses } = planet;
     const [galaxy, system, position] = coordinates;
     const { used, total } = calculateFields(planet);
     const { min, max } = calculateTemperature(position);
@@ -195,13 +229,23 @@ export function updateOverview(planet, allPlanets = []) {
     safeSetText('ov-military-summary', `${formatNumber(shipCount)} Ships, ${formatNumber(defenseCount)} Defenses`);
 
     // Update resources
-    safeSetText('ov-res-metal', `${formatNumber(resources.metal)} / ${formatNumber(storage.metal)}`);
-    safeSetText('ov-res-crystal', `${formatNumber(resources.crystal)} / ${formatNumber(storage.crystal)}`);
-    safeSetText('ov-res-deuterium', `${formatNumber(resources.deuterium)} / ${formatNumber(storage.deuterium)}`);
+    const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
+    resourceKeys.forEach(key => {
+        safeSetText(`ov-res-${key}`, `${formatNumber(resources[key] || 0)} / ${formatNumber(storage[key] || 10000)}`);
+        
+        const prod = production[key] || 0;
+        const cons = consumption?.[key] || 0;
+        const net = prod - cons;
+        const prodEl = document.getElementById(`ov-prod-${key}`);
+        if (prodEl) {
+            prodEl.textContent = (net >= 0 ? '+' : '') + formatNumber(net) + '/h';
+            prodEl.className = `res-prod ${net < 0 ? 'text-danger' : 'text-success'}`;
+        }
+    });
 
     // Update energy
-    const energyTotal = production.energy + (energyConsumption || 0);
-    const energyBalance = production.energy;
+    const energyTotal = (production.energy || 0) + (energyConsumption || 0);
+    const energyBalance = production.energy || 0;
     const isNegative = energyBalance < 0;
 
     safeSetText('ov-energy-prod', `+${formatNumber(energyTotal)}`);
@@ -209,20 +253,70 @@ export function updateOverview(planet, allPlanets = []) {
     
     const netEl = document.getElementById('ov-energy-net');
     if (netEl) {
-        netEl.textContent = formatNumber(energyBalance);
+        netEl.textContent = (energyBalance >= 0 ? '+' : '') + formatNumber(energyBalance);
         netEl.className = `res-val ${isNegative ? 'text-danger' : 'text-success'}`;
     }
 
-    const warningContainer = document.getElementById('ov-energy-warning-container');
+    // Update population
+    safeSetText('ov-pop-val', `${formatNumber(resources.population || 0)} / ${formatNumber(planet.maxPopulation || 0)}`);
+    
+    const popProdEl = document.getElementById('ov-pop-prod');
+    if (popProdEl) {
+        const prodMult = window.GAME_CONFIG?.gameSpeed?.resourceProduction || 1.0;
+        const nextPop = calculatePopulationChange(
+            resources.population || 0,
+            planet.maxPopulation || 0,
+            (resources.food || 0) > 0,
+            (resources.water || 0) > 0,
+            1,
+            prodMult
+        );
+        const netChange = nextPop - (resources.population || 0);
+        popProdEl.textContent = (netChange >= 0 ? '+' : '') + formatNumber(netChange) + '/h';
+        popProdEl.className = `res-val ${netChange < 0 ? 'text-danger' : (netChange > 0 ? 'text-success' : '')}`;
+    }
+
+    // Warnings
+    const warningContainer = document.getElementById('ov-efficiency-warning-container');
     if (warningContainer) {
         let warnings = '';
         if (energyEfficiency !== undefined && energyEfficiency < 100) {
-            warnings += `<div class="energy-warning">⚠️ Power Efficiency: ${energyEfficiency}%</div>`;
+            warnings += `<div class="efficiency-warning text-warning">⚠️ Energy Efficiency: ${energyEfficiency}%</div>`;
         }
         if (populationEfficiency !== undefined && populationEfficiency < 100) {
-            warnings += `<div class="energy-warning">⚠️ Pop. Efficiency: ${populationEfficiency}%</div>`;
+            warnings += `<div class="efficiency-warning text-warning">⚠️ Population Efficiency: ${populationEfficiency}%</div>`;
         }
         warningContainer.innerHTML = warnings;
+    }
+
+    // Update Queue Summary
+    const queueList = document.getElementById('ov-queue-list');
+    if (queueList) {
+        const activeQueues = [];
+        
+        // Building Queue
+        if (planet.buildQueue && planet.buildQueue.length > 0) {
+            const item = planet.buildQueue[0];
+            activeQueues.push(`<div>🏗️ Building: <strong>${item.building}</strong> (Lvl ${item.level}) <span class="timer" data-finish="${item.finishTime}">-</span></div>`);
+        }
+        
+        // Ship Queue
+        if (planet.shipQueue && planet.shipQueue.length > 0) {
+            const item = planet.shipQueue[0];
+            activeQueues.push(`<div>🚀 Shipyard: Active Production <span class="timer" data-finish="${item.finishTime}">-</span></div>`);
+        }
+
+        // Defense Queue
+        if (planet.defenseQueue && planet.defenseQueue.length > 0) {
+            const item = planet.defenseQueue[0];
+            activeQueues.push(`<div>🛡️ Defenses: Active Production <span class="timer" data-finish="${item.finishTime}">-</span></div>`);
+        }
+
+        if (activeQueues.length > 0) {
+            queueList.innerHTML = activeQueues.join('');
+        } else {
+            queueList.innerHTML = '<p class="empty-text">No active construction or production</p>';
+        }
     }
 
     const visualEl = document.getElementById('ov-planet-visual');
