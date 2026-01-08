@@ -96,21 +96,13 @@ export function closeDetailsModal() {
     }
 }
 
-function setupModalCloseHandlers(modal) {
-    // Only add listeners if they haven't been added (check for a marker property or similar)
-    // For simplicity, we can remove and re-add or just check if it's already set up
-    // But standard onclick in HTML is easier for single instances.
-    // Here we'll rely on the close button having `onclick="closeDetailsModal()"` or similar
-    // which we will expose globally.
-    
+export function setupModalCloseHandlers(modal) {
     // Click outside to close
     modal.onclick = (e) => {
         if (e.target === modal) {
             closeDetailsModal();
         }
     };
-
-    // ESC key is handled globally or we can add it here specifically for this modal focus
 }
 
 // Expose globally for HTML onclick events

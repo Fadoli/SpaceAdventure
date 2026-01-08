@@ -6,6 +6,7 @@ import { Notifications } from '../notifications.js';
 import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../../shared/ships.js';
 import { calculateDistance } from '../../../shared/formulas.js';
 import { SCALING, MISSION_TYPES } from '../../../shared/constants.js';
+import { setupModalCloseHandlers } from './details.js';
 
 let currentGalaxy = 1;
 let currentSystem = 1;
@@ -40,24 +41,24 @@ async function openMissionModal(missionType, targetCoords) {
     const typeLabel = missionType.charAt(0).toUpperCase() + missionType.slice(1);
     modalTitle.innerHTML = `🚀 ${typeLabel} Mission [${targetCoords.join(':')}]`;
     
-    let html = '<div class="mission-setup-container">';
+    let html = '<div class="expedition-ship-selection">';
     
     // --- Ship Selection Section ---
     html += '<div class="mission-section">';
     html += '<h4>🚢 Select Ships</h4>';
-    html += '<div class="mission-ships-list">';
+    html += '<div class="expedition-ships-list">';
     
     for (const [shipKey, count] of Object.entries(planet.ships)) {
         if (count > 0) {
             const shipName = shipKey.replace(/([A-Z])/g, ' $1').trim();
             html += `
-                <div class="mission-ship-item">
+                <div class="expedition-ship-item">
                     <div class="ship-info">
                         <span class="ship-name">${shipName}</span>
                         <span class="ship-available">(Avail: ${formatNumber(count)})</span>
                     </div>
                     <div class="ship-input">
-                        <input type="number" class="ship-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
+                        <input type="number" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
                         <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateMissionCalculations();">MAX</button>
                     </div>
                 </div>
@@ -67,7 +68,7 @@ async function openMissionModal(missionType, targetCoords) {
     html += '</div></div>';
 
     // --- Resource Selection Section (Only for transport or if ships have cargo) ---
-    if (missionType === MISSION_TYPES.TRANSPORT) {
+    if (missionType === MISSION_TYPES.TRANSPORT || missionType === MISSION_TYPES.DEPLOY) {
         html += '<div class="mission-section" style="margin-top: 20px;">';
         html += '<h4>📦 Select Resources</h4>';
         html += '<div id="cargo-status" style="margin-bottom: 10px; font-weight: bold; color: var(--accent-blue);">Cargo: 0 / 0</div>';
@@ -78,10 +79,10 @@ async function openMissionModal(missionType, targetCoords) {
             const amount = Math.floor(planet.resources[res] || 0);
             const resIcon = { metal: '⚙️', crystal: '💎', deuterium: '🛢️', water: '💦', food: '🍞' }[res];
             html += `
-                <div class="mission-res-item" style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;">
+                <div class="mission-res-item" style="background: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);">
                     <div style="font-size: 0.85rem; margin-bottom: 5px;">${resIcon} ${res.charAt(0).toUpperCase() + res.slice(1)}: ${formatNumber(amount)}</div>
                     <div style="display: flex; gap: 5px;">
-                        <input type="number" class="res-qty-input" data-res="${res}" min="0" max="${amount}" value="0" style="flex: 1; padding: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white;">
+                        <input type="number" class="exp-qty-input res-qty-input" data-res="${res}" min="0" max="${amount}" value="0" style="flex: 1;">
                         <button class="btn-max" style="padding: 2px 6px; font-size: 0.7rem;" onclick="window.maxResource('${res}', ${amount})">MAX</button>
                     </div>
                 </div>
@@ -104,6 +105,7 @@ async function openMissionModal(missionType, targetCoords) {
 
     modalBody.innerHTML = html;
     modal.style.display = 'block';
+    setupModalCloseHandlers(modal);
 
     // Global helpers for this modal
     window.maxResource = function(res, maxAmount) {
@@ -254,6 +256,11 @@ window.transportToPlanetFromGalaxy = function(position) {
     openMissionModal(MISSION_TYPES.TRANSPORT, coords);
 };
 
+window.deployToPlanetFromGalaxy = function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    openMissionModal(MISSION_TYPES.DEPLOY, coords);
+};
+
 /**
  * Update galaxy view with current system data
  */
@@ -396,6 +403,13 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
     const rowClass = isPlayerPlanet ? 'my-planet-row' : '';
     const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : 'ai-planet-row';
     
+    // Check if this is the currently active planet
+    const currentPlanet = window.getCurrentPlanet();
+    const isCurrentPlanet = currentPlanet && 
+                           currentPlanet.coordinates[0] === window.currentGalaxy && 
+                           currentPlanet.coordinates[1] === window.currentSystem && 
+                           currentPlanet.coordinates[2] === position;
+
     return `
         <tr class="planet-row ${rowClass} ${planetTypeClass}">
             <td class="pos-col"><strong>${position}</strong></td>
@@ -417,7 +431,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
             </td>
             <td class="status-col">
                 <span class="status-badge ${isPlayerPlanet ? 'status-own' : 'status-other'}">
-                    ${isPlayerPlanet ? '🏠 Own' : '👾 Other'}
+                    ${isPlayerPlanet ? (isCurrentPlanet ? '🏠 Current' : '🏠 Own') : '👾 Other'}
                 </span>
             </td>
             <td class="action-col">
@@ -425,6 +439,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                     ${isPlayerPlanet ? `
                         <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy('${planet.player}')" title="View planet">👁️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
+                        <button class="action-btn deploy-btn" onclick="window.deployToPlanetFromGalaxy(${position})" title="Deploy Fleet" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🪂</button>
                     ` : `
                         <button class="action-btn info-btn" onclick="window.spyOnPlanetFromGalaxy(${position})" title="Spy">🕵️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
@@ -546,6 +561,7 @@ window.sendExpeditionFromGalaxy = async function() {
 
     modalBody.innerHTML = shipsHtml;
     modal.style.display = 'block';
+    setupModalCloseHandlers(modal);
 
     // Store submit function
     window.submitExpedition = async function() {

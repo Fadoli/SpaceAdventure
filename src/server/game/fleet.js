@@ -234,8 +234,61 @@ async function handleFleetArrival(player, fleet, allPlayers) {
     case MISSION_TYPES.TRANSPORT:
       await executeTransport(player, fleet, allPlayers);
       return false; // Returns home empty
+    case MISSION_TYPES.DEPLOY:
+      return await executeDeployment(player, fleet, allPlayers);
     default:
       return false;
+  }
+}
+
+async function executeDeployment(player, fleet, allPlayers) {
+  // Find target planet (Must be OWNED by player)
+  const targetPlanet = player.planets.find(pl => 
+    pl.coordinates[0] === fleet.targetCoords[0] &&
+    pl.coordinates[1] === fleet.targetCoords[1] &&
+    pl.coordinates[2] === fleet.targetCoords[2]
+  );
+
+  if (targetPlanet) {
+    // Deliver resources
+    for (const res in fleet.resources) {
+      targetPlanet.resources[res] = (targetPlanet.resources[res] || 0) + fleet.resources[res];
+      // Cap at storage
+      if (targetPlanet.storage && targetPlanet.storage[res]) {
+        targetPlanet.resources[res] = Math.min(targetPlanet.resources[res], targetPlanet.storage[res]);
+      }
+    }
+
+    // Deliver ships (they STAY here)
+    for (const shipKey in fleet.ships) {
+      targetPlanet.ships[shipKey] = (targetPlanet.ships[shipKey] || 0) + fleet.ships[shipKey];
+    }
+
+    // Return surviving crew to population AT TARGET
+    if (fleet.costs && fleet.costs.crew) {
+      const currentCrew = calculateFleetCrew(fleet.ships);
+      targetPlanet.resources.population = (targetPlanet.resources.population || 0) + currentCrew;
+    }
+
+    await addMessage(player.userId, {
+      from: 'Fleet Command',
+      subject: `Deployment Successful: [${fleet.targetCoords.join(':')}]`,
+      body: `Your fleet has been deployed to ${targetPlanet.name} [${fleet.targetCoords.join(':')}]. They have been integrated into the local forces.`,
+      type: 'transport',
+      data: { target: fleet.targetCoords }
+    });
+
+    return true; // Fleet record removed, ships integrated
+  } else {
+    // Target is not owned by player or doesn't exist
+    await addMessage(player.userId, {
+      from: 'Fleet Command',
+      subject: `Deployment Failed: [${fleet.targetCoords.join(':')}]`,
+      body: `Your fleet reached [${fleet.targetCoords.join(':')}] but deployment failed. Target must be one of your own planets. They are returning home.`,
+      type: 'transport',
+      data: { target: fleet.targetCoords }
+    });
+    return false; // Returns home
   }
 }
 

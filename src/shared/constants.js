@@ -64,6 +64,7 @@ export const SHIPS = {
 export const MISSION_TYPES = {
   ATTACK: 'attack',
   TRANSPORT: 'transport',
+  DEPLOY: 'deploy',
   COLONIZE: 'colonize',
   ESPIONAGE: 'espionage',
   HARVEST: 'harvest',
