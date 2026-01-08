@@ -290,12 +290,12 @@ const PRODUCTION_BUILDING_MODIFIERS = {
   energy: {
     energyMultiplier: 0.975,         // 0.975^level: -2.5% energy consumption per focus level
     costMultiplier: 1.015,           // 1.015^level: +1.5% cost
-    productionMultiplier: 0.999,      // 1.01^level: -0.1% production
+    productionMultiplier: 0.998,      // 0.998^level: -0.2% production
     populationMultiplier: 1.01      // 1.01^level: +1% workforce
   },
   cost: {
-    costMultiplier: 0.98,           // 0.98^level: -2% cost per focus level
-    productionMultiplier: 0.995,     // 0.995^level: -0.5% production (reduced penalty)
+    costMultiplier: 0.977,           // 0.977^level: -2.3% cost per focus level
+    productionMultiplier: 0.998,     // 0.998^level: -0.2% production (reduced penalty)
     energyMultiplier: 1.002,         // 1.002^level: minimal energy change
     populationMultiplier: 1.001      // 1.001^level: minimal population change
   }
