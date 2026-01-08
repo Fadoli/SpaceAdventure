@@ -142,6 +142,16 @@ async function showGameScreen() {
 }
 
 function setupGameListeners() {
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (window.closeDetailsModal) window.closeDetailsModal();
+            if (window.closeInputModal) window.closeInputModal();
+            if (window.closeAllocationModal) window.closeAllocationModal();
+            if (window.closeCustomVariantModal) window.closeCustomVariantModal();
+        }
+    });
+
     // Logout
     document.getElementById('logout-btn').addEventListener('click', async () => {
         const confirmed = await showConfirm('Logout', 'Are you sure you want to log out?');
