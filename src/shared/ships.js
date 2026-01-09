@@ -23,7 +23,10 @@ export const SHIPS = {
     attack: 5,
     shield: 10,
     hull: 400,
-    populationRequired: 2
+    populationRequired: 2,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   largeCargo: {
@@ -43,7 +46,10 @@ export const SHIPS = {
     attack: 5,
     shield: 20,
     hull: 1200,
-    populationRequired: 5
+    populationRequired: 5,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   colonyShip: {
@@ -63,7 +69,10 @@ export const SHIPS = {
     attack: 50,
     shield: 100,
     hull: 3000,
-    populationRequired: 100 // Large crew for colonization
+    populationRequired: 100, // Large crew for colonization
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   recycler: {
@@ -83,7 +92,10 @@ export const SHIPS = {
     attack: 1,
     shield: 10,
     hull: 1600,
-    populationRequired: 15
+    populationRequired: 15,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   espionageProbe: {
@@ -124,7 +136,10 @@ export const SHIPS = {
     attack: 50,
     shield: 10,
     hull: 400,
-    populationRequired: 1
+    populationRequired: 1,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   heavyFighter: {
@@ -144,7 +159,11 @@ export const SHIPS = {
     attack: 150,
     shield: 25,
     hull: 1000,
-    populationRequired: 1
+    populationRequired: 1,
+    rapidFire: {
+      smallCargo: 3,
+      espionageProbe: 5
+    }
   },
 
   // Medium Ships
@@ -165,7 +184,12 @@ export const SHIPS = {
     attack: 400,
     shield: 50,
     hull: 2700,
-    populationRequired: 15
+    populationRequired: 15,
+    rapidFire: {
+      lightFighter: 6,
+      espionageProbe: 5,
+      rocketLauncher: 10
+    }
   },
 
   bomber: {
@@ -185,7 +209,13 @@ export const SHIPS = {
     attack: 1000,
     shield: 25,
     hull: 7500,
-    populationRequired: 20
+    populationRequired: 20,
+    rapidFire: {
+      rocketLauncher: 20,
+      laserCannon: 20,
+      particleBeam: 10,
+      ionCannon: 10
+    }
   },
 
   // Heavy Ships
@@ -206,7 +236,11 @@ export const SHIPS = {
     attack: 1000,
     shield: 200,
     hull: 6000,
-    populationRequired: 60
+    populationRequired: 60,
+    rapidFire: {
+      largeCargo: 5,
+      cruiser: 3
+    }
   },
 
   destroyer: {
@@ -226,7 +260,13 @@ export const SHIPS = {
     attack: 2000,
     shield: 500,
     hull: 11000,
-    populationRequired: 120
+    populationRequired: 120,
+    rapidFire: {
+      battleship: 2,
+      lightFighter: 10,
+      plasmaTurret: 5,
+      espionageProbe: 5
+    }
   }
 };
 

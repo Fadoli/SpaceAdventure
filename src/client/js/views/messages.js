@@ -1,5 +1,5 @@
 import { API } from '../api.js';
-import { formatDate } from '../utils.js';
+import { formatDate, formatNumber, isEmpty } from '../utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 
@@ -166,9 +166,91 @@ function renderMessageData(msg) {
                     </a>
                     <br>${resHtml}
                 </div>`;
+        case 'attack':
+            return renderCombatReport(msg.data);
         default:
             return '';
     }
+}
+
+function renderCombatReport(data) {
+    let html = '<div class="combat-report">';
+    
+    const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') : 
+                       (data.winner === 'defender' ? (data.isAttacker ? 'loser' : 'winner') : 'draw');
+    
+    html += `
+        <div class="combat-header ${winnerClass}">
+            <h3>Winner: ${data.winner.toUpperCase()}</h3>
+            <p>Battle at [${data.targetCoords.join(':')}]</p>
+        </div>
+    `;
+
+    // Loot section
+    if (data.loot && (data.loot.metal > 0 || data.loot.crystal > 0 || data.loot.deuterium > 0)) {
+        html += `
+            <div class="report-section loot-section">
+                <h4>Captured Resources</h4>
+                <div class="res-grid-mini">
+                    <div>⚙️ ${formatNumber(data.loot.metal)}</div>
+                    <div>💎 ${formatNumber(data.loot.crystal)}</div>
+                    <div>🛢️ ${formatNumber(data.loot.deuterium)}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Rounds summary
+    html += `<div class="report-section"><h4>Battle Summary</h4>`;
+    data.rounds.forEach(r => {
+        html += `<div class="round-row">Round ${r.round}: Attacker shots: ${r.attackerShotCount}, Defender shots: ${r.defenderShotCount}</div>`;
+    });
+    html += `</div>`;
+
+    // Losses
+    html += `<div class="report-section losses-grid">
+        <div class="loss-column">
+            <h4>Attacker Losses</h4>
+            <div class="data-list">`;
+    if (isEmpty(data.attackerLosses)) {
+        html += '<span>None</span>';
+    } else {
+        for (const k in data.attackerLosses) {
+            html += `<span>${k.replace(/([A-Z])/g, ' $1').trim()}: ${data.attackerLosses[k]}</span>`;
+        }
+    }
+    html += `</div></div>
+        <div class="loss-column">
+            <h4>Defender Losses</h4>
+            <div class="data-list">`;
+    
+    const defLosses = data.defenderLosses || {};
+    const allDefLosses = { ...(defLosses.ships || {}), ...(defLosses.defenses || {}) };
+    
+    if (isEmpty(allDefLosses)) {
+        html += '<span>None</span>';
+    } else {
+        for (const k in allDefLosses) {
+            html += `<span>${k.replace(/([A-Z])/g, ' $1').trim()}: ${allDefLosses[k]}</span>`;
+        }
+    }
+    html += `</div></div></div>`;
+
+    // Debris Field
+    if (data.debris && (data.debris.metal > 0 || data.debris.crystal > 0)) {
+        html += `
+            <div class="report-section debris-section">
+                <h4>Debris Field Generated</h4>
+                <div class="res-grid-mini">
+                    <div>⚙️ ${formatNumber(data.debris.metal)}</div>
+                    <div>💎 ${formatNumber(data.debris.crystal)}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    return html;
 }
 
 function renderEspionageData(data) {

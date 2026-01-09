@@ -160,3 +160,14 @@ export function formatTime(timestamp) {
     if (!timestamp) return '-';
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
+
+/**
+ * Check if an object is empty
+ */
+export function isEmpty(obj) {
+    if (!obj) return true;
+    for (const key in obj) {
+        return false;
+    }
+    return true;
+}

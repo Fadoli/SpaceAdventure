@@ -3067,6 +3067,67 @@ body {
     gap: 10px;
 }
 
+/* Combat Report */
+.combat-report {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.combat-header {
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 2px solid transparent;
+}
+
+.combat-header.winner {
+    background: rgba(92, 184, 92, 0.1);
+    border-color: var(--accent-green);
+}
+
+.combat-header.loser {
+    background: rgba(217, 83, 79, 0.1);
+    border-color: var(--accent-red);
+}
+
+.combat-header.draw {
+    background: rgba(240, 173, 78, 0.1);
+    border-color: var(--accent-yellow);
+}
+
+.combat-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.round-row {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.losses-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.loss-column h4 {
+    color: var(--accent-red) !important;
+}
+
+.loot-section h4 {
+    color: var(--accent-green) !important;
+}
+
+.debris-section h4 {
+    color: var(--accent-yellow) !important;
+}
+
 .data-list {
     display: flex;
     flex-wrap: wrap;

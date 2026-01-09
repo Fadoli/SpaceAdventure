@@ -30,7 +30,10 @@ export const DEFENSES = {
     },
     attack: 100,
     shield: 25,
-    hull: 2000
+    hull: 2000,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   particleBeam: {
@@ -44,7 +47,10 @@ export const DEFENSES = {
     },
     attack: 250,
     shield: 100,
-    hull: 8000
+    hull: 8000,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   shield: {
@@ -72,7 +78,10 @@ export const DEFENSES = {
     },
     attack: 150,
     shield: 50,
-    hull: 10000
+    hull: 10000,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   antiAirMissile: {
@@ -86,7 +95,10 @@ export const DEFENSES = {
     },
     attack: 200,
     shield: 60,
-    hull: 14000
+    hull: 14000,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   plasmaTurret: {
@@ -100,7 +112,10 @@ export const DEFENSES = {
     },
     attack: 3000,
     shield: 300,
-    hull: 100000
+    hull: 100000,
+    rapidFire: {
+      espionageProbe: 5
+    }
   },
 
   ionCannon: {
@@ -114,7 +129,11 @@ export const DEFENSES = {
     },
     attack: 150,
     shield: 500,
-    hull: 8000
+    hull: 8000,
+    rapidFire: {
+      espionageProbe: 5,
+      smallCargo: 2
+    }
   }
 };
 
