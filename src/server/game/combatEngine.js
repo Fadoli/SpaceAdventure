@@ -50,8 +50,8 @@ export function simulateCombat(attacker, defender) {
     roundData.defenderDamage = Math.floor(defenderActions.totalDamage);
 
     // Apply damage to stacks
-    applyGroupDamage(defenderGroups, attackerActions.shotDistribution);
-    applyGroupDamage(attackerGroups, defenderActions.shotDistribution);
+    applyGroupDamage(defenderGroups, attackerActions);
+    applyGroupDamage(attackerGroups, defenderActions);
 
     // Cleanup destroyed groups
     attackerGroups = attackerGroups.filter(g => g.count > 0);
@@ -152,9 +152,10 @@ function resolveRoundShots(shooterGroups, targetGroups) {
   let totalShots = 0;
   let totalDamage = 0;
 
+  if (targetTotal === 0) return { totalShots: 0, totalDamage: 0, shotDistribution: [] };
+
   shooterGroups.forEach(sGroup => {
     // 1. Calculate continuation probability (P_cont)
-    // P_cont = Sum( Chance_to_hit_type_j * Chance_to_continue_after_hitting_j )
     let pCont = 0;
     targetGroups.forEach(tGroup => {
       const pHit = tGroup.count / targetTotal;
@@ -163,8 +164,7 @@ function resolveRoundShots(shooterGroups, targetGroups) {
       pCont += pHit * pContinueForType;
     });
 
-    // 2. Total expected shots from this group
-    // Expected shots per unit = 1 / (1 - P_cont)
+    // 2. Total expected shots from this group (Geometric Series)
     const shotsPerUnit = 1 / (1 - Math.min(0.999, pCont));
     const groupShots = sGroup.count * shotsPerUnit;
     totalShots += groupShots;
@@ -186,20 +186,40 @@ function resolveRoundShots(shooterGroups, targetGroups) {
   return { totalShots, totalDamage, shotDistribution };
 }
 
-function applyGroupDamage(groups, shotDistribution) {
-  // Reset group damage for this round (shields regenerate)
-  groups.forEach(g => { g.roundDamage = 0; });
+function applyGroupDamage(targetGroups, actions) {
+  targetGroups.forEach(tGroup => {
+    const hits = actions.shotDistribution.filter(d => d.targetGroup === tGroup);
+    if (hits.length === 0 || tGroup.count <= 0) return;
 
-  // Accumulate damage to each group
-  shotDistribution.forEach(dist => {
-    const damagePerShot = Math.max(0, dist.power - dist.targetGroup.shield);
-    dist.targetGroup.roundDamage += dist.shots * damagePerShot;
-  });
+    const totalShotsOnGroup = hits.reduce((sum, h) => sum + h.shots, 0);
+    const avgPower = hits.reduce((sum, h) => sum + h.shots * h.power, 0) / totalShotsOnGroup;
+    
+    // Average hits per unit
+    const k = totalShotsOnGroup / tGroup.count;
+    
+    // Expected damage per unit based on Poisson distribution of hits
+    // Rule: Shield is a buffer for the entire round.
+    // Damage(n hits) = max(0, n*Power - Shield)
+    // We also cap damage at Hull integrity to properly model overkill.
+    
+    let expectedDamagePerUnit = 0;
+    if (k > 20) {
+      // High density: use mean value approximation
+      // Expected damage ~ max(0, E[hits]*Power - Shield)
+      expectedDamagePerUnit = Math.min(tGroup.hull, Math.max(0, k * avgPower - tGroup.shield));
+    } else {
+      // Low density: sum Poisson terms for accuracy
+      let p_n = Math.exp(-k); // P(hits = 0)
+      for (let n = 1; n < 50; n++) {
+        p_n = (p_n * k) / n; // P(hits = n)
+        const damage_n = Math.min(tGroup.hull, Math.max(0, n * avgPower - tGroup.shield));
+        expectedDamagePerUnit += p_n * damage_n;
+        if (p_n < 1e-7) break;
+      }
+    }
 
-  // Calculate losses
-  groups.forEach(g => {
-    const lost = Math.floor(g.roundDamage / g.hull);
-    g.count = Math.max(0, g.count - lost);
+    const unitsLost = Math.floor((tGroup.count * expectedDamagePerUnit) / tGroup.hull);
+    tGroup.count = Math.max(0, tGroup.count - unitsLost);
   });
 }
 
