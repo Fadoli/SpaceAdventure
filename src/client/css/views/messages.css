@@ -1,0 +1,127 @@
+/* Messages and Reports */
+.messages-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.message-filters {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-btn {
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.filter-btn.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.message-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.message-item.unread {
+    border-left: 4px solid var(--accent-blue);
+}
+
+.message-header-row {
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+}
+
+.msg-status-icon { width: 24px; text-align: center; }
+.msg-type-icon { font-size: 1.2rem; }
+.msg-sender { font-weight: bold; min-width: 120px; }
+.msg-subject { flex: 1; }
+.msg-date { color: var(--text-secondary); font-size: 0.85rem; }
+
+.message-body {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border-color);
+}
+
+.espionage-report, .combat-report {
+    background: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.report-section {
+    margin-bottom: 15px;
+}
+
+.report-section h4 {
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.res-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+/* Combat Report Specific */
+.combat-header {
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 2px solid transparent;
+}
+
+.combat-header.winner { background: rgba(92, 184, 92, 0.1); border-color: var(--accent-green); }
+.combat-header.loser { background: rgba(217, 83, 79, 0.1); border-color: var(--accent-red); }
+.combat-header.draw { background: rgba(240, 173, 78, 0.1); border-color: var(--accent-yellow); }
+
+.round-row {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+.losses-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.data-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.data-list span {
+    background: var(--bg-primary);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}

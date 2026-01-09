@@ -1,0 +1,190 @@
+/* Shipyard & Defenses View */
+.shipyard-header {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.shipyard-header h3 {
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+}
+
+.shipyard-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.shipyard-section {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.shipyard-section h3 {
+    color: var(--accent-blue);
+    margin-bottom: 15px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 15px;
+}
+
+.category-header:hover {
+    background: rgba(74, 144, 226, 0.1);
+    border-radius: 4px;
+    padding: 10px;
+    padding-left: 0;
+    margin-left: -10px;
+}
+
+.toggle-icon {
+    font-size: 0.9rem;
+    min-width: 20px;
+    display: inline-block;
+}
+
+.lock-icon {
+    margin-left: auto;
+    color: var(--accent-yellow);
+    font-size: 0.9rem;
+}
+
+.ships-category h4 {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.ships-grid,
+.defenses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.ship-card,
+.defense-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    transition: opacity 0.2s;
+}
+
+.ship-card.locked,
+.defense-card.locked {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.ship-card.locked::after,
+.defense-card.locked::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    pointer-events: auto;
+}
+
+.ship-header,
+.defense-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.ship-header h5,
+.defense-header h5 {
+    margin: 0;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.ship-count,
+.defense-count {
+    background: var(--accent-blue);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.ship-description,
+.defense-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 5px 0;
+}
+
+.ship-stats,
+.defense-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.ship-cost,
+.defense-cost {
+    display: flex;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+
+.ship-cost div,
+.defense-cost div {
+    background: var(--bg-primary);
+    padding: 5px 8px;
+    border-radius: 4px;
+    flex: 1;
+    text-align: center;
+}
+
+.build-time {
+    font-size: 0.9rem;
+    color: var(--accent-yellow);
+    font-weight: bold;
+}
+
+.locked-message {
+    background: var(--bg-primary);
+    color: var(--accent-yellow);
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.ship-quantity,
+.defense-quantity {
+    padding: 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    text-align: center;
+}

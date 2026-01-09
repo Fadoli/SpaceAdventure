@@ -1,0 +1,330 @@
+:root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #12182b;
+    --bg-tertiary: #1a2235;
+    --border-color: #2a3650;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0b3;
+    --accent-blue: #4a90e2;
+    --accent-green: #5cb85c;
+    --accent-red: #d9534f;
+    --accent-yellow: #f0ad4e;
+    --metal-color: #a0a0a0;
+    --crystal-color: #4a90e2;
+    --deuterium-color: #5cb85c;
+    --energy-color: #f0ad4e;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Layout */
+.screen {
+    display: none;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* Base Buttons */
+.btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #357abd;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #5a6268;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    width: auto;
+}
+
+.btn-danger {
+    background: var(--accent-red);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c9302c;
+}
+
+.btn-success {
+    background: var(--accent-green);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #449d44;
+}
+
+.btn:disabled {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-icon-small {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.btn-icon-small:hover {
+    opacity: 1;
+}
+
+/* Header & Nav */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.header-left .header-title-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left h1 {
+    font-size: 1.2rem;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.header-planet-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-planet-select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.header-planet-select:hover {
+    border-color: var(--accent-blue);
+}
+
+#planet-coords-header {
+    color: var(--accent-blue);
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.user-info-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.player-name {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.btn-logout-header {
+    padding: 4px 12px !important;
+    font-size: 0.8rem !important;
+    width: auto !important;
+    background: rgba(217, 83, 79, 0.1) !important;
+    border: 1px solid var(--accent-red) !important;
+    color: var(--accent-red) !important;
+}
+
+.btn-logout-header:hover {
+    background: var(--accent-red) !important;
+    color: white !important;
+}
+
+.resource-display {
+    display: flex;
+    gap: 15px;
+}
+
+.resource {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.resource-icon {
+    font-size: 1.1rem;
+}
+
+.resource small {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.game-nav {
+    display: flex;
+    gap: 5px;
+    padding: 10px 30px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-btn {
+    padding: 10px 20px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+}
+
+.nav-btn:hover {
+    background: var(--bg-primary);
+}
+
+.nav-btn.active {
+    background: var(--accent-blue);
+    color: var(--text-primary);
+    border-color: var(--accent-blue);
+}
+
+/* Main Content Area */
+.game-content {
+    padding: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+.view h2 {
+    margin-bottom: 12px;
+    color: var(--accent-blue);
+    font-size: 1.3rem;
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: var(--bg-secondary);
+    margin: 5% auto;
+    padding: 30px;
+    border: 2px solid var(--accent-blue);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-close {
+    color: var(--text-secondary);
+    float: right;
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--accent-red);
+}
+
+/* Utilities */
+.text-success { color: var(--accent-green); }
+.text-warning { color: var(--accent-yellow); }
+.text-danger { color: var(--accent-red); }
+
+.timer {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--accent-green);
+    margin: 0;
+    font-family: 'Courier New', monospace;
+}
+
+.empty-text {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.notifications-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}

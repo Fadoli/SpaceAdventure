@@ -1,0 +1,49 @@
+/* Ranking Table Styles */
+.ranking-wrapper {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ranking-table th {
+    background: var(--bg-tertiary);
+    color: var(--accent-blue);
+    padding: 12px 15px;
+    text-align: left;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--accent-blue);
+}
+
+.ranking-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+}
+
+.current-player-row {
+    background: rgba(74, 144, 226, 0.1);
+    border-left: 4px solid var(--accent-blue);
+}
+
+.rank-col { width: 80px; text-align: center; }
+.score-col { font-weight: bold; color: var(--accent-green); text-align: right; }
+.coords-col { font-family: monospace; }
+
+.galaxy-link {
+    color: var(--accent-blue);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--accent-blue);
+}
+
+.galaxy-link:hover {
+    color: white;
+    border-bottom-style: solid;
+}

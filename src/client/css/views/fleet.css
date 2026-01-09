@@ -1,0 +1,221 @@
+/* Fleet View */
+.fleet-movements-bar {
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fleet-summary {
+    margin-bottom: 20px;
+}
+
+.fleet-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-card span {
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    color: var(--accent-blue);
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.fleets-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.fleet-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.fleet-card h3 {
+    color: var(--accent-blue);
+    margin: 0 0 15px 0;
+}
+
+.fleet-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.fleet-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fleet-section h4 {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 1rem;
+}
+
+.ship-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fleet-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.fleet-item-name {
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.fleet-item-count {
+    color: var(--accent-green);
+    font-weight: bold;
+    font-size: 1.1rem;
+    min-width: 80px;
+    text-align: right;
+}
+
+/* Mission Specific Modal Styles (from Galaxy View usage) */
+.expedition-ships-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.expedition-ship-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expedition-ship-item .ship-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.expedition-ship-item.dense {
+    padding: 6px 12px;
+    gap: 15px;
+}
+
+.expedition-ship-item.dense .ship-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.expedition-ship-item.dense .ship-available {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    min-width: 80px;
+    text-align: right;
+}
+
+.mission-section h4 {
+    margin-bottom: 10px;
+    color: var(--accent-blue);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.dense-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.mission-res-item-dense {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mission-res-item-dense .res-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.mission-res-item-dense .res-name {
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.mission-res-item-dense .res-avail {
+    color: var(--accent-blue);
+}
+
+.mission-res-item-dense .res-input-group {
+    display: flex;
+    gap: 5px;
+}
+
+.mission-res-item-dense .exp-qty-input {
+    flex: 1;
+    padding: 2px 5px;
+    font-size: 0.85rem;
+}
+
+.exp-qty-input {
+    width: 80px;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: white;
+    text-align: center;
+}
+
+.btn-max {
+    padding: 4px 8px;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}

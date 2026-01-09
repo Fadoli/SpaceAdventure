@@ -1,0 +1,221 @@
+/* Buildings Grid */
+#buildings-queue-container {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.buildings-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.building-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px;
+    transition: all 0.3s;
+}
+
+.building-card.in-queue {
+    border-color: var(--accent-yellow);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(240, 173, 78, 0.1) 100%);
+}
+
+.building-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+}
+
+.building-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.building-card h3 {
+    margin: 0;
+    color: var(--accent-blue);
+    font-size: 0.95rem;
+}
+
+.btn-info {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.btn-info:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.building-level {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+}
+
+.queue-count-badge {
+    display: inline-block;
+    background: var(--accent-yellow);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.building-card p {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin: 2px 0 6px 0;
+    line-height: 1.2;
+}
+
+.building-cost {
+    margin: 4px 0;
+    padding: 4px 6px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.building-cost div {
+    margin: 2px 0;
+    font-size: 0.75rem;
+}
+
+.building-stats {
+    margin: 4px 0;
+    padding: 4px 6px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.build-time {
+    color: var(--accent-yellow);
+    margin-bottom: 2px;
+}
+
+.building-production {
+    color: var(--accent-green);
+    margin-top: 4px;
+}
+
+.building-production div {
+    margin: 2px 0;
+}
+
+.building-energy {
+    color: var(--accent-red);
+    margin-top: 4px;
+}
+
+/* Production Queues (Buildings, Ships, Defense) */
+.queue-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background 0.2s;
+    padding: 4px 8px;
+}
+
+.queue-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.queue-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 10px;
+    transition: all 0.3s;
+    overflow: hidden;
+}
+
+.queue-item.active {
+    border-color: var(--accent-green);
+    background: linear-gradient(90deg, var(--bg-tertiary) 0%, rgba(92, 184, 92, 0.1) 100%);
+}
+
+.queue-item-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+.q-pos {
+    color: var(--accent-yellow);
+    font-weight: bold;
+    min-width: 20px;
+    font-size: 0.85rem;
+}
+
+.q-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    min-width: 150px;
+}
+
+.q-level, .q-count {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    min-width: 60px;
+}
+
+.progress-bar-mini {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin: 0 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+    transition: width 1s linear;
+    width: 0%;
+}
+
+.q-time-mini {
+    font-size: 0.9rem;
+    color: var(--accent-green);
+    font-family: 'Courier New', monospace;
+    min-width: 85px;
+    text-align: right;
+    font-weight: bold;
+    white-space: nowrap;
+}
