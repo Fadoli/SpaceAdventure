@@ -375,7 +375,9 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
         if (planet) {
             html += renderOGameTableRow(planet, position, isPlayerPlanet);
         } else {
-            html += renderOGameEmptyRow(position);
+            // Find debris field for this empty slot if any
+            const debris = galaxyData.planets.find(p => p.position === position && !p.player)?.debris || null;
+            html += renderOGameEmptyRow(position, debris);
         }
     }
 
@@ -454,13 +456,14 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                 <div class="action-buttons">
                     ${isPlayerPlanet ? `
                         <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy('${planet.player}')" title="View planet">👁️</button>
-                        <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
+                        <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🚚</button>
                         <button class="action-btn deploy-btn" onclick="window.deployToPlanetFromGalaxy(${position})" title="Deploy Fleet" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🪂</button>
                     ` : `
                         <button class="action-btn info-btn" onclick="window.spyOnPlanetFromGalaxy(${position})" title="Spy">🕵️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
                         <button class="action-btn attack-btn" onclick="window.attackPlanetFromGalaxy(${position})" title="Attack">⚔️</button>
                     `}
+                    ${planet.debris ? `<button class="action-btn harvest-btn" onclick="window.harvestDebrisFromGalaxy(${position})" title="Recycle Debris">♻️</button>` : ''}
                 </div>
             </td>
         </tr>
@@ -470,15 +473,29 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
 /**
  * Render a table row for an empty position
  */
-function renderOGameEmptyRow(position) {
+function renderOGameEmptyRow(position, debris = null) {
+    let debrisHtml = '-';
+    if (debris) {
+        debrisHtml = `
+            <div class="debris-info" title="M: ${formatNumber(debris.metal)} | C: ${formatNumber(debris.crystal)}">
+                <span class="debris-icon">♻️</span>
+                <small>${formatNumber(debris.metal + debris.crystal)}</small>
+            </div>
+        `;
+    }
+
     return `
         <tr class="empty-row">
             <td class="pos-col"><strong>${position}</strong></td>
             <td class="planet-col empty-cell">-</td>
+            <td class="debris-col">${debrisHtml}</td>
             <td class="player-col empty-cell">-</td>
             <td class="status-col empty-cell">-</td>
             <td class="action-col empty-cell">
-                <button class="action-btn colonize-btn" onclick="window.colonizePlanetFromGalaxy(${position})" title="Colonize this position">🏗️</button>
+                <div class="action-buttons">
+                    <button class="action-btn colonize-btn" onclick="window.colonizePlanetFromGalaxy(${position})" title="Colonize this position">🏗️</button>
+                    ${debris ? `<button class="action-btn harvest-btn" onclick="window.harvestDebrisFromGalaxy(${position})" title="Recycle Debris">♻️</button>` : ''}
+                </div>
             </td>
         </tr>
     `;
@@ -491,7 +508,7 @@ function renderExpeditionRow(position) {
     return `
         <tr class="expedition-row" style="background: rgba(74, 144, 226, 0.1);">
             <td class="pos-col"><strong>${position}</strong></td>
-            <td class="planet-col" colspan="3" style="text-align: center; color: var(--accent-blue); font-weight: bold; letter-spacing: 2px;">
+            <td class="planet-col" colspan="4" style="text-align: center; color: var(--accent-blue); font-weight: bold; letter-spacing: 2px;">
                 🌌 DEEP SPACE
             </td>
             <td class="action-col">
