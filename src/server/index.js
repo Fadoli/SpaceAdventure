@@ -1289,17 +1289,10 @@ async function handleRequest(req) {
 
       const body = await req.json();
       const { techKey } = body;
-      console.log('Request body:', body);
-      console.log('Tech key:', techKey);
 
       try {
-        console.log('Starting theoretical research for tech:', techKey);
         const queueItem = startTheoreticalResearch(player, techKey, planetId);
-        console.log('Queue item created:', queueItem);
-        
         await updatePlayer(user.id, player);
-        console.log('Player updated successfully');
-
         return successResponse(req, queueItem);
       } catch (error) {
         console.error('Error starting theoretical research:', error);
@@ -1354,7 +1347,6 @@ async function handleRequest(req) {
 
       const body = await req.json();
       const { researchKey, allocation, strength } = body;
-      console.log(`[PRACTICAL_RESEARCH] Starting research: researchKey=${researchKey}, allocation=`, allocation, `strength=${strength}`);
 
       try {
         let queueItem;
@@ -1366,7 +1358,6 @@ async function handleRequest(req) {
           const defaultAllocation = { output: 0.25, automation: 0.25, energy: 0.25, cost: 0.25 };
           queueItem = startPracticalResearchWithAllocation(player, researchKey, defaultAllocation, planetId, 0.5);
         }
-        console.log(`[PRACTICAL_RESEARCH] Successfully started research:`, queueItem);
         await updatePlayer(user.id, player);
 
         return successResponse(req, queueItem);
