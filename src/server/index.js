@@ -73,6 +73,8 @@ if (!aiMetadata.aiPlayers || aiMetadata.aiPlayers.length === 0) {
   await createAiPlayer('Nova Bot', AI_TYPES.BALANCED);
   await createAiPlayer('Nebula AI', AI_TYPES.BALANCED);
   await createAiPlayer('Void AI', AI_TYPES.BALANCED);
+  await createAiPlayer('Zarkon Raider', AI_TYPES.AGGRESSIVE);
+  await createAiPlayer('Turtle AI', AI_TYPES.DEFENSIVE);
   console.log('Spawned initial AI bots');
 }
 

@@ -246,6 +246,9 @@ async function handleStorageNeed(player, planet) {
   if (planet.buildQueue && planet.buildQueue.length > 0) return false;
 
   const storageThreshold = 0.8; // 80% full
+  const criticalThreshold = 0.95; // 95% full (must save up)
+  let hasUrgentNeed = false;
+
   const resourceMap = {
     metal: BUILDINGS.METAL_STORAGE,
     crystal: BUILDINGS.CRYSTAL_STORAGE,
@@ -263,9 +266,16 @@ async function handleStorageNeed(player, planet) {
         console.log(`[AI] ${player.username} upgrading storage for ${res} on ${planet.name}`);
         return true;
       }
+      
+      if (current > capacity * criticalThreshold) {
+        hasUrgentNeed = true;
+      }
     }
   }
-  return false;
+  
+  // If we found a resource nearing cap but couldn't afford storage yet,
+  // we return true to "wait" and prevent spending resources on other things.
+  return hasUrgentNeed;
 }
 
 /**
@@ -283,7 +293,7 @@ async function handleBalancedStrategy(player) {
       continue;
     }
 
-    // MUST have resource base
+    // Ensure basic base first
     if (await handleResourceBase(player, planet)) {
       changed = true;
       continue;
@@ -317,12 +327,14 @@ async function handleBalancedStrategy(player) {
       }
     }
 
-    // Facilities
+    // Facilities (catch-up logic)
     const priorities = [
       BUILDINGS.ROBOTICS_FACTORY,
       BUILDINGS.SHIPYARD,
       BUILDINGS.RESEARCH_LAB,
-      BUILDINGS.HOUSING
+      BUILDINGS.HOUSING,
+      BUILDINGS.WATER_STORAGE,
+      BUILDINGS.FOOD_SILO
     ];
     
     let target = null;
@@ -335,6 +347,7 @@ async function handleBalancedStrategy(player) {
       }
     }
 
+    // Only build facilities if resources are somewhat established (Level 5+)
     if (target && metalLvl >= 5) {
       if (await tryBuild(player, planet, target)) {
         changed = true;
