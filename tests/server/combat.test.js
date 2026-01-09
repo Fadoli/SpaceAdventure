@@ -133,4 +133,37 @@ describe('Combat Engine', () => {
     const report = simulateCombat(attacker, defender);
     expect(report.rounds.length).toBeLessThanOrEqual(6);
   });
+
+  it('should repair a portion of destroyed defenses after all rounds', () => {
+    const attacker = {
+      ships: { battleship: 100 }, // Overwhelming force to destroy all defenses
+      research: { weaponsTech: 10, shieldingTech: 10, armorTech: 10 }
+    };
+    const defender = {
+      defenses: { rocketLauncher: 100, laserCannon: 50 },
+      research: { weaponsTech: 0, shieldingTech: 0, armorTech: 0 }
+    };
+
+    const report = simulateCombat(attacker, defender);
+    
+    // All defenses should have been destroyed during combat
+    // But after combat, they should be partially repaired
+    
+    const surviving = report.survivingDefenderDefenses;
+    const lost = report.defenderLosses.defenses;
+    
+    // Check Rocket Launchers
+    const repairedRL = surviving.rocketLauncher || 0;
+    const lostRL = lost.rocketLauncher || 0;
+    expect(repairedRL + lostRL).toBe(100);
+    // Standard repair chance is 70%
+    expect(repairedRL).toBeGreaterThanOrEqual(60); 
+    expect(repairedRL).toBeLessThanOrEqual(80);
+
+    // Check Laser Cannons
+    const repairedLC = surviving.laserCannon || 0;
+    const lostLC = lost.laserCannon || 0;
+    expect(repairedLC + lostLC).toBe(50);
+    expect(repairedLC).toBeGreaterThanOrEqual(30);
+  });
 });

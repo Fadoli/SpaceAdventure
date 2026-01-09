@@ -3,6 +3,7 @@ import { SHIPS } from '../../shared/ships.js';
 import { DEFENSES } from '../../shared/defenses.js';
 import { THEORETICAL_RESEARCH } from '../../shared/research.js';
 import { isEmpty } from '../../shared/utils.js';
+import { CONFIG } from '../../shared/constants.js';
 
 /**
  * Execute a combat simulation between an attacker and a defender
@@ -76,26 +77,69 @@ export function simulateCombat(attacker, defender) {
 
   // 4. Calculate Losses and Debris
   report.attackerLosses = calculateGroupLosses(attacker.ships || {}, attackerGroups);
+  
+  // RAW defender losses (before repair)
+  const rawDefenderShipLosses = calculateGroupLosses(defender.ships || {}, defenderGroups.filter(g => g.isShip));
+  const rawDefenderDefLosses = calculateGroupLosses(defender.defenses || {}, defenderGroups.filter(g => !g.isShip));
+
+  // Apply Defense Repair
+  const repairedDefenses = {};
+  const repairChance = CONFIG.DEFENSE_REPAIR_CHANCE || 0.7;
+  for (const defKey in rawDefenderDefLosses) {
+    const lostCount = rawDefenderDefLosses[defKey];
+    const repairedCount = Math.floor(lostCount * repairChance);
+    if (repairedCount > 0) {
+      repairedDefenses[defKey] = repairedCount;
+    }
+  }
+
+  // Defender losses for the report are the ones NOT repaired
   report.defenderLosses = {
-    ships: calculateGroupLosses(defender.ships || {}, defenderGroups.filter(g => g.isShip)),
-    defenses: calculateGroupLosses(defender.defenses || {}, defenderGroups.filter(g => !g.isShip))
+    ships: rawDefenderShipLosses,
+    defenses: {}
   };
+  for (const defKey in rawDefenderDefLosses) {
+    const lost = rawDefenderDefLosses[defKey] - (repairedDefenses[defKey] || 0);
+    if (lost > 0) report.defenderLosses.defenses[defKey] = lost;
+  }
 
-  const finalAttackerValue = calculateGroupsValue(attackerGroups);
-  const finalDefenderValue = calculateGroupsValue(defenderGroups);
+  // Calculate Debris
+  // Ships: Standard debris (30% of metal/crystal)
+  // Defenses: scales on (1 - repair%) * defense_to_debris_chance
+  const debrisShipsValue = calculateLossValue(report.attackerLosses, SHIPS) + 
+                           calculateLossValue(report.defenderLosses.ships, SHIPS);
   
-  const attackerLossValue = initialAttackerValue - finalAttackerValue;
-  const defenderLossValue = initialDefenderValue - finalDefenderValue;
-  
-  report.debris.metal = Math.floor((attackerLossValue + defenderLossValue) * 0.3 * 0.7);
-  report.debris.crystal = Math.floor((attackerLossValue + defenderLossValue) * 0.3 * 0.3);
+  const defenseToDebrisChance = CONFIG.DEFENSE_TO_DEBRIS_CHANCE || 0.1;
+  const debrisDefensesValue = calculateLossValue(report.defenderLosses.defenses, DEFENSES) * defenseToDebrisChance;
 
-  // 5. Consolidate survivors
+  const totalDebrisValue = debrisShipsValue + debrisDefensesValue;
+  
+  report.debris.metal = Math.floor(totalDebrisValue * 0.3 * 0.7); // Simplified distribution
+  report.debris.crystal = Math.floor(totalDebrisValue * 0.3 * 0.3);
+
+  // 5. Consolidate survivors (including repaired defenses)
   report.survivingAttackerShips = consolidateGroups(attackerGroups);
   report.survivingDefenderShips = consolidateGroups(defenderGroups.filter(g => g.isShip));
-  report.survivingDefenderDefenses = consolidateGroups(defenderGroups.filter(g => !g.isShip));
+  
+  const survivingDefenses = consolidateGroups(defenderGroups.filter(g => !g.isShip));
+  for (const defKey in repairedDefenses) {
+    survivingDefenses[defKey] = (survivingDefenses[defKey] || 0) + repairedDefenses[defKey];
+  }
+  report.survivingDefenderDefenses = survivingDefenses;
 
   return report;
+}
+
+function calculateLossValue(losses, definitions) {
+  let value = 0;
+  for (const key in losses) {
+    const count = losses[key];
+    const def = definitions[key];
+    if (def && def.baseCost) {
+      value += (def.baseCost.metal + def.baseCost.crystal) * count;
+    }
+  }
+  return value;
 }
 
 function prepareGroups(ships, research, defenses = {}) {

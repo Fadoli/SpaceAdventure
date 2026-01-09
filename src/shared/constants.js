@@ -123,6 +123,8 @@ export const CONFIG = {
   MAX_BUILD_QUEUE: 1,
   MAX_RESEARCH_QUEUE: 10,
   DEBRIS_PERCENTAGE: 0.3,
+  DEFENSE_REPAIR_CHANCE: 0.7, // 70% of destroyed defenses are repaired
+  DEFENSE_TO_DEBRIS_CHANCE: 0.1, // 10% of unrepaired defenses go to debris (optional, usually 0 in OGame)
   MAX_PLANETS_PER_PLAYER: 9,
   FOOD_CONSUMPTION_PER_POPULATION: 0.1, // Per hour
   WATER_CONSUMPTION_PER_POPULATION: 0.2, // Per hour
