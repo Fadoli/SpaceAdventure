@@ -22,7 +22,7 @@ describe('Combat Engine', () => {
 
   it('should determine the winner correctly when one side is overpowered', () => {
     const attacker = {
-      ships: { battleship: 10 },
+      ships: { battleship: 1 },
       research: { weaponsTech: 10, shieldingTech: 10, armorTech: 10 }
     };
     const defender = {

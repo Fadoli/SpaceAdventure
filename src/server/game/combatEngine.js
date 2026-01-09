@@ -231,6 +231,10 @@ function resolveRoundShots(shooterGroups, targetGroups) {
 }
 
 function applyGroupDamage(targetGroups, actions) {
+  const totalTargets = getTotalCount(targetGroups);
+  const S = actions.totalShots;
+  const p = 1 / Math.max(1, totalTargets);
+
   targetGroups.forEach(tGroup => {
     const hits = actions.shotDistribution.filter(d => d.targetGroup === tGroup);
     if (hits.length === 0 || tGroup.count <= 0) return;
@@ -238,31 +242,47 @@ function applyGroupDamage(targetGroups, actions) {
     const totalShotsOnGroup = hits.reduce((sum, h) => sum + h.shots, 0);
     const avgPower = hits.reduce((sum, h) => sum + h.shots * h.power, 0) / totalShotsOnGroup;
     
-    // Average hits per unit
-    const k = totalShotsOnGroup / tGroup.count;
-    
-    // Expected damage per unit based on Poisson distribution of hits
-    // Rule: Shield is a buffer for the entire round.
-    // Damage(n hits) = max(0, n*Power - Shield)
-    // We also cap damage at Hull integrity to properly model overkill.
-    
     let expectedDamagePerUnit = 0;
-    if (k > 20) {
-      // High density: use mean value approximation
-      // Expected damage ~ max(0, E[hits]*Power - Shield)
-      expectedDamagePerUnit = Math.min(tGroup.hull, Math.max(0, k * avgPower - tGroup.shield));
+    
+    if (totalTargets === 1) {
+      // Special case: Only one unit/group exists on this side.
+      // Every shot fired at this side must hit a unit in this group.
+      expectedDamagePerUnit = Math.min(tGroup.hull, Math.max(0, S * avgPower - tGroup.shield));
+    } else if (S > 100) {
+      // Use Poisson approximation for high shot counts to avoid large power calculations
+      const k = S * p;
+      if (k > 20) {
+        expectedDamagePerUnit = Math.min(tGroup.hull, Math.max(0, k * avgPower - tGroup.shield));
+      } else {
+        let p_n = Math.exp(-k);
+        for (let n = 1; n < 100; n++) {
+          p_n = (p_n * k) / n;
+          const damage_n = Math.min(tGroup.hull, Math.max(0, n * avgPower - tGroup.shield));
+          expectedDamagePerUnit += p_n * damage_n;
+          if (p_n < 1e-9) break;
+        }
+      }
     } else {
-      // Low density: sum Poisson terms for accuracy
-      let p_n = Math.exp(-k); // P(hits = 0)
-      for (let n = 1; n < 50; n++) {
-        p_n = (p_n * k) / n; // P(hits = n)
+      // Use exact Binomial distribution for small number of shots
+      let p_n = Math.pow(1 - p, S); // P(0 hits)
+      for (let n = 1; n <= S; n++) {
+        // P(n) = P(n-1) * (S-n+1)/n * p/(1-p)
+        p_n = p_n * (S - n + 1) / n * (p / (1 - p));
         const damage_n = Math.min(tGroup.hull, Math.max(0, n * avgPower - tGroup.shield));
         expectedDamagePerUnit += p_n * damage_n;
-        if (p_n < 1e-7) break;
+        if (p_n < 1e-9) break;
       }
     }
 
-    const unitsLost = Math.floor((tGroup.count * expectedDamagePerUnit) / tGroup.hull);
+    const expectedUnitsLost = (tGroup.count * expectedDamagePerUnit) / tGroup.hull;
+    let unitsLost = Math.floor(expectedUnitsLost);
+    const fractionalLoss = expectedUnitsLost - unitsLost;
+    
+    // Stochastic rounding for the fractional unit loss
+    if (fractionalLoss > 0 && Math.random() < fractionalLoss) {
+      unitsLost += 1;
+    }
+
     tGroup.count = Math.max(0, tGroup.count - unitsLost);
   });
 }
