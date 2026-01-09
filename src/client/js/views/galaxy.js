@@ -358,6 +358,7 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
                         <tr>
                             <th class="pos-col">Pos</th>
                             <th class="planet-col">Planet</th>
+                            <th class="debris-col">Debris</th>
                             <th class="player-col">Player</th>
                             <th class="status-col">Status</th>
                             <th class="action-col">Actions</th>
@@ -412,6 +413,18 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                            currentPlanet.coordinates[1] === window.currentSystem && 
                            currentPlanet.coordinates[2] === position;
 
+    // Debris info
+    let debrisHtml = '-';
+    if (planet.debris) {
+        const { metal, crystal } = planet.debris;
+        debrisHtml = `
+            <div class="debris-info" title="M: ${formatNumber(metal)} | C: ${formatNumber(crystal)}">
+                <span class="debris-icon">♻️</span>
+                <small>${formatNumber(metal + crystal)}</small>
+            </div>
+        `;
+    }
+
     return `
         <tr class="planet-row ${rowClass} ${planetTypeClass}">
             <td class="pos-col"><strong>${position}</strong></td>
@@ -425,6 +438,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                     ${moonBadge}
                 </div>
             </td>
+            <td class="debris-col">${debrisHtml}</td>
             <td class="player-col">
                 <div class="player-info">
                     ${playerIcon}

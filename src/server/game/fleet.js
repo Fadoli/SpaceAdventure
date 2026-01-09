@@ -7,6 +7,7 @@ import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.j
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
 import { simulateCombat } from './combatEngine.js';
+import { getGalaxyData, updateDebrisField } from './galaxyData.js';
 
 /**
  * Start a new mission
@@ -318,6 +319,18 @@ async function executeAttack(attackerPlayer, fleet, allPlayers) {
         fleet.resources[res] = (fleet.resources[res] || 0) + amount;
       }
     }
+  }
+
+  // 6.5. Update Debris Field in Galaxy
+  if (combatReport.debris.metal > 0 || combatReport.debris.crystal > 0) {
+    const galaxy = await getGalaxyData();
+    const coordKey = fleet.targetCoords.join(':');
+    const existingDebris = galaxy.debrisFields?.[coordKey] || { metal: 0, crystal: 0 };
+    
+    await updateDebrisField(fleet.targetCoords, {
+      metal: existingDebris.metal + combatReport.debris.metal,
+      crystal: existingDebris.crystal + combatReport.debris.crystal
+    });
   }
 
   // 7. Send Messages

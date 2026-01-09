@@ -8,6 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings } from './game/player.js';
+import { getGalaxyData } from './game/galaxyData.js';
 import { 
   upgradeBuilding, 
   cancelBuilding, 
@@ -1098,19 +1099,38 @@ async function handleRequest(req) {
       
       // Get all players to scan for planets in this system
       const allPlayers = await getPlayers();
+      const galaxyData = await getGalaxyData();
       const planetsInSystem = [];
       
       for (const player of allPlayers) {
         for (const planet of player.planets) {
           const [pGalaxy, pSystem, pPosition] = planet.coordinates;
           if (pGalaxy === galaxy && pSystem === system) {
+            const coordKey = `${pGalaxy}:${pSystem}:${pPosition}`;
+            const debris = galaxyData.debrisFields?.[coordKey] || null;
+
             planetsInSystem.push({
               position: pPosition,
               player: player.username,
               playerType: 'ai', // Could be enhanced to track player vs AI
               planetName: planet.name,
               activity: planet.lastActivity ? getActivityString(planet.lastActivity) : 'Unknown',
-              moon: planet.moon || false
+              moon: planet.moon || false,
+              debris
+            });
+          }
+        }
+      }
+
+      // Check for debris fields in empty slots
+      for (const coordKey in (galaxyData.debrisFields || {})) {
+        const [dg, ds, dp] = coordKey.split(':').map(Number);
+        if (dg === galaxy && ds === system) {
+          // If this slot doesn't have a planet already, we still need to show the debris
+          if (!planetsInSystem.find(p => p.position === dp)) {
+            planetsInSystem.push({
+              position: dp,
+              debris: galaxyData.debrisFields[coordKey]
             });
           }
         }
