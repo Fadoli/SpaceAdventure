@@ -91,6 +91,8 @@ function renderMessagesList(container, messages) {
             <div class="message-filters">
                 <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="window.filterMessages('all')">All</button>
                 <button class="filter-btn ${currentFilter === 'espionage' ? 'active' : ''}" onclick="window.filterMessages('espionage')">Espionage</button>
+                <button class="filter-btn ${currentFilter === 'attack' ? 'active' : ''}" onclick="window.filterMessages('attack')">Attack</button>
+                <button class="filter-btn ${currentFilter === 'harvest' ? 'active' : ''}" onclick="window.filterMessages('harvest')">Harvest</button>
                 <button class="filter-btn ${currentFilter === 'colonization' ? 'active' : ''}" onclick="window.filterMessages('colonization')">Colonization</button>
                 <button class="filter-btn ${currentFilter === 'expedition' ? 'active' : ''}" onclick="window.filterMessages('expedition')">Expedition</button>
             </div>
@@ -168,6 +170,16 @@ function renderMessageData(msg) {
                 </div>`;
         case 'attack':
             return renderCombatReport(msg.data);
+        case 'harvest':
+            const h = msg.data.resources || {};
+            return `
+                <div class="msg-data-info">
+                    Recycled Resources: 
+                    <div class="res-grid-mini" style="margin-top: 5px;">
+                        <div>⚙️ ${formatNumber(h.metal || 0)}</div>
+                        <div>💎 ${formatNumber(h.crystal || 0)}</div>
+                    </div>
+                </div>`;
         default:
             return '';
     }
