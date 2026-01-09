@@ -2,7 +2,7 @@
  * Combat Engine Benchmark
  * Measures the duration of combat resolution for large-scale battles.
  */
-import { simulateCombat } from '../../src/server/game/combatEngine.js';
+import { simulateCombat } from '../../src/server/game/combatEngine_base.js';
 import { formatNumber } from '../../src/shared/utils.js';
 
 function runBenchmark() {

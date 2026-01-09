@@ -1,221 +1,221 @@
-// Combat Engine - Handles space battles between fleets and planetary defenses
+// Combat Engine - Optimized Stack-Based Statistical Simulation
 import { SHIPS } from '../../shared/ships.js';
 import { DEFENSES } from '../../shared/defenses.js';
 import { THEORETICAL_RESEARCH } from '../../shared/research.js';
+import { isEmpty } from '../../shared/utils.js';
 
 /**
  * Execute a combat simulation between an attacker and a defender
- * @param {Object} attacker - { ships, research }
- * @param {Object} defender - { ships, defenses, research }
- * @returns {Object} Combat report
+ * Optimized for large scale battles using statistical stacks.
  */
 export function simulateCombat(attacker, defender) {
   const report = {
     rounds: [],
-    winner: null, // 'attacker', 'defender', or 'draw'
+    winner: null,
     attackerLosses: {},
     defenderLosses: {},
     debris: { metal: 0, crystal: 0 },
     lootedResources: { metal: 0, crystal: 0, deuterium: 0, water: 0, food: 0 }
   };
 
-  // 1. Prepare combat units
-  let attackerUnits = prepareUnits(attacker.ships || {}, attacker.research || {}, true);
-  let defenderUnits = prepareUnits(defender.ships || {}, defender.research || {}, false, defender.defenses || {});
+  // 1. Prepare unit stacks
+  let attackerGroups = prepareGroups(attacker.ships || {}, attacker.research || {});
+  let defenderGroups = prepareGroups(defender.ships || {}, defender.research || {}, defender.defenses || {});
 
-  const initialAttackerValue = calculateUnitsValue(attackerUnits);
-  const initialDefenderValue = calculateUnitsValue(defenderUnits);
+  const initialAttackerValue = calculateGroupsValue(attackerGroups);
+  const initialDefenderValue = calculateGroupsValue(defenderGroups);
 
   // 2. Combat Rounds (max 6)
   for (let round = 1; round <= 6; round++) {
-    if (attackerUnits.length === 0 || defenderUnits.length === 0) break;
+    const attackerCount = getTotalCount(attackerGroups);
+    const defenderCount = getTotalCount(defenderGroups);
 
-    // SHIELDS REGENERATE at the start of each round
-    regenerateShields(attackerUnits);
-    regenerateShields(defenderUnits);
+    if (attackerCount === 0 || defenderCount === 0) break;
 
     const roundData = {
       round,
-      attackerShotCount: attackerUnits.length,
-      defenderShotCount: defenderUnits.length,
+      attackerShotCount: 0,
+      defenderShotCount: 0,
       attackerDamage: 0,
       defenderDamage: 0
     };
 
-    // Calculate total damage for this round
-    const attackerPower = attackerUnits.reduce((sum, u) => sum + u.attack, 0);
-    const defenderPower = defenderUnits.reduce((sum, u) => sum + u.attack, 0);
-    
-    roundData.attackerDamage = attackerPower;
-    roundData.defenderDamage = defenderPower;
+    // Calculate shots and damage for this round
+    const attackerActions = resolveRoundShots(attackerGroups, defenderGroups);
+    const defenderActions = resolveRoundShots(defenderGroups, attackerGroups);
 
-    // Apply damage (simplified OGame-like: units target random enemies)
-    applyCombatDamage(attackerUnits, defenderUnits);
-    
-    // Cleanup destroyed units
-    attackerUnits = attackerUnits.filter(u => u.currentHull > 0);
-    defenderUnits = defenderUnits.filter(u => u.currentHull > 0);
+    roundData.attackerShotCount = Math.floor(attackerActions.totalShots);
+    roundData.defenderShotCount = Math.floor(defenderActions.totalShots);
+    roundData.attackerDamage = Math.floor(attackerActions.totalDamage);
+    roundData.defenderDamage = Math.floor(defenderActions.totalDamage);
+
+    // Apply damage to stacks
+    applyGroupDamage(defenderGroups, attackerActions.shotDistribution);
+    applyGroupDamage(attackerGroups, defenderActions.shotDistribution);
+
+    // Cleanup destroyed groups
+    attackerGroups = attackerGroups.filter(g => g.count > 0);
+    defenderGroups = defenderGroups.filter(g => g.count > 0);
 
     report.rounds.push(roundData);
     
-    if (attackerUnits.length === 0 || defenderUnits.length === 0) break;
+    if (attackerGroups.length === 0 || defenderGroups.length === 0) break;
   }
 
   // 3. Determine Winner
-  if (attackerUnits.length > 0 && defenderUnits.length === 0) {
+  const finalAttackerCount = getTotalCount(attackerGroups);
+  const finalDefenderCount = getTotalCount(defenderGroups);
+
+  if (finalAttackerCount > 0 && finalDefenderCount === 0) {
     report.winner = 'attacker';
-  } else if (defenderUnits.length > 0 && attackerUnits.length === 0) {
+  } else if (finalDefenderCount > 0 && finalAttackerCount === 0) {
     report.winner = 'defender';
   } else {
     report.winner = 'draw';
   }
 
   // 4. Calculate Losses and Debris
-  const finalAttackerValue = calculateUnitsValue(attackerUnits);
-  const finalDefenderValue = calculateUnitsValue(defenderUnits);
-  
-  report.attackerLosses = calculateLosses(attacker.ships || {}, attackerUnits);
+  report.attackerLosses = calculateGroupLosses(attacker.ships || {}, attackerGroups);
   report.defenderLosses = {
-    ships: calculateLosses(defender.ships || {}, defenderUnits.filter(u => u.isShip)),
-    defenses: calculateLosses(defender.defenses || {}, defenderUnits.filter(u => !u.isShip))
+    ships: calculateGroupLosses(defender.ships || {}, defenderGroups.filter(g => g.isShip)),
+    defenses: calculateGroupLosses(defender.defenses || {}, defenderGroups.filter(g => !g.isShip))
   };
 
-  // Debris: 30% of lost ship costs (metal/crystal only)
+  const finalAttackerValue = calculateGroupsValue(attackerGroups);
+  const finalDefenderValue = calculateGroupsValue(defenderGroups);
+  
   const attackerLossValue = initialAttackerValue - finalAttackerValue;
   const defenderLossValue = initialDefenderValue - finalDefenderValue;
   
-  // Simplified debris
   report.debris.metal = Math.floor((attackerLossValue + defenderLossValue) * 0.3 * 0.7);
   report.debris.crystal = Math.floor((attackerLossValue + defenderLossValue) * 0.3 * 0.3);
 
-  // 5. Consolidate final surviving ships for returning
-  report.survivingAttackerShips = consolidateUnits(attackerUnits);
-  report.survivingDefenderShips = consolidateUnits(defenderUnits.filter(u => u.isShip));
-  report.survivingDefenderDefenses = consolidateUnits(defenderUnits.filter(u => !u.isShip));
+  // 5. Consolidate survivors
+  report.survivingAttackerShips = consolidateGroups(attackerGroups);
+  report.survivingDefenderShips = consolidateGroups(defenderGroups.filter(g => g.isShip));
+  report.survivingDefenderDefenses = consolidateGroups(defenderGroups.filter(g => !g.isShip));
 
   return report;
 }
 
-function regenerateShields(units) {
-  units.forEach(u => {
-    u.currentShield = u.maxShield;
-  });
-}
-
-function applyCombatDamage(attackers, defenders) {
-  // Each unit shoots once at a random target, with potential rapid fire
-  attackers.forEach(u => {
-    shootWithRapidFire(u, defenders);
-  });
-
-  defenders.forEach(u => {
-    shootWithRapidFire(u, attackers);
-  });
-}
-
-function shootWithRapidFire(unit, targets) {
-  if (targets.length === 0) return;
-
-  let continueShooting = true;
-  while (continueShooting) {
-    continueShooting = false;
-    const targetIndex = Math.floor(Math.random() * targets.length);
-    const target = targets[targetIndex];
-    
-    // Shoot
-    // Damage is first absorbed by shields
-    let damage = unit.attack;
-    
-    if (damage > 0) {
-      if (target.currentShield > 0) {
-        if (damage >= target.currentShield) {
-          damage -= target.currentShield;
-          target.currentShield = 0;
-        } else {
-          target.currentShield -= damage;
-          damage = 0;
-        }
-      }
-      
-      // Remaining damage goes to hull
-      if (damage > 0) {
-        target.currentHull -= damage;
-      }
-    }
-
-    // Check for Rapid Fire
-    if (unit.rapidFire && unit.rapidFire[target.key]) {
-      const rfValue = unit.rapidFire[target.key];
-      const chance = 1 - (1 / rfValue);
-      if (Math.random() < chance) {
-        continueShooting = true;
-      }
-    }
-  }
-}
-
-function prepareUnits(ships, research, isAttacker, defenses = {}) {
-  const units = [];
+function prepareGroups(ships, research, defenses = {}) {
+  const groups = [];
   
-  // Apply research bonuses
   const attackBonus = 1 + (research.weaponsTech || 0) * (THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1);
   const shieldBonus = 1 + (research.shieldingTech || 0) * (THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1);
   const hullBonus = 1 + (research.armorTech || 0) * (THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1);
 
-  // Add Ships
   for (const shipKey in ships) {
     const count = ships[shipKey];
+    if (count <= 0) continue;
     const def = SHIPS[shipKey];
     if (!def) continue;
     
-    for (let i = 0; i < count; i++) {
-      units.push({
-        key: shipKey,
-        isShip: true,
-        attack: def.attack * attackBonus,
-        maxShield: def.shield * shieldBonus,
-        currentShield: def.shield * shieldBonus,
-        maxHull: def.hull * hullBonus,
-        currentHull: def.hull * hullBonus,
-        baseCost: def.baseCost,
-        rapidFire: def.rapidFire || {}
-      });
-    }
+    groups.push({
+      key: shipKey,
+      isShip: true,
+      count: count,
+      initialCount: count,
+      attack: def.attack * attackBonus,
+      shield: def.shield * shieldBonus,
+      hull: def.hull * hullBonus,
+      baseCost: def.baseCost,
+      rapidFire: def.rapidFire || {}
+    });
   }
 
-  // Add Defenses
   for (const defKey in defenses) {
     const count = defenses[defKey];
+    if (count <= 0) continue;
     const def = DEFENSES[defKey];
     if (!def) continue;
     
-    for (let i = 0; i < count; i++) {
-      units.push({
-        key: defKey,
-        isShip: false,
-        attack: def.attack * attackBonus,
-        maxShield: def.shield * shieldBonus,
-        currentShield: def.shield * shieldBonus,
-        maxHull: def.hull * hullBonus,
-        currentHull: def.hull * hullBonus,
-        baseCost: def.baseCost,
-        rapidFire: def.rapidFire || {}
-      });
-    }
+    groups.push({
+      key: defKey,
+      isShip: false,
+      count: count,
+      initialCount: count,
+      attack: def.attack * attackBonus,
+      shield: def.shield * shieldBonus,
+      hull: def.hull * hullBonus,
+      baseCost: def.baseCost,
+      rapidFire: def.rapidFire || {}
+    });
   }
 
-  return units;
+  return groups;
 }
 
-function calculateUnitsValue(units) {
-  return units.reduce((sum, u) => {
-    return sum + (u.baseCost.metal + u.baseCost.crystal + u.baseCost.deuterium);
+function resolveRoundShots(shooterGroups, targetGroups) {
+  const targetTotal = targetGroups.reduce((sum, g) => sum + g.count, 0);
+  const shotDistribution = []; // [{ targetGroup, shots, power }]
+  let totalShots = 0;
+  let totalDamage = 0;
+
+  shooterGroups.forEach(sGroup => {
+    // 1. Calculate continuation probability (P_cont)
+    // P_cont = Sum( Chance_to_hit_type_j * Chance_to_continue_after_hitting_j )
+    let pCont = 0;
+    targetGroups.forEach(tGroup => {
+      const pHit = tGroup.count / targetTotal;
+      const rfValue = sGroup.rapidFire[tGroup.key] || 1;
+      const pContinueForType = rfValue > 1 ? (1 - 1 / rfValue) : 0;
+      pCont += pHit * pContinueForType;
+    });
+
+    // 2. Total expected shots from this group
+    // Expected shots per unit = 1 / (1 - P_cont)
+    const shotsPerUnit = 1 / (1 - Math.min(0.999, pCont));
+    const groupShots = sGroup.count * shotsPerUnit;
+    totalShots += groupShots;
+
+    // 3. Distribute shots across target groups
+    targetGroups.forEach(tGroup => {
+      const shotsToType = groupShots * (tGroup.count / targetTotal);
+      if (shotsToType > 0) {
+        shotDistribution.push({
+          targetGroup: tGroup,
+          shots: shotsToType,
+          power: sGroup.attack
+        });
+        totalDamage += shotsToType * sGroup.attack;
+      }
+    });
+  });
+
+  return { totalShots, totalDamage, shotDistribution };
+}
+
+function applyGroupDamage(groups, shotDistribution) {
+  // Reset group damage for this round (shields regenerate)
+  groups.forEach(g => { g.roundDamage = 0; });
+
+  // Accumulate damage to each group
+  shotDistribution.forEach(dist => {
+    const damagePerShot = Math.max(0, dist.power - dist.targetGroup.shield);
+    dist.targetGroup.roundDamage += dist.shots * damagePerShot;
+  });
+
+  // Calculate losses
+  groups.forEach(g => {
+    const lost = Math.floor(g.roundDamage / g.hull);
+    g.count = Math.max(0, g.count - lost);
+  });
+}
+
+function calculateGroupsValue(groups) {
+  return groups.reduce((sum, g) => {
+    return sum + (g.baseCost.metal + g.baseCost.crystal + g.baseCost.deuterium) * g.count;
   }, 0);
 }
 
-function calculateLosses(originalCounts, survivingUnits, isShipGroup = true) {
+function getTotalCount(groups) {
+  return groups.reduce((sum, g) => sum + g.count, 0);
+}
+
+function calculateGroupLosses(originalCounts, survivingGroups) {
   const losses = {};
-  const survivors = consolidateUnits(survivingUnits);
+  const survivors = consolidateGroups(survivingGroups);
   
   for (const key in originalCounts) {
     const lost = originalCounts[key] - (survivors[key] || 0);
@@ -224,10 +224,10 @@ function calculateLosses(originalCounts, survivingUnits, isShipGroup = true) {
   return losses;
 }
 
-function consolidateUnits(units) {
+function consolidateGroups(groups) {
   const counts = {};
-  units.forEach(u => {
-    counts[u.key] = (counts[u.key] || 0) + 1;
+  groups.forEach(g => {
+    counts[g.key] = (counts[g.key] || 0) + g.count;
   });
   return counts;
 }

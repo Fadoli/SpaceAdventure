@@ -1,0 +1,34 @@
+PS C:\git\SpaceAdventure> bun run tests/benchmarks/combatBenchmark.js
+--- Combat Engine Benchmark ---
+Attacker units: 670.00K
+Defender units: 1.33M
+Total units involved: 2.00M
+Resolving combat...
+
+--- Results ---
+Winner: DRAW
+Rounds: 6
+Duration: 1.30ms
+Avg time per round: 0.22ms
+Throughput: ~1.53B units processed per second
+
+Attacker lost 622.86K ships.
+Defender lost 487.51K ships and 328.13K defenses.
+Debris Field: M:2.17B C:930.67M
+PS C:\git\SpaceAdventure> bun run tests/benchmarks/combatBenchmark_base.js
+--- Combat Engine Benchmark ---
+Attacker units: 670.00K
+Defender units: 1.33M
+Total units involved: 2.00M
+Resolving combat...
+
+--- Results ---
+Winner: DRAW
+Rounds: 6
+Duration: 1727.19ms
+Avg time per round: 287.87ms
+Throughput: ~1.16M units processed per second
+
+Attacker lost 603.28K ships.
+Defender lost 353.86K ships and 150.02K defenses.
+Debris Field: M:1.57B C:673.80M
