@@ -200,6 +200,7 @@ function renderEspionageData(data) {
                     <div>💎 ${Math.floor(data.resources.crystal).toLocaleString()}</div>
                     <div>🛢️ ${Math.floor(data.resources.deuterium).toLocaleString()}</div>
                     <div>⚡ ${Math.floor(data.resources.energy).toLocaleString()}</div>
+                    <div>👥 ${Math.floor(data.resources.population).toLocaleString()}</div>
                 </div>
             </div>
         `;

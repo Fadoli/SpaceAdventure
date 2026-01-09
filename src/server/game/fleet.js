@@ -1,11 +1,12 @@
 // Fleet and Mission management logic
-import { generateId } from '../../shared/utils.js';
+import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
+import { simulateCombat } from './combatEngine.js';
 
 /**
  * Start a new mission
@@ -236,8 +237,111 @@ async function handleFleetArrival(player, fleet, allPlayers) {
       return false; // Returns home empty
     case MISSION_TYPES.DEPLOY:
       return await executeDeployment(player, fleet, allPlayers);
+    case MISSION_TYPES.ATTACK:
+      await executeAttack(player, fleet, allPlayers);
+      return false; // Returns home with loot (if any)
     default:
       return false;
+  }
+}
+
+async function executeAttack(attackerPlayer, fleet, allPlayers) {
+  // 1. Find target planet
+  let targetPlanet = null;
+  let targetPlayer = null;
+
+  for (const p of allPlayers) {
+    const planet = p.planets.find(pl => 
+      pl.coordinates[0] === fleet.targetCoords[0] &&
+      pl.coordinates[1] === fleet.targetCoords[1] &&
+      pl.coordinates[2] === fleet.targetCoords[2]
+    );
+    if (planet) {
+      targetPlanet = planet;
+      targetPlayer = p;
+      break;
+    }
+  }
+
+  if (!targetPlanet) {
+    await addMessage(attackerPlayer.userId, {
+      from: 'Fleet Command',
+      subject: `Attack Mission Failed: [${fleet.targetCoords.join(':')}]`,
+      body: `Your fleet reached [${fleet.targetCoords.join(':')}] but found no planet to attack. They are returning home.`,
+      type: 'attack'
+    });
+    return;
+  }
+
+  // 2. Prepare Combat Data
+  const attacker = {
+    ships: fleet.ships,
+    research: attackerPlayer.research || {}
+  };
+
+  const defender = {
+    ships: targetPlanet.ships || {},
+    defenses: targetPlanet.defenses || {},
+    research: targetPlayer.research || {}
+  };
+
+  // 3. Simulate Combat
+  const combatReport = simulateCombat(attacker, defender);
+
+  // 4. Apply Losses to Defender Planet
+  targetPlanet.ships = combatReport.survivingDefenderShips;
+  targetPlanet.defenses = combatReport.survivingDefenderDefenses;
+
+  // 5. Update Attacker Fleet
+  fleet.ships = combatReport.survivingAttackerShips;
+
+  // 6. Handle Looting if attacker is not wiped out and target had resources
+  let loot = { metal: 0, crystal: 0, deuterium: 0, water: 0, food: 0 };
+  if (!isEmpty(fleet.ships)) {
+    const cargoCapacity = calculateCargoCapacity(fleet.ships);
+    // Attacker can take up to 50% of each resource, limited by total cargo capacity
+    const availableLoot = {};
+    for (const res in targetPlanet.resources) {
+      if (['metal', 'crystal', 'deuterium', 'water', 'food'].includes(res)) {
+        availableLoot[res] = Math.floor((targetPlanet.resources[res] || 0) * 0.5);
+      }
+    }
+
+    // Fill cargo proportionally
+    const totalAvailableLoot = Object.values(availableLoot).reduce((a, b) => a + b, 0);
+    if (totalAvailableLoot > 0) {
+      const ratio = Math.min(1, cargoCapacity / totalAvailableLoot);
+      for (const res in availableLoot) {
+        const amount = Math.floor(availableLoot[res] * ratio);
+        loot[res] = amount;
+        targetPlanet.resources[res] -= amount;
+        fleet.resources[res] = (fleet.resources[res] || 0) + amount;
+      }
+    }
+  }
+
+  // 7. Send Messages
+  const reportId = generateId();
+  const summary = `Winner: ${combatReport.winner.toUpperCase()} | Loot: M:${formatNumber(loot.metal)} C:${formatNumber(loot.crystal)} D:${formatNumber(loot.deuterium)}`;
+
+  // To Attacker
+  await addMessage(attackerPlayer.userId, {
+    from: 'Combat Command',
+    subject: `Combat Report: [${fleet.targetCoords.join(':')}]`,
+    body: `Our fleet engaged the enemy at [${fleet.targetCoords.join(':')}]. ${summary}`,
+    type: 'attack',
+    data: { ...combatReport, loot, reportId, isAttacker: true, targetCoords: fleet.targetCoords }
+  });
+
+  // To Defender
+  if (targetPlayer.userId !== attackerPlayer.userId) {
+    await addMessage(targetPlayer.userId, {
+      from: 'Planetary Defense',
+      subject: `URGENT: Planet Under Attack! [${fleet.targetCoords.join(':')}]`,
+      body: `An enemy fleet from ${attackerPlayer.username} attacked your planet! ${summary}`,
+      type: 'attack',
+      data: { ...combatReport, loot, reportId, isAttacker: false, targetCoords: fleet.targetCoords, attackerName: attackerPlayer.username }
+    });
   }
 }
 
@@ -403,8 +507,12 @@ async function executeEspionage(player, fleet, allPlayers) {
 
   if (targetPlanet) {
     // Reveal info based on power thresholds
-    // Level 0: Resources
-    report.resources = { ...targetPlanet.resources };
+    // Level 0: Resources + population + energy
+    report.resources = { 
+      ...targetPlanet.resources,
+      population: targetPlanet.resources.population || 0,
+      energy: targetPlanet.production?.energy || 0
+    };
     
     // Level 2: + Fleet
     if (espionagePower >= 2) {
