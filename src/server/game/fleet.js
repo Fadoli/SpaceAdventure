@@ -241,9 +241,53 @@ async function handleFleetArrival(player, fleet, allPlayers) {
     case MISSION_TYPES.ATTACK:
       await executeAttack(player, fleet, allPlayers);
       return false; // Returns home with loot (if any)
+    case MISSION_TYPES.HARVEST:
+      await executeHarvest(player, fleet);
+      return false; // Returns home with recycled resources
     default:
       return false;
   }
+}
+
+async function executeHarvest(player, fleet) {
+  const galaxy = await getGalaxyData();
+  const coordKey = fleet.targetCoords.join(':');
+  const debris = galaxy.debrisFields?.[coordKey];
+
+  if (!debris || (debris.metal <= 0 && debris.crystal <= 0)) {
+    await addMessage(player.userId, {
+      from: 'Recycling Service',
+      subject: `Harvest Mission: [${fleet.targetCoords.join(':')}]`,
+      body: `Your fleet reached [${fleet.targetCoords.join(':')}] but found no debris field to harvest. They are returning home.`,
+      type: 'harvest',
+      data: { target: fleet.targetCoords }
+    });
+    return;
+  }
+
+  // Calculate capacity
+  const capacity = calculateCargoCapacity(fleet.ships);
+  
+  // Harvest Metal first, then Crystal
+  let metalHarvested = Math.min(debris.metal, capacity);
+  let crystalHarvested = Math.min(debris.crystal, capacity - metalHarvested);
+
+  // Update debris field
+  debris.metal -= metalHarvested;
+  debris.crystal -= crystalHarvested;
+  await updateDebrisField(fleet.targetCoords, debris);
+
+  // Load resources onto fleet
+  fleet.resources.metal = (fleet.resources.metal || 0) + metalHarvested;
+  fleet.resources.crystal = (fleet.resources.crystal || 0) + crystalHarvested;
+
+  await addMessage(player.userId, {
+    from: 'Recycling Service',
+    subject: `Harvest Successful: [${fleet.targetCoords.join(':')}]`,
+    body: `Your fleet has harvested ${formatNumber(metalHarvested)} Metal and ${formatNumber(crystalHarvested)} Crystal from the debris field at [${fleet.targetCoords.join(':')}]. They are now returning home.`,
+    type: 'harvest',
+    data: { target: fleet.targetCoords, resources: { metal: metalHarvested, crystal: crystalHarvested } }
+  });
 }
 
 async function executeAttack(attackerPlayer, fleet, allPlayers) {
