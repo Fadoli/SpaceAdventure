@@ -687,7 +687,7 @@ body {
     border-radius: 12px;
     width: 90%;
     max-width: 1000px;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
     position: relative;
 }
@@ -2534,7 +2534,7 @@ body {
     flex-direction: column;
     gap: 12px;
     margin-top: 15px;
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
     padding-right: 10px;
 }
@@ -2568,6 +2568,69 @@ body {
     display: flex;
     gap: 8px;
     align-items: center;
+}
+
+/* Dense Layout */
+.expedition-ship-item.dense {
+    padding: 6px 12px;
+    gap: 15px;
+}
+
+.expedition-ship-item.dense .ship-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.expedition-ship-item.dense .ship-available {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    min-width: 80px;
+    text-align: right;
+}
+
+.dense-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.mission-res-item-dense {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mission-res-item-dense .res-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.mission-res-item-dense .res-name {
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.mission-res-item-dense .res-avail {
+    color: var(--accent-blue);
+}
+
+.mission-res-item-dense .res-input-group {
+    display: flex;
+    gap: 5px;
+}
+
+.mission-res-item-dense .exp-qty-input {
+    flex: 1;
+    padding: 2px 5px;
+    font-size: 0.85rem;
 }
 
 .exp-qty-input {

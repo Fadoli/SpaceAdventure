@@ -509,36 +509,80 @@ async function executeExpedition(player, fleet) {
   let body = '';
   let subject = 'Expedition Report';
 
+  // Calculate total resource value of the fleet
+  let fleetValue = 0;
+  for (const shipKey in fleet.ships) {
+    const count = fleet.ships[shipKey];
+    if (count <= 0) continue;
+    const shipDef = SHIP_TYPES[shipKey];
+    if (shipDef && shipDef.baseCost) {
+      fleetValue += (shipDef.baseCost.metal + shipDef.baseCost.crystal + shipDef.baseCost.deuterium) * count;
+    }
+  }
+
+  // Scaling factor: close to 100% for small fleets, dropping to 10% at 1 billion fleet value
+  const maxScalingFleetValue = 1000000000;
+  const scalingFactor = 1.0 - (Math.min(fleetValue, maxScalingFleetValue) / maxScalingFleetValue) * 0.9;
+  const rewardScale = Math.max(1000, fleetValue * scalingFactor);
+
   if (roll < 0.1) {
-    // Black hole (Lose some ships)
-    resultType = 'black_hole';
+    // Disaster (Lose some ships) - Risk scales slightly with fleet size
+    resultType = 'disaster';
     subject = 'Expedition: Disaster!';
-    const shipToLose = Object.keys(fleet.ships).find(k => fleet.ships[k] > 0);
-    if (shipToLose) {
-      const lostCount = Math.ceil(fleet.ships[shipToLose] * 0.5);
-      fleet.ships[shipToLose] -= lostCount;
-      body = `Your fleet entered a gravity well of a dark star. You lost ${lostCount} ${shipToLose}.`;
+    
+    // Choose a random ship type that is present in the fleet
+    const shipTypesPresent = Object.keys(fleet.ships).filter(k => fleet.ships[k] > 0);
+    if (shipTypesPresent.length > 0) {
+      const randomShipKey = shipTypesPresent[Math.floor(Math.random() * shipTypesPresent.length)];
+      // Lose 20-70% of that ship type
+      const lossPercent = 0.2 + (Math.random() * 0.5);
+      const lostCount = Math.ceil(fleet.ships[randomShipKey] * lossPercent);
+      fleet.ships[randomShipKey] -= lostCount;
+      body = `Your fleet entered a gravity well of a dark star. You lost ${lostCount} ${randomShipKey.replace(/([A-Z])/g, ' $1').trim()}.`;
     } else {
       body = `Your fleet narrowly escaped a black hole. No ships were lost.`;
     }
   } else if (roll < 0.4) {
-    // Found resources
+    // Found resources - Scales with fleet value
     resultType = 'resources';
     subject = 'Expedition: Resources Found';
-    const metalFound = Math.floor(Math.random() * 5000) + 1000;
-    const crystalFound = Math.floor(Math.random() * 2500) + 500;
+    
+    const metalFound = Math.floor(rewardScale * (0.5 + Math.random() * 1.5));
+    const crystalFound = Math.floor(rewardScale * 0.5 * (0.5 + Math.random() * 1.5));
+    const deuteriumFound = Math.floor(rewardScale * 0.1 * (0.5 + Math.random() * 1.5));
+    
     fleet.resources.metal = (fleet.resources.metal || 0) + metalFound;
     fleet.resources.crystal = (fleet.resources.crystal || 0) + crystalFound;
-    body = `Your explorers found an abandoned mining colony. You collected ${metalFound} Metal and ${crystalFound} Crystal.`;
+    fleet.resources.deuterium = (fleet.resources.deuterium || 0) + deuteriumFound;
+    
+    body = `Your explorers found an abandoned mining colony. You collected ${formatNumber(metalFound)} Metal, ${formatNumber(crystalFound)} Crystal, and ${formatNumber(deuteriumFound)} Deuterium.`;
   } else if (roll < 0.6) {
-    // Found ships
+    // Found ships - Scales with fleet value
     resultType = 'ships';
     subject = 'Expedition: New Ships Found';
-    const foundShips = { lightFighter: Math.floor(Math.random() * 3) + 1 };
-    for (const s in foundShips) {
-      fleet.ships[s] = (fleet.ships[s] || 0) + foundShips[s];
+    
+    // Find a ship type that is roughly affordable with the reward scale
+    const affordableShips = Object.keys(SHIP_TYPES).filter(k => {
+      const s = SHIP_TYPES[k];
+      const cost = s.baseCost.metal + s.baseCost.crystal + s.baseCost.deuterium;
+      return cost < rewardScale;
+    });
+
+    if (affordableShips.length > 0) {
+      const foundShipKey = affordableShips[Math.floor(Math.random() * affordableShips.length)];
+      const shipDef = SHIP_TYPES[foundShipKey];
+      const shipCost = shipDef.baseCost.metal + shipDef.baseCost.crystal + shipDef.baseCost.deuterium;
+      const foundCount = Math.max(1, Math.floor(rewardScale / shipCost * (0.2 + Math.random() * 0.5)));
+      
+      fleet.ships[foundShipKey] = (fleet.ships[foundShipKey] || 0) + foundCount;
+      body = `Your fleet found some abandoned ${shipDef.name.toLowerCase()}s drifting in space. They have been integrated into your fleet. (${foundCount} ships found)`;
+    } else {
+      body = `Your explorers found some tech debris, but were unable to recover any functional ships.`;
     }
-    body = `Your fleet found some abandoned ships drifting in space. They have been integrated into your fleet.`;
+  } else if (roll < 0.7) {
+    // Found credits/statistics (Lore only for now)
+    resultType = 'info';
+    body = `Your explorers discovered an ancient archive containing star charts of nearby systems. While no physical resources were found, the navigational data will be invaluable for future missions.`;
   } else {
     // Nothing
     resultType = 'nothing';

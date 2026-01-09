@@ -52,11 +52,9 @@ async function openMissionModal(missionType, targetCoords) {
         if (count > 0) {
             const shipName = shipKey.replace(/([A-Z])/g, ' $1').trim();
             html += `
-                <div class="expedition-ship-item">
-                    <div class="ship-info">
-                        <span class="ship-name">${shipName}</span>
-                        <span class="ship-available">(Avail: ${formatNumber(count)})</span>
-                    </div>
+                <div class="expedition-ship-item dense">
+                    <span class="ship-name">${shipName}</span>
+                    <span class="ship-available">Avail: ${formatNumber(count)}</span>
                     <div class="ship-input">
                         <input type="number" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
                         <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateMissionCalculations();">MAX</button>
@@ -69,21 +67,25 @@ async function openMissionModal(missionType, targetCoords) {
 
     // --- Resource Selection Section (Only for transport or if ships have cargo) ---
     if (missionType === MISSION_TYPES.TRANSPORT || missionType === MISSION_TYPES.DEPLOY) {
-        html += '<div class="mission-section" style="margin-top: 20px;">';
+        html += '<div class="mission-section" style="margin-top: 15px;">';
         html += '<h4>📦 Select Resources</h4>';
-        html += '<div id="cargo-status" style="margin-bottom: 10px; font-weight: bold; color: var(--accent-blue);">Cargo: 0 / 0</div>';
-        html += '<div class="mission-resources-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
+        html += '<div id="cargo-status" style="margin-bottom: 8px; font-weight: bold; color: var(--accent-blue);">Cargo: 0 / 0</div>';
+        html += '<div class="mission-resources-list dense-grid">';
         
         const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
         for (const res of resourceKeys) {
             const amount = Math.floor(planet.resources[res] || 0);
             const resIcon = { metal: '⚙️', crystal: '💎', deuterium: '🛢️', water: '💦', food: '🍞' }[res];
             html += `
-                <div class="mission-res-item" style="background: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                    <div style="font-size: 0.85rem; margin-bottom: 5px;">${resIcon} ${res.charAt(0).toUpperCase() + res.slice(1)}: ${formatNumber(amount)}</div>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="number" class="exp-qty-input res-qty-input" data-res="${res}" min="0" max="${amount}" value="0" style="flex: 1;">
-                        <button class="btn-max" style="padding: 2px 6px; font-size: 0.7rem;" onclick="window.maxResource('${res}', ${amount})">MAX</button>
+                <div class="mission-res-item-dense">
+                    <div class="res-info">
+                        <span class="res-icon">${resIcon}</span>
+                        <span class="res-name">${res.charAt(0).toUpperCase()}</span>
+                        <span class="res-avail">${formatNumber(amount)}</span>
+                    </div>
+                    <div class="res-input-group">
+                        <input type="number" class="exp-qty-input res-qty-input" data-res="${res}" min="0" max="${amount}" value="0">
+                        <button class="btn-max" onclick="window.maxResource('${res}', ${amount})">M</button>
                     </div>
                 </div>
             `;
@@ -518,11 +520,9 @@ window.sendExpeditionFromGalaxy = async function() {
         if (count > 0) {
             const shipName = shipKey.replace(/([A-Z])/g, ' $1').trim();
             shipsHtml += `
-                <div class="expedition-ship-item">
-                    <div class="ship-info">
-                        <span class="ship-name">${shipName}</span>
-                        <span class="ship-available">(Avail: ${formatNumber(count)})</span>
-                    </div>
+                <div class="expedition-ship-item dense">
+                    <span class="ship-name">${shipName}</span>
+                    <span class="ship-available">Avail: ${formatNumber(count)}</span>
                     <div class="ship-input">
                         <input type="number" class="exp-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="0">
                         <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateExpeditionCosts();">MAX</button>
