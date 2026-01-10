@@ -264,58 +264,142 @@
     gap: 30px;
 }
 
+.variants-section {
+    margin-bottom: 20px;
+}
+
 .variants-section h3 {
     margin-bottom: 15px;
     color: var(--text-primary);
+    padding-left: 10px;
+    border-left: 4px solid var(--accent-green);
+}
+
+.variant-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
 }
 
 .variant-card-improved {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.variant-card-improved:hover {
+    border-color: var(--accent-green);
+    transform: translateY(-3px);
 }
 
 .variant-card-header {
     background: rgba(255, 255, 255, 0.05);
-    padding: 12px 15px;
+    padding: 10px 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.variant-card-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--accent-green);
 }
 
 .variant-focuses-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
-    padding: 10px 15px;
+    gap: 4px;
+    padding: 10px 12px;
 }
 
 .focus-badge {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: 4px;
     font-weight: bold;
-    color: white;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+
+.focus-output { 
+    background: rgba(255, 82, 82, 0.1); 
+    color: #ff5252; 
+    border-color: rgba(255, 82, 82, 0.2); 
+}
+.focus-automation { 
+    background: rgba(68, 138, 255, 0.1); 
+    color: #448aff; 
+    border-color: rgba(68, 138, 255, 0.2); 
+}
+.focus-energy { 
+    background: rgba(255, 235, 59, 0.1); 
+    color: #ffeb3b; 
+    border-color: rgba(255, 235, 59, 0.2); 
+}
+.focus-cost { 
+    background: rgba(76, 175, 80, 0.1); 
+    color: #4caf50; 
+    border-color: rgba(76, 175, 80, 0.2); 
 }
 
 .variant-modifiers-list {
-    padding: 10px 15px;
+    padding: 8px 12px;
     background: rgba(0, 0, 0, 0.2);
-    margin: 0 15px 15px 15px;
+    margin: 0 12px 12px 12px;
     border-radius: 6px;
+    flex: 1;
 }
 
 .mod-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.85rem;
-    padding: 3px 0;
+    font-size: 0.8rem;
+    padding: 2px 0;
+    color: var(--text-secondary);
 }
 
-.mod-row.pos { color: var(--accent-green); }
-.mod-row.neg { color: var(--accent-red); }
+.mod-value {
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.mod-row.pos .mod-value { color: var(--accent-green); }
+.mod-row.neg .mod-value { color: var(--accent-red); }
+
+.variant-card-footer {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Specific buttons */
+.btn-create-variant {
+    font-size: 0.75rem !important;
+    padding: 4px 10px !important;
+    width: auto !important;
+    height: auto !important;
+    font-weight: bold;
+}
+
+.btn-icon-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.5;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.btn-icon-delete:hover {
+    opacity: 1;
+    color: var(--accent-red);
+}
 
 /* Allocation Modal Sliders */
 .allocation-container {

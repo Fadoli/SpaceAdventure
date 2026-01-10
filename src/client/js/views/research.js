@@ -495,7 +495,7 @@ async function renderPracticalResearch() {
           </div>
           <div class="card-footer">
             <button class="btn btn-secondary btn-small" onclick="window.showResearchHistory('${res.baseType}')">📋 History</button>
-            <button class="btn btn-success btn-small" ${!canCreate ? 'disabled' : ''} 
+            <button class="btn btn-success btn-small btn-create-variant" ${!canCreate ? 'disabled' : ''} 
                     title="${!canCreate ? 'Max blueprints reached' : 'Create a new blueprint with current levels'}"
                     onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">
                 🔧 ${!canCreate ? 'Limit Reached' : 'Create Variant'}
@@ -660,26 +660,26 @@ async function renderCustomVariants() {
         
         const buildingTypes = Object.keys(building).filter(type => building[type].length > 0);
         if (buildingTypes.length > 0) { 
-            html += '<div class="variants-section"><h3>Buildings</h3>'; 
+            html += '<div class="variants-section"><h3>Buildings</h3><div class="variant-grid">'; 
             for (const baseType of buildingTypes) {
                 const blueprints = building[baseType];
                 blueprints.forEach(bp => {
                     html += renderVariantCard(baseType, bp, 'building');
                 });
             }
-            html += '</div>'; 
+            html += '</div></div>'; 
         }
         
         const shipTypes = Object.keys(ships).filter(type => ships[type].length > 0);
         if (shipTypes.length > 0) { 
-            html += '<div class="variants-section"><h3>Ships</h3>'; 
+            html += '<div class="variants-section"><h3>Ships</h3><div class="variant-grid">'; 
             for (const baseType of shipTypes) {
                 const blueprints = ships[baseType];
                 blueprints.forEach(bp => {
                     html += renderVariantCard(baseType, bp, 'ship');
                 });
             }
-            html += '</div>'; 
+            html += '</div></div>'; 
         }
         
         if (buildingTypes.length === 0 && shipTypes.length === 0) html += '<p>No variants yet.</p>';
