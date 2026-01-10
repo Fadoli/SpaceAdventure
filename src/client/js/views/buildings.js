@@ -845,7 +845,32 @@ export async function showBuildingDetails(buildingKey) {
         baseDeuteriumConsEstimate = building.deuteriumConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * deuteriumConsMultiplier);
     }
     
-    for (let level = 1; level <= Math.min(currentLevel + 10, 30); level++) {
+    // Generate levels to display
+    const levelsToGenerate = [];
+    const maxDisplayLevel = building.maxLevel || 50;
+    const windowSize = 4;
+    
+    if (currentLevel <= 8) {
+        // Show 1 to 15 for low levels
+        for (let l = 1; l <= Math.min(15, maxDisplayLevel); l++) levelsToGenerate.push(l);
+    } else {
+        // Show 1, then gap, then window around current
+        levelsToGenerate.push(1);
+        if (currentLevel - windowSize > 2) levelsToGenerate.push('gap');
+        
+        const start = Math.max(2, currentLevel - windowSize);
+        const end = Math.min(maxDisplayLevel, currentLevel + windowSize);
+        
+        for (let l = start; l <= end; l++) levelsToGenerate.push(l);
+    }
+
+    for (const levelItem of levelsToGenerate) {
+        if (levelItem === 'gap') {
+            levels.push({ isGap: true });
+            continue;
+        }
+        
+        const level = levelItem;
         const multiplier = Math.pow(SCALING.BUILDING_COST, level);
         const cost = {
             metal: Math.floor(baseCostEstimate.metal * multiplier),
@@ -901,6 +926,10 @@ export async function showBuildingDetails(buildingKey) {
     ];
 
     const rows = levels.map(l => {
+        if (l.isGap) {
+            return headers.map(() => '<span style="color: var(--text-secondary); opacity: 0.5;">...</span>');
+        }
+
         const isCurrent = l.level === currentLevel;
         
         // Determine what data to display based on building type
