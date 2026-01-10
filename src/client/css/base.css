@@ -116,22 +116,29 @@ body {
 
 /* Header & Nav */
 .game-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    height: 45px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 20px;
+    padding: 0 15px;
     background: var(--bg-secondary);
     border-bottom: 2px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .header-left .header-title-info {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 .header-left h1 {
-    font-size: 1.2rem;
+    font-size: 1rem;
     margin: 0;
     white-space: nowrap;
 }
@@ -139,16 +146,16 @@ body {
 .header-planet-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .header-planet-select {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    padding: 4px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     cursor: pointer;
     outline: none;
 }
@@ -161,23 +168,23 @@ body {
     color: var(--accent-blue);
     font-family: 'Courier New', monospace;
     font-weight: bold;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .user-info-group {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 .player-name {
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .btn-logout-header {
-    padding: 4px 12px !important;
-    font-size: 0.8rem !important;
+    padding: 2px 8px !important;
+    font-size: 0.75rem !important;
     width: auto !important;
     background: rgba(217, 83, 79, 0.1) !important;
     border: 1px solid var(--accent-red) !important;
@@ -191,35 +198,37 @@ body {
 
 .resource-display {
     display: flex;
-    gap: 15px;
+    gap: 8px;
 }
 
 .resource {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.9rem;
+    gap: 4px;
+    font-size: 0.8rem;
 }
 
 .resource-icon {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
 }
 
 .resource small {
     color: var(--text-secondary);
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
 
 .game-nav {
+    margin-top: 45px;
     display: flex;
     gap: 5px;
-    padding: 10px 30px;
+    padding: 5px 20px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
 }
 
 .nav-btn {
-    padding: 10px 20px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);

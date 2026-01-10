@@ -21,29 +21,37 @@
     margin-top: 20px;
 }
 
+.blueprint-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
 .blueprint-card-select {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
 .blueprint-card-select:hover {
     border-color: var(--accent-blue);
-    transform: translateY(-3px);
+    transform: translateY(-2px);
 }
 
 .blueprint-card-select.active {
     border: 2px solid var(--accent-green);
-    box-shadow: 0 0 15px rgba(92, 184, 92, 0.2);
+    box-shadow: 0 0 10px rgba(92, 184, 92, 0.15);
 }
 
 .blueprint-card-header {
     background: rgba(255, 255, 255, 0.05);
-    padding: 12px 15px;
+    padding: 10px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -52,42 +60,60 @@
 
 .blueprint-card-header h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: var(--accent-blue);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .active-tag {
     background: var(--accent-green);
     color: white;
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 3px;
     text-transform: uppercase;
     font-weight: bold;
 }
 
 .blueprint-card-body {
-    padding: 15px;
+    padding: 12px;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .blueprint-desc {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
-    margin-bottom: 12px;
+    margin-bottom: 5px;
 }
 
 .blueprint-modifiers {
     background: rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 15px;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.mod-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.mod-row:last-child {
+    margin-bottom: 0;
 }
 
 .blueprint-switch-cost {
-    font-size: 0.85rem;
-    padding: 8px;
+    font-size: 0.75rem;
+    padding: 6px;
     border-radius: 4px;
+    margin-top: auto;
 }
 
 .blueprint-switch-cost.cost {
@@ -101,7 +127,12 @@
 }
 
 .blueprint-card-footer {
-    padding: 12px 15px;
+    padding: 10px 12px;
     background: rgba(255, 255, 255, 0.03);
     border-top: 1px solid var(--border-color);
+}
+
+.blueprint-card-footer .btn {
+    padding: 8px !important;
+    font-size: 0.85rem !important;
 }
