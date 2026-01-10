@@ -49,8 +49,8 @@ export async function processAiPlayer(player) {
   // 5. Handle Fleet Missions
   updated = await handleMissions(player) || updated;
   
-  // Set next action time (random delay between 5-15 minutes for realism)
-  const delay = (Math.random() * 600 + 300) * 1000; 
+  // Set next action time (30-60 seconds for much faster progression)
+  const delay = (Math.random() * 30 + 30) * 1000; 
   player.aiConfig.nextAction = now + delay;
   player.aiConfig.lastAction = now;
   
@@ -149,7 +149,9 @@ async function handleResourceBase(player, planet) {
  * AI Research Handling
  */
 async function handleResearch(player) {
-  if (player.researchQueue && player.researchQueue.length > 0) return false;
+  let changed = false;
+  // Use config-driven max queue size
+  if (player.researchQueue && player.researchQueue.length >= 10) return false;
 
   // AI Priorities for Theoretical Research
   const techPriorities = [
@@ -167,16 +169,17 @@ async function handleResearch(player) {
   if (!labPlanet) return false;
 
   for (const tech of techPriorities) {
+    if (player.researchQueue && player.researchQueue.length >= 10) break;
     try {
       startTheoreticalResearch(player, tech, labPlanet.id);
       console.log(`[AI] ${player.username} started research: ${tech}`);
-      return true;
+      changed = true;
     } catch (e) {
       // Continue to next priority
     }
   }
 
-  return false;
+  return changed;
 }
 
 /**
@@ -285,18 +288,20 @@ async function handleBalancedStrategy(player) {
   let changed = false;
   
   for (const planet of player.planets) {
-    if (planet.buildQueue && planet.buildQueue.length > 0) continue;
+    if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
     
     // Check storage
     if (await handleStorageNeed(player, planet)) {
       changed = true;
+      // Storage is critical, but we might be able to build on other planets
       continue;
     }
 
     // Ensure basic base first
     if (await handleResourceBase(player, planet)) {
       changed = true;
-      continue;
+      // If we started a critical resource building, we might still want to queue more if queue allows
+      if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
     }
 
     const buildings = planet.buildings || {};
@@ -309,21 +314,18 @@ async function handleBalancedStrategy(player) {
     if (solarLvl < metalLvl + 2) {
       if (await tryBuild(player, planet, BUILDINGS.SOLAR_PLANT)) {
         changed = true;
-        continue;
       }
     }
 
     if (metalLvl < crystalLvl + 2) {
       if (await tryBuild(player, planet, BUILDINGS.METAL_MINE)) {
         changed = true;
-        continue;
       }
     }
 
     if (crystalLvl < deutLvl + 3) {
       if (await tryBuild(player, planet, BUILDINGS.CRYSTAL_MINE)) {
         changed = true;
-        continue;
       }
     }
 
@@ -337,20 +339,16 @@ async function handleBalancedStrategy(player) {
       BUILDINGS.FOOD_SILO
     ];
     
-    let target = null;
-    let minLvl = 999;
-    for (const p of priorities) {
-      const lvl = buildings[p] || 0;
-      if (lvl < minLvl) {
-        minLvl = lvl;
-        target = p;
-      }
-    }
-
-    // Only build facilities if resources are somewhat established (Level 5+)
-    if (target && metalLvl >= 5) {
-      if (await tryBuild(player, planet, target)) {
-        changed = true;
+    // Try to upgrade facilities if resources are somewhat established (Level 5+)
+    if (metalLvl >= 5) {
+      for (const p of priorities) {
+        if (planet.buildQueue && planet.buildQueue.length >= 5) break;
+        const lvl = buildings[p] || 0;
+        if (lvl < metalLvl - 2) {
+          if (await tryBuild(player, planet, p)) {
+            changed = true;
+          }
+        }
       }
     }
   }
@@ -365,7 +363,7 @@ async function handleAggressiveStrategy(player) {
   let changed = false;
   
   for (const planet of player.planets) {
-    if (planet.buildQueue && planet.buildQueue.length > 0) continue;
+    if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
 
     // Check storage
     if (await handleStorageNeed(player, planet)) {
@@ -376,7 +374,6 @@ async function handleAggressiveStrategy(player) {
     // MUST have resource base
     if (await handleResourceBase(player, planet)) {
       changed = true;
-      continue;
     }
 
     const buildings = planet.buildings || {};
@@ -384,27 +381,26 @@ async function handleAggressiveStrategy(player) {
     const metalLevel = buildings[BUILDINGS.METAL_MINE] || 0;
     
     // Aggressive AI needs a lot of metal
-    if (metalLevel < shipyardLevel + 2) {
+    if (metalLevel < shipyardLevel + 5) {
       if (await tryBuild(player, planet, BUILDINGS.METAL_MINE)) {
         changed = true;
-        continue;
       }
     }
     
     // Push shipyard
-    if (shipyardLevel < 12) {
+    if (shipyardLevel < 15) {
       if (await tryBuild(player, planet, BUILDINGS.SHIPYARD)) {
         changed = true;
-        continue;
       }
     }
     
-    // Build Ships
+    // Build Ships in larger batches
     const shipPriorities = ['battleship', 'cruiser', 'heavyFighter', 'lightFighter'];
     for (const shipKey of shipPriorities) {
-      if (await tryBuildShips(player, planet, shipKey, 1)) {
+      const count = Math.max(1, Math.floor(shipyardLevel / 2));
+      if (await tryBuildShips(player, planet, shipKey, count)) {
         changed = true;
-        break;
+        // Don't break, allow queuing multiple types if possible
       }
     }
   }
@@ -419,7 +415,7 @@ async function handleDefensiveStrategy(player) {
   let changed = false;
   
   for (const planet of player.planets) {
-    if (planet.buildQueue && planet.buildQueue.length > 0) continue;
+    if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
 
     // Check storage
     if (await handleStorageNeed(player, planet)) {
@@ -430,32 +426,31 @@ async function handleDefensiveStrategy(player) {
     // MUST have resource base
     if (await handleResourceBase(player, planet)) {
       changed = true;
-      continue;
     }
 
     const buildings = planet.buildings || {};
+    const shipyardLevel = buildings[BUILDINGS.SHIPYARD] || 0;
     
     // Build Defenses
     const defensePriorities = ['plasmaTurret', 'shield', 'laserCannon', 'rocketLauncher'];
     for (const defKey of defensePriorities) {
-      if (await tryBuildDefenses(player, planet, defKey, 1)) {
+      const count = Math.max(1, Math.floor(shipyardLevel / 3));
+      if (await tryBuildDefenses(player, planet, defKey, count)) {
         changed = true;
-        break;
       }
     }
     
-    // If shipyard is too low to build defenses, upgrade it
-    if (!changed) {
+    // If shipyard is too low, upgrade it
+    if (shipyardLevel < 10) {
       if (await tryBuild(player, planet, BUILDINGS.SHIPYARD)) {
         changed = true;
-        continue;
       }
-      
-      // Keep crystal mine up for defenses
-      if ((buildings[BUILDINGS.CRYSTAL_MINE] || 0) < (buildings[BUILDINGS.METAL_MINE] || 0)) {
-        if (await tryBuild(player, planet, BUILDINGS.CRYSTAL_MINE)) {
-          changed = true;
-        }
+    }
+    
+    // Keep crystal mine up for defenses
+    if ((buildings[BUILDINGS.CRYSTAL_MINE] || 0) < (buildings[BUILDINGS.METAL_MINE] || 0)) {
+      if (await tryBuild(player, planet, BUILDINGS.CRYSTAL_MINE)) {
+        changed = true;
       }
     }
   }
@@ -469,25 +464,25 @@ async function handleDefensiveStrategy(player) {
 async function handleMissions(player) {
   if (!player.fleets) player.fleets = [];
   
-  // Limit concurrent AI fleets to avoid spam
-  if (player.fleets.length >= 3) return false;
+  // High speed AI: allowed much more fleet activity
+  if (player.fleets.length >= 20) return false;
 
   let changed = false;
 
   for (const planet of player.planets) {
     // --- Mission Type 1: Expedition (Exploration) ---
-    // If we have some military ships and no active expedition from this planet
+    // Increased probability for faster-paced game
     const hasCombatShips = (planet.ships?.lightFighter || 0) > 0;
-    const activeExpedition = player.fleets.find(f => f.missionType === MISSION_TYPES.EXPEDITION && f.originCoords.every((c, i) => c === planet.coordinates[i]));
+    const activeExpeditionsFromPlanet = player.fleets.filter(f => f.missionType === MISSION_TYPES.EXPEDITION && f.originCoords.every((c, i) => c === planet.coordinates[i])).length;
 
-    if (hasCombatShips && !activeExpedition && Math.random() < 0.3) {
+    // Allow multiple expeditions if planet has ships
+    if (hasCombatShips && activeExpeditionsFromPlanet < 3 && Math.random() < 0.7) {
       try {
-        const shipsToSend = { lightFighter: 1 };
+        const shipsToSend = { lightFighter: Math.max(1, Math.floor((planet.ships.lightFighter || 0) / 2)) };
         const targetCoords = [planet.coordinates[0], planet.coordinates[1], 16]; // Deep space
-        await sendFleet(player.userId, planet.id, targetCoords, MISSION_TYPES.EXPEDITION, shipsToSend, {}, 1);
+        await sendFleet(player.userId, planet.id, targetCoords, MISSION_TYPES.EXPEDITION, shipsToSend, {}, 0.1); // Short stay for fast game
         console.log(`[AI] ${player.username} launched expedition from ${planet.name}`);
         changed = true;
-        continue;
       } catch (e) {
         // Ignore fleet errors
       }
@@ -535,19 +530,25 @@ async function handleRaiderStrategy(player) {
   let changed = false;
   
   for (const planet of player.planets) {
+    if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
+
     // Check storage
     if (await handleStorageNeed(player, planet)) {
       changed = true;
       continue;
     }
 
-    if (await tryBuildShips(player, planet, 'lightFighter', 5)) {
+    const shipyardLevel = planet.buildings.shipyard || 0;
+    const shipBatchSize = Math.max(2, Math.floor(shipyardLevel / 2));
+
+    if (await tryBuildShips(player, planet, 'lightFighter', shipBatchSize * 2)) {
       changed = true;
-    } else if (await tryBuildShips(player, planet, 'smallCargo', 2)) {
+    }
+    if (await tryBuildShips(player, planet, 'smallCargo', shipBatchSize)) {
       changed = true;
     }
     
-    if (!changed && (!planet.buildQueue || planet.buildQueue.length === 0)) {
+    if (planet.buildQueue && planet.buildQueue.length < 5) {
       if (await tryBuild(player, planet, BUILDINGS.METAL_MINE) || 
           await tryBuild(player, planet, BUILDINGS.DEUTERIUM_SYNTHESIZER)) {
         changed = true;
