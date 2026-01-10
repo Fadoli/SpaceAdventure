@@ -160,6 +160,16 @@ export function updateFleetMovements(gameState) {
 
         const originCoords = `[${fleet.originCoords.join(':')}]`;
         const targetCoords = `[${fleet.targetCoords.join(':')}]`;
+        
+        // Helper to generate clickable coord
+        const createCoordLink = (coords) => {
+            const [g, s, p] = coords;
+            return `<span class="clickable-coord" onclick="event.stopPropagation(); window.navigateToCoords(${g}, ${s}, ${p});">[${coords.join(':')}]</span>`;
+        };
+
+        const originLink = createCoordLink(fleet.originCoords);
+        const targetLink = createCoordLink(fleet.targetCoords);
+
         const startTime = formatTime(fleet.startTime);
         const arrivalTime = formatTime(fleet.arrivalTime);
         
@@ -206,9 +216,9 @@ export function updateFleetMovements(gameState) {
                 </div>
                 
                 <div class="fleet-info-cell coords-cell">
-                    <span class="coord-from">${originCoords}</span>
+                    <span class="coord-from">${originLink}</span>
                     <span class="coord-arrow">➔</span>
-                    <span class="coord-to">${targetCoords}</span>
+                    <span class="coord-to">${targetLink}</span>
                 </div>
                 
                 <div class="fleet-info-cell time-cell">

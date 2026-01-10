@@ -71,19 +71,3 @@ function renderRankingTable(container, rankings) {
     container.innerHTML = html;
 }
 
-// Global navigation helper
-window.navigateToCoords = async function(galaxy, system, position) {
-    // 1. Set current coordinates for galaxy view
-    window.currentGalaxy = galaxy;
-    window.currentSystem = system;
-    
-    // 2. Switch to galaxy view
-    if (window.showView) {
-        window.showView('galaxy');
-    }
-    
-    // 3. Trigger navigation within galaxy view
-    if (window.navigateGalaxySystem) {
-        await window.navigateGalaxySystem(galaxy, system);
-    }
-};
