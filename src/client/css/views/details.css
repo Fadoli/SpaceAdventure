@@ -1,0 +1,94 @@
+/* Detailed Info Modal Content Styles */
+.details-effects strong, 
+#details-modal-body h4 {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    color: var(--accent-green);
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+#details-modal-body ul {
+    list-style-position: inside;
+    margin: 10px 0;
+    padding-left: 5px;
+}
+
+#details-modal-body li {
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.details-description {
+    color: var(--text-secondary);
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-blue);
+    line-height: 1.6;
+}
+
+.details-effects {
+    color: var(--text-primary);
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(92, 184, 92, 0.05);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent-green);
+}
+
+/* Stats Table within Modal */
+.stats-table-container {
+    overflow-x: auto;
+    margin-top: 25px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-tertiary);
+    font-size: 0.9rem;
+}
+
+.stats-table th {
+    background: var(--bg-secondary);
+    color: var(--accent-blue);
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-blue);
+    text-transform: uppercase;
+}
+
+.stats-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stats-table tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.current-level-row {
+    background: rgba(92, 184, 92, 0.1) !important;
+}
+
+.current-level-row td {
+    font-weight: bold;
+    color: var(--accent-green);
+}
+
+.details-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+}

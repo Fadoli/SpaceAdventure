@@ -2,6 +2,7 @@
 
 /* 1. Global Base Styles */
 @import url('./base.css');
+@import url('./modal.css');
 
 /* 2. View-Specific Styles */
 @import url('./views/overview.css');
@@ -13,4 +14,6 @@
 @import url('./views/messages.css');
 @import url('./views/ranking.css');
 @import url('./views/research.css');
+@import url('./views/practical.css');
 @import url('./views/blueprints.css');
+@import url('./views/details.css');
