@@ -64,17 +64,60 @@ async function gameTick() {
           // Add resources based on production per hour
           const hoursElapsed = timeDelta / 3600;
           
-          // Production
-          planet.resources.metal += planet.production.metal * hoursElapsed;
-          planet.resources.crystal += planet.production.crystal * hoursElapsed;
-          planet.resources.deuterium += planet.production.deuterium * hoursElapsed;
-          planet.resources.water += (planet.production.water || 0) * hoursElapsed;
-          planet.resources.food += (planet.production.food || 0) * hoursElapsed;
+          // Production logic: Allow exceeding storage (e.g. from transport), 
+          // but shutdown production when storage is full.
+          // Consumption always applies.
           
-          // Consumption
+          const waterStorage = planet.storage.water || 10000;
+          const foodStorage = planet.storage.food || 10000;
+
+          // 1. Apply Consumption (always happens)
           if (planet.consumption) {
             planet.resources.water -= (planet.consumption.water || 0) * hoursElapsed;
             planet.resources.food -= (planet.consumption.food || 0) * hoursElapsed;
+          }
+          
+          // 2. Apply Production (only if below storage)
+          
+          // Metal
+          if (planet.resources.metal < planet.storage.metal) {
+            planet.resources.metal += planet.production.metal * hoursElapsed;
+            // Cap at storage if we just crossed it
+            if (planet.resources.metal > planet.storage.metal) {
+              planet.resources.metal = planet.storage.metal;
+            }
+          }
+          
+          // Crystal
+          if (planet.resources.crystal < planet.storage.crystal) {
+            planet.resources.crystal += planet.production.crystal * hoursElapsed;
+            if (planet.resources.crystal > planet.storage.crystal) {
+              planet.resources.crystal = planet.storage.crystal;
+            }
+          }
+          
+          // Deuterium
+          if (planet.resources.deuterium < planet.storage.deuterium) {
+            planet.resources.deuterium += planet.production.deuterium * hoursElapsed;
+            if (planet.resources.deuterium > planet.storage.deuterium) {
+              planet.resources.deuterium = planet.storage.deuterium;
+            }
+          }
+          
+          // Water
+          if (planet.resources.water < waterStorage) {
+            planet.resources.water += (planet.production.water || 0) * hoursElapsed;
+            if (planet.resources.water > waterStorage) {
+              planet.resources.water = waterStorage;
+            }
+          }
+          
+          // Food
+          if (planet.resources.food < foodStorage) {
+            planet.resources.food += (planet.production.food || 0) * hoursElapsed;
+            if (planet.resources.food > foodStorage) {
+              planet.resources.food = foodStorage;
+            }
           }
           
           // Population growth/decay based on food availability
@@ -96,13 +139,6 @@ async function gameTick() {
           // Prevent negative resources
           planet.resources.water = Math.max(0, planet.resources.water);
           planet.resources.food = Math.max(0, planet.resources.food);
-          
-          // Cap at storage
-          planet.resources.metal = Math.min(planet.resources.metal, planet.storage.metal);
-          planet.resources.crystal = Math.min(planet.resources.crystal, planet.storage.crystal);
-          planet.resources.deuterium = Math.min(planet.resources.deuterium, planet.storage.deuterium);
-          planet.resources.water = Math.min(planet.resources.water, planet.storage.water || 10000);
-          planet.resources.food = Math.min(planet.resources.food, planet.storage.food || 10000);
           
           planet.lastUpdate = Date.now();
           updated = true;
