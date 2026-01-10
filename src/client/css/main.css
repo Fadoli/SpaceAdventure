@@ -3,6 +3,7 @@
 /* 1. Global Base Styles */
 @import url('./base.css');
 @import url('./modal.css');
+@import url('./notifications.css');
 
 /* 2. View-Specific Styles */
 @import url('./views/overview.css');

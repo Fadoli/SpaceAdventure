@@ -373,6 +373,9 @@ window.toggleMessageBody = async function(id) {
             const icon = item.querySelector('.msg-status-icon');
             if (icon) icon.textContent = '📖';
             
+            // Update the badge
+            updateUnreadCount();
+            
             // Update the hash so the next auto-refresh doesn't think it changed
             if (lastMessagesHash) {
                 // This is a bit hacky but prevents the next background update from overwriting
@@ -398,6 +401,7 @@ window.deleteSingleMessage = async function(id, event) {
         await API.deleteMessage(id);
         lastMessagesHash = null; // Force re-render
         updateMessagesView();
+        updateUnreadCount();
     } catch (error) {
         Notifications.showError('Failed to delete: ' + error.message);
     }
@@ -411,7 +415,38 @@ window.clearAllMessages = async function() {
         await API.clearMessages();
         lastMessagesHash = null; // Force re-render
         updateMessagesView();
+        updateUnreadCount();
     } catch (error) {
         Notifications.showError('Failed to clear: ' + error.message);
     }
 };
+
+/**
+ * Update the unread message count badge
+ */
+export async function updateUnreadCount() {
+    try {
+        const messages = await API.getMessages();
+        const unreadCount = messages.filter(m => !m.read).length;
+        
+        const navBtn = document.querySelector('.nav-btn[data-view="messages"]');
+        if (navBtn) {
+            let badge = navBtn.querySelector('.unread-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'unread-badge';
+                navBtn.appendChild(badge);
+            }
+            
+            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+            if (unreadCount > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    } catch (error) {
+        // Silent fail for background updates
+        console.warn('Failed to update unread count', error);
+    }
+}

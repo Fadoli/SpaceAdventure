@@ -15,7 +15,7 @@ import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateRankingView } from './views/ranking.js';
 import { updateGalaxyView } from './views/galaxy.js';
-import { updateMessagesView } from './views/messages.js';
+import { updateMessagesView, updateUnreadCount } from './views/messages.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 import { updateFleetMovements } from './views/fleetMovements.js';
 import { Notifications } from './notifications.js';
@@ -133,6 +133,7 @@ async function showGameScreen() {
     
     // Update UI first to ensure planet info is shown
     updateUI();
+    updateUnreadCount();
     
     // Now switch to the restored/default view
     // Use false to not push to history since we're just restoring state
@@ -348,10 +349,18 @@ function startResourceUpdate() {
         clearInterval(updateInterval);
     }
     
+    let tickCount = 0;
+    
     updateInterval = setInterval(async () => {
         await loadGameState();
         updateTimers();
         updateFleetMovements(gameState);
+        
+        // Update messages count every 5 seconds
+        tickCount++;
+        if (tickCount % 5 === 0) {
+            updateUnreadCount();
+        }
     }, 1000); // Every 1 second
 }
 

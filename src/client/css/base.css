@@ -278,13 +278,3 @@ body {
     text-align: center;
     padding: 20px 0;
 }
-
-.notifications-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
