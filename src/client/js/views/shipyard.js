@@ -145,7 +145,7 @@ function renderShipsList(planet, shipyardData) {
         const isCollapsed = collapsedSections[`ships-${category}`] || false;
         const isLocked = shipyardLevel < data.minLevel;
         
-        html += `<div class="ships-category">
+        html += `<div class="shipyard-section">
             <div class="category-header" onclick="window.toggleCategory('ships-${category}')">
                 <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
                 <h4>${data.label}</h4>
