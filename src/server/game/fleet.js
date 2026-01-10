@@ -1,7 +1,7 @@
 // Fleet and Mission management logic
 import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
-import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../shared/ships.js';
+import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity, SHIPS as SHIP_DEFINITIONS } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer, trackSpentResources } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
@@ -685,7 +685,7 @@ async function executeExpedition(player, fleet) {
   for (const shipKey in fleet.ships) {
     const count = fleet.ships[shipKey];
     if (count <= 0) continue;
-    const shipDef = SHIP_TYPES[shipKey];
+    const shipDef = SHIP_DEFINITIONS[shipKey];
     if (shipDef && shipDef.baseCost) {
       fleetValue += (shipDef.baseCost.metal + shipDef.baseCost.crystal + shipDef.baseCost.deuterium) * count;
     }
