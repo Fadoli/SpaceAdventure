@@ -142,6 +142,12 @@ export async function processFleets(player, allPlayers) {
       
       if (fleet.waiting) {
         // Stay time finished, start return journey
+
+        // Generate expedition result before returning
+        if (fleet.missionType === MISSION_TYPES.EXPEDITION) {
+          await executeExpedition(player, fleet);
+        }
+
         const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
         let slowestSpeed = Infinity;
         for (const shipKey in fleet.ships) {
@@ -231,7 +237,7 @@ async function handleFleetArrival(player, fleet, allPlayers) {
     case MISSION_TYPES.COLONIZE:
       return await executeColonization(player, fleet, allPlayers);
     case MISSION_TYPES.EXPEDITION:
-      await executeExpedition(player, fleet);
+      // await executeExpedition(player, fleet); // Moved to end of waiting period
       return false; // Returns home after stay
     case MISSION_TYPES.TRANSPORT:
       await executeTransport(player, fleet, allPlayers);
