@@ -421,16 +421,34 @@ export async function updateGalaxyView(gameState) {
     
     currentGameState = gameState;
     
-    // Get the first planet's galaxy and system coordinates
-    const firstPlanet = gameState.planets[0];
-    const [galaxy, system] = firstPlanet.coordinates;
+    // Determine target coordinates:
+    // 1. If window.currentGalaxy/System are set (e.g. from navigation), use them.
+    // 2. Otherwise default to the first planet's location.
+    let targetGalaxy = window.currentGalaxy;
+    let targetSystem = window.currentSystem;
+
+    if (!targetGalaxy || !targetSystem) {
+        const firstPlanet = gameState.planets[0];
+        const [g, s] = firstPlanet.coordinates;
+        targetGalaxy = g;
+        targetSystem = s;
+    }
     
-    currentGalaxy = galaxy;
-    currentSystem = system;
+    // Update module scope variables
+    currentGalaxy = targetGalaxy;
+    currentSystem = targetSystem;
     
-    // Only render if not already viewing this system
-    if (lastRenderedGalaxy !== galaxy || lastRenderedSystem !== system) {
-        await loadAndRenderGalaxy(container, galaxy, system, gameState);
+    // Sync back to window to be safe
+    window.currentGalaxy = currentGalaxy;
+    window.currentSystem = currentSystem;
+    
+    // Render if coordinates changed OR if we haven't rendered yet
+    // We also force render if the container is empty (e.g. view switch)
+    if (lastRenderedGalaxy !== currentGalaxy || 
+        lastRenderedSystem !== currentSystem || 
+        container.innerHTML.trim() === '') {
+        
+        await loadAndRenderGalaxy(container, currentGalaxy, currentSystem, gameState);
     }
 }
 

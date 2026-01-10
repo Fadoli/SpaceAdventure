@@ -421,27 +421,14 @@ window.showView = function(view) {
 window.navigateGalaxySystem = async function(galaxy, system) {
     if (system < 1 || system > 499) return; // Limit systems 1-499
     
-    const container = document.getElementById('galaxy-view');
+    // Update global state
+    window.currentGalaxy = parseInt(galaxy, 10);
+    window.currentSystem = parseInt(system, 10);
     
-    try {
-        const galaxyData = await API.getGalaxyView(galaxy, system);
-        
-        // Import and use the render function
-        const { default: renderFunc } = await import('./views/galaxy.js');
-        
-        // Directly render the loaded galaxy data
-        const { renderOGameGalaxyTable } = await import('./views/galaxy.js');
-        
-        // We need to call the render function - let's use a different approach
-        // Create a temporary module to get access to the render function
-        container.innerHTML = renderGalaxyTableHTML(galaxyData, window.currentGameState, galaxy, system);
-        
-        // Store current coordinates
-        window.currentGalaxy = galaxy;
-        window.currentSystem = system;
-    } catch (error) {
-        console.error('Failed to load system:', error);
-        container.innerHTML = `<p class="error">Failed to load system: ${error.message}</p>`;
+    // Delegate rendering to the galaxy view module
+    const { updateGalaxyView } = await import('./views/galaxy.js');
+    if (window.getGameState()) {
+        await updateGalaxyView(window.getGameState());
     }
 };
 
@@ -490,135 +477,6 @@ window.selectPlanetFromGalaxy = function(playerUsername) {
         updateUI();
     }
 };
-
-// Helper function to render galaxy table HTML
-function renderGalaxyTableHTML(galaxyData, gameState, galaxy, system) {
-    const { planets } = galaxyData;
-    
-    // Create a map of planets by position
-    const planetMap = new Map();
-    planets.forEach(p => planetMap.set(p.position, p));
-    
-    // Create a set of player planet positions
-    const playerPlanetPositions = new Set();
-    if (gameState?.planets) {
-        gameState.planets.forEach(planet => {
-            const [pGalaxy, pSystem, pPosition] = planet.coordinates;
-            if (pGalaxy === galaxy && pSystem === system) {
-                playerPlanetPositions.add(pPosition);
-            }
-        });
-    }
-    
-    let html = `
-        <div class="ogame-galaxy-view">
-            <div class="galaxy-controls">
-                <div class="nav-section">
-                    <button class="nav-btn" onclick="window.navigateGalaxySystem(${galaxy}, ${system - 1})" ${system === 1 ? 'disabled' : ''}>← Previous Sector</button>
-                    <span class="current-coords">Galaxy ${galaxy} : System ${system}</span>
-                    <button class="nav-btn" onclick="window.navigateGalaxySystem(${galaxy}, ${system + 1})">Next Sector →</button>
-                </div>
-                
-                <div class="quick-travel">
-                    <div class="travel-input-group">
-                        <label>Galaxy:</label>
-                        <button class="travel-btn-decrease" onclick="window.changeGalaxyValue(-1)" title="Decrease galaxy">−</button>
-                        <input type="number" id="galaxy-input" class="travel-input-field" min="1" max="10" value="${galaxy}" 
-                               onchange="window.navigateToGalaxy(this.value)" onkeypress="if(event.key==='Enter') window.navigateToGalaxy(this.value)">
-                        <button class="travel-btn-increase" onclick="window.changeGalaxyValue(1)" title="Increase galaxy">+</button>
-                    </div>
-                    <div class="travel-input-group">
-                        <label>System:</label>
-                        <button class="travel-btn-decrease" onclick="window.changeSystemValue(-1)" title="Decrease system">−</button>
-                        <input type="number" id="system-input" class="travel-input-field" min="1" max="499" value="${system}"
-                               onchange="window.navigateToSystem(this.value)" onkeypress="if(event.key==='Enter') window.navigateToSystem(this.value)">
-                        <button class="travel-btn-increase" onclick="window.changeSystemValue(1)" title="Increase system">+</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="ogame-table-wrapper">
-                <table class="ogame-system-table">
-                    <thead>
-                        <tr>
-                            <th class="pos-col">Pos</th>
-                            <th class="planet-col">Planet</th>
-                            <th class="player-col">Player</th>
-                            <th class="status-col">Status</th>
-                            <th class="action-col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    `;
-    
-    for (let position = 1; position <= 15; position++) {
-        const planet = planetMap.get(position);
-        const isPlayerPlanet = playerPlanetPositions.has(position);
-        
-        if (planet) {
-            const moonBadge = planet.moon ? '<span class="moon-badge">🌙</span>' : '';
-            const playerIcon = planet.playerType === 'player' ? '👨‍💼' : '🤖';
-            const rowClass = isPlayerPlanet ? 'my-planet-row' : '';
-            const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : 'ai-planet-row';
-            
-            html += `
-                <tr class="planet-row ${rowClass} ${planetTypeClass}">
-                    <td class="pos-col"><strong>${position}</strong></td>
-                    <td class="planet-col">
-                        <div class="planet-name-cell">
-                            <div class="planet-icon-mini">🌍</div>
-                            <div class="planet-details">
-                                <div class="planet-name">${planet.planetName}</div>
-                                <div class="planet-activity">Last: ${planet.activity}</div>
-                            </div>
-                            ${moonBadge}
-                        </div>
-                    </td>
-                    <td class="player-col">
-                        <div class="player-info">
-                            ${playerIcon}
-                            <span>${planet.player}</span>
-                        </div>
-                    </td>
-                    <td class="status-col">
-                        <span class="status-badge ${isPlayerPlanet ? 'status-own' : 'status-other'}">
-                            ${isPlayerPlanet ? '🏠 Own' : '👾 Other'}
-                        </span>
-                    </td>
-                    <td class="action-col">
-                        <div class="action-buttons">
-                            ${isPlayerPlanet ? `
-                                <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy('${planet.player}')" title="View planet">👁️</button>
-                            ` : `
-                                <button class="action-btn info-btn" onclick="window.spyOnPlanetFromGalaxy(${position})" title="Spy">🕵️</button>
-                                <button class="action-btn attack-btn" onclick="window.attackPlanetFromGalaxy(${position})" title="Attack">⚔️</button>
-                            `}
-                        </div>
-                    </td>
-                </tr>
-            `;
-        } else {
-            html += `
-                <tr class="empty-row">
-                    <td class="pos-col"><strong>${position}</strong></td>
-                    <td class="planet-col empty-cell">-</td>
-                    <td class="player-col empty-cell">-</td>
-                    <td class="status-col empty-cell">-</td>
-                    <td class="action-col empty-cell">-</td>
-                </tr>
-            `;
-        }
-    }
-    
-    html += `
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
-    
-    return html;
-}
 
 // Export getCurrentPlanet for allocation view
 export function getCurrentPlanet() {
