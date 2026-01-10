@@ -2,6 +2,7 @@
 
 /* 1. Global Base Styles */
 @import url('./base.css');
+@import url('./auth.css');
 @import url('./modal.css');
 @import url('./notifications.css');
 
