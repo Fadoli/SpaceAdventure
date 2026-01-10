@@ -631,7 +631,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
             <td class="action-col">
                 <div class="action-buttons">
                     ${isPlayerPlanet ? `
-                        <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy('${planet.player}')" title="View planet">👁️</button>
+                        <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy(${position})" title="View planet">👁️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🚚</button>
                         <button class="action-btn deploy-btn" onclick="window.deployToPlanetFromGalaxy(${position})" title="Deploy Fleet" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🪂</button>
                     ` : `

@@ -466,11 +466,19 @@ window.changeSystemValue = function(delta) {
     window.navigateToSystem(value);
 };
 
-window.selectPlanetFromGalaxy = function(playerUsername) {
-    // Find the planet with this username in current game state
+window.selectPlanetFromGalaxy = function(position) {
+    // Find the planet with this position in current galaxy/system
     if (!window.currentGameState) return;
     
-    const planet = window.currentGameState.planets.find(p => p.name === playerUsername || p.id === playerUsername);
+    const galaxy = window.currentGalaxy;
+    const system = window.currentSystem;
+    
+    const planet = window.currentGameState.planets.find(p => 
+        p.coordinates[0] === galaxy && 
+        p.coordinates[1] === system && 
+        p.coordinates[2] === position
+    );
+    
     if (planet) {
         currentPlanetId = planet.id;
         switchView('overview');
