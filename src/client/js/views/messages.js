@@ -85,43 +85,51 @@ function renderMessagesList(container, messages) {
         filteredMessages = messages.filter(m => m.type === currentFilter);
     }
 
+    const unreadCount = messages.filter(m => !m.read).length;
+
     let html = `
-        <div class="messages-header">
-            <h2>📬 Messages (${messages.length})</h2>
-            <div class="message-filters">
-                <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="window.filterMessages('all')">All</button>
-                <button class="filter-btn ${currentFilter === 'espionage' ? 'active' : ''}" onclick="window.filterMessages('espionage')">Espionage</button>
-                <button class="filter-btn ${currentFilter === 'attack' ? 'active' : ''}" onclick="window.filterMessages('attack')">Attack</button>
-                <button class="filter-btn ${currentFilter === 'harvest' ? 'active' : ''}" onclick="window.filterMessages('harvest')">Harvest</button>
-                <button class="filter-btn ${currentFilter === 'colonization' ? 'active' : ''}" onclick="window.filterMessages('colonization')">Colonization</button>
-                <button class="filter-btn ${currentFilter === 'expedition' ? 'active' : ''}" onclick="window.filterMessages('expedition')">Expedition</button>
+        <div class="messages-header-control">
+            <div class="msg-title-area">
+                <h2>COMMUNICATION LOGS</h2>
+                <span class="msg-stats-tag">${unreadCount} NEW / ${messages.length} TOTAL</span>
             </div>
-            <button class="btn btn-danger btn-small" onclick="window.clearAllMessages()">Clear All</button>
+            <div class="msg-filter-bar">
+                <div class="filter-group">
+                    ${['all', 'espionage', 'attack', 'harvest', 'colonization', 'expedition'].map(f => `
+                        <button class="msg-filter-btn ${currentFilter === f ? 'active' : ''}" onclick="window.filterMessages('${f}')">
+                            ${f.toUpperCase()}
+                        </button>
+                    `).join('')}
+                </div>
+                <button class="v-action-btn delete" onclick="window.clearAllMessages()">PURGE ALL</button>
+            </div>
         </div>
         <div class="messages-list">
     `;
 
     if (!filteredMessages || filteredMessages.length === 0) {
-        html += `<p class="empty-info">No ${currentFilter === 'all' ? '' : currentFilter} messages found.</p>`;
+        html += `<div class="empty-log-message">> NO ${currentFilter === 'all' ? '' : currentFilter.toUpperCase()} ENTRIES FOUND IN DATABASE</div>`;
     } else {
         filteredMessages.forEach(msg => {
             const isUnread = !msg.read;
-            const typeIcon = msg.type === 'espionage' ? '🕵️' : (msg.type === 'colonization' ? '🏗️' : '🚀');
-            const statusIcon = isUnread ? '📧' : '📖';
+            const typeLabel = msg.type.toUpperCase();
             
             html += `
-                <div id="msg-${msg.id}" class="message-item ${isUnread ? 'unread' : ''}" 
-                     data-open="false">
-                    <div class="message-header-row" onclick="window.toggleMessageBody('${msg.id}')">
-                        <span class="msg-status-icon">${statusIcon}</span>
-                        <span class="msg-type-icon">${typeIcon}</span>
-                        <span class="msg-sender">${msg.from}</span>
-                        <span class="msg-subject">${msg.subject}</span>
-                        <span class="msg-date">${formatDate(msg.timestamp)}</span>
-                        <button class="msg-delete-btn" onclick="window.deleteSingleMessage('${msg.id}', event)">✕</button>
+                <div id="msg-${msg.id}" class="msg-entry ${isUnread ? 'unread' : ''}" data-open="false">
+                    <div class="msg-entry-header" onclick="window.toggleMessageBody('${msg.id}')">
+                        <div class="msg-main-info">
+                            <span class="msg-status-tag">${isUnread ? 'NEW' : 'READ'}</span>
+                            <span class="msg-type-tag">${typeLabel}</span>
+                            <span class="msg-subject">${msg.subject}</span>
+                        </div>
+                        <div class="msg-meta-info">
+                            <span class="msg-sender">FROM: ${msg.from.toUpperCase()}</span>
+                            <span class="msg-date">${formatDate(msg.timestamp)}</span>
+                            <button class="msg-delete-icon" onclick="window.deleteSingleMessage('${msg.id}', event)">✕</button>
+                        </div>
                     </div>
-                    <div id="msg-body-${msg.id}" class="message-body" style="display: none;" onclick="event.stopPropagation()">
-                        <div class="msg-content">${msg.body}</div>
+                    <div id="msg-body-${msg.id}" class="msg-entry-body" style="display: none;" onclick="event.stopPropagation()">
+                        <div class="msg-content-text">${msg.body}</div>
                         ${renderMessageData(msg)}
                     </div>
                 </div>
@@ -148,36 +156,40 @@ function renderMessageData(msg) {
         case 'colonization':
             const c = msg.data.coords || [1, 1, 1];
             return `
-                <div class="msg-data-info">
-                    Coordinates: 
-                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${c[0]}, ${c[1]}, ${c[2]})">
-                        [${c.join(':')}]
-                    </a>
+                <div class="msg-technical-data">
+                    <div class="data-row">
+                        <span class="data-label">ESTABLISHED COORDINATES:</span>
+                        <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${c[0]}, ${c[1]}, ${c[2]})">
+                            [${c.join(':')}]
+                        </a>
+                    </div>
                 </div>`;
         case 'expedition':
             let resHtml = '';
             const ec = msg.data.coords || [1, 1, 1];
             if (msg.data.resultType === 'resources') {
-                resHtml = `<p>Surviving crew has rejoined the planetary population.</p>`;
+                resHtml = `<div class="data-row"><span class="data-label">CREW STATUS:</span><span class="data-val">REJOINED POPULATION</span></div>`;
             }
             return `
-                <div class="msg-data-info">
-                    Location: 
-                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${ec[0]}, ${ec[1]}, ${ec[2]})">
-                        Deep Space [${ec.join(':')}]
-                    </a>
-                    <br>${resHtml}
+                <div class="msg-technical-data">
+                    <div class="data-row">
+                        <span class="data-label">SECTOR LOCATION:</span>
+                        <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${ec[0]}, ${ec[1]}, ${ec[2]})">
+                            DEEP SPACE [${ec.join(':')}]
+                        </a>
+                    </div>
+                    ${resHtml}
                 </div>`;
         case 'attack':
             return renderCombatReport(msg.data);
         case 'harvest':
             const h = msg.data.resources || {};
             return `
-                <div class="msg-data-info">
-                    Recycled Resources: 
-                    <div class="res-grid-mini" style="margin-top: 5px;">
-                        <div>⚙️ ${formatNumber(h.metal || 0)}</div>
-                        <div>💎 ${formatNumber(h.crystal || 0)}</div>
+                <div class="msg-technical-data">
+                    <div class="v-readout-header">RECOVERED MATERIALS</div>
+                    <div class="bt-readout">
+                        <div class="bt-row"><span class="bt-label">METAL</span><span class="bt-value archived">${formatNumber(h.metal || 0)}</span></div>
+                        <div class="bt-row"><span class="bt-label">CRYSTAL</span><span class="bt-value archived">${formatNumber(h.crystal || 0)}</span></div>
                     </div>
                 </div>`;
         default:
@@ -186,76 +198,84 @@ function renderMessageData(msg) {
 }
 
 function renderCombatReport(data) {
-    let html = '<div class="combat-report">';
-    
     const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') : 
                        (data.winner === 'defender' ? (data.isAttacker ? 'loser' : 'winner') : 'draw');
     
-    html += `
-        <div class="combat-header ${winnerClass}">
-            <h3>Winner: ${data.winner.toUpperCase()}</h3>
-            <p>Battle at [${data.targetCoords.join(':')}]</p>
-        </div>
+    let html = `
+        <div class="technical-report combat ${winnerClass}">
+            <div class="report-header">
+                <span class="report-title">COMBAT ENGAGEMENT REPORT</span>
+                <span class="report-result ${winnerClass}">RESULT: ${data.winner.toUpperCase()} VICTORIOUS</span>
+            </div>
+            
+            <div class="report-meta">SECTOR: [${data.targetCoords.join(':')}]</div>
     `;
 
     // Loot section
     if (data.loot && (data.loot.metal > 0 || data.loot.crystal > 0 || data.loot.deuterium > 0)) {
         html += `
-            <div class="report-section loot-section">
-                <h4>Captured Resources</h4>
-                <div class="res-grid-mini">
-                    <div>⚙️ ${formatNumber(data.loot.metal)}</div>
-                    <div>💎 ${formatNumber(data.loot.crystal)}</div>
-                    <div>🛢️ ${formatNumber(data.loot.deuterium)}</div>
+            <div class="report-block">
+                <div class="v-readout-header">CAPTURED SHIPMENTS</div>
+                <div class="bt-readout">
+                    <div class="bt-row"><span class="bt-label">METAL</span><span class="bt-value archived">${formatNumber(data.loot.metal)}</span></div>
+                    <div class="bt-row"><span class="bt-label">CRYSTAL</span><span class="bt-value archived">${formatNumber(data.loot.crystal)}</span></div>
+                    <div class="bt-row"><span class="bt-label">DEUTERIUM</span><span class="bt-value archived">${formatNumber(data.loot.deuterium)}</span></div>
                 </div>
             </div>
         `;
     }
 
     // Rounds summary
-    html += `<div class="report-section"><h4>Battle Summary</h4>`;
-    data.rounds.forEach(r => {
-        html += `<div class="round-row">Round ${r.round}: Attacker shots: ${r.attackerShotCount}, Defender shots: ${r.defenderShotCount}</div>`;
-    });
-    html += `</div>`;
+    html += `
+        <div class="report-block">
+            <div class="v-readout-header">ENGAGEMENT LOG</div>
+            <div class="bt-readout">
+                ${data.rounds.map(r => `
+                    <div class="bt-row">
+                        <span class="bt-label">ROUND ${r.round}</span>
+                        <span class="bt-value">A: ${r.attackerShotCount} shots / D: ${r.defenderShotCount} shots</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
 
     // Losses
-    html += `<div class="report-section losses-grid">
-        <div class="loss-column">
-            <h4>Attacker Losses</h4>
-            <div class="data-list">`;
-    if (isEmpty(data.attackerLosses)) {
-        html += '<span>None</span>';
-    } else {
-        for (const k in data.attackerLosses) {
-            html += `<span>${k.replace(/([A-Z])/g, ' $1').trim()}: ${data.attackerLosses[k]}</span>`;
-        }
-    }
-    html += `</div></div>
-        <div class="loss-column">
-            <h4>Defender Losses</h4>
-            <div class="data-list">`;
-    
-    const defLosses = data.defenderLosses || {};
-    const allDefLosses = { ...(defLosses.ships || {}), ...(defLosses.defenses || {}) };
-    
-    if (isEmpty(allDefLosses)) {
-        html += '<span>None</span>';
-    } else {
-        for (const k in allDefLosses) {
-            html += `<span>${k.replace(/([A-Z])/g, ' $1').trim()}: ${allDefLosses[k]}</span>`;
-        }
-    }
-    html += `</div></div></div>`;
+    html += `
+        <div class="report-block losses-readout">
+            <div class="loss-col">
+                <div class="v-readout-header">ATTACKER LOSSES</div>
+                <div class="bt-readout">
+                    ${isEmpty(data.attackerLosses) ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : 
+                        Object.entries(data.attackerLosses).map(([k, v]) => `
+                            <div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${v}</span></div>
+                        `).join('')}
+                </div>
+            </div>
+            <div class="loss-col">
+                <div class="v-readout-header">DEFENDER LOSSES</div>
+                <div class="bt-readout">
+                    ${(() => {
+                        const defLosses = data.defenderLosses || {};
+                        const allDefLosses = { ...(defLosses.ships || {}), ...(defLosses.defenses || {}) };
+                        return isEmpty(allDefLosses) ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : 
+                            Object.entries(allDefLosses).map(([k, v]) => `
+                                <div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${v}</span></div>
+                            `).join('');
+                    })()}
+                </div>
+            </div>
+        </div>
+    `;
 
     // Debris Field
     if (data.debris && (data.debris.metal > 0 || data.debris.crystal > 0)) {
         html += `
-            <div class="report-section debris-section">
-                <h4>Debris Field Generated</h4>
-                <div class="res-grid-mini">
-                    <div>⚙️ ${formatNumber(data.debris.metal)}</div>
-                    <div>💎 ${formatNumber(data.debris.crystal)}</div>
+            <div class="report-block">
+                <div class="v-readout-header">DEBRIS FIELD SIGNATURE</div>
+                <div class="bt-readout">
+                    <div class="bt-row"><span class="bt-label">METAL RECOVERABLE</span><span class="bt-value archived">${formatNumber(data.debris.metal)}</span></div>
+                    <div class="bt-row"><span class="bt-label">CRYSTAL RECOVERABLE</span><span class="bt-value archived">${formatNumber(data.debris.crystal)}</span></div>
                 </div>
             </div>
         `;
@@ -266,84 +286,69 @@ function renderCombatReport(data) {
 }
 
 function renderEspionageData(data) {
-    let html = '<div class="espionage-report">';
-    
-    // Header stats
-    html += `
-        <div class="report-meta">
-            <small>Your Tech: ${data.techLevel} | Enemy Tech: ${data.defenderTechLevel} | Probes: ${data.probeCount} | <strong>Power: ${data.power}</strong></small>
-        </div>
+    const c = data.coords || [1, 1, 1];
+    let html = `
+        <div class="technical-report espionage">
+            <div class="report-header">
+                <span class="report-title">INTELLIGENCE SCAN REPORT</span>
+                <span class="report-meta">COORD: [${c.join(':')}]</span>
+            </div>
+            
+            <div class="report-block">
+                <div class="bt-readout mini">
+                    <div class="bt-row"><span class="bt-label">SCAN POWER:</span><span class="bt-value archived">${data.power}</span></div>
+                    <div class="bt-row"><span class="bt-label">YOUR TECH:</span><span class="bt-value">${data.techLevel}</span></div>
+                    <div class="bt-row"><span class="bt-label">DEFENDER TECH:</span><span class="bt-value">${data.defenderTechLevel}</span></div>
+                </div>
+            </div>
     `;
 
     if (data.info) {
-        html += `<p class="report-info"><em>${data.info}</em></p>`;
+        html += `<div class="report-info-text">> ${data.info.toUpperCase()}</div>`;
     }
 
     if (data.resources) {
-        const c = data.coords || [1, 1, 1];
         html += `
-            <div class="report-section">
-                <h4>
-                    Resources at 
-                    <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${c[0]}, ${c[1]}, ${c[2]})">
-                        [${c.join(':')}]
-                    </a>
-                </h4>
-                <div class="res-grid-mini">
-                    <div>⚙️ ${Math.floor(data.resources.metal).toLocaleString()}</div>
-                    <div>💎 ${Math.floor(data.resources.crystal).toLocaleString()}</div>
-                    <div>🛢️ ${Math.floor(data.resources.deuterium).toLocaleString()}</div>
-                    <div>⚡ ${Math.floor(data.resources.energy).toLocaleString()}</div>
-                    <div>👥 ${Math.floor(data.resources.population).toLocaleString()}</div>
+            <div class="report-block">
+                <div class="v-readout-header">SENSORS DETECTED RESOURCES</div>
+                <div class="bt-readout">
+                    <div class="bt-row"><span class="bt-label">METAL</span><span class="bt-value">${Math.floor(data.resources.metal).toLocaleString()}</span></div>
+                    <div class="bt-row"><span class="bt-label">CRYSTAL</span><span class="bt-value">${Math.floor(data.resources.crystal).toLocaleString()}</span></div>
+                    <div class="bt-row"><span class="bt-label">DEUTERIUM</span><span class="bt-value">${Math.floor(data.resources.deuterium).toLocaleString()}</span></div>
+                    <div class="bt-row"><span class="bt-label">ENERGY POTENTIAL</span><span class="bt-value">${Math.floor(data.resources.energy).toLocaleString()}</span></div>
+                    <div class="bt-row"><span class="bt-label">POPULATION DENSITY</span><span class="bt-value">${Math.floor(data.resources.population).toLocaleString()}</span></div>
                 </div>
             </div>
         `;
     }
 
-    if (data.ships && Object.keys(data.ships).length > 0) {
-        html += `<div class="report-section"><h4>Ships</h4><div class="data-list">`;
-        for (const s in data.ships) {
-            if (data.ships[s] > 0) {
-                const name = s.replace(/([A-Z])/g, ' $1').trim();
-                html += `<span>${name}: ${data.ships[s]}</span>`;
-            }
-        }
-        html += `</div></div>`;
-    }
+    const sections = [
+        { label: 'SHIP SIGNATURES', data: data.ships },
+        { label: 'DEFENSIVE STRUCTURES', data: data.defenses },
+        { label: 'FACILITY READOUT', data: data.buildings },
+        { label: 'RESEARCH DATABASE', data: data.research }
+    ];
 
-    if (data.defenses && Object.keys(data.defenses).length > 0) {
-        html += `<div class="report-section"><h4>Defenses</h4><div class="data-list">`;
-        for (const d in data.defenses) {
-            if (data.defenses[d] > 0) {
-                const name = d.replace(/([A-Z])/g, ' $1').trim();
-                html += `<span>${name}: ${data.defenses[d]}</span>`;
+    sections.forEach(section => {
+        if (section.data && Object.keys(section.data).length > 0) {
+            const entries = Object.entries(section.data).filter(([_, v]) => (typeof v === 'object' ? v.level : v) > 0);
+            if (entries.length > 0) {
+                html += `
+                    <div class="report-block">
+                        <div class="v-readout-header">${section.label}</div>
+                        <div class="bt-readout">
+                            ${entries.map(([k, v]) => `
+                                <div class="bt-row">
+                                    <span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
+                                    <span class="bt-value archived">${typeof v === 'object' ? v.level : v}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             }
         }
-        html += `</div></div>`;
-    }
-
-    if (data.buildings && Object.keys(data.buildings).length > 0) {
-        html += `<div class="report-section"><h4>Buildings</h4><div class="data-list">`;
-        for (const b in data.buildings) {
-            if (data.buildings[b] > 0) {
-                const name = b.replace(/([A-Z])/g, ' $1').trim();
-                html += `<span>${name}: ${data.buildings[b]}</span>`;
-            }
-        }
-        html += `</div></div>`;
-    }
-
-    if (data.research && Object.keys(data.research).length > 0) {
-        html += `<div class="report-section"><h4>Research</h4><div class="data-list">`;
-        for (const r in data.research) {
-            const level = typeof data.research[r] === 'object' ? data.research[r].level : data.research[r];
-            if (level > 0) {
-                const name = r.replace(/([A-Z])/g, ' $1').trim();
-                html += `<span>${name}: ${level}</span>`;
-            }
-        }
-        html += `</div></div>`;
-    }
+    });
 
     html += '</div>';
     return html;
