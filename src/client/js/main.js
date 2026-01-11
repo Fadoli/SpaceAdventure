@@ -91,6 +91,7 @@ async function init() {
     try {
         currentUser = await API.getCurrentUser();
         if (currentUser) {
+            window.currentUser = currentUser;
             await showGameScreen();
         } else {
             if (window.location.pathname !== '/login.html') {
@@ -324,7 +325,7 @@ function updateCurrentView() {
             updateMessagesView();
             break;
         case 'ranking':
-            updateRankingView();
+            // Don't auto-update ranking view to save bandwidth and prevent jitter
             break;
         case 'allocation':
             // Don't re-render allocation view during auto-updates to preserve user input

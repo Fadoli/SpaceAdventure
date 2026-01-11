@@ -5,13 +5,13 @@ import { formatNumber } from '../utils.js';
 /**
  * Update ranking view
  */
-export async function updateRankingView() {
+export async function updateRankingView(offset = 0) {
     const container = document.getElementById('ranking-container');
     if (!container) return;
 
     try {
-        const rankings = await API.getRankings();
-        renderRankingTable(container, rankings);
+        const data = await API.getRankings(offset, 100);
+        renderRankingTable(container, data.rankings, data.totalPlayers, data.offset, data.limit);
     } catch (error) {
         console.error('Failed to load rankings:', error);
         container.innerHTML = `<p class="error">Failed to load rankings: ${error.message}</p>`;
@@ -21,13 +21,26 @@ export async function updateRankingView() {
 /**
  * Render the ranking table
  */
-function renderRankingTable(container, rankings) {
+function renderRankingTable(container, rankings, totalPlayers, offset, limit) {
     if (!rankings || rankings.length === 0) {
         container.innerHTML = '<p>No data available yet.</p>';
         return;
     }
 
+    const startRange = offset + 1;
+    const endRange = Math.min(offset + limit, totalPlayers);
+
     let html = `
+        <div class="ranking-header">
+            <div class="ranking-info">
+                <p>Showing players ${startRange}-${endRange} of ${totalPlayers} by total resources spent.</p>
+            </div>
+            <div class="ranking-nav">
+                <button class="btn btn-secondary btn-small" onclick="window.updateRankingView(0)" ${offset === 0 ? 'disabled' : ''}>Top 100</button>
+                <button class="btn btn-secondary btn-small" onclick="window.updateRankingView(${Math.max(0, offset - 100)})" ${offset === 0 ? 'disabled' : ''}>Previous 100</button>
+                <button class="btn btn-secondary btn-small" onclick="window.updateRankingView(${offset + 100})" ${offset + 100 >= totalPlayers ? 'disabled' : ''}>Next 100</button>
+            </div>
+        </div>
         <div class="ranking-wrapper">
             <table class="ranking-table">
                 <thead>
@@ -43,7 +56,7 @@ function renderRankingTable(container, rankings) {
     `;
 
     rankings.forEach(player => {
-        const isCurrentPlayer = player.userId === window.currentUser?.id;
+        const isCurrentPlayer = player.userId === window.currentUser?.userId;
         const coords = player.homeworldCoords || [1, 1, 1];
         const coordsStr = `[${coords.join(':')}]`;
         
@@ -70,4 +83,7 @@ function renderRankingTable(container, rankings) {
 
     container.innerHTML = html;
 }
+
+// Expose to window for onclick handlers
+window.updateRankingView = updateRankingView;
 

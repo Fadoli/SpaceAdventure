@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex } from './game/player.js';
 import { getGalaxyData } from './game/galaxyData.js';
 import { 
   upgradeBuilding, 
@@ -1213,13 +1213,29 @@ async function handleRequest(req) {
     // RESEARCH ROUTES
     // ============================================
 
+    // GET /api/game/my-rank - Get current player's rank index
+    if (path === '/api/game/my-rank' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      try {
+        const index = await getPlayerRankIndex(user.id);
+        return successResponse(req, { index });
+      } catch (error) {
+        return errorResponse(req, error.message, 500);
+      }
+    }
+
     // GET /api/game/rankings - Get player rankings
     if (path === '/api/game/rankings' && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) return errorResponse(req, 'Not authenticated', 401);
 
+      const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+      const limit = parseInt(url.searchParams.get('limit') || '100', 10);
+
       try {
-        const rankings = await getRankings();
+        const rankings = await getRankings(offset, limit);
         return successResponse(req, rankings);
       } catch (error) {
         return errorResponse(req, error.message, 500);

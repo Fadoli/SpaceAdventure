@@ -106,8 +106,12 @@ export const API = {
         });
     },
 
-    async getRankings() {
-        return await this.request('/game/rankings');
+    async getRankings(offset = 0, limit = 100) {
+        return await this.request(`/game/rankings?offset=${offset}&limit=${limit}`);
+    },
+
+    async getMyRank() {
+        return await this.request('/game/my-rank');
     },
 
     async getShipyardDetails(planetId) {

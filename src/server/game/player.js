@@ -224,9 +224,26 @@ export function trackSpentResources(player, cost) {
 }
 
 /**
+ * Get a specific player's rank index
+ */
+export async function getPlayerRankIndex(userId) {
+  const players = await getPlayers();
+  
+  const rankings = players.map(p => ({
+    userId: p.userId,
+    totalSpent: p.statistics?.totalResourcesSpent || 0
+  }));
+  
+  // Sort by total spent descending
+  rankings.sort((a, b) => b.totalSpent - a.totalSpent);
+  
+  return rankings.findIndex(r => r.userId === userId);
+}
+
+/**
  * Get player rankings based on total resources spent
  */
-export async function getRankings() {
+export async function getRankings(offset = 0, limit = 100) {
   const players = await getPlayers();
   
   const rankings = players.map(p => ({
@@ -240,11 +257,23 @@ export async function getRankings() {
   // Sort by total spent descending
   rankings.sort((a, b) => b.totalSpent - a.totalSpent);
   
-  // Add rank position
-  return rankings.map((r, index) => ({
+  const totalPlayers = rankings.length;
+  
+  // Add rank position to all (needed for pagination)
+  const rankedAll = rankings.map((r, index) => ({
     rank: index + 1,
     ...r
   }));
+
+  // Limit to the requested range
+  const slicedRankings = rankedAll.slice(offset, offset + limit);
+  
+  return {
+    rankings: slicedRankings,
+    totalPlayers,
+    offset,
+    limit
+  };
 }
 
 /**

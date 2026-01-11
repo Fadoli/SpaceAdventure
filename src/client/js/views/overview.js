@@ -37,6 +37,27 @@ window.renamePlanetUI = async function(planetId, currentName) {
     }
 };
 
+window.viewMyRank = async function() {
+    try {
+        const { index } = await API.getMyRank();
+        // Calculate offset to show the player in the 100 entries page they belong to
+        const offset = Math.max(0, Math.floor(index / 100) * 100);
+        
+        // Show ranking view using main.js helper
+        if (window.showView) {
+            window.showView('ranking');
+            // Small delay to ensure view is active and then load specific offset
+            setTimeout(() => {
+                if (window.updateRankingView) {
+                    window.updateRankingView(offset);
+                }
+            }, 50);
+        }
+    } catch (error) {
+        Notifications.showError('Failed to find rank: ' + error.message);
+    }
+};
+
 /**
  * Initialize the basic structure of the overview page
  */
@@ -96,6 +117,12 @@ function initializeOverviewStructure(container, planet, allPlanets) {
                  <div class="detail-row">
                     <span class="detail-label">Military</span>
                     <span class="detail-value" id="ov-military-summary">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Empire</span>
+                    <span class="detail-value">
+                        <button class="btn btn-secondary btn-small" onclick="window.viewMyRank()" style="padding: 2px 8px; font-size: 0.75rem; width: auto;">View My Rank</button>
+                    </span>
                 </div>
             </div>
         </div>
