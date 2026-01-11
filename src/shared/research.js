@@ -603,6 +603,7 @@ export function getCustomVariant(baseType, type, focusLevels) {
 export function calculateFocusModifiers(research, focusLevels) {
   const modifiers = {
     productionMultiplier: 1,
+    timeMultiplier: 1,
     costMultiplier: 1,
     energyMultiplier: 1,
     populationMultiplier: 1,
@@ -646,6 +647,15 @@ export function applyCustomization(baseDefinition, modifiers) {
   if (modifiers.productionMultiplier !== 1 && customized.production) {
     for (const resource in customized.production) {
       customized.production[resource] *= modifiers.productionMultiplier;
+    }
+  }
+
+  // Apply time multiplier (for factories, lab, shipyard)
+  if (modifiers.timeMultiplier !== 1) {
+    if (customized.timeMultiplier === undefined) {
+      customized.timeMultiplier = modifiers.timeMultiplier;
+    } else {
+      customized.timeMultiplier *= modifiers.timeMultiplier;
     }
   }
 
