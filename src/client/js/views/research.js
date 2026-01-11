@@ -539,7 +539,7 @@ async function renderPracticalResearch() {
           </div>
           <div class="building-actions">
             <div class="action-group">
-              <button class="btn upgrade-btn" onclick="openAllocationModal('${key}', '${res.name.replace(/ (Specialization|Customization)$/, '')}', '${res.baseType}', '${res.icon}', event)">
+              <button class="btn upgrade-btn" onclick="window.openAllocationModal('${key}', '${res.name.replace(/ (Specialization|Customization)$/, '')}', '${res.baseType}', '${res.icon}', event)">
                 🔬 Run Experiment
               </button>
               <button class="btn design-btn" onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)" 
@@ -600,11 +600,11 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
     };
 
     document.body.insertAdjacentHTML('beforeend', `
-    <div class="modal-overlay" onclick="closeAllocationModal()">
+    <div class="modal-overlay" onclick="window.closeAllocationModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h2>${icon} ${researchName}</h2>
-                <button class="modal-close" onclick="closeAllocationModal()">✕</button>
+                <button class="modal-close" onclick="window.closeAllocationModal()">✕</button>
             </div>
             <div class="modal-body">
               <p style="font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">> CALIBRATING EXPERIMENT FOCUS (TOTAL 100%):</p>
@@ -614,7 +614,7 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
                     <div class="slider-group">
                       <label>${focusLabels[f]}</label>
                       <div class="slider-row">
-                        <input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="updateAllocationSliders()">
+                        <input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="window.updateAllocationSliders()">
                         <span id="value-${f}" class="value">0%</span>
                       </div>
                       <p class="slider-hint">${focusHints[f]}</p>
@@ -622,7 +622,7 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
                   <div class="divider-line"></div>
                   <div class="slider-group"><label>💪 EXPERIMENT INTENSITY</label>
                       <div class="slider-row">
-                          <input type="range" min="1" max="6" step="0.1" value="2" id="slider-strength" class="slider" oninput="updateAllocationSliders()" list="strength-markers">
+                          <input type="range" min="1" max="6" step="0.1" value="2" id="slider-strength" class="slider" oninput="window.updateAllocationSliders()" list="strength-markers">
                           <datalist id="strength-markers">
                             <option value="1" label="10"></option>
                             <option value="2" label="100"></option>
@@ -648,8 +648,8 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
               </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeAllocationModal()">ABORT</button>
-                <button class="btn btn-primary" id="start-research-btn" disabled onclick="submitAllocationResearch('${researchKey}', '${baseType}')">INITIATE EXPERIMENT</button>
+                <button class="btn btn-secondary" onclick="window.closeAllocationModal()">ABORT</button>
+                <button class="btn btn-primary" id="start-research-btn" disabled onclick="window.submitAllocationResearch('${researchKey}', '${baseType}')">INITIATE EXPERIMENT</button>
             </div>
         </div>
     </div>`);

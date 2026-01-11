@@ -10,21 +10,24 @@
     height: 100%;
     background-color: rgba(5, 8, 15, 0.85);
     backdrop-filter: blur(8px);
-}
-
-.modal-overlay {
-    display: flex;
     align-items: center;
     justify-content: center;
 }
 
+.modal-overlay {
+    display: flex; /* Dynamically added modals should be visible by default */
+}
+
 .modal-content {
     background: #0c121d;
-    margin: 0; /* Center using flexbox instead of margin auto */
+    margin: 0; 
     padding: 0;
     border: 1px solid var(--accent-blue);
     width: 95%;
     max-width: 900px;
+    max-height: 95vh; /* Ensure content doesn't exceed screen */
+    display: flex;
+    flex-direction: column;
     border-radius: 4px;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.2);
     position: relative;
@@ -90,11 +93,13 @@
 
 .modal-body {
     padding: 25px;
-    max-height: 80vh;
     overflow-y: auto;
+    flex: 1; /* Grow to fill available space */
+    min-height: 0; /* Important for flex-basis scroll containers */
 }
 
 .modal-footer {
+    flex-shrink: 0; /* Don't squash the footer */
     padding: 15px 25px;
     background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -103,29 +108,24 @@
     gap: 12px;
 }
 
-.modal-input {
-    width: 100%;
-    padding: 12px 15px;
-    background: #05080f;
-    border: 1px solid #1e293b;
-    border-radius: 2px;
-    color: #fff;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 1rem;
-    outline: none;
-    transition: all 0.2s;
-}
-
-.modal-input:focus {
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
-}
-
 /* Custom Scrollbar for Sci-Fi feel */
-.modal-body::-webkit-scrollbar { width: 6px; }
-.modal-body::-webkit-scrollbar-track { background: #05080f; }
-.modal-body::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-.modal-body::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+.modal-body::-webkit-scrollbar { 
+    width: 8px; 
+}
+.modal-body::-webkit-scrollbar-track { 
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+.modal-body::-webkit-scrollbar-thumb { 
+    background: #1e293b; 
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover { 
+    background: var(--accent-blue);
+    background-clip: padding-box;
+}
 
 /* Details Tables in Modals */
 .details-table {
