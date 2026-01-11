@@ -463,7 +463,13 @@ async function renderPracticalResearch() {
 
             html += `
         <div class="research-card ${isDisabled ? 'locked' : ''}">
-          <div class="card-header"><span class="icon">${res.icon}</span><span class="name">${res.name}</span></div>
+          <div class="card-header">
+            <span class="icon">${res.icon}</span>
+            <div class="tech-name">
+              <span class="name">${res.name}</span>
+              <span class="eff-multiplier" title="Total Bonus: +${((totalEfficiency - 1) * 100).toFixed(0)}% (from ${bankedBreakthroughs} banked breakthroughs)">+${((totalEfficiency - 1) * 100).toFixed(0)}% XP</span>
+            </div>
+          </div>
           <div class="card-body">
             <p class="description">${res.description}</p>
             
@@ -484,32 +490,26 @@ async function renderPracticalResearch() {
                 }).join('')}
             </div>
 
-            <div class="breakthrough-counters" style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.85rem;">
-                <span title="Breakthroughs found in this run. These will be banked when you reset.">Current: <strong class="current-breakthroughs-val">${currentBreakthroughs}</strong> 🌟</span>
-                <span title="Breakthroughs from previous runs. Providing +${(bankedBreakthroughs * 2).toFixed(0)}% boost.">Banked: <strong>${bankedBreakthroughs}</strong> 💎</span>
-            </div>
-
-            <div class="tree-bonus" title="Research Speed Multiplier from banked breakthroughs: +2% each.">
-                ⚡ Tree Efficiency: <strong>${(totalEfficiency * 100).toFixed(0)}%</strong>
-            </div>
-            
-            ${lastResultHtml}
-            <div class="blueprint-count" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
-                Blueprints: ${currentBlueprints} / ${MAX_BLUEPRINTS}
+            <div class="efficiency-summary">
+                <span class="bt-stat" title="Current breakthroughs found in this run. Bank them by resetting.">
+                    <strong class="current-breakthroughs-val">${currentBreakthroughs}</strong> 🌟
+                </span>
+                <span class="bt-stat" title="Banked breakthroughs (Permanent).">
+                    <strong>${bankedBreakthroughs}</strong> 💎
+                </span>
             </div>
           </div>
-          <div class="card-footer" style="flex-wrap: wrap;">
+          <div class="card-footer">
             <button class="btn btn-secondary btn-small" onclick="window.showResearchHistory('${res.baseType}')">📋 History</button>
             <button class="btn btn-danger btn-small" onclick="window.resetPracticalResearchUI('${res.baseType}')" 
-                    title="Reset levels and breakthroughs in this run to bank them into a permanent speed bonus.">
-                ♻️ Reset Tree
+                    title="Bank current breakthroughs and reset levels.">
+                ♻️ Reset
             </button>
             <button class="btn btn-success btn-small btn-create-variant" ${!canCreate ? 'disabled' : ''} 
-                    title="${!canCreate ? 'Max blueprints reached' : 'Create a new blueprint with current levels'}"
                     onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">
-                🔧 ${!canCreate ? 'Limit Reached' : 'Create Variant'}
+                🔧 Create (${currentBlueprints}/${MAX_BLUEPRINTS})
             </button>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
+            <button class="btn btn-primary" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
               🔬 Run Experiment
             </button>
           </div>
@@ -851,9 +851,14 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
         return;
     }
 
+    // Get current blueprints count to suggest a version number
+    const currentCount = (researchData?.blueprints?.[baseType] || []).length;
+    const nextVersion = currentCount + 1;
+
     // Prompt for name
     const { showPrompt } = await import('./modals.js');
-    const name = await showPrompt('Blueprint Name', `Enter a name for your custom ${baseType}:`, `${baseType.replace(/([A-Z])/g, ' $1')} MK${Math.floor(Math.random()*900)+100}`);
+    const defaultName = `${baseType.charAt(0).toUpperCase() + baseType.slice(1).replace(/([A-Z])/g, ' $1')} Mk ${nextVersion}`;
+    const name = await showPrompt('Blueprint Name', `Enter a name for your custom design:`, defaultName);
     if (!name) return;
 
     // Convert XP to levels for the variant creation
@@ -885,9 +890,13 @@ window.buildCustomVariant = async function (baseType, type) {
         return;
     }
 
+    const currentCount = (researchData?.blueprints?.[baseType] || []).length;
+    const nextVersion = currentCount + 1;
+
     // Prompt for name
     const { showPrompt } = await import('./modals.js');
-    const name = await showPrompt('Blueprint Name', `Enter a name for your custom ${baseType}:`, `${baseType.replace(/([A-Z])/g, ' $1')} MK${Math.floor(Math.random()*900)+100}`);
+    const defaultName = `${baseType.charAt(0).toUpperCase() + baseType.slice(1).replace(/([A-Z])/g, ' $1')} Mk ${nextVersion}`;
+    const name = await showPrompt('Blueprint Name', `Enter a name for your custom design:`, defaultName);
     if (!name) return;
 
     // Convert XP to levels for the variant creation
