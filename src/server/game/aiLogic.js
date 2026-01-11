@@ -1,12 +1,21 @@
-import { AI_TYPES, BUILDINGS, TECHNOLOGIES, MISSION_TYPES } from '../../shared/constants.js';
+import { AI_TYPES, BUILDINGS, TECHNOLOGIES, MISSION_TYPES, CONFIG } from '../../shared/constants.js';
 import { SHIPS } from '../../shared/ships.js';
 import { DEFENSES } from '../../shared/defenses.js';
 import { upgradeBuilding, createBuildingBlueprint, setActiveBlueprint } from './buildings.js';
 import { buildShips, buildDefenses } from './shipyard.js';
 import { startTheoreticalResearch, startPracticalResearchWithAllocation } from './researchLogic.js';
 import { sendFleet } from './fleet.js';
-import { updatePlayer } from './player.js';
+import { updatePlayer, findAvailablePlanetSlot, renamePlanet } from './player.js';
 import { isEmpty } from '../../shared/utils.js';
+
+const PLANET_NAMES = [
+  'Arrakis', 'Coruscant', 'Dagobah', 'Endor', 'Hoth', 'Kashyyyk', 'Naboo', 'Tatooine', 'Yavin',
+  'Reach', 'Harvest', 'Arcadia', 'Sanghelios', 'Eridanus', 'Threshold', 'Installation 04',
+  'Acheron', 'LV-426', 'Fiorina 161', 'Origae-6', 'Pandora', 'Polyphemus', 'Vesta', 'Ceres',
+  'Asgard', 'Midgard', 'Jotunheim', 'Muspelheim', 'Niflheim', 'Helheim', 'Alfheim', 'Vanaheim',
+  'Terra Prime', 'New Earth', 'Gaia', 'Eden', 'Nova Terra', 'Proxima', 'Centauri', 'Cygnus',
+  'Hydra', 'Phoenix', 'Dragon', 'Serpent', 'Aquila', 'Lyra', 'Orion B', 'Sigma-9', 'Delta-4'
+];
 
 /**
  * Process a single AI player's turn
@@ -48,6 +57,12 @@ export async function processAiPlayer(player) {
 
   // 5. Handle Fleet Missions
   updated = await handleMissions(player) || updated;
+
+  // 6. Handle Colonization
+  updated = await handleColonization(player) || updated;
+
+  // 7. Handle Flavor (Renaming)
+  updated = await handlePlanetRenaming(player) || updated;
   
   // Set next action time (30-60 seconds for much faster progression)
   const delay = (Math.random() * 30 + 30) * 1000; 
@@ -59,6 +74,91 @@ export async function processAiPlayer(player) {
   }
   
   return updated;
+}
+
+/**
+ * AI Colonization logic
+ */
+async function handleColonization(player) {
+  const maxPlanets = CONFIG.MAX_PLANETS_PER_PLAYER || 9;
+  if (player.planets.length >= maxPlanets) return false;
+
+  let changed = false;
+
+  // 1. Check if we have a colony ship in flight
+  const hasColonyMission = player.fleets?.some(f => f.missionType === MISSION_TYPES.COLONIZE);
+  if (hasColonyMission) return false;
+
+  // 2. Check if we have a colony ship on any planet
+  let originPlanet = null;
+  for (const planet of player.planets) {
+    if ((planet.ships?.colonyShip || 0) > 0) {
+      originPlanet = planet;
+      break;
+    }
+  }
+
+  if (originPlanet) {
+    // Launch colonization mission
+    try {
+      const targetCoords = await findAvailablePlanetSlot();
+      await sendFleet(player.userId, originPlanet.id, targetCoords, MISSION_TYPES.COLONIZE, { colonyShip: 1 });
+      console.log(`[AI] ${player.username} launched colonization mission to ${targetCoords.join(':')}`);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  } else {
+    // Try to build a colony ship
+    // Needs Shipyard 4 and Research Astrophysics/Impulse Drive (checkRequirements handles this)
+    for (const planet of player.planets) {
+      if (planet.shipQueue && planet.shipQueue.length > 0) continue;
+      
+      const shipyardLevel = planet.buildings.shipyard || 0;
+      if (shipyardLevel < 4) continue;
+
+      try {
+        if (await tryBuildShips(player, planet, 'colonyShip', 1)) {
+          return true;
+        }
+      } catch (e) {
+        // Skip
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * AI Planet Renaming for flavor
+ */
+async function handlePlanetRenaming(player) {
+  let changed = false;
+  const now = Date.now();
+  const COOLDOWN = 3600000; // 1 hour
+
+  for (const planet of player.planets) {
+    // Only rename "Homeworld" or "Colony"
+    if (planet.name !== 'Homeworld' && planet.name !== 'Colony') continue;
+    
+    // Cooldown check
+    if (planet.lastRenamed && (now - planet.lastRenamed < COOLDOWN)) continue;
+
+    // 10% chance to rename per action when applicable
+    if (Math.random() < 0.1) {
+      const newName = PLANET_NAMES[Math.floor(Math.random() * PLANET_NAMES.length)];
+      try {
+        await renamePlanet(player.userId, planet.id, newName);
+        console.log(`[AI] ${player.username} renamed planet ${planet.id} to ${newName}`);
+        changed = true;
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
+  return changed;
 }
 
 /**
@@ -158,10 +258,11 @@ async function handleResearch(player) {
     TECHNOLOGIES.COMPUTER_TECH,
     TECHNOLOGIES.ENERGY_TECH,
     TECHNOLOGIES.COMBUSTION_DRIVE,
+    TECHNOLOGIES.ASTROPHYSICS, // Higher priority for expansion
+    TECHNOLOGIES.IMPULSE_DRIVE, // Needed for colony ships
     TECHNOLOGIES.WEAPONS_TECH,
     TECHNOLOGIES.SHIELDING_TECH,
-    TECHNOLOGIES.ARMOR_TECH,
-    TECHNOLOGIES.ASTROPHYSICS
+    TECHNOLOGIES.ARMOR_TECH
   ];
 
   // Find a planet with a research lab
@@ -330,24 +431,21 @@ async function handleBalancedStrategy(player) {
     }
 
     // Facilities (catch-up logic)
-    const priorities = [
+    const facilitiesPriorities = [
       BUILDINGS.ROBOTICS_FACTORY,
-      BUILDINGS.SHIPYARD,
       BUILDINGS.RESEARCH_LAB,
-      BUILDINGS.HOUSING,
-      BUILDINGS.WATER_STORAGE,
-      BUILDINGS.FOOD_SILO
+      BUILDINGS.SHIPYARD,
+      BUILDINGS.HOUSING
     ];
     
-    // Try to upgrade facilities if resources are somewhat established (Level 5+)
-    if (metalLvl >= 5) {
-      for (const p of priorities) {
-        if (planet.buildQueue && planet.buildQueue.length >= 5) break;
-        const lvl = buildings[p] || 0;
-        if (lvl < metalLvl - 2) {
-          if (await tryBuild(player, planet, p)) {
-            changed = true;
-          }
+    // Push facilities
+    for (const p of facilitiesPriorities) {
+      if (planet.buildQueue && planet.buildQueue.length >= 5) break;
+      const lvl = buildings[p] || 0;
+      // Facilities should stay around 70% of mine levels for faster expansion
+      if (lvl < metalLvl * 0.7) {
+        if (await tryBuild(player, planet, p)) {
+          changed = true;
         }
       }
     }

@@ -11,7 +11,7 @@ const playersCache = new Map();
 /**
  * Find a suitable available planet slot [G, S, P] for a new player.
  */
-async function findAvailablePlanetSlot() {
+export async function findAvailablePlanetSlot() {
   const players = await getPlayers();
   const occupied = new Set();
   

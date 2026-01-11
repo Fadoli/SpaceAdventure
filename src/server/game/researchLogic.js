@@ -43,8 +43,6 @@ import { updatePlayer, getPlayerByUserId, trackSpentResources } from './player.j
  * Start theoretical research
  */
 export function startTheoreticalResearch(player, techKey, planetId) {
-  console.log('startTheoreticalResearch called with:', { techKey, planetId });
-  
   const tech = getTheoreticalResearch()[techKey];
   if (!tech) {
     throw new Error(`Unknown technology: ${techKey}`);
