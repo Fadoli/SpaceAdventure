@@ -610,7 +610,7 @@ async function executeEspionage(player, fleet, allPlayers) {
           subject: `FOREIGN SPY DETECTED: [${targetPlanet.coordinates.join(':')}]`,
           body: `An espionage fleet from ${player.username} was detected and neutralized.`,
           type: 'attack',
-          data: combatReport
+          data: { ...combatReport, isAttacker: false, targetCoords: targetPlanet.coordinates }
         });
         return; // Mission ends here
       } else {
@@ -620,7 +620,7 @@ async function executeEspionage(player, fleet, allPlayers) {
           subject: `FOREIGN SPY DETECTED: [${targetPlanet.coordinates.join(':')}]`,
           body: `An espionage fleet from ${player.username} was detected but some probes escaped.`,
           type: 'attack',
-          data: combatReport
+          data: { ...combatReport, isAttacker: false, targetCoords: targetPlanet.coordinates }
         });
       }
     }

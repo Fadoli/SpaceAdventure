@@ -1,6 +1,6 @@
 // Buildings view logic
 import { API } from '../api.js';
-import { formatNumber, formatCountdown } from '../utils.js';
+import { formatNumber, formatCountdown, formatDuration } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
@@ -461,16 +461,26 @@ function updateQueueView(queue, maxQueueSize, buildings) {
 }
 
 export function updateTimers() {
+    const now = Date.now();
+    // Target all timer elements across all views
     document.querySelectorAll('.timer').forEach(timer => {
         const finishTime = parseInt(timer.dataset.finish);
         const startTime = parseInt(timer.dataset.start);
         const queuePos = timer.dataset.queuePos;
-        const now = Date.now();
+        const id = timer.dataset.id;
+        
+        if (!finishTime) return;
+
         const remaining = Math.max(0, finishTime - now);
         
-        timer.textContent = formatCountdown(remaining / 1000);
+        // Use helpful duration format
+        if (remaining === 0) {
+            timer.textContent = 'COMPLETE!';
+        } else {
+            timer.textContent = formatDuration(remaining);
+        }
         
-        // Update progress bar if it exists
+        // Update Building/Shipyard progress bar
         if (queuePos) {
             const progressBar = document.getElementById(`build-progress-${queuePos}`);
             if (progressBar && startTime && finishTime) {
@@ -480,9 +490,17 @@ export function updateTimers() {
                 progressBar.style.width = `${percent}%`;
             }
         }
-        
-        if (remaining === 0) {
-            timer.textContent = 'Complete!';
+
+        // Update Research progress bars
+        if (id) {
+            const bar = document.getElementById(`research-theory-progress-${id}`) || 
+                        document.getElementById(`research-practical-progress-${id}`);
+            if (bar && startTime && finishTime) {
+                const total = finishTime - startTime;
+                const elapsed = now - startTime;
+                const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                bar.style.width = `${percent}%`;
+            }
         }
     });
 }

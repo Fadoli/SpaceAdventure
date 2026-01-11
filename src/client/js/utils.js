@@ -147,6 +147,22 @@ export function formatCountdown(seconds) {
 }
 
 /**
+ * Format duration as helpful string (e.g. 1h 2m or 45s)
+ */
+export function formatDuration(ms) {
+    if (!ms || ms < 0) return '0s';
+    const s = Math.floor((ms / 1000) % 60);
+    const m = Math.floor((ms / 1000 / 60) % 60);
+    const h = Math.floor((ms / 1000 / 60 / 60) % 24);
+    const d = Math.floor(ms / 1000 / 60 / 60 / 24);
+    
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+}
+
+/**
  * Format timestamp as readable date
  */
 export function formatDate(timestamp) {

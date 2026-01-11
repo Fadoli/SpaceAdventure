@@ -1,6 +1,6 @@
 // Shipyard view logic
 import { API } from '../api.js';
-import { formatNumber, formatCountdown } from '../utils.js';
+import { formatNumber, formatCountdown, formatDuration } from '../utils.js';
 import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { isEmpty } from '../../../shared/utils.js';
@@ -233,7 +233,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                         <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
                         ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
                     </div>
-                    <div class="build-time" id="time-${identifier}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatCountdown(buildTime)}</div>
+                    <div class="build-time" id="time-${identifier}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatDuration(buildTime * 1000)}</div>
                 </div>
             </div>
             <div class="building-actions">
@@ -348,7 +348,7 @@ function renderDefensesList(planet, shipyardData) {
                                 <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
                                 ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
                             </div>
-                            <div class="build-time" id="time-${defenseKey}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatCountdown(buildTime)}</div>
+                            <div class="build-time" id="time-${defenseKey}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatDuration(buildTime * 1000)}</div>
                         </div>
                     </div>
                     <div class="building-actions">
@@ -601,7 +601,7 @@ function updateProductionInfo(type, id, quantity, planet) {
     }
     
     if (timeEl) {
-        timeEl.innerHTML = `🕐 ${formatCountdown(buildTime)}`;
+        timeEl.innerHTML = `🕐 ${formatDuration(buildTime * 1000)}`;
     }
     
     if (btn) {

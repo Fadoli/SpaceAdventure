@@ -198,8 +198,11 @@ function renderMessageData(msg) {
 }
 
 function renderCombatReport(data) {
+    if (!data) return '';
     const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') : 
                        (data.winner === 'defender' ? (data.isAttacker ? 'loser' : 'winner') : 'draw');
+    
+    const coords = data.targetCoords ? data.targetCoords.join(':') : 'UNKNOWN SECTOR';
     
     let html = `
         <div class="technical-report combat ${winnerClass}">
@@ -208,7 +211,7 @@ function renderCombatReport(data) {
                 <span class="report-result ${winnerClass}">RESULT: ${data.winner.toUpperCase()} VICTORIOUS</span>
             </div>
             
-            <div class="report-meta">SECTOR: [${data.targetCoords.join(':')}]</div>
+            <div class="report-meta">SECTOR: [${coords}]</div>
     `;
 
     // Loot section

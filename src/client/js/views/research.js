@@ -1,6 +1,6 @@
 // Research view - theoretical and practical research management
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical } from '../../../shared/research.js';
-import { formatNumber } from '../utils.js';
+import { formatNumber, formatDuration, formatCountdown } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -332,7 +332,7 @@ function renderTheoreticalResearch() {
             <div class="diagnostic-section">
               <div class="section-tag">Project Timeline</div>
               <div class="tech-footer">
-                <span class="build-time" style="font-size: 0.8rem;">🕐 ${formatTime(nextLevelTime * 1000)}</span>
+                <span class="build-time" style="font-size: 0.8rem;">🕐 ${formatCountdown(nextLevelTime)}</span>
                 ${queuedCount > 0 ? `<span class="queued-badge" style="background: var(--accent-yellow); color: #000; padding: 1px 6px; font-weight: bold; border-radius: 1px;">QUEUED: ${queuedCount}</span>` : ''}
               </div>
             </div>
@@ -365,10 +365,7 @@ function updateResearchQueueTimers() {
         if (remaining === 0) {
             timer.textContent = 'Complete!';
         } else {
-            const h = Math.floor(remaining / 3600000);
-            const m = Math.floor((remaining % 3600000) / 60000);
-            const s = Math.floor((remaining % 60000) / 1000);
-            timer.textContent = `${h}h ${m}m ${s}s`;
+            timer.textContent = formatCountdown(remaining / 1000);
         }
 
         if (id && startTime && finishTime) {
@@ -701,7 +698,7 @@ window.updateAllocationSliders = function () {
         const totalResearchSpeedBonus = getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed') + breakthroughBonus;
 
         const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, totalResearchSpeedBonus, window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized, allocation);
-        document.getElementById('time-estimate').textContent = formatTime(time * 1000);
+        document.getElementById('time-estimate').textContent = formatDuration(time * 1000);
         const btn = document.getElementById('start-research-btn');
         if (btn) { 
             btn.disabled = total !== 100 || !canAfford; 
@@ -905,18 +902,6 @@ window.deleteVariant = async function(baseType, blueprintId, type) {
     }
 };
 
-function formatTime(ms) {
-    if (!ms || ms < 0) return '0s';
-    const s = Math.floor((ms / 1000) % 60);
-    const m = Math.floor((ms / 1000 / 60) % 60);
-    const h = Math.floor((ms / 1000 / 60 / 60) % 24);
-    const d = Math.floor(ms / 1000 / 60 / 60 / 24);
-    if (d > 0) return `${d}d ${h}h`;
-    if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
-}
-
 window.startTheoreticalResearch = async function (techKey) {
     try {
         const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/theoretical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ techKey }) });
@@ -933,10 +918,10 @@ window.showResearchDetails = function (techKey) {
     if (res.bonuses) { eff += '<ul>'; for (const b in res.bonuses) eff += `<li>+${(res.bonuses[b] * 100).toFixed(0)}% ${b}</li>`; eff += '</ul>'; }
     if (res.requirements) { eff += '<h4>Reqs:</h4><ul>'; for (const b in res.requirements) eff += `<li>${b}: ${res.requirements[b]}</li>`; eff += '</ul>'; }
     const rows = [];
-    for (let i = lv + 1; i <= lv + 5; i++) {
-        const c = calculateTheoreticalResearchCost(res.baseCost, i - 1);
-        const t = calculateTheoreticalResearchTime(res, i - 1, currentPlanetBuildings?.researchLab || 0, getResearchBonus(researchData.theoretical, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0);
-        rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatTime(t * 1000)]);
+    for (let i = level; i < level + 15; i++) {
+        const c = calculateTheoreticalResearchCost(res.baseCost, i);
+        const t = calculateTheoreticalResearchTime(res, i, researchLabLevel, researchSpeedBonus, configMultiplier);
+        rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatDuration(t * 1000)]);
     }
     renderDetailsModal({ title: `${res.icon} ${res.name}`, description: res.description, effects: eff, table: { headers: ['Lvl', 'Cost', 'Time'], rows } });
 };
