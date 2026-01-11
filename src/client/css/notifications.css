@@ -71,3 +71,26 @@
     transform: translateX(120%);
     opacity: 0;
 }
+
+.notification-close {
+    margin-left: auto;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.5;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.notification-close:hover {
+    opacity: 1;
+    color: var(--accent-red);
+}
+
+.notification.removing {
+    animation: notifySlideOut 0.4s forwards cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes notifySlideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}

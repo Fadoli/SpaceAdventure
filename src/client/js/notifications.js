@@ -32,7 +32,7 @@ export const Notifications = {
         if (!container) return;
 
         const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
+        notification.className = `notification notification-${type}`;
         
         let icon = 'ℹ️';
         if (type === 'success') icon = '✅';
@@ -59,10 +59,19 @@ export const Notifications = {
     },
 
     remove(el) {
-        el.classList.add('removing');
-        el.addEventListener('animationend', () => {
-            el.remove();
-        });
+        el.classList.add('notification-closing');
+        
+        // Ensure removal after animation finishes
+        const removeEl = () => {
+            if (el.parentNode) {
+                el.remove();
+            }
+        };
+
+        el.addEventListener('transitionend', removeEl, { once: true });
+        
+        // Fallback if transitionend doesn't fire
+        setTimeout(removeEl, 500);
     }
 };
 
