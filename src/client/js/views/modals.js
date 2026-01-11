@@ -15,8 +15,8 @@ export function showConfirm(title, body) {
         title,
         body,
         showInput: false,
-        confirmText: 'Confirm',
-        cancelText: 'Cancel'
+        confirmText: 'CONFIRM',
+        cancelText: 'CANCEL'
     });
 }
 
@@ -33,8 +33,8 @@ export function showPrompt(title, body, defaultValue = '') {
         body,
         showInput: true,
         defaultValue,
-        confirmText: 'Submit',
-        cancelText: 'Cancel'
+        confirmText: 'ESTABLISH',
+        cancelText: 'ABORT'
     });
 }
 
@@ -52,7 +52,7 @@ function showInputModal(options) {
 
     if (!modal) return Promise.resolve(null);
 
-    titleEl.textContent = options.title || 'Confirm Action';
+    titleEl.textContent = (options.title || 'Confirm Action').toUpperCase();
     bodyEl.innerHTML = options.body || '';
     
     if (options.showInput) {

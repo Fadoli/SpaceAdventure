@@ -969,7 +969,8 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
 
     // Prompt for name
     const { showPrompt } = await import('./modals.js');
-    const defaultName = `${baseType.charAt(0).toUpperCase() + baseType.slice(1).replace(/([A-Z])/g, ' $1')} Mk ${nextVersion}`;
+    const cleanBaseName = baseType.replace(/([A-Z])/g, ' $1').replace(/ (Specialization|Customization)$/, '');
+    const defaultName = `${cleanBaseName.charAt(0).toUpperCase() + cleanBaseName.slice(1)} Mk ${nextVersion}`;
     const name = await showPrompt('Blueprint Name', `Enter a name for your custom design:`, defaultName);
     if (!name) return;
 
