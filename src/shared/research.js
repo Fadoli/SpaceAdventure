@@ -390,7 +390,7 @@ const CIVILIAN_SHIP_MODIFIERS = {
 export const PRACTICAL_RESEARCH = {
   // Building customizations
   metalMine: {
-    name: 'Metal Mine Specialization',
+    name: 'Metal Mine',
     baseType: 'metalMine',
     type: 'building',
     category: 'Mining',
@@ -406,7 +406,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   crystalMine: {
-    name: 'Crystal Mine Specialization',
+    name: 'Crystal Mine',
     baseType: 'crystalMine',
     type: 'building',
     category: 'Mining',
@@ -422,7 +422,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   deuteriumSynthesizer: {
-    name: 'Deuterium Synthesizer Specialization',
+    name: 'Deuterium Synthesizer',
     baseType: 'deuteriumSynthesizer',
     type: 'building',
     category: 'Mining',
@@ -438,7 +438,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   solarPlant: {
-    name: 'Solar Plant Enhancement',
+    name: 'Solar Plant',
     baseType: 'solarPlant',
     type: 'building',
     category: 'Energy',
@@ -454,7 +454,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   fusionReactor: {
-    name: 'Fusion Reactor Optimization',
+    name: 'Fusion Reactor',
     baseType: 'fusionReactor',
     type: 'building',
     category: 'Energy',
@@ -470,7 +470,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   roboticsFactory: {
-    name: 'Robotics Factory Calibration',
+    name: 'Robotics Factory',
     baseType: 'roboticsFactory',
     type: 'building',
     category: 'Infrastructure',
@@ -486,7 +486,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   shipyard: {
-    name: 'Shipyard Modernization',
+    name: 'Shipyard',
     baseType: 'shipyard',
     type: 'building',
     category: 'Infrastructure',
@@ -502,7 +502,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   researchLab: {
-    name: 'Research Lab Expansion',
+    name: 'Research Lab',
     baseType: 'researchLab',
     type: 'building',
     category: 'Science',
@@ -518,7 +518,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   naniteFactory: {
-    name: 'Nanite Factory Engineering',
+    name: 'Nanite Factory',
     baseType: 'naniteFactory',
     type: 'building',
     category: 'Infrastructure',
@@ -534,7 +534,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   waterExtractor: {
-    name: 'Water Extraction Tech',
+    name: 'Water Extractor',
     baseType: 'waterExtractor',
     type: 'building',
     category: 'Resource',
@@ -550,7 +550,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   farm: {
-    name: 'Agricultural Innovation',
+    name: 'Farm',
     baseType: 'farm',
     type: 'building',
     category: 'Resource',
@@ -566,7 +566,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   housing: {
-    name: 'Housing Urbanization',
+    name: 'Housing',
     baseType: 'housing',
     type: 'building',
     category: 'Infrastructure',
@@ -583,7 +583,7 @@ export const PRACTICAL_RESEARCH = {
 
   // Ship customizations
   smallCargo: {
-    name: 'Small Cargo Customization',
+    name: 'Small Cargo',
     baseType: 'smallCargo',
     type: 'ship',
     category: 'Civilian',
@@ -599,7 +599,7 @@ export const PRACTICAL_RESEARCH = {
   },
 
   lightFighter: {
-    name: 'Light Fighter Customization',
+    name: 'Light Fighter',
     baseType: 'lightFighter',
     type: 'ship',
     category: 'Military',
