@@ -307,7 +307,6 @@ function renderTheoreticalResearch() {
           <div class="tech-header" title="${tech.description}">
             <div class="header-main">
               <div class="title-row">
-                <span class="status-led ${isDisabled ? 'led-off' : 'led-on'}"></span>
                 <h4>${tech.icon} ${tech.name}</h4>
               </div>
               <div class="blueprint-row">
@@ -498,13 +497,11 @@ async function renderPracticalResearch() {
             <div class="header-main">
               <div class="title-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span class="status-led led-on"></span>
                   <span class="name">${res.icon} ${res.name.replace(/ (Specialization|Customization)$/, '')}</span>
                 </div>
                 ${modifierHtml}
               </div>
             </div>
-            <button class="btn-info" onclick="window.showResearchHistory('${res.baseType}')" title="View historical data">📋</button>
           </div>
           <div class="card-body">
             <div class="diagnostic-section">
@@ -548,6 +545,9 @@ async function renderPracticalResearch() {
               <button class="btn design-btn" onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)" 
                       ${!canCreate ? 'disabled' : ''} title="Create design (${currentBlueprints}/${MAX_BLUEPRINTS})">
                 🔧
+              </button>
+              <button class="btn design-btn" onclick="window.showResearchHistory('${res.baseType}')" title="View historical data">
+                📋
               </button>
               <button class="btn design-btn" onclick="window.resetPracticalResearchUI('${res.baseType}')" title="Reset / Bank breakthroughs">
                 ♻️
