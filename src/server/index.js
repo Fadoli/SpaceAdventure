@@ -988,6 +988,9 @@ async function handleRequest(req) {
           shield: ship.shield,
           hull: ship.hull,
           cargoCapacity: ship.cargoCapacity,
+          fuel: ship.fuel,
+          populationRequired: ship.populationRequired,
+          rapidFire: ship.rapidFire || {},
           baseCost: ship.baseCost,
           baseTime: calculateBaseTime(ship),
           speed: calculateShipSpeed(shipKey, player.research)
@@ -1003,6 +1006,7 @@ async function handleRequest(req) {
           attack: defense.attack,
           shield: defense.shield,
           hull: defense.hull,
+          rapidFire: defense.rapidFire || {},
           baseCost: defense.baseCost,
           baseTime: calculateBaseTime(defense)
         };

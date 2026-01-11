@@ -699,52 +699,50 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
                 { label: 'Fuel Consumption', value: ship.fuel, icon: '🛢️' },
                 { label: 'Crew Required', value: ship.populationRequired, icon: '👥' }
             ];    
-        // Rapid Fire AGAINST others
-        const rapidFireAgainst = [];
-        if (ship.rapidFire) {
-            for (const target in ship.rapidFire) {
+            // Rapid Fire AGAINST others (Offensive)
+            const rapidFireAgainst = [];
+            const rfSource = ship.rapidFire || SHIPS[shipKey]?.rapidFire || {};
+            for (const target in rfSource) {
                 const targetName = SHIPS[target]?.name || DEFENSES[target]?.name || target;
-                rapidFireAgainst.push({ label: targetName, value: ship.rapidFire[target] });
+                rapidFireAgainst.push({ label: targetName.toUpperCase(), value: rfSource[target] });
             }
-        }
-    
-        // Rapid Fire FROM others
-        const rapidFireFrom = [];
-        // Search all ships
-        for (const key in SHIPS) {
-            if (SHIPS[key].rapidFire && SHIPS[key].rapidFire[shipKey]) {
-                rapidFireFrom.push({ label: SHIPS[key].name, value: SHIPS[key].rapidFire[shipKey] });
-            }
-        }
-        // Search all defenses
-        for (const key in DEFENSES) {
-            if (DEFENSES[key].rapidFire && DEFENSES[key].rapidFire[shipKey]) {
-                rapidFireFrom.push({ label: DEFENSES[key].name, value: DEFENSES[key].rapidFire[shipKey] });
-            }
-        }
-    
-        let sections = [];
         
-        if (rapidFireAgainst.length > 0) {
-            sections.push({
-                title: 'Offensive Systems (Rapid Fire)',
-                table: {
-                    headers: ['Target Unit', 'Multiplier'],
-                    rows: rapidFireAgainst.map(rf => [rf.label, `x${rf.value}`])
+            // Rapid Fire FROM others (Defensive Vulnerabilities)
+            const rapidFireFrom = [];
+            // Search all base ships
+            for (const key in SHIPS) {
+                if (SHIPS[key].rapidFire && SHIPS[key].rapidFire[shipKey]) {
+                    rapidFireFrom.push({ label: SHIPS[key].name.toUpperCase(), value: SHIPS[key].rapidFire[shipKey] });
                 }
-            });
-        }
-    
-        if (rapidFireFrom.length > 0) {
-            sections.push({
-                title: 'Defensive Vulnerabilities',
-                table: {
-                    headers: ['Attacking Unit', 'Vulnerability'],
-                    rows: rapidFireFrom.map(rf => [rf.label, `x${rf.value}`])
+            }
+            // Search all base defenses
+            for (const key in DEFENSES) {
+                if (DEFENSES[key].rapidFire && DEFENSES[key].rapidFire[shipKey]) {
+                    rapidFireFrom.push({ label: DEFENSES[key].name.toUpperCase(), value: DEFENSES[key].rapidFire[shipKey] });
                 }
-            });
-        }
-    
+            }
+        
+            let sections = [];
+            
+            if (rapidFireAgainst.length > 0) {
+                sections.push({
+                    title: 'Weapon Systems: Rapid Fire Capability',
+                    table: {
+                        headers: ['Target Unit', 'Shots/Round'],
+                        rows: rapidFireAgainst.map(rf => [rf.label, `x${rf.value}`])
+                    }
+                });
+            }
+        
+            if (rapidFireFrom.length > 0) {
+                sections.push({
+                    title: 'Tactical Analysis: Identified Vulnerabilities',
+                    table: {
+                        headers: ['Hostile Unit', 'Threat Level'],
+                        rows: rapidFireFrom.map(rf => [rf.label, `x${rf.value}`])
+                    }
+                });
+            }    
         renderDetailsModal({
             title: `${ship.icon} ${name}`,
             description: ship.description,
@@ -766,52 +764,50 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
             { label: 'Hull Integrity', value: defense.hull, icon: '❤️' }
         ];
     
-        // Rapid Fire AGAINST others
-        const rapidFireAgainst = [];
-        if (defense.rapidFire) {
-            for (const target in defense.rapidFire) {
+            // Rapid Fire AGAINST others
+            const rapidFireAgainst = [];
+            const rfSource = defense.rapidFire || DEFENSES[defenseKey]?.rapidFire || {};
+            for (const target in rfSource) {
                 const targetName = SHIPS[target]?.name || DEFENSES[target]?.name || target;
-                rapidFireAgainst.push({ label: targetName, value: defense.rapidFire[target] });
+                rapidFireAgainst.push({ label: targetName.toUpperCase(), value: rfSource[target] });
             }
-        }
-    
-        // Rapid Fire FROM others
-        const rapidFireFrom = [];
-        // Search all ships
-        for (const key in SHIPS) {
-            if (SHIPS[key].rapidFire && SHIPS[key].rapidFire[defenseKey]) {
-                rapidFireFrom.push({ label: SHIPS[key].name, value: SHIPS[key].rapidFire[defenseKey] });
-            }
-        }
-        // Search all defenses
-        for (const key in DEFENSES) {
-            if (DEFENSES[key].rapidFire && DEFENSES[key].rapidFire[defenseKey]) {
-                rapidFireFrom.push({ label: DEFENSES[key].name, value: DEFENSES[key].rapidFire[defenseKey] });
-            }
-        }
-    
-        let sections = [];
         
-        if (rapidFireAgainst.length > 0) {
-            sections.push({
-                title: 'Offensive Systems (Rapid Fire)',
-                table: {
-                    headers: ['Target Unit', 'Multiplier'],
-                    rows: rapidFireAgainst.map(rf => [rf.label, `x${rf.value}`])
+            // Rapid Fire FROM others
+            const rapidFireFrom = [];
+            // Search all ships
+            for (const key in SHIPS) {
+                if (SHIPS[key].rapidFire && SHIPS[key].rapidFire[defenseKey]) {
+                    rapidFireFrom.push({ label: SHIPS[key].name.toUpperCase(), value: SHIPS[key].rapidFire[defenseKey] });
                 }
-            });
-        }
-    
-        if (rapidFireFrom.length > 0) {
-            sections.push({
-                title: 'Vulnerability Analysis',
-                table: {
-                    headers: ['Attacking Unit', 'Vulnerability'],
-                    rows: rapidFireFrom.map(rf => [rf.label, `x${rf.value}`])
+            }
+            // Search all defenses
+            for (const key in DEFENSES) {
+                if (DEFENSES[key].rapidFire && DEFENSES[key].rapidFire[defenseKey]) {
+                    rapidFireFrom.push({ label: DEFENSES[key].name.toUpperCase(), value: DEFENSES[key].rapidFire[defenseKey] });
                 }
-            });
-        }
-    
+            }
+        
+            let sections = [];
+            
+            if (rapidFireAgainst.length > 0) {
+                sections.push({
+                    title: 'Weapon Systems: Rapid Fire Capability',
+                    table: {
+                        headers: ['Target Unit', 'Shots/Round'],
+                        rows: rapidFireAgainst.map(rf => [rf.label, `x${rf.value}`])
+                    }
+                });
+            }
+        
+            if (rapidFireFrom.length > 0) {
+                sections.push({
+                    title: 'Tactical Analysis: Identified Vulnerabilities',
+                    table: {
+                        headers: ['Hostile Unit', 'Threat Level'],
+                        rows: rapidFireFrom.map(rf => [rf.label, `x${rf.value}`])
+                    }
+                });
+            }    
         renderDetailsModal({
             title: `${defense.icon} ${defense.name}`,
             description: defense.description,
