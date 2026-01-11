@@ -5,7 +5,7 @@ import { upgradeBuilding, createBuildingBlueprint, setActiveBlueprint, getBuildi
 import { buildShips, buildDefenses } from './shipyard.js';
 import { startTheoreticalResearch, startPracticalResearchWithAllocation } from './researchLogic.js';
 import { sendFleet } from './fleet.js';
-import { updatePlayer, findAvailablePlanetSlot, renamePlanet } from './player.js';
+import { updatePlayer, findAvailablePlanetSlot, renamePlanet, getPlayers } from './player.js';
 import { isEmpty } from '../../shared/utils.js';
 import { getResearchBonus, getTheoreticalResearch, getPracticalResearch } from '../../shared/research.js';
 import { calculateTheoreticalResearchCost, calculatePracticalResearchCost, calculateFocusLevel } from '../../shared/formulas.js';
@@ -59,6 +59,9 @@ export async function processAiPlayer(player) {
 
   // 5. Handle Fleet Missions
   updated = await handleMissions(player) || updated;
+
+  // 5b. Handle AI Espionage
+  updated = await handleAiEspionage(player) || updated;
 
   // 6. Handle Colonization
   updated = await handleColonization(player) || updated;
@@ -698,6 +701,56 @@ async function handleMissions(player) {
   }
 
   return changed;
+}
+
+/**
+ * AI Espionage Logic: Spy on other players to assert danger
+ */
+async function handleAiEspionage(player) {
+  if (Math.random() > 0.3) return false; // 30% chance to check for spying opportunity
+
+  const allPlayers = await getPlayers();
+  const otherPlayers = allPlayers.filter(p => p.userId !== player.userId);
+  if (otherPlayers.length === 0) return false;
+
+  // Find a planet with espionage probes
+  let originPlanet = null;
+  for (const planet of player.planets) {
+    if ((planet.ships?.espionageProbe || 0) > 0) {
+      originPlanet = planet;
+      break;
+    }
+  }
+
+  if (!originPlanet) {
+    // Try to build some probes if we have shipyard
+    const shipyardPlanet = player.planets.find(p => (p.buildings.shipyard || 0) >= 1);
+    if (shipyardPlanet && Math.random() < 0.2) {
+      await tryBuildShips(player, shipyardPlanet, 'espionageProbe', 2);
+    }
+    return false;
+  }
+
+  // Pick a random player and one of their planets
+  const targetPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+  const targetPlanet = targetPlayer.planets[Math.floor(Math.random() * targetPlayer.planets.length)];
+
+  if (!targetPlanet) return false;
+
+  // Don't spy if we already have a mission to that player's planet
+  const alreadySpying = player.fleets?.some(f => 
+    f.missionType === MISSION_TYPES.ESPIONAGE && 
+    f.targetCoords.every((c, i) => c === targetPlanet.coordinates[i])
+  );
+  if (alreadySpying) return false;
+
+  try {
+    await sendFleet(player.userId, originPlanet.id, targetPlanet.coordinates, MISSION_TYPES.ESPIONAGE, { espionageProbe: 1 });
+    console.log(`[AI] ${player.username} launched intelligence scan on ${targetPlayer.username} at ${targetPlanet.coordinates.join(':')}`);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
