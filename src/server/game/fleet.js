@@ -569,6 +569,62 @@ async function executeEspionage(player, fleet, allPlayers) {
   };
 
   if (targetPlanet) {
+    // 1. Detection/Counter-spying Logic
+    // Chance increases with number of probes and decreases with tech advantage
+    // Base chance: 2% per probe
+    // Multiplied by tech factor: (DefenderTech + 1) / (AttackerTech + 1)
+    const detectionChance = Math.min(1, (probes * 0.02) * ((defenderTech + 1) / (attackerTech + 1)));
+    const isDetected = Math.random() < detectionChance;
+
+    if (isDetected) {
+      report.detected = true;
+      report.detectionChance = (detectionChance * 100).toFixed(1);
+
+      // Trigger Combat (Probes vs Planet)
+      const attackerData = { ships: { ...fleet.ships }, research: player.research || {} };
+      const defenderData = { 
+        ships: targetPlanet.ships || {}, 
+        defenses: targetPlanet.defenses || {}, 
+        research: targetPlayer.research || {} 
+      };
+
+      const combatReport = simulateCombat(attackerData, defenderData);
+      
+      // Apply losses
+      targetPlanet.ships = combatReport.survivingDefenderShips;
+      targetPlanet.defenses = combatReport.survivingDefenderDefenses;
+      fleet.ships = combatReport.survivingAttackerShips;
+
+      // If all probes destroyed, mission ends
+      if (isEmpty(fleet.ships)) {
+        await addMessage(player.userId, {
+          from: 'Intelligence Service',
+          subject: `ESPIONAGE FAILED: [${fleet.targetCoords.join(':')}]`,
+          body: `Our espionage fleet was detected and destroyed! (Detection Chance: ${report.detectionChance}%)`,
+          type: 'espionage',
+          data: report
+        });
+
+        await addMessage(targetPlayer.userId, {
+          from: 'Planetary Defense',
+          subject: `FOREIGN SPY DETECTED: [${targetPlanet.coordinates.join(':')}]`,
+          body: `An espionage fleet from ${player.username} was detected and neutralized.`,
+          type: 'attack',
+          data: combatReport
+        });
+        return; // Mission ends here
+      } else {
+        // Probes survived but were detected
+        await addMessage(targetPlayer.userId, {
+          from: 'Planetary Defense',
+          subject: `FOREIGN SPY DETECTED: [${targetPlanet.coordinates.join(':')}]`,
+          body: `An espionage fleet from ${player.username} was detected but some probes escaped.`,
+          type: 'attack',
+          data: combatReport
+        });
+      }
+    }
+
     // Reveal info based on power thresholds
     // Level 0: Resources + population + energy
     report.resources = { 
