@@ -20,25 +20,6 @@
     min-height: 300px;
 }
 
-/* 1. HUD Corner Brackets */
-.card-corner-top::before, .card-corner-top::after,
-.card-corner-bottom::before, .card-corner-bottom::after {
-    content: "";
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-color: var(--accent-blue);
-    border-style: solid;
-    opacity: 0.5;
-    pointer-events: none;
-    z-index: 5;
-}
-
-.card-corner-top::before { top: 4px; left: 4px; border-width: 2px 0 0 2px; }
-.card-corner-top::after { top: 4px; right: 4px; border-width: 2px 2px 0 0; }
-.card-corner-bottom::before { bottom: 4px; left: 4px; border-width: 0 0 2px 2px; }
-.card-corner-bottom::after { bottom: 4px; right: 4px; border-width: 0 2px 2px 0; }
-
 /* 2. Scanning Effect on Hover */
 .building-card::after {
     content: "";

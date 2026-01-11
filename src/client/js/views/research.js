@@ -303,7 +303,6 @@ function renderTheoreticalResearch() {
             html += `
         <div class="tech-card" data-tech="${tech.key}">
           <div class="card-corner-top"></div>
-          <div class="card-corner-bottom"></div>
           <div class="tech-header" title="${tech.description}">
             <div class="header-main">
               <div class="title-row">
@@ -492,7 +491,6 @@ async function renderPracticalResearch() {
             html += `
         <div class="research-card ${isDisabled ? 'locked' : ''}">
           <div class="card-corner-top"></div>
-          <div class="card-corner-bottom"></div>
           <div class="card-header" title="${res.description}">
             <div class="header-main">
               <div class="title-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -794,7 +792,6 @@ function renderVariantCard(baseType, variant, type) {
     return `
         <div class="research-card" id="variant-${id}">
             <div class="card-corner-top"></div>
-            <div class="card-corner-bottom"></div>
             <div class="card-header">
                 <div class="header-main">
                     <div class="title-row">

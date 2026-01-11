@@ -95,18 +95,6 @@
     min-height: 320px; /* Increased */
 }
 
-/* HUD Corner Brackets */
-.card-corner-top::before, .card-corner-top::after,
-.card-corner-bottom::before, .card-corner-bottom::after {
-    content: "";
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-color: var(--accent-blue);
-    border-style: solid;
-    opacity: 0.5;
-}
-
 /* Card Header */
 .tech-header, .card-header {
     background: rgba(255, 255, 255, 0.03);

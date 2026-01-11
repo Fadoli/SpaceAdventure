@@ -519,14 +519,21 @@ body::before {
     position: relative;
 }
 
-.card-base::before {
+/* Generic HUD Corner Brackets */
+.card-corner-top::before, .card-corner-top::after,
+.card-corner-bottom::before, .card-corner-bottom::after {
     content: "";
     position: absolute;
-    top: -1px;
-    left: -1px;
     width: 10px;
     height: 10px;
-    border-top: 2px solid var(--accent-blue);
-    border-left: 2px solid var(--accent-blue);
+    border-color: var(--accent-blue);
+    border-style: solid;
     opacity: 0.5;
+    pointer-events: none;
+    z-index: 5;
 }
+
+.card-corner-top::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.card-corner-top::after { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.card-corner-bottom::before { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.card-corner-bottom::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }

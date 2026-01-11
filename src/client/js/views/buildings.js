@@ -146,7 +146,6 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
         buildingHtmls.push(`
             <div class="building-card ${queueCount > 0 ? 'in-queue' : ''} ${building.currentVariant !== 'base' ? 'custom-active' : ''}" id="building-card-${key}">
                 <div class="card-corner-top"></div>
-                <div class="card-corner-bottom"></div>
                 
                 <div class="building-header" title="${building.description}">
                     <div class="header-main">
