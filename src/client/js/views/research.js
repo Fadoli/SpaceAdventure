@@ -525,14 +525,16 @@ async function renderPracticalResearch() {
             </div>
 
             <div class="diagnostic-section">
-              <div class="section-tag">Breakthroughs</div>
-              <div class="efficiency-summary">
-                  <span class="bt-stat" title="Current breakthroughs found in this run. Bank them by resetting.">
-                      <strong class="current-breakthroughs-val">${currentBreakthroughs}</strong> 🌟
-                  </span>
-                  <span class="bt-stat" title="Banked breakthroughs (Permanent).">
-                      <strong>${bankedBreakthroughs}</strong> 💎
-                  </span>
+              <div class="section-tag">Breakthrough Data</div>
+              <div class="bt-readout">
+                <div class="bt-row" title="Current breakthroughs found in this run. Bank them by resetting.">
+                  <span class="bt-label">UNSTABLE BREAKTHROUGHS</span>
+                  <span class="bt-value unstable">${currentBreakthroughs}</span>
+                </div>
+                <div class="bt-row" title="Banked breakthroughs (Permanent).">
+                  <span class="bt-label">ARCHIVED BREAKTHROUGHS</span>
+                  <span class="bt-value archived">${bankedBreakthroughs}</span>
+                </div>
               </div>
               ${lastResultHtml}
             </div>

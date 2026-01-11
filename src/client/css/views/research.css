@@ -147,7 +147,16 @@
 .queued-badge { font-size: 0.75rem; }
 
 /* XP Gauges */
-.xp-section { gap: 8px; }
+.xp-section { 
+    display: flex;
+    flex-direction: column;
+    gap: 12px; 
+}
+.xp-row {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
 .xp-label { 
     display: flex;
     justify-content: space-between;
@@ -156,79 +165,58 @@
     font-family: 'Share Tech Mono', monospace;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-bottom: 3px;
 }
 
 .xp-label span:last-child {
     color: var(--text-secondary);
     font-size: 0.65rem;
-    font-weight: normal;
 }
+
 .xp-bar-container { 
     height: 6px;
-    margin-bottom: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 1px;
+    overflow: hidden;
+    width: 100%;
 }
 
-.efficiency-summary {
-    padding: 6px 12px;
-    margin-top: 8px;
+.xp-bar-fill { 
+    height: 100%; 
+    transition: width 0.6s ease;
 }
 
-.bt-stat { font-size: 0.75rem; } /* Increased */
-.bt-stat strong { font-size: 1rem; } /* Increased */
+.focus-output { background: #ff1744 !important; }
+.focus-automation { background: #2979ff !important; }
+.focus-energy { background: #ffea00 !important; }
+.focus-cost { background: #00e676 !important; }
 
-/* 5. Practical Customization Specifics */
-.title-row {
+.bt-readout {
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.bt-row {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-}
-
-.status-led {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.led-on { 
-    background: var(--accent-green); 
-    box-shadow: 0 0 10px var(--accent-green);
-    animation: led-blink 4s infinite ease-in-out;
-}
-.led-off { background: #334155; }
-
-.xp-modifier-label {
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--accent-blue);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.bt-value {
     font-weight: bold;
-    letter-spacing: 0.5px;
-    opacity: 0.9;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
 }
 
-@keyframes led-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-}
+.bt-value.unstable { color: var(--accent-yellow); }
+.bt-value.archived { color: var(--accent-blue); }
 
-.xp-bar-fill { height: 100%; transition: width 0.6s ease; }
-.focus-output { background: #ff1744; }
-.focus-automation { background: #2979ff; }
-.focus-energy { background: #ffea00; }
-.focus-cost { background: #00e676; }
-
-.current-breakthroughs-val {
-    color: var(--accent-yellow);
-    animation: pulse-bt 2s infinite ease-in-out;
-}
-
-@keyframes pulse-bt {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-/* Actions Footer */
-.upgrade-btn {
+/* Actions Footer */.upgrade-btn {
     padding: 14px !important;
     font-size: 0.9rem !important; /* Increased */
     letter-spacing: 2px !important;
