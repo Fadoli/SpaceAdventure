@@ -526,7 +526,8 @@ window.openDesignSelection = openDesignSelection;
  */
 export async function showBlueprintSelectionModal(buildingKey, building, planet) {
     const modal = document.getElementById('custom-variant-modal') || createCustomVariantModal();
-    modal.style.display = 'block';
+    modalBody.innerHTML = html;
+    modal.style.display = 'flex';
     
     const modalTitle = document.getElementById('modal-variant-title');
     const modalBody = document.getElementById('modal-variant-body');

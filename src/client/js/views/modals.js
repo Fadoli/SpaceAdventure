@@ -66,7 +66,7 @@ function showInputModal(options) {
     confirmBtn.textContent = options.confirmText || 'Confirm';
     cancelBtn.textContent = options.cancelText || 'Cancel';
 
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 
     return new Promise((resolve) => {
         const cleanup = () => {

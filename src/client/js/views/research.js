@@ -600,48 +600,59 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
     };
 
     document.body.insertAdjacentHTML('beforeend', `
-    <div class="modal-overlay" onclick="closeAllocationModal()"><div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header"><h2>${icon} ${researchName}</h2><button class="modal-close" onclick="closeAllocationModal()">✕</button></div>
-        <div class="modal-body">
-          <p>Customize focus (Total 100%):</p>
-          <div class="allocation-container"><div class="allocation-sliders">
-              ${['output', 'automation', 'energy', 'cost'].map(f => `
-                <div class="slider-group">
-                  <label>${focusLabels[f]}</label>
-                  <div class="slider-row">
-                    <input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="updateAllocationSliders()">
-                    <span id="value-${f}" class="value">0%</span>
+    <div class="modal-overlay" onclick="closeAllocationModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>${icon} ${researchName}</h2>
+                <button class="modal-close" onclick="closeAllocationModal()">✕</button>
+            </div>
+            <div class="modal-body">
+              <p style="font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">> CALIBRATING EXPERIMENT FOCUS (TOTAL 100%):</p>
+              <div class="allocation-container">
+                <div class="allocation-sliders">
+                  ${['output', 'automation', 'energy', 'cost'].map(f => `
+                    <div class="slider-group">
+                      <label>${focusLabels[f]}</label>
+                      <div class="slider-row">
+                        <input type="range" min="0" max="100" value="0" id="slider-${f}" class="slider" oninput="updateAllocationSliders()">
+                        <span id="value-${f}" class="value">0%</span>
+                      </div>
+                      <p class="slider-hint">${focusHints[f]}</p>
+                    </div>`).join('')}
+                  <div class="divider-line"></div>
+                  <div class="slider-group"><label>💪 EXPERIMENT INTENSITY</label>
+                      <div class="slider-row">
+                          <input type="range" min="1" max="6" step="0.1" value="2" id="slider-strength" class="slider" oninput="updateAllocationSliders()" list="strength-markers">
+                          <datalist id="strength-markers">
+                            <option value="1" label="10"></option>
+                            <option value="2" label="100"></option>
+                            <option value="3" label="1k"></option>
+                            <option value="4" label="10k"></option>
+                            <option value="5" label="100k"></option>
+                            <option value="6" label="1M"></option>
+                          </datalist>
+                          <span id="value-strength" class="value">100</span>
+                      </div>
+                      <p class="slider-hint">Higher intensity increases XP gain but exponentially increases cost and duration.</p>
                   </div>
-                  <p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">${focusHints[f]}</p>
-                </div>`).join('')}
-              <div class="divider-line" style="margin: 10px 0; border-top: 1px solid rgba(255,255,255,0.1);"></div>
-              <div class="slider-group"><label>💪 STRENGTH</label>
-                  <div class="slider-row">
-                      <input type="range" min="1" max="6" step="0.1" value="2" id="slider-strength" class="slider" oninput="updateAllocationSliders()" list="strength-markers">
-                      <datalist id="strength-markers">
-                        <option value="1" label="10"></option>
-                        <option value="2" label="100"></option>
-                        <option value="3" label="1k"></option>
-                        <option value="4" label="10k"></option>
-                        <option value="5" label="100k"></option>
-                        <option value="6" label="1M"></option>
-                      </datalist>
-                      <span id="value-strength" class="value">100</span>
+                </div>
+                <div class="allocation-preview">
+                  <div class="preview-card">
+                    <h4>INVESTMENT TOTAL <span id="total-percent">0%</span></h4>
+                    <div id="cost-breakdown"></div>
+                    <div class="divider-line"></div>
+                    <h4>ESTIMATED DURATION</h4>
+                    <div id="time-estimate">--</div>
                   </div>
-                  <p class="slider-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin: 2px 0 0 0;">High strength = more XP but higher cost/time (Logarithmic Scale)</p>
+                </div>
               </div>
             </div>
-            <div class="allocation-preview">
-              <div class="preview-card" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px;">
-                <h4 style="margin-top:0">Investment Total: <span id="total-percent">0%</span></h4>
-                <div id="cost-breakdown" style="font-family: monospace; font-size: 0.85rem; margin: 10px 0;"></div>
-                <h4 style="margin-bottom:0">Research Time: <span id="time-estimate">--</span></h4>
-              </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAllocationModal()">ABORT</button>
+                <button class="btn btn-primary" id="start-research-btn" disabled onclick="submitAllocationResearch('${researchKey}', '${baseType}')">INITIATE EXPERIMENT</button>
             </div>
-          </div>
         </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeAllocationModal()">Cancel</button><button class="btn btn-primary" id="start-research-btn" disabled onclick="submitAllocationResearch('${researchKey}', '${baseType}')">Start Experiment</button></div>
-    </div></div>`);
+    </div>`);
     window.currentResearch = { researchKey, research: res, baseType };
 };
 

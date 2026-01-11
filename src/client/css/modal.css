@@ -1,6 +1,6 @@
 /* Sci-Fi Modal System */
 
-.modal {
+.modal, .modal-overlay {
     display: none;
     position: fixed;
     z-index: 2000;
@@ -12,13 +12,19 @@
     backdrop-filter: blur(8px);
 }
 
+.modal-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .modal-content {
     background: #0c121d;
-    margin: 50px auto;
+    margin: 0; /* Center using flexbox instead of margin auto */
     padding: 0;
     border: 1px solid var(--accent-blue);
-    width: 90%;
-    max-width: 800px;
+    width: 95%;
+    max-width: 900px;
     border-radius: 4px;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.2);
     position: relative;

@@ -152,7 +152,7 @@ async function openMissionModal(missionType, targetCoords) {
     </div>`;
 
     modalBody.innerHTML = html;
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
     setupModalCloseHandlers(modal);
 
     // Attach listeners
