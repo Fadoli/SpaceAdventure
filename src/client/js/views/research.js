@@ -750,9 +750,9 @@ function renderVariantCard(baseType, variant, type) {
     for (const f in focusLevels) {
         if (focusLevels[f] > 0) {
             focusesHtml += `
-                <div class="focus-badge focus-${f}" title="${f.toUpperCase()} level ${focusLevels[f]}">
-                    <span>${f.toUpperCase()}</span>
-                    <span>${focusLevels[f]}</span>
+                <div class="xp-row">
+                    <div class="xp-label"><span>${f.toUpperCase()}</span><span>Lvl ${focusLevels[f]}</span></div>
+                    <div class="xp-bar-container"><div class="xp-bar-fill focus-${f}" style="width: 100%"></div></div>
                 </div>`;
         }
     }
@@ -760,31 +760,31 @@ function renderVariantCard(baseType, variant, type) {
     let modifiersHtml = '';
     if (modifiers) {
         const modifierLabels = {
-            productionMultiplier: { label: 'Production', icon: '📈', isPos: true },
-            costMultiplier: { label: 'Build Cost', icon: '💰', isPos: false },
-            energyMultiplier: { label: 'Energy Cons.', icon: '⚡', isPos: false },
-            populationMultiplier: { label: 'Workforce', icon: '👥', isPos: false },
-            cargoMultiplier: { label: 'Cargo', icon: '📦', isPos: true },
-            cargoCapacityMultiplier: { label: 'Cargo', icon: '📦', isPos: true },
-            fuelMultiplier: { label: 'Fuel Cons.', icon: '🛢️', isPos: false },
-            speedMultiplier: { label: 'Speed', icon: '🚀', isPos: true },
-            attackMultiplier: { label: 'Attack', icon: '⚔️', isPos: true },
-            hullMultiplier: { label: 'Hull', icon: '🛡️', isPos: true },
-            shieldMultiplier: { label: 'Shield', icon: '🛡️', isPos: true },
-            crewRequirement: { label: 'Crew', icon: '🤖', isPos: false }
+            productionMultiplier: { label: 'Production', isPos: true },
+            costMultiplier: { label: 'Build Cost', isPos: false },
+            energyMultiplier: { label: 'Energy Cons.', isPos: false },
+            populationMultiplier: { label: 'Workforce', isPos: false },
+            cargoMultiplier: { label: 'Cargo', isPos: true },
+            cargoCapacityMultiplier: { label: 'Cargo', isPos: true },
+            fuelMultiplier: { label: 'Fuel Cons.', isPos: false },
+            speedMultiplier: { label: 'Engine Speed', isPos: true },
+            attackMultiplier: { label: 'Attack Power', isPos: true },
+            hullMultiplier: { label: 'Hull Integrity', isPos: true },
+            shieldMultiplier: { label: 'Shield Strength', isPos: true },
+            crewRequirement: { label: 'Crew Req.', isPos: false }
         };
 
         for (const modKey in modifiers) {
             const val = modifiers[modKey];
             if (val !== undefined && Math.abs(val - 1) > 0.001) {
-                const config = modifierLabels[modKey] || { label: modKey, icon: '❓', isPos: true };
+                const config = modifierLabels[modKey] || { label: modKey, isPos: true };
                 const percent = ((val - 1) * 100).toFixed(1);
                 const isGood = (val > 1) === config.isPos;
-                modifiersHtml += `<div class="mod-row ${isGood ? 'pos' : 'neg'}">
-                    <span class="mod-icon">${config.icon}</span>
-                    <span class="mod-label">${config.label}:</span>
-                    <span class="mod-value">${val > 1 ? '+' : ''}${percent}%</span>
-                </div>`;
+                modifiersHtml += `
+                    <div class="bt-row" style="margin-bottom: 2px;">
+                        <span class="bt-label" style="font-size: 0.7rem;">${config.label.toUpperCase()}</span>
+                        <span class="bt-value ${isGood ? 'archived' : 'unstable'}" style="font-size: 0.75rem;">${val > 1 ? '+' : ''}${percent}%</span>
+                    </div>`;
             }
         }
     }
@@ -792,21 +792,41 @@ function renderVariantCard(baseType, variant, type) {
     const escapedName = (name || baseType).replace(/'/g, "\\'");
 
     return `
-        <div class="variant-card-improved" id="variant-${id}">
+        <div class="research-card" id="variant-${id}">
             <div class="card-corner-top"></div>
             <div class="card-corner-bottom"></div>
-            <div class="variant-card-header">
-                <h4>${name || baseType}</h4>
-                <div class="variant-card-actions">
-                    <button class="btn-icon-action" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${escapedName}')" title="Rename Blueprint">✏️</button>
-                    <button class="btn-icon-action" onclick="window.shareVariant('${baseType}', '${id}', '${type}')" title="Share with Allies">🔗</button>
-                    <button class="btn-icon-delete" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete Blueprint">🗑️</button>
+            <div class="card-header">
+                <div class="header-main">
+                    <div class="title-row">
+                        <span class="name">${name || baseType}</span>
+                    </div>
+                    <div class="blueprint-row">
+                        <span class="eff-multiplier" style="color: var(--accent-blue); opacity: 0.8; font-size: 0.65rem;">${type.toUpperCase()} MODEL</span>
+                    </div>
                 </div>
             </div>
-            <div class="variant-card-body">
-                <div class="variant-focuses-list">${focusesHtml}</div>
-                <div class="variant-modifiers-list">
-                    ${modifiersHtml || '<div class="no-mods">No significant modifiers</div>'}
+            <div class="card-body">
+                <div class="diagnostic-section">
+                    <div class="section-tag">Focus Calibration</div>
+                    <div class="xp-section" style="gap: 8px;">
+                        ${focusesHtml}
+                    </div>
+                </div>
+                <div class="diagnostic-section">
+                    <div class="section-tag">System Modifiers</div>
+                    <div class="bt-readout">
+                        ${modifiersHtml || '<div class="no-mods">NO ACTIVE MODIFIERS</div>'}
+                    </div>
+                </div>
+            </div>
+            <div class="building-actions">
+                <div class="action-group">
+                    <button class="btn upgrade-btn" style="padding: 10px !important;" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${escapedName}')">
+                        Rename
+                    </button>
+                    <button class="btn design-btn" style="border-color: rgba(244, 63, 94, 0.3); color: var(--accent-red);" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete">
+                        ✕
+                    </button>
                 </div>
             </div>
         </div>
