@@ -6,6 +6,7 @@ import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
 import { calculateBaseTime } from '../../shared/time.js';
 import { trackSpentResources } from './player.js';
+import { BUILDINGS } from '../../shared/buildings.js';
 
 /**
  * Add ships to build queue
@@ -69,7 +70,9 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
     const baseTime = calculateBaseTime(shipDef) * quantity;
     const speedFactor = 2500; // units/hr
     const timeInSeconds = (baseTime / speedFactor) * 3600;
-    const shipyardMultiplier = Math.pow(0.85, shipyardLevel);
+    const shipyardDef = BUILDINGS.shipyard;
+    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
+    const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
     const naniteMultiplier = Math.pow(2, naniteLevel);
     
     const buildTime = Math.max(1, Math.floor((timeInSeconds * shipyardMultiplier * (1 - timeReductionBonus) / naniteMultiplier)));
@@ -146,7 +149,9 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus);
+    const shipyardDef = BUILDINGS.shipyard;
+    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
+    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus, shipyardSpeedMultiplier);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }
 

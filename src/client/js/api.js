@@ -154,6 +154,13 @@ export const API = {
         });
     },
 
+    async resetPracticalResearch(baseType) {
+        return await this.request('/game/research/practical/reset', {
+            method: 'POST',
+            body: JSON.stringify({ baseType })
+        });
+    },
+
     async getMessages() {
         return await this.request('/game/messages');
     },

@@ -162,7 +162,7 @@ export function calculateDefenseCost(defenseKey, quantity = 1, costReductionBonu
 /**
  * Calculate build time for defenses
  */
-export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLevel = 1, naniteLevel = 0, timeReductionBonus = 0) {
+export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLevel = 1, naniteLevel = 0, timeReductionBonus = 0, speedMultiplier = null) {
   const defense = getDefense(defenseKey);
   if (!defense) return 0;
 
@@ -173,7 +173,8 @@ export function calculateDefenseBuildTime(defenseKey, quantity = 1, shipyardLeve
   const timeInSeconds = (baseTime / speedFactor) * 3600;
 
   // Shipyard level speeds up construction
-  const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
+  const scaling = speedMultiplier || BUILDING_SPEED_MULTIPLIER;
+  const shipyardMultiplier = Math.pow(scaling, shipyardLevel);
 
   // Nanite factory speedup
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;

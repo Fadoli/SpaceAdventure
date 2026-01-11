@@ -3,6 +3,7 @@
 import { BUILDING_SPEED_MULTIPLIER, CONFIG, SCALING } from './constants.js';
 import { calculateBaseTime } from './time.js';
 import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
+import { BUILDINGS } from './buildings.js';
 
 export const SHIPS = {
   // Civilian Ships
@@ -320,8 +321,10 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   const speedFactor = CONFIG.SHIP_BUILD_SPEED || 2500;
   const timeInSeconds = (baseTime / speedFactor) * 3600;
 
-  // Shipyard level speeds up construction (20% per level, 0.8^n)
-  const shipyardMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, shipyardLevel);
+  // Shipyard level speeds up construction
+  const shipyardDef = BUILDINGS.shipyard;
+  const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
+  const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
 
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;

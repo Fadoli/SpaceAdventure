@@ -94,8 +94,11 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   
   const baseTime = calculateBaseTime(building) * Math.pow(SCALING.BUILDING_TIME, level - 1);
   
-  // Robotics factory speeds up construction (inverse formula: 1 / 0.85^n)
-  const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
+  const roboticsDef = BUILDINGS.roboticsFactory;
+  const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || 0.85;
+  
+  // Robotics factory speeds up construction (inverse formula: 1 / multiplier^n)
+  const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(roboticsSpeedMultiplier, roboticsLevel) : 1;
   
   // Nanite factory dramatically speeds up (2x per level)
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
@@ -107,7 +110,12 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
   const reduction = 1 - timeReductionBonus;
   
-  const totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier * reduction;
+  let totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier * reduction;
+  
+  // Apply practical research time multiplier if it exists in the definition
+  if (building.timeMultiplier !== undefined) {
+    totalTime *= building.timeMultiplier;
+  }
   
   return Math.max(1, Math.floor(totalTime)); // Minimum 1 second
 }
@@ -575,16 +583,43 @@ function resolveEnergyAllocation(planet, availableEnergy, actualAllocations, pla
 }
 
 /**
- * Update planet production based on buildings
+ * Ensure a planet has all required state fields for all building types
  */
-export function updatePlanetProduction(planet, player = null) {
-  // Get planet position (coordinates[2] is the position in the system)
-  const planetPosition = planet.coordinates ? planet.coordinates[2] : 8;
-  
-  // Initialize building allocations if not exists
+export function ensurePlanetState(planet) {
   if (!planet.buildingAllocations) {
     planet.buildingAllocations = {};
   }
+  if (!planet.activeVariants) {
+    planet.activeVariants = {};
+  }
+  if (!planet.localBlueprints) {
+    planet.localBlueprints = {};
+  }
+
+  // Initialize state for every building type if missing
+  for (const type in BUILDINGS) {
+    if (!planet.buildingAllocations[type]) {
+      planet.buildingAllocations[type] = { 
+        power: 1.0, 
+        population: 1.0, 
+        priority: 3 
+      };
+    }
+    if (!planet.activeVariants[type]) {
+      planet.activeVariants[type] = 'base';
+    }
+  }
+}
+
+/**
+ * Update planet production based on buildings
+ */
+export function updatePlanetProduction(planet, player = null) {
+  // Ensure planet has all necessary state fields
+  ensurePlanetState(planet);
+
+  // Get planet position (coordinates[2] is the position in the system)
+  const planetPosition = planet.coordinates ? planet.coordinates[2] : 8;
   
   // 1. Resolve Population Allocation first
   // This ensures we know exactly which buildings are staffed

@@ -277,6 +277,7 @@ export const PRACTICAL_FOCUS_TYPES = {
 const PRODUCTION_BUILDING_MODIFIERS = {
   output: {
     productionMultiplier: 1.025,     // 1.025^level: +2.5% per focus level
+    timeMultiplier: 0.98,            // 0.98^level: -2% time per focus level (for factories/shipyard/lab)
     costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level
     energyMultiplier: 1.025,         // 1.025^level: +2.5% energy per focus level
     populationMultiplier: 1.01      // 1.01^level: +1% population
@@ -447,6 +448,134 @@ export const PRACTICAL_RESEARCH = {
       metal: 30,
       crystal: 20,
       deuterium: 10
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  fusionReactor: {
+    name: 'Fusion Reactor Optimization',
+    baseType: 'fusionReactor',
+    type: 'building',
+    category: 'Energy',
+    icon: '⚛️',
+    description: 'Optimize high-energy fusion output and deuterium consumption.',
+    baseCost: {
+      metal: 100,
+      crystal: 50,
+      deuterium: 50
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  roboticsFactory: {
+    name: 'Robotics Factory Calibration',
+    baseType: 'roboticsFactory',
+    type: 'building',
+    category: 'Infrastructure',
+    icon: '🤖',
+    description: 'Customize automated construction workflows.',
+    baseCost: {
+      metal: 50,
+      crystal: 30,
+      deuterium: 20
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  shipyard: {
+    name: 'Shipyard Modernization',
+    baseType: 'shipyard',
+    type: 'building',
+    category: 'Infrastructure',
+    icon: '🚀',
+    description: 'Improve ship assembly protocols and infrastructure.',
+    baseCost: {
+      metal: 50,
+      crystal: 30,
+      deuterium: 20
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  researchLab: {
+    name: 'Research Lab Expansion',
+    baseType: 'researchLab',
+    type: 'building',
+    category: 'Science',
+    icon: '🔬',
+    description: 'Advanced laboratory tuning for scientific breakthroughs.',
+    baseCost: {
+      metal: 50,
+      crystal: 50,
+      deuterium: 50
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  naniteFactory: {
+    name: 'Nanite Factory Engineering',
+    baseType: 'naniteFactory',
+    type: 'building',
+    category: 'Infrastructure',
+    icon: '🔧',
+    description: 'Micro-tuning of nanobot swarms and assembly patterns.',
+    baseCost: {
+      metal: 500,
+      crystal: 300,
+      deuterium: 200
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  waterExtractor: {
+    name: 'Water Extraction Tech',
+    baseType: 'waterExtractor',
+    type: 'building',
+    category: 'Resource',
+    icon: '💦',
+    description: 'Customize hydrological extraction processes.',
+    baseCost: {
+      metal: 20,
+      crystal: 10,
+      deuterium: 0
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  farm: {
+    name: 'Agricultural Innovation',
+    baseType: 'farm',
+    type: 'building',
+    category: 'Resource',
+    icon: '🍞',
+    description: 'Optimize hydroponic growth cycles and yields.',
+    baseCost: {
+      metal: 20,
+      crystal: 10,
+      deuterium: 0
+    },
+    maxLevels: 30,
+    focusModifiers: PRODUCTION_BUILDING_MODIFIERS
+  },
+
+  housing: {
+    name: 'Housing Urbanization',
+    baseType: 'housing',
+    type: 'building',
+    category: 'Infrastructure',
+    icon: '🏘️',
+    description: 'Improve residential efficiency and power usage.',
+    baseCost: {
+      metal: 20,
+      crystal: 10,
+      deuterium: 0
     },
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS

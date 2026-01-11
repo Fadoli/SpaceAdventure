@@ -217,7 +217,7 @@ describe('Ships - calculateShipBuildTime Function', () => {
     const timeLvl1 = calculateShipBuildTime('smallCargo', 1, 1);
     const timeLvl10 = calculateShipBuildTime('smallCargo', 1, 10);
 
-    // Shipyard: BUILDING_SPEED_MULTIPLIER^level multiplier
+    // Shipyard: speedMultiplier^level multiplier
     expect(timeLvl10).toBeLessThan(timeLvl1);
   });
 

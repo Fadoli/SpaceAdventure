@@ -91,26 +91,26 @@
 
 .tech-list, .research-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 15px;
 }
 
 .tech-card, .research-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     transition: all 0.3s ease;
     position: relative;
 }
 
 .tech-card:hover, .research-card:hover {
     border-color: var(--accent-blue);
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 .tech-card.locked {
@@ -118,14 +118,14 @@
 }
 
 .tech-card.locked::before {
-    content: '🔒 Requirements Not Met';
+    content: '🔒 Locked';
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
     background: var(--accent-red);
     color: white;
-    font-size: 0.7rem;
-    padding: 2px 8px;
+    font-size: 0.65rem;
+    padding: 1px 6px;
     border-radius: 4px;
     font-weight: bold;
 }
@@ -133,29 +133,29 @@
 .tech-header, .card-header {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
 }
 
 .tech-icon, .icon {
-    font-size: 2.5rem;
-    width: 60px;
-    height: 60px;
+    font-size: 1.8rem;
+    width: 45px;
+    height: 45px;
     background: var(--bg-tertiary);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
 }
 
 .tech-name h4, .name {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: var(--accent-blue);
 }
 
 .tech-level {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
 }
 
@@ -163,17 +163,17 @@
 .tech-costs {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 6px;
     background: rgba(0, 0, 0, 0.2);
-    padding: 12px;
-    border-radius: 8px;
+    padding: 10px;
+    border-radius: 6px;
 }
 
 .cost-item {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
 }
 
 .text-error { color: var(--accent-red); }
@@ -183,27 +183,27 @@
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
-    padding-top: 15px;
+    padding-top: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .build-time {
     color: var(--accent-yellow);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: bold;
 }
 
 .tech-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .queued-badge {
     background: var(--accent-yellow);
     color: black;
-    font-size: 0.75rem;
-    padding: 2px 6px;
+    font-size: 0.7rem;
+    padding: 1px 5px;
     border-radius: 4px;
     font-weight: bold;
 }
@@ -212,93 +212,123 @@
 .xp-section {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin: 15px 0;
+    gap: 8px;
+    margin: 10px 0;
 }
 
 .xp-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .xp-label {
     display: flex;
     justify-content: space-between;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: bold;
     color: var(--text-secondary);
 }
 
 .xp-bar-container {
-    height: 10px;
+    height: 8px;
     background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .xp-bar-fill {
     height: 100%;
-    border-radius: 10px;
+    border-radius: 8px;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .focus-output { 
     background: linear-gradient(90deg, #d32f2f, #ff5252);
-    box-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
+    box-shadow: 0 0 8px rgba(255, 82, 82, 0.4);
 }
 .focus-automation { 
     background: linear-gradient(90deg, #1976d2, #448aff);
-    box-shadow: 0 0 10px rgba(68, 138, 255, 0.5);
+    box-shadow: 0 0 8px rgba(68, 138, 255, 0.4);
 }
 .focus-energy { 
     background: linear-gradient(90deg, #fbc02d, #ffff00);
-    box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    box-shadow: 0 0 8px rgba(255, 255, 0, 0.4);
 }
 .focus-cost { 
     background: linear-gradient(90deg, #388e3c, #69f0ae);
-    box-shadow: 0 0 10px rgba(105, 240, 174, 0.5);
+    box-shadow: 0 0 8px rgba(105, 240, 174, 0.4);
+}
+
+.breakthrough-counters {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 6px;
+    margin: 8px 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.8rem !important;
+}
+
+.breakthrough-counters span strong {
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+@keyframes pulse-breakthrough {
+    0% { transform: scale(1); text-shadow: 0 0 0px var(--accent-yellow); }
+    50% { transform: scale(1.15); text-shadow: 0 0 8px var(--accent-yellow); }
+    100% { transform: scale(1); text-shadow: 0 0 0px var(--accent-yellow); }
+}
+
+.current-breakthroughs-val {
+    color: var(--accent-yellow);
+}
+
+.current-breakthroughs-val {
+    animation: pulse-breakthrough 3s infinite ease-in-out;
 }
 
 .tree-bonus {
-    background: rgba(74, 144, 226, 0.1);
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(74, 144, 226, 0.2));
     padding: 8px;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-align: center;
-    border: 1px solid rgba(74, 144, 226, 0.2);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    color: var(--text-primary);
+}
+
+.tree-bonus strong {
+    color: var(--accent-blue);
+    font-size: 1rem;
 }
 
 /* Variant Cards Improved */
 .variants-container {
     display: flex;
     flex-direction: column;
-    gap: 30px;
-}
-
-.variants-section {
-    margin-bottom: 20px;
+    gap: 20px;
 }
 
 .variants-section h3 {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
     color: var(--text-primary);
-    padding-left: 10px;
-    border-left: 4px solid var(--accent-green);
+    padding-left: 8px;
+    border-left: 3px solid var(--accent-green);
 }
 
 .variant-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
 }
 
 .variant-card-improved {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -307,12 +337,12 @@
 
 .variant-card-improved:hover {
     border-color: var(--accent-green);
-    transform: translateY(-3px);
+    transform: translateY(-2px);
 }
 
 .variant-card-header {
     background: rgba(255, 255, 255, 0.05);
-    padding: 10px 15px;
+    padding: 8px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -321,60 +351,39 @@
 
 .variant-card-header h4 {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: var(--accent-green);
 }
 
 .variant-focuses-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    padding: 10px 12px;
+    gap: 3px;
+    padding: 8px 10px;
 }
 
 .focus-badge {
-    font-size: 0.65rem;
-    padding: 2px 8px;
-    border-radius: 4px;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 3px;
     font-weight: bold;
     text-transform: uppercase;
     border: 1px solid transparent;
 }
 
-.focus-output { 
-    background: rgba(255, 82, 82, 0.1); 
-    color: #ff5252; 
-    border-color: rgba(255, 82, 82, 0.2); 
-}
-.focus-automation { 
-    background: rgba(68, 138, 255, 0.1); 
-    color: #448aff; 
-    border-color: rgba(68, 138, 255, 0.2); 
-}
-.focus-energy { 
-    background: rgba(255, 235, 59, 0.1); 
-    color: #ffeb3b; 
-    border-color: rgba(255, 235, 59, 0.2); 
-}
-.focus-cost { 
-    background: rgba(76, 175, 80, 0.1); 
-    color: #4caf50; 
-    border-color: rgba(76, 175, 80, 0.2); 
-}
-
 .variant-modifiers-list {
-    padding: 8px 12px;
+    padding: 6px 10px;
     background: rgba(0, 0, 0, 0.2);
-    margin: 0 12px 12px 12px;
-    border-radius: 6px;
+    margin: 0 10px 10px 10px;
+    border-radius: 5px;
     flex: 1;
 }
 
 .mod-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
-    padding: 2px 0;
+    font-size: 0.75rem;
+    padding: 1px 0;
     color: var(--text-secondary);
 }
 
@@ -387,15 +396,15 @@
 .mod-row.neg .mod-value { color: var(--accent-red); }
 
 .variant-card-footer {
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: rgba(255, 255, 255, 0.03);
     border-top: 1px solid var(--border-color);
 }
 
 /* Specific buttons */
 .btn-create-variant {
-    font-size: 0.75rem !important;
-    padding: 4px 10px !important;
+    font-size: 0.7rem !important;
+    padding: 3px 8px !important;
     width: auto !important;
     height: auto !important;
     font-weight: bold;
@@ -405,7 +414,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     opacity: 0.5;
     transition: opacity 0.2s, color 0.2s;
 }
@@ -415,33 +424,39 @@
     color: var(--accent-red);
 }
 
-/* Allocation Modal Sliders */
-.allocation-container {
-    display: flex;
-    gap: 30px;
-    margin-top: 20px;
+/* Research Tabs denser */
+.research-tabs {
+    gap: 8px;
+    padding: 8px;
+    margin-bottom: 20px;
 }
 
-.allocation-sliders {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+.research-tabs .tab-btn {
+    padding: 8px;
+    font-size: 0.9rem;
 }
 
-.slider-row {
-    display: flex;
-    align-items: center;
-    gap: 15px;
+/* Queue Section denser */
+.research-queue-section {
+    padding: 12px;
+    margin-bottom: 20px;
 }
 
-.slider-row .slider {
-    flex: 1;
+.research-queue-section h3 {
+    font-size: 1rem;
 }
 
-.slider-row .value {
-    min-width: 50px;
-    text-align: right;
-    font-weight: bold;
-    color: var(--accent-blue);
+.queue-item-row {
+    font-size: 0.8rem;
 }
+
+.last-result {
+    font-size: 0.75rem;
+    margin-top: 5px;
+}
+
+.blueprint-count {
+    font-size: 0.7rem !important;
+    margin-top: 6px !important;
+}
+

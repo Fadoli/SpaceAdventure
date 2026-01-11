@@ -24,7 +24,11 @@ export function calculateBuildingCost(baseCost, level, costReductionBonus = 0, c
 export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLevel = 0, configMultiplier = 1.0, timeReductionBonus = 0) {
   const baseTime = calculateBaseTime(building);
   const time = baseTime * Math.pow(SCALING.BUILDING_TIME, level - 1);
-  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(BUILDING_SPEED_MULTIPLIER, roboticsLevel) : 1;
+  
+  const roboticsDef = BUILDINGS.roboticsFactory;
+  const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || 0.85;
+  const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(roboticsSpeedMultiplier, roboticsLevel) : 1;
+  
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
   const reduction = 1 - timeReductionBonus;
   
@@ -279,10 +283,11 @@ export function calculateTheoreticalResearchCost(baseCost, level) {
  * Calculate theoretical research time at a given level
  * Time increases with each level, affected by research lab level
  */
-export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0) {
+export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, speedMultiplier = null) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
-  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
+  const scaling = speedMultiplier || BUILDING_SPEED_MULTIPLIER;
+  const labMultiplier = Math.pow(scaling, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
   return Math.max(1, Math.floor(time * labMultiplier * techMultiplier * configMultiplier));
@@ -320,12 +325,13 @@ export function calculatePracticalResearchCost(baseCost, level, allocation = { o
  * Calculate practical research (customization) time at a given level
  * Derived directly from the calculated resource cost
  */
-export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, strength = 0.5, allocation = { output: 1.0 }) {
+export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, strength = 0.5, allocation = { output: 1.0 }, speedMultiplier = null) {
   // Derive duration from actual cost
   const actualCost = calculatePracticalResearchCost(research.baseCost, level, allocation, strength);
   const rawDuration = calculateBaseTime({ baseCost: actualCost });
   
-  const labMultiplier = Math.pow(BUILDING_SPEED_MULTIPLIER, labLevel);
+  const scaling = speedMultiplier || BUILDING_SPEED_MULTIPLIER;
+  const labMultiplier = Math.pow(scaling, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
   const totalTime = Math.floor(rawDuration * labMultiplier * techMultiplier * configMultiplier);

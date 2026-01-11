@@ -442,9 +442,9 @@ async function renderPracticalResearch() {
                 cost: Math.floor(Math.sqrt((exp.cost || 0) / 100))
             };
 
-            const totalFocusLevel = Object.values(levels).reduce((a, b) => a + b, 0);
-            const levelBonus = 1 + (totalFocusLevel * 0.01);
-            const totalEfficiency = (tree.treeBonus || 1.0) * levelBonus;
+            const bankedBreakthroughs = tree.bankedBreakthroughs || 0;
+            const currentBreakthroughs = tree.currentBreakthroughs || 0;
+            const totalEfficiency = 1 + (bankedBreakthroughs * 0.02);
 
             const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
             const isDisabled = queue.length >= maxQueue || researchLabLevel === 0;
@@ -484,7 +484,12 @@ async function renderPracticalResearch() {
                 }).join('')}
             </div>
 
-            <div class="tree-bonus" title="Total XP multiplier: Breakthroughs (${((tree.treeBonus || 1.0) * 100).toFixed(0)}%) × Level Bonus (+${(totalFocusLevel)}%)">
+            <div class="breakthrough-counters" style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.85rem;">
+                <span title="Breakthroughs found in this run. These will be banked when you reset.">Current: <strong class="current-breakthroughs-val">${currentBreakthroughs}</strong> 🌟</span>
+                <span title="Breakthroughs from previous runs. Providing +${(bankedBreakthroughs * 2).toFixed(0)}% boost.">Banked: <strong>${bankedBreakthroughs}</strong> 💎</span>
+            </div>
+
+            <div class="tree-bonus" title="Research Speed Multiplier from banked breakthroughs: +2% each.">
                 ⚡ Tree Efficiency: <strong>${(totalEfficiency * 100).toFixed(0)}%</strong>
             </div>
             
@@ -493,14 +498,18 @@ async function renderPracticalResearch() {
                 Blueprints: ${currentBlueprints} / ${MAX_BLUEPRINTS}
             </div>
           </div>
-          <div class="card-footer">
+          <div class="card-footer" style="flex-wrap: wrap;">
             <button class="btn btn-secondary btn-small" onclick="window.showResearchHistory('${res.baseType}')">📋 History</button>
+            <button class="btn btn-danger btn-small" onclick="window.resetPracticalResearchUI('${res.baseType}')" 
+                    title="Reset levels and breakthroughs in this run to bank them into a permanent speed bonus.">
+                ♻️ Reset Tree
+            </button>
             <button class="btn btn-success btn-small btn-create-variant" ${!canCreate ? 'disabled' : ''} 
                     title="${!canCreate ? 'Max blueprints reached' : 'Create a new blueprint with current levels'}"
                     onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">
                 🔧 ${!canCreate ? 'Limit Reached' : 'Create Variant'}
             </button>
-            <button class="btn btn-primary" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
+            <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
               🔬 Run Experiment
             </button>
           </div>
@@ -629,7 +638,11 @@ window.updateAllocationSliders = function () {
         const canAfford = planet && planet.resources.metal >= cost.metal && planet.resources.crystal >= cost.crystal && planet.resources.deuterium >= (cost.deuterium || 0);
         document.getElementById('cost-breakdown').innerHTML = `⚙️${formatNumber(cost.metal)} 💎${formatNumber(cost.crystal)} 🛢️${formatNumber(cost.deuterium)}`;
 
-        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed'), window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized, allocation);
+        const bankedBreakthroughs = tree?.bankedBreakthroughs || 0;
+        const breakthroughBonus = bankedBreakthroughs * 0.02;
+        const totalResearchSpeedBonus = getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed') + breakthroughBonus;
+
+        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, totalResearchSpeedBonus, window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized, allocation);
         document.getElementById('time-estimate').textContent = formatTime(time * 1000);
         const btn = document.getElementById('start-research-btn');
         if (btn) { 
@@ -897,6 +910,25 @@ window.buildCustomVariant = async function (baseType, type) {
         if (!response.ok) { Notifications.showError((await response.json()).message); return; }
         Notifications.showSuccess('Blueprint created!'); await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
+};
+
+window.resetPracticalResearchUI = async function(baseType) {
+    const confirmed = await showConfirm(
+        'Reset Research Tree', 
+        `Are you sure you want to reset this research tree? 
+        \n\nYou will LOSE all current levels and unbanked breakthroughs in this run. 
+        \n\nYour current run's breakthroughs will be banked, providing a PERMANENT research speed bonus for this item (+2% per breakthrough).`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+        const result = await API.resetPracticalResearch(baseType);
+        Notifications.showSuccess(result.message);
+        await loadResearchData();
+    } catch (e) {
+        Notifications.showError('Reset failed: ' + e.message);
+    }
 };
 
 window.showResearchHistory = async function (baseType) {

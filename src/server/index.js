@@ -39,6 +39,7 @@ import {
   startPracticalResearchWithAllocation,
   completePracticalResearch,
   cancelPracticalResearch,
+  resetPracticalResearch,
   selectCustomBuildingVariant,
   selectCustomShipVariant,
   getResearchProgress,
@@ -664,6 +665,9 @@ async function handleRequest(req) {
       }
       
       const planet = player.planets.find(p => p.id === planetId);
+      
+      // Ensure production is updated and state is repaired
+      updatePlanetProduction(planet, player);
 
       // Calculate building details for each building type
       const buildingsDetails = {};
@@ -684,15 +688,16 @@ async function handleRequest(req) {
         }
         
         const nextLevel = highestQueuedLevel + 1;
+        const isMaxLevel = buildingDef.maxLevel && currentLevel >= buildingDef.maxLevel;
         
-        // Calculate cost for next level
-        const cost = getBuildingCost(buildingType, nextLevel, planet, player);
-        const baseCostForNextLevel = getBuildingCost(buildingType, nextLevel); // cost without variant
+        // Calculate cost for next level (null if at max level)
+        const cost = isMaxLevel ? null : getBuildingCost(buildingType, nextLevel, planet, player);
+        const baseCostForNextLevel = isMaxLevel ? null : getBuildingCost(buildingType, nextLevel); // cost without variant
         
         // Calculate build time
         const roboticsLevel = planet.buildings.roboticsFactory || 0;
         const naniteLevel = planet.buildings.naniteFactory || 0;
-        const buildTime = getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel, planet, player);
+        const buildTime = isMaxLevel ? 0 : getBuildTime(buildingType, nextLevel, roboticsLevel, naniteLevel, planet, player);
         
         // Calculate production for next level (already handles variant via definition)
         let production = getProduction(buildingType, nextLevel, planet, player);
@@ -725,7 +730,8 @@ async function handleRequest(req) {
         }
         
         // Check if can afford
-        const canAfford = planet.resources.metal >= cost.metal &&
+        const canAfford = cost && 
+                         planet.resources.metal >= cost.metal &&
                          planet.resources.crystal >= cost.crystal &&
                          planet.resources.deuterium >= cost.deuterium;
         
@@ -812,6 +818,7 @@ async function handleRequest(req) {
           icon: buildingDef.icon,
           currentLevel,
           nextLevel,
+          maxLevel: buildingDef.maxLevel || 50,
           cost,
           baseCost: baseCostForNextLevel,
           costScaling: buildingDef.costScaling || SCALING.BUILDING_COST,
@@ -1431,6 +1438,26 @@ async function handleRequest(req) {
         return successResponse(req, { refund, cancelled: true });
       } catch (error) {
         console.error(`[PRACTICAL_RESEARCH] Error cancelling research:`, error.message);
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/research/practical/reset - Reset research to bank breakthroughs
+    if (path === '/api/game/research/practical/reset' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const body = await req.json();
+      const { baseType } = body;
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player) return errorResponse(req, 'Player not found', 404);
+
+      try {
+        const result = resetPracticalResearch(player, baseType);
+        await updatePlayer(user.id, player);
+        return successResponse(req, result);
+      } catch (error) {
         return errorResponse(req, error.message, 400);
       }
     }

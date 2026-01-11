@@ -96,12 +96,16 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
   
+  const labDef = BUILDINGS.researchLab;
+  const labSpeedMultiplier = labDef.speedMultiplier || 0.85;
+  
   const time = calculateTheoreticalResearchTime(
     tech,
     nextLevelToQueue - 1,
     planet.buildings.researchLab || 0,
     researchSpeedBonus,
-    configMultiplier
+    configMultiplier,
+    labSpeedMultiplier
   );
   
   // Calculate timing
@@ -221,7 +225,9 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
-  const time = calculatePracticalResearchTime(practicalResearchConfig, totalFocusLevel, planet.buildings.researchLab || 1, researchSpeedBonus, configMultiplier, strength, allocation);
+  const labDef = BUILDINGS.researchLab;
+  const labSpeedMultiplier = labDef.speedMultiplier || 0.85;
+  const time = calculatePracticalResearchTime(practicalResearchConfig, totalFocusLevel, planet.buildings.researchLab || 1, researchSpeedBonus, configMultiplier, strength, allocation, labSpeedMultiplier);
   
   let startTime, endTime;
   if (!player.practicalResearchQueue || player.practicalResearchQueue.length === 0) {
@@ -276,20 +282,19 @@ export async function completePracticalResearch(player, queueItemId) {
 
   // Ensure data integrity
   if (!tree.experience) tree.experience = { output: 0, automation: 0, energy: 0, cost: 0 };
+  if (tree.bankedBreakthroughs === undefined) tree.bankedBreakthroughs = 0;
+  if (tree.currentBreakthroughs === undefined) tree.currentBreakthroughs = 0;
 
-  // Calculate level bonus: 1% per focus level
-  let totalFocusLevel = 0;
-  for (const focus in tree.experience) {
-    totalFocusLevel += Math.floor(Math.sqrt(tree.experience[focus] / 100));
-  }
-  const levelBonus = 1 + (totalFocusLevel * 0.01);
+  // New Breakthrough-based bonus (2% per banked breakthrough)
+  // This replaces the old levelBonus (+1% per total focus level)
+  const breakthroughMultiplier = 1 + (tree.bankedBreakthroughs * 0.02);
 
   const outcome = rollResearchOutcome();
   
   // Base XP gain scales linearly with actual strength (10 to 1M)
   const actualStrength = Math.pow(10, 1 + item.strength * 5);
   const baseGain = actualStrength * 10; 
-  const totalXpGain = Math.floor(baseGain * outcome.multiplier * (tree.treeBonus || 1.0) * levelBonus);
+  const totalXpGain = Math.floor(baseGain * outcome.multiplier * breakthroughMultiplier);
 
   const distribution = item.allocation || { output: 1.0 };
   const gains = {};
@@ -302,7 +307,10 @@ export async function completePracticalResearch(player, queueItemId) {
     }
   }
 
-  if (outcome.type === 'breakthrough') tree.treeBonus = (tree.treeBonus || 1.0) * 1.05;
+  // Increment breakthroughs for the current run
+  if (outcome.type === 'breakthrough') {
+    tree.currentBreakthroughs++;
+  }
 
   const logEntry = {
     id: generateId(),
@@ -343,6 +351,35 @@ export function cancelPracticalResearch(player, queueItemId, planetId) {
   
   player.practicalResearchQueue.splice(index, 1);
   return refund;
+}
+
+/**
+ * Reset practical research for an item to bank breakthroughs
+ */
+export function resetPracticalResearch(player, baseType) {
+  if (!player.practicalResearch || !player.practicalResearch[baseType]) {
+    throw new Error('Research for this item not found');
+  }
+
+  const tree = player.practicalResearch[baseType];
+  const breakthroughsToBank = tree.currentBreakthroughs || 0;
+
+  if (breakthroughsToBank === 0 && (!tree.experience || Object.values(tree.experience).every(v => v === 0))) {
+    throw new Error('No progress to reset');
+  }
+
+  // Bank breakthroughs from the last run
+  tree.bankedBreakthroughs = breakthroughsToBank;
+  
+  // Reset current run
+  tree.currentBreakthroughs = 0;
+  tree.experience = { output: 0, automation: 0, energy: 0, cost: 0 };
+
+  return {
+    baseType,
+    bankedBreakthroughs: tree.bankedBreakthroughs,
+    message: `Research for ${baseType} reset. Now gaining +${(tree.bankedBreakthroughs * 2).toFixed(0)}% research speed.`
+  };
 }
 
 /**

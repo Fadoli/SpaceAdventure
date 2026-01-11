@@ -76,9 +76,11 @@ describe('calculateBuildTime', () => {
     expect(result).toBe(Math.floor(1180 * Math.pow(SCALING.BUILDING_TIME, 2)));
   });
 
-  it(`should apply robotics factory multiplier (${BUILDING_SPEED_MULTIPLIER}^level)`, () => {
+  it(`should apply robotics factory multiplier (scaling^level)`, () => {
+    const roboticsDef = BUILDINGS.roboticsFactory;
+    const speedMultiplier = roboticsDef.speedMultiplier || 0.85;
     const result = calculateBuildTime(building, 2, 2);
-    const expectedTime = Math.floor(1180 * Math.pow(SCALING.BUILDING_TIME, 1) * Math.pow(BUILDING_SPEED_MULTIPLIER, 2));
+    const expectedTime = Math.floor(1180 * Math.pow(SCALING.BUILDING_TIME, 1) * Math.pow(speedMultiplier, 2));
     expect(result).toBe(expectedTime);
   });
 
@@ -89,8 +91,10 @@ describe('calculateBuildTime', () => {
   });
 
   it('should apply both multipliers when both are provided', () => {
+    const roboticsDef = BUILDINGS.roboticsFactory;
+    const speedMultiplier = roboticsDef.speedMultiplier || 0.85;
     const result = calculateBuildTime(building, 2, 1, 1);
-    const expectedTime = Math.floor((1180 * Math.pow(SCALING.BUILDING_TIME, 1) * Math.pow(BUILDING_SPEED_MULTIPLIER, 1)) / Math.pow(2, 1));
+    const expectedTime = Math.floor((1180 * Math.pow(SCALING.BUILDING_TIME, 1) * Math.pow(speedMultiplier, 1)) / Math.pow(2, 1));
     expect(result).toBe(expectedTime);
   });
 
@@ -465,18 +469,21 @@ describe('calculateTheoreticalResearchCost', () => {
 describe('calculateTheoreticalResearchTime', () => {
   const research = THEORETICAL_RESEARCH.energyTech; // baseTime 500
   it(`should increase by ${SCALING.RESEARCH_TIME}x with each level`, () => {
-    const result0 = calculateTheoreticalResearchTime(research, 0);
+    const labDef = BUILDINGS.researchLab;
+    const speedMultiplier = labDef.speedMultiplier || 0.85;
     const result1 = calculateTheoreticalResearchTime(research, 1);
     
-    const expectedTime1 = Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(BUILDING_SPEED_MULTIPLIER, 1));
+    const expectedTime1 = Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(speedMultiplier, 1));
     expect(result1).toBe(expectedTime1);
   });
 
-  it(`should reduce time with higher lab level (multiplicative ${BUILDING_SPEED_MULTIPLIER}^level)`, () => {
+  it(`should reduce time with higher lab level (multiplicative scaling^level)`, () => {
+    const labDef = BUILDINGS.researchLab;
+    const speedMultiplier = labDef.speedMultiplier || 0.85;
     const result1 = calculateTheoreticalResearchTime(research, 1, 1);
     const result2 = calculateTheoreticalResearchTime(research, 1, 5);
     expect(result2).toBeLessThan(result1);
-    expect(result2).toBe(Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(BUILDING_SPEED_MULTIPLIER, 5)));
+    expect(result2).toBe(Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(speedMultiplier, 5)));
   });
 });
 
@@ -506,18 +513,22 @@ describe('calculatePracticalResearchTime', () => {
   it('should derive duration from actual cost (no level scaling)', () => {
     // Formula: calculateBaseTime(cost) * labMult
     // Cost mult: strength(10^3.5) * alloc(1.05)
+    const labDef = BUILDINGS.researchLab;
+    const speedMultiplier = labDef.speedMultiplier || 0.85;
     const result1 = calculatePracticalResearchTime(research, 1, 1, 0, 1.0, 0.5, { output: 1.0 });
     const strMult = Math.pow(10, 3.5);
-    const expectedTime = Math.floor(50 * strMult * 1.05 * 0.85);
+    const expectedTime = Math.floor(50 * strMult * 1.05 * speedMultiplier);
     expect(Math.abs(result1 - expectedTime)).toBeLessThanOrEqual(5);
   });
 
   it('should be affected by lab level', () => {
+    const labDef = BUILDINGS.researchLab;
+    const speedMultiplier = labDef.speedMultiplier || 0.85;
     const strMult = Math.pow(10, 3.5);
     const result1 = calculatePracticalResearchTime(research, 2, 1, 0, 1.0, 0.5, { output: 1.0 });
     const result2 = calculatePracticalResearchTime(research, 2, 5, 0, 1.0, 0.5, { output: 1.0 });
     expect(result2).toBeLessThan(result1);
-    const expected = Math.floor(50 * strMult * 1.05 * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
+    const expected = Math.floor(50 * strMult * 1.05 * Math.pow(speedMultiplier, 5));
     expect(Math.abs(result2 - expected)).toBeLessThanOrEqual(5);
   });
 });

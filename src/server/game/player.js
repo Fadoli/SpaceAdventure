@@ -3,7 +3,7 @@ import { generateId } from '../../shared/utils.js';
 import { STARTING_RESOURCES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { SHIPS } from '../../shared/ships.js';
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
-import { updatePlanetProduction } from './buildings.js';
+import { updatePlanetProduction, ensurePlanetState } from './buildings.js';
 import { registerPlayer, getGalaxyData } from './galaxyData.js';
 
 const playersCache = new Map();
@@ -132,6 +132,7 @@ export async function createPlayer(userId, username) {
     lastActivity: Date.now()
   };
   
+  ensurePlanetState(planet);
   updatePlanetProduction(planet);
   
   const player = {
