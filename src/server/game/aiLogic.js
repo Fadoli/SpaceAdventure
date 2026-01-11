@@ -1,12 +1,14 @@
 import { AI_TYPES, BUILDINGS, TECHNOLOGIES, MISSION_TYPES, CONFIG } from '../../shared/constants.js';
-import { SHIPS } from '../../shared/ships.js';
-import { DEFENSES } from '../../shared/defenses.js';
-import { upgradeBuilding, createBuildingBlueprint, setActiveBlueprint } from './buildings.js';
+import { SHIPS, calculateShipCost } from '../../shared/ships.js';
+import { DEFENSES, calculateDefenseCost } from '../../shared/defenses.js';
+import { upgradeBuilding, createBuildingBlueprint, setActiveBlueprint, getBuildingCost } from './buildings.js';
 import { buildShips, buildDefenses } from './shipyard.js';
 import { startTheoreticalResearch, startPracticalResearchWithAllocation } from './researchLogic.js';
 import { sendFleet } from './fleet.js';
 import { updatePlayer, findAvailablePlanetSlot, renamePlanet } from './player.js';
 import { isEmpty } from '../../shared/utils.js';
+import { getResearchBonus, getTheoreticalResearch, getPracticalResearch } from '../../shared/research.js';
+import { calculateTheoreticalResearchCost, calculatePracticalResearchCost, calculateFocusLevel } from '../../shared/formulas.js';
 
 const PLANET_NAMES = [
   'Arrakis', 'Coruscant', 'Dagobah', 'Endor', 'Hoth', 'Kashyyyk', 'Naboo', 'Tatooine', 'Yavin',
@@ -83,8 +85,6 @@ async function handleColonization(player) {
   const maxPlanets = CONFIG.MAX_PLANETS_PER_PLAYER || 9;
   if (player.planets.length >= maxPlanets) return false;
 
-  let changed = false;
-
   // 1. Check if we have a colony ship in flight
   const hasColonyMission = player.fleets?.some(f => f.missionType === MISSION_TYPES.COLONIZE);
   if (hasColonyMission) return false;
@@ -110,12 +110,19 @@ async function handleColonization(player) {
     }
   } else {
     // Try to build a colony ship
-    // Needs Shipyard 4 and Research Astrophysics/Impulse Drive (checkRequirements handles this)
     for (const planet of player.planets) {
       if (planet.shipQueue && planet.shipQueue.length > 0) continue;
       
       const shipyardLevel = planet.buildings.shipyard || 0;
       if (shipyardLevel < 4) continue;
+
+      // Resource check for colony ship
+      const cost = SHIPS.colonyShip.baseCost;
+      if (planet.resources.metal < cost.metal || 
+          planet.resources.crystal < cost.crystal || 
+          planet.resources.deuterium < cost.deuterium) {
+        continue;
+      }
 
       try {
         if (await tryBuildShips(player, planet, 'colonyShip', 1)) {
@@ -166,6 +173,23 @@ async function handlePlanetRenaming(player) {
  */
 async function tryBuild(player, planet, buildingKey) {
   try {
+    const currentLevel = planet.buildings[buildingKey] || 0;
+    
+    // Check queue for highest level
+    let highestLevel = currentLevel;
+    if (planet.buildQueue) {
+      planet.buildQueue.forEach(item => {
+        if (item.building === buildingKey) highestLevel = Math.max(highestLevel, item.level);
+      });
+    }
+    
+    const cost = getBuildingCost(buildingKey, highestLevel + 1, planet, player);
+    if (planet.resources.metal < cost.metal || 
+        planet.resources.crystal < cost.crystal || 
+        planet.resources.deuterium < cost.deuterium) {
+      return false;
+    }
+
     await upgradeBuilding(player.userId, planet.id, buildingKey);
     console.log(`[AI] ${player.username} started building ${buildingKey} on ${planet.name}`);
     return true;
@@ -184,6 +208,16 @@ async function tryBuildShips(player, planet, shipKey, count = 1) {
     
     if (planet.shipQueue && planet.shipQueue.length >= 5) return false;
 
+    // Resource check
+    const costReduction = getResearchBonus(player.research, 'globalCostReduction');
+    const cost = calculateShipCost(shipKey, count, costReduction);
+    
+    if (planet.resources.metal < cost.metal || 
+        planet.resources.crystal < cost.crystal || 
+        planet.resources.deuterium < cost.deuterium) {
+      return false;
+    }
+
     buildShips(planet, player, { [shipKey]: count }, shipyardLevel, planet.buildings.roboticsFactory || 0, planet.buildings.naniteFactory || 0);
     console.log(`[AI] ${player.username} queued ${count}x ${shipKey} on ${planet.name}`);
     return true;
@@ -201,6 +235,16 @@ async function tryBuildDefenses(player, planet, defenseKey, count = 1) {
     if (shipyardLevel === 0) return false;
     
     if (planet.defenseQueue && planet.defenseQueue.length >= 5) return false;
+
+    // Resource check
+    const costReduction = getResearchBonus(player.research, 'globalCostReduction');
+    const cost = calculateDefenseCost(defenseKey, count, costReduction);
+    
+    if (planet.resources.metal < cost.metal || 
+        planet.resources.crystal < cost.crystal || 
+        planet.resources.deuterium < cost.deuterium) {
+      return false;
+    }
 
     buildDefenses(planet, player, { [defenseKey]: count }, shipyardLevel, planet.buildings.roboticsFactory || 0, planet.buildings.naniteFactory || 0);
     console.log(`[AI] ${player.username} queued ${count}x ${defenseKey} on ${planet.name}`);
@@ -269,8 +313,25 @@ async function handleResearch(player) {
   const labPlanet = player.planets.find(p => (p.buildings.researchLab || 0) > 0);
   if (!labPlanet) return false;
 
+  const theoreticalTechs = getTheoreticalResearch();
+
   for (const tech of techPriorities) {
     if (player.researchQueue && player.researchQueue.length >= 10) break;
+
+    // Resource check
+    const currentLevel = player.research[tech] || 0;
+    const queuedCount = player.researchQueue.filter(item => item.techKey === tech).length;
+    const nextLevel = currentLevel + queuedCount;
+    const techDef = theoreticalTechs[tech];
+    if (!techDef) continue;
+
+    const cost = calculateTheoreticalResearchCost(techDef.baseCost, nextLevel);
+    if (labPlanet.resources.metal < cost.metal || 
+        labPlanet.resources.crystal < cost.crystal || 
+        labPlanet.resources.deuterium < cost.deuterium) {
+      continue;
+    }
+
     try {
       startTheoreticalResearch(player, tech, labPlanet.id);
       console.log(`[AI] ${player.username} started research: ${tech}`);
@@ -287,7 +348,7 @@ async function handleResearch(player) {
  * AI Practical Research (Specialization XP)
  */
 async function handlePracticalResearch(player) {
-  if (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) return false;
+  if (player.practicalResearchQueue && player.practicalResearchQueue.length >= 10) return false;
 
   const labPlanet = player.planets.find(p => (p.buildings.researchLab || 0) > 0);
   if (!labPlanet) return false;
@@ -304,8 +365,26 @@ async function handlePracticalResearch(player) {
     allocation = { output: 1.0, automation: 0, energy: 0, cost: 0 };
   }
 
+  // Resource check
   try {
-    startPracticalResearchWithAllocation(player, targetType, allocation, labPlanet.id, 0.2); // Low strength for frequent runs
+    const practicalConfig = getPracticalResearch()[targetType];
+    
+    if (!practicalConfig) return false;
+
+    const currentExp = player.practicalResearch?.[targetType]?.experience || { output: 0, automation: 0, energy: 0, cost: 0 };
+    let totalFocusLevel = 0;
+    for (const f in currentExp) totalFocusLevel += calculateFocusLevel(currentExp[f]);
+    
+    const strength = 0.2;
+    const cost = calculatePracticalResearchCost(practicalConfig.baseCost, totalFocusLevel, allocation, strength);
+
+    if (labPlanet.resources.metal < cost.metal || 
+        labPlanet.resources.crystal < cost.crystal || 
+        labPlanet.resources.deuterium < cost.deuterium) {
+      return false;
+    }
+
+    startPracticalResearchWithAllocation(player, targetType, allocation, labPlanet.id, strength);
     console.log(`[AI] ${player.username} started practical research for ${targetType}`);
     return true;
   } catch (e) {

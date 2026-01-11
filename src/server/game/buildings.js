@@ -180,7 +180,6 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   }
   
   const nextLevel = highestQueuedLevel + 1;
-  console.log(`[upgradeBuilding] ${buildingType}: currentLevel=${currentLevel}, buildQueue=${planet.buildQueue?.length || 0}, highestQueuedLevel=${highestQueuedLevel}, nextLevel=${nextLevel}`);
   
   // Check max level
   if (building.maxLevel && nextLevel > building.maxLevel) {
@@ -207,6 +206,8 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
       planet.resources.deuterium < cost.deuterium) {
     throw new Error('Insufficient resources');
   }
+  
+  console.log(`[upgradeBuilding] ${buildingType}: currentLevel=${currentLevel}, buildQueue=${planet.buildQueue?.length || 0}, highestQueuedLevel=${highestQueuedLevel}, nextLevel=${nextLevel}`);
   
   // Calculate build time
   const roboticsLevel = planet.buildings.roboticsFactory || 0;
