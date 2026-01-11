@@ -165,7 +165,7 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
             </div>
         `);
     }
-    return `<div class="buildings-grid">${buildingHtmls.join('')}</div>`;
+    return buildingHtmls.join('');
 }
 
 /**

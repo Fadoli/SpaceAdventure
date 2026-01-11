@@ -63,7 +63,6 @@ window.viewMyRank = async function() {
  */
 function initializeOverviewStructure(container, planet, allPlanets) {
     const { coordinates } = planet;
-    const [galaxy, system, position] = coordinates;
     
     // Planet Selector HTML
     let selectorHtml = '';
@@ -76,7 +75,7 @@ function initializeOverviewStructure(container, planet, allPlanets) {
         
         selectorHtml = `
             <div class="planet-selector-container">
-                <select class="planet-selector" onchange="window.changePlanet(this)">
+                <select class="planet-selector header-planet-select" onchange="window.changePlanet(this)">
                     ${options}
                 </select>
             </div>
@@ -85,118 +84,96 @@ function initializeOverviewStructure(container, planet, allPlanets) {
 
     container.innerHTML = `
         <div class="overview-header">
-            <h2>Planet Overview</h2>
+            <h2>System Intel: ${planet.name}</h2>
             ${selectorHtml}
         </div>
 
-        <div class="planet-profile">
-            <div class="planet-image">
-                <div class="planet-visual" id="ov-planet-visual">🌍</div>
+        <div class="planet-main-info">
+            <div class="planet-visual-section">
+                <div class="planet-image-large" id="ov-planet-visual">🌍</div>
+                <div class="planet-name-container">
+                    <span id="ov-planet-name">-</span>
+                    <button class="btn-icon-small" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
+                </div>
             </div>
             
-            <div class="planet-details-table">
-                <div class="detail-row">
-                    <span class="detail-label">Planet</span>
-                    <span class="detail-value">
-                        <span id="ov-planet-name">-</span>
-                        <button class="btn-icon-small" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
-                    </span>
+            <div class="planet-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Coordinates</div>
+                    <div class="stat-value" id="ov-planet-coords">-</div>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Coordinates</span>
-                    <span class="detail-value" id="ov-planet-coords">-</span>
+                <div class="stat-card">
+                    <div class="stat-label">Sector Analysis</div>
+                    <div class="stat-value" id="ov-planet-diameter">-</div>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Diameter</span>
-                    <span class="detail-value" id="ov-planet-diameter">-</span>
+                <div class="stat-card">
+                    <div class="stat-label">Thermal Range</div>
+                    <div class="stat-value" id="ov-planet-temp">-</div>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Temperature</span>
-                    <span class="detail-value" id="ov-planet-temp">-</span>
+                <div class="stat-card">
+                    <div class="stat-label">Orbital Garrison</div>
+                    <div class="stat-value" id="ov-military-summary">-</div>
                 </div>
-                 <div class="detail-row">
-                    <span class="detail-label">Military</span>
-                    <span class="detail-value" id="ov-military-summary">-</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Empire</span>
-                    <span class="detail-value">
-                        <button class="btn btn-secondary btn-small" onclick="window.viewMyRank()" style="padding: 2px 8px; font-size: 0.75rem; width: auto;">View My Rank</button>
-                    </span>
+                <div class="stat-card">
+                    <div class="stat-label">Imperial Standing</div>
+                    <div class="stat-value">
+                        <button class="btn btn-primary btn-small" onclick="window.viewMyRank()" style="font-size: 0.7rem; width: 100%;">View Rank</button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="overview-grid">
-            <div class="overview-card resources-card">
-                <h3>📦 Storage & Production</h3>
-                <div class="resource-detail-list">
-                    <div class="res-row header-row">
-                        <span class="res-name">Resource</span>
-                        <span class="res-val">Current / Max</span>
-                        <span class="res-prod">Net Production</span>
+        <div class="production-report">
+            <h3>Planetary Logistics Report</h3>
+            <div class="production-grid">
+                <div class="production-item metal">
+                    <div class="prod-header">
+                        <span class="prod-label">Metal Supply</span>
+                        <span class="prod-value" id="ov-res-metal">-</span>
                     </div>
-                    <div class="res-row">
-                        <span class="res-name metal">Metal</span>
-                        <span class="res-val" id="ov-res-metal">-</span>
-                        <span class="res-prod" id="ov-prod-metal">-</span>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-metal" style="width: 0%"></div></div>
+                    <div id="ov-prod-metal">-</div>
+                </div>
+                <div class="production-item crystal">
+                    <div class="prod-header">
+                        <span class="prod-label">Crystal Supply</span>
+                        <span class="prod-value" id="ov-res-crystal">-</span>
                     </div>
-                    <div class="res-row">
-                        <span class="res-name crystal">Crystal</span>
-                        <span class="res-val" id="ov-res-crystal">-</span>
-                        <span class="res-prod" id="ov-prod-crystal">-</span>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-crystal" style="width: 0%"></div></div>
+                    <div id="ov-prod-crystal">-</div>
+                </div>
+                <div class="production-item deuterium">
+                    <div class="prod-header">
+                        <span class="prod-label">Deuterium Fuel</span>
+                        <span class="prod-value" id="ov-res-deuterium">-</span>
                     </div>
-                    <div class="res-row">
-                        <span class="res-name deuterium">Deuterium</span>
-                        <span class="res-val" id="ov-res-deuterium">-</span>
-                        <span class="res-prod" id="ov-prod-deuterium">-</span>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-deuterium" style="width: 0%"></div></div>
+                    <div id="ov-prod-deuterium">-</div>
+                </div>
+                <div class="production-item energy">
+                    <div class="prod-header">
+                        <span class="prod-label">Energy Grid</span>
+                        <span class="prod-value" id="ov-energy-net">-</span>
                     </div>
-                    <div class="res-row">
-                        <span class="res-name water">Water</span>
-                        <span class="res-val" id="ov-res-water">-</span>
-                        <span class="res-prod" id="ov-prod-water">-</span>
-                    </div>
-                    <div class="res-row">
-                        <span class="res-name food">Food</span>
-                        <span class="res-val" id="ov-res-food">-</span>
-                        <span class="res-prod" id="ov-prod-food">-</span>
+                    <div id="ov-energy-details">
+                        Net: <span id="ov-energy-prod" class="text-success"></span> / <span id="ov-energy-cons" class="text-danger"></span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="overview-card energy-card">
-                <h3>⚡ Energy & Population</h3>
-                <div class="resource-detail-list">
-                    <div class="res-row">
-                        <span class="res-name energy">Energy Balance</span>
-                        <span class="res-val" id="ov-energy-net">-</span>
+                <div class="production-item">
+                    <div class="prod-header">
+                        <span class="prod-label">Workforce</span>
+                        <span class="prod-value" id="ov-pop-val">-</span>
                     </div>
-                    <div class="res-row sub-row">
-                        <span class="res-name">└ Production</span>
-                        <span class="res-val text-success" id="ov-energy-prod">-</span>
-                    </div>
-                    <div class="res-row sub-row">
-                        <span class="res-name">└ Consumption</span>
-                        <span class="res-val text-warning" id="ov-energy-cons">-</span>
-                    </div>
-                    
-                    <div class="res-row" style="margin-top: 10px;">
-                        <span class="res-name population">Population</span>
-                        <span class="res-val" id="ov-pop-val">-</span>
-                    </div>
-                    <div class="res-row sub-row">
-                        <span class="res-name">└ Change Rate</span>
-                        <span class="res-val" id="ov-pop-prod">-</span>
-                    </div>
-                    <div id="ov-efficiency-warning-container"></div>
+                    <div id="ov-pop-prod">-</div>
                 </div>
             </div>
+            <div id="ov-efficiency-warning-container"></div>
+        </div>
 
-            <div class="overview-card queue-card">
-                <h3>🔨 Active Queues</h3>
-                <div class="queue-summary-list" id="ov-queue-list">
-                    <p class="empty-text">No active construction or production</p>
-                </div>
+        <div class="overview-card queue-card card-base" style="margin-top: 20px;">
+            <h3>🔨 Active Command Queues</h3>
+            <div class="queue-summary-list" id="ov-queue-list">
+                <p class="empty-text">No active construction or production</p>
             </div>
         </div>
     `;
@@ -258,15 +235,28 @@ export function updateOverview(planet, allPlanets = []) {
     // Update resources
     const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
     resourceKeys.forEach(key => {
-        safeSetText(`ov-res-${key}`, `${formatNumber(resources[key] || 0)} / ${formatNumber(storage[key] || 10000)}`);
+        const current = resources[key] || 0;
+        const max = storage[key] || 10000;
+        safeSetText(`ov-res-${key}`, `${formatNumber(current)} / ${formatNumber(max)}`);
         
+        // Update bar
+        const bar = document.getElementById(`ov-bar-${key}`);
+        if (bar) {
+            const percent = Math.min(100, (current / max) * 100);
+            bar.style.width = `${percent}%`;
+            // Color based on fullness
+            if (percent > 90) bar.style.backgroundColor = 'var(--accent-red)';
+            else if (percent > 75) bar.style.backgroundColor = 'var(--accent-yellow)';
+            else bar.style.backgroundColor = 'var(--accent-blue)';
+        }
+
         const prod = production[key] || 0;
         const cons = consumption?.[key] || 0;
         const net = prod - cons;
         const prodEl = document.getElementById(`ov-prod-${key}`);
         if (prodEl) {
             prodEl.textContent = (net >= 0 ? '+' : '') + formatNumber(net) + '/h';
-            prodEl.className = `res-prod ${net < 0 ? 'text-danger' : 'text-success'}`;
+            prodEl.className = `${net < 0 ? 'text-danger' : 'text-success'}`;
         }
     });
 

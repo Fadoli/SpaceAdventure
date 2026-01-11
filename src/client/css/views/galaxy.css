@@ -1,215 +1,112 @@
-/* OGame-style Galaxy View */
-.ogame-galaxy-view {
-    padding: 20px;
-    background: var(--bg-primary);
-}
+/* Sci-Fi Galaxy Map */
 
-.galaxy-nav-panel {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 10px 20px;
+.galaxy-controls {
+    display: flex;
+    gap: 15px;
     margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 25px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.nav-item-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--bg-tertiary);
-    padding: 4px 8px;
+    background: #0c121d;
+    padding: 15px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid #1e293b;
+    align-items: center;
 }
 
-.nav-item-label {
+.galaxy-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.galaxy-input-group label {
     font-size: 0.75rem;
-    font-weight: bold;
-    color: var(--accent-blue);
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.nav-arrow-btn {
-    background: transparent;
-    border: none;
     color: var(--text-secondary);
-    cursor: pointer;
-    padding: 5px 8px;
-    font-size: 0.8rem;
-    transition: color 0.2s, transform 0.1s;
 }
 
-.nav-arrow-btn:hover {
-    color: white;
-    transform: scale(1.2);
-}
-
-.nav-coord-input {
-    width: 50px;
-    background: rgba(0, 0, 0, 0.3);
+.galaxy-input {
+    width: 70px;
+    background: #05080f;
     border: 1px solid var(--border-color);
-    border-radius: 3px;
-    color: white;
-    text-align: center;
-    padding: 4px 0;
+    color: #fff;
+    padding: 6px 10px;
+    font-family: 'Courier New', monospace;
     font-weight: bold;
-    font-size: 0.9rem;
-    -moz-appearance: textfield;
+    border-radius: 2px;
 }
 
-.nav-coord-input::-webkit-outer-spin-button,
-.nav-coord-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+.galaxy-table-container {
+    background: #0c121d;
+    border: 1px solid #1e293b;
+    border-radius: 4px;
+    overflow: hidden;
 }
 
-.nav-show-btn {
-    padding: 6px 15px !important;
-    font-size: 0.8rem !important;
-    text-transform: uppercase;
-    font-weight: bold;
-    width: auto !important;
-}
-
-/* OGame Table Styling */
-.ogame-table-wrapper {
-    overflow-x: auto;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--bg-secondary);
-}
-
-.ogame-system-table {
+.galaxy-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.ogame-system-table thead {
-    background: var(--bg-tertiary);
-    border-bottom: 2px solid var(--accent-blue);
-}
-
-.ogame-system-table th {
-    padding: 12px;
+.galaxy-table th {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px 15px;
     text-align: left;
-    color: var(--accent-blue);
-    font-weight: bold;
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-}
-
-.pos-col { width: 50px; text-align: center; font-weight: bold; color: var(--accent-blue); }
-.planet-col { width: auto; min-width: 200px; }
-.debris-col { width: 80px; text-align: center; }
-.player-col { width: 150px; }
-.status-col { width: 120px; }
-.action-col { width: 180px; text-align: center; }
-
-.ogame-system-table td {
-    padding: 10px 12px;
+    letter-spacing: 1.5px;
+    color: var(--accent-blue);
     border-bottom: 1px solid var(--border-color);
 }
 
-.planet-row:hover, .empty-row:hover {
-    background: rgba(255, 255, 255, 0.02);
+.galaxy-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    font-size: 0.85rem;
 }
 
-.my-planet-row {
-    background: rgba(92, 184, 92, 0.03);
+.galaxy-table tr:hover td {
+    background: rgba(56, 189, 248, 0.02);
+}
+
+.pos-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    color: var(--text-secondary);
+    width: 50px;
 }
 
 .planet-name-cell {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.planet-icon-mini {
-    font-size: 1.4rem;
-}
-
-.planet-name {
     font-weight: bold;
-    font-size: 0.95rem;
+    color: #fff;
 }
 
-.planet-activity {
+.player-name-cell {
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.status-cell {
     font-size: 0.75rem;
     color: var(--text-secondary);
 }
 
-.debris-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: help;
+.action-cell {
+    text-align: right;
 }
 
-.debris-icon {
-    font-size: 1.1rem;
-}
-
-.debris-info small {
-    font-size: 0.7rem;
-    color: var(--accent-green);
-    font-weight: bold;
-}
-
-.player-info {
-    font-size: 0.9rem;
-}
-
-.status-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
+.btn-galaxy-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 4px 10px;
+    border-radius: 2px;
     font-size: 0.75rem;
-    font-weight: bold;
-}
-
-.status-own { background: var(--accent-green); color: white; }
-.status-other { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
-
-.action-buttons {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-}
-
-.action-btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
     transition: all 0.2s;
 }
 
-.action-btn:hover {
+.btn-galaxy-action:hover {
     background: var(--accent-blue);
+    color: var(--bg-primary);
     border-color: var(--accent-blue);
-    transform: translateY(-2px);
-}
-
-.view-btn { background: var(--accent-blue); color: white; }
-.info-btn { background: var(--accent-yellow); color: #000; }
-.attack-btn { background: var(--accent-red); color: white; }
-
-.empty-cell {
-    text-align: center;
-    color: var(--text-secondary);
-}
-
-.expedition-row {
-    background: rgba(74, 144, 226, 0.05);
 }

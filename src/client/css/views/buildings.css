@@ -1,221 +1,216 @@
-/* Buildings Grid */
-#buildings-queue-container {
-    grid-column: 1 / -1;
-    width: 100%;
-    margin-bottom: 15px;
-}
+/* High-Density Sci-Fi Building Grid */
 
 .buildings-grid {
-    grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 8px;
-    width: 100%;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
 }
 
 .building-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 8px;
-    transition: all 0.3s;
-}
-
-.building-card.in-queue {
-    border-color: var(--accent-yellow);
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(240, 173, 78, 0.1) 100%);
+    background: #0f1525;
+    border: 1px solid #252e46;
+    border-radius: 4px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    position: relative;
 }
 
 .building-card:hover {
     border-color: var(--accent-blue);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 10px rgba(56, 189, 248, 0.1);
+}
+
+.building-card.in-queue {
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.1);
+}
+
+.building-card.locked {
+    opacity: 0.5;
+    filter: grayscale(0.5);
+}
+
+.building-card.locked::after {
+    content: "LOCKED";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 2rem;
+    font-weight: 900;
+    color: rgba(244, 63, 94, 0.3);
+    border: 4px solid rgba(244, 63, 94, 0.3);
+    padding: 10px 20px;
+    pointer-events: none;
+    letter-spacing: 5px;
 }
 
 .building-header {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
 }
 
-.building-card h3 {
+.building-header h3 {
     margin: 0;
-    color: var(--accent-blue);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-info {
     background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 2px 6px;
+    border: none;
     cursor: pointer;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    transition: all 0.2s;
+    font-size: 0.9rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
 }
 
-.btn-info:hover {
-    background: var(--accent-blue);
-    color: white;
-    border-color: var(--accent-blue);
-}
+.btn-info:hover { opacity: 1; color: var(--accent-blue); }
 
 .building-level {
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    margin-bottom: 4px;
-}
-
-.queue-count-badge {
-    display: inline-block;
-    background: var(--accent-yellow);
-    color: #000;
-    padding: 2px 6px;
-    border-radius: 4px;
+    position: absolute;
+    top: 40px;
+    right: 15px;
+    font-family: 'Courier New', monospace;
     font-size: 0.7rem;
-    font-weight: bold;
-    margin-bottom: 4px;
+    font-weight: 900;
+    color: var(--accent-blue);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 2px 6px;
+    border-radius: 2px;
 }
 
 .building-card p {
-    color: var(--text-secondary);
+    padding: 15px 15px 5px 15px;
     font-size: 0.75rem;
-    margin: 2px 0 6px 0;
-    line-height: 1.2;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    min-height: 2.8em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
+/* Cost & Stats Section */
 .building-cost {
-    margin: 4px 0;
-    padding: 4px 6px;
-    background: var(--bg-tertiary);
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.2);
+    margin: 0 15px 10px 15px;
     border-radius: 4px;
-    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+}
+
+.building-cost strong {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
 }
 
 .building-cost div {
-    margin: 2px 0;
     font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-right: 10px;
 }
 
 .building-stats {
-    margin: 4px 0;
-    padding: 4px 6px;
-    background: var(--bg-tertiary);
-    border-radius: 4px;
-    font-size: 0.75rem;
+    padding: 0 15px 15px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .build-time {
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
     color: var(--accent-yellow);
-    margin-bottom: 2px;
+    font-weight: bold;
 }
 
-.building-production {
+.building-special, .building-storage, .expected-gain {
+    font-size: 0.7rem;
     color: var(--accent-green);
-    margin-top: 4px;
+    background: rgba(74, 222, 128, 0.05);
+    padding: 4px 8px;
+    border-radius: 2px;
 }
 
-.building-production div {
-    margin: 2px 0;
+/* Allocation Badges */
+.allocation-badge-container {
+    padding: 0 15px 10px 15px;
 }
 
-.building-energy {
-    color: var(--accent-red);
-    margin-top: 4px;
+.allocation-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Production Queues (Buildings, Ships, Defense) */
+.allocation-badge.good { color: var(--accent-green); border-color: rgba(74, 222, 128, 0.2); }
+.allocation-badge.medium { color: var(--accent-yellow); border-color: rgba(251, 191, 36, 0.2); }
+.allocation-badge.low { color: var(--accent-red); border-color: rgba(244, 63, 94, 0.2); }
+
+/* Upgrade Button */
+.upgrade-btn {
+    border-radius: 0 !important;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px !important;
+    font-size: 0.8rem !important;
+}
+
+/* Queue Styles */
+.build-queue-summary {
+    background: #0a0e1a;
+    border: 1px solid #252e46;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+}
+
 .queue-header {
-    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    user-select: none;
-    transition: background 0.2s;
-    padding: 4px 8px;
-}
-
-.queue-header:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+    cursor: pointer;
 }
 
 .queue-items {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
 .queue-item {
-    display: flex;
-    align-items: center;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 6px 12px;
     border-radius: 4px;
-    padding: 6px 10px;
-    transition: all 0.3s;
-    overflow: hidden;
 }
 
 .queue-item.active {
-    border-color: var(--accent-green);
-    background: linear-gradient(90deg, var(--bg-tertiary) 0%, rgba(92, 184, 92, 0.1) 100%);
-}
-
-.queue-item-row {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    width: 100%;
-}
-
-.q-pos {
-    color: var(--accent-yellow);
-    font-weight: bold;
-    min-width: 20px;
-    font-size: 0.85rem;
-}
-
-.q-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    min-width: 150px;
-}
-
-.q-level, .q-count {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    white-space: nowrap;
-    min-width: 60px;
-}
-
-.progress-bar-mini {
-    flex: 1;
-    height: 8px;
-    background: var(--bg-primary);
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    margin: 0 10px;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
-    transition: width 1s linear;
-    width: 0%;
-}
-
-.q-time-mini {
-    font-size: 0.9rem;
-    color: var(--accent-green);
-    font-family: 'Courier New', monospace;
-    min-width: 85px;
-    text-align: right;
-    font-weight: bold;
-    white-space: nowrap;
+    border-color: var(--accent-yellow);
+    background: rgba(251, 191, 36, 0.03);
 }

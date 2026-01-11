@@ -73,12 +73,14 @@ export async function updateShipyardView(planet, subView = 'ships') {
             const isDefenses = subView === 'defenses';
             
             container.innerHTML = `
-                <div class="shipyard-header">
-                    <h3>⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardLevel}</h3>
-                </div>
-                <div class="shipyard-content">
-                    <div class="shipyard-queue-container"></div>
-                    <div class="shipyard-list-container"></div>
+                <div class="shipyard-container">
+                    <div class="shipyard-header">
+                        <h3>⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardLevel}</h3>
+                    </div>
+                    <div class="shipyard-content">
+                        <div class="shipyard-queue-container"></div>
+                        <div class="shipyard-list-container"></div>
+                    </div>
                 </div>
             `;
             lastStructuralHash = structuralHash;
@@ -215,13 +217,15 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
             ${isLocked ? `
                 <div class="locked-message">🔒 Unlock at Shipyard Level ${shipyardLevel}</div>
             ` : `
-                <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="Quantity" min="1" max="100" data-id="${identifier}">
-                <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                        id="btn-${identifier}"
-                        ${!canBuild ? 'disabled' : ''} 
-                        onclick="window.buildShip('${identifier}', '${name}')">
-                    Build
-                </button>
+                <div class="ship-actions">
+                    <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="Qty" min="1" max="100" data-id="${identifier}">
+                    <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                            id="btn-${identifier}"
+                            ${!canBuild ? 'disabled' : ''} 
+                            onclick="window.buildShip('${identifier}', '${name}')">
+                        Build
+                    </button>
+                </div>
             `}
         </div>
     `;
@@ -302,13 +306,15 @@ function renderDefensesList(planet, shipyardData) {
                     ${isLocked ? `
                         <div class="locked-message">🔒 Unlock at Shipyard Level ${minLevel}</div>
                     ` : `
-                        <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="Quantity" min="1" max="100" data-id="${defenseKey}">
-                        <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                                id="btn-${defenseKey}"
-                                ${!canBuild ? 'disabled' : ''} 
-                                onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
-                            Build
-                        </button>
+                        <div class="defense-actions">
+                            <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="Qty" min="1" max="100" data-id="${defenseKey}">
+                            <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
+                                    id="btn-${defenseKey}"
+                                    ${!canBuild ? 'disabled' : ''} 
+                                    onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
+                                Build
+                            </button>
+                        </div>
                     `}
                 </div>
             `;
