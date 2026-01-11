@@ -98,22 +98,37 @@
 /* Card Header */
 .tech-header, .card-header {
     background: rgba(255, 255, 255, 0.03);
-    padding: 15px 18px;
+    padding: 12px 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 }
 
-.header-main h4, .header-main .name {
-    font-size: 1rem; /* Increased */
-    letter-spacing: 1px;
+.header-main {
+    flex: 1;
 }
 
-.level-indicator {
-    font-size: 0.8rem; /* Increased */
-    padding: 2px 8px;
+.header-actions {
+    flex-shrink: 0;
+    margin-left: 10px;
 }
 
-.eff-multiplier {
-    font-size: 0.8rem; /* Increased */
+.btn-info {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.5;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+.btn-info:hover {
+    opacity: 1;
+    color: var(--accent-blue);
+    transform: scale(1.1);
 }
 
 /* Card Body */

@@ -9,6 +9,10 @@ import { getCurrentPlanetId } from '../main.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 
+import { renderDetailsModal, closeDetailsModal } from './details.js';
+import { SHIPS } from '../../../shared/ships.js';
+import { DEFENSES } from '../../../shared/defenses.js';
+
 let currentShipyardData = null;
 let collapsedSections = {}; // Track collapsed state
 let lastStructuralHash = null;
@@ -196,39 +200,61 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                    planet.resources.deuterium >= cost.deuterium;
 
     return `
-        <div class="ship-card ${isLocked ? 'locked' : ''} ${blueprint ? 'blueprint-card' : ''}">
-            <div class="ship-header">
-                <h5>${ship.icon} ${name}</h5>
-                <span class="ship-count">${count}</span>
-            </div>
-            ${blueprint ? `<div class="blueprint-badge">Blueprint</div>` : ''}
-            <p class="ship-description">${ship.description}</p>
-            <div class="ship-stats">
-                <div>⚔️ Atk: ${ship.attack}</div>
-                <div>🛡️ Shd: ${ship.shield}</div>
-                <div>❤️ Hul: ${ship.hull}</div>
-                <div>🚀 Spd: ${formatNumber(ship.speed || 0)}</div>
-                ${ship.cargoCapacity > 0 ? `<div>📦 Cgo: ${formatNumber(ship.cargoCapacity)}</div>` : ''}
-            </div>
-            <div class="ship-cost" id="cost-${identifier}">
-                <div class="cost-metal">⚙️${formatNumber(cost.metal)}</div>
-                <div class="cost-crystal">💎${formatNumber(cost.crystal)}</div>
-                ${cost.deuterium > 0 ? `<div class="cost-deuterium">🛢️${formatNumber(cost.deuterium)}</div>` : ''}
-            </div>
-            <div class="build-time" id="time-${identifier}">🕐 ${formatCountdown(buildTime)}</div>
-            ${isLocked ? `
-                <div class="locked-message">🔒 Unlock at Shipyard Level ${shipyardLevel}</div>
-            ` : `
-                <div class="ship-actions">
-                    <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="Qty" min="1" max="100" data-id="${identifier}">
-                    <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                            id="btn-${identifier}"
-                            ${!canBuild ? 'disabled' : ''} 
-                            onclick="window.buildShip('${identifier}', '${name}')">
-                        Build
-                    </button>
+        <div class="research-card ${isLocked ? 'locked' : ''} ${blueprint ? 'custom-active' : ''}" id="variant-${identifier}">
+            <div class="card-corner-top"></div>
+            <div class="card-header" title="${ship.description}">
+                <div class="header-main">
+                    <div class="title-row">
+                        <span class="name">${ship.icon} ${name}</span>
+                    </div>
+                    <div class="blueprint-row">
+                        <span class="level-indicator">${count} IN DOCK</span>
+                    </div>
                 </div>
-            `}
+                <div class="header-actions">
+                    <button class="btn-info" onclick="window.showShipDetails('${shipKey}', '${identifier}')" title="Technical Data">ℹ️</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="diagnostic-section">
+                    <div class="section-tag">Specifications</div>
+                    <div class="ship-stats-grid">
+                        <div class="stat-item"><span class="stat-label">ATTACK</span><span class="stat-val">${ship.attack}</span></div>
+                        <div class="stat-item"><span class="stat-label">SHIELD</span><span class="stat-val">${ship.shield}</span></div>
+                        <div class="stat-item"><span class="stat-label">HULL</span><span class="stat-val">${ship.hull}</span></div>
+                        <div class="stat-item"><span class="stat-label">SPEED</span><span class="stat-val">${formatNumber(ship.speed || 0)}</span></div>
+                    </div>
+                </div>
+                
+                <div class="diagnostic-section">
+                    <div class="section-tag">Requisition</div>
+                    <div class="tech-costs" id="cost-${identifier}">
+                        <div class="cost-item">⚙️ ${formatNumber(cost.metal)}</div>
+                        <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
+                        ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
+                    </div>
+                    <div class="build-time" id="time-${identifier}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatCountdown(buildTime)}</div>
+                </div>
+            </div>
+            <div class="building-actions">
+                ${isLocked ? `
+                    <div class="locked-message" style="width: 100%; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent-red); padding: 10px;">
+                        LOCKED: SHIPYARD LVL ${shipyardLevel}
+                    </div>
+                ` : `
+                    <div class="action-group" style="width: 100%;">
+                        <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" min="1" max="100" data-id="${identifier}" 
+                               style="width: 80px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;">
+                        <button class="btn upgrade-btn" 
+                                style="padding: 10px !important; font-size: 0.75rem !important;"
+                                id="btn-${identifier}"
+                                ${!canBuild ? 'disabled' : ''} 
+                                onclick="window.buildShip('${identifier}', '${name}')">
+                            CONSTRUCT
+                        </button>
+                    </div>
+                `}
+            </div>
         </div>
     `;
 }
@@ -290,36 +316,60 @@ function renderDefensesList(planet, shipyardData) {
                            planet.resources.deuterium >= cost.deuterium;
             
             html += `
-                <div class="defense-card ${isLocked ? 'locked' : ''}">
-                    <div class="defense-header">
-                        <h5>${defense.icon} ${defense.name}</h5>
-                        <span class="defense-count">${count}</span>
-                    </div>
-                    <p class="defense-description">${defense.description}</p>
-                    <div class="defense-stats">
-                        <div>⚔️ Attack: ${defense.attack}</div>
-                        <div>🛡️ Shield: ${defense.shield}</div>
-                        <div>❤️ Hull: ${defense.hull}</div>
-                    </div>
-                    <div class="defense-cost" id="cost-${defenseKey}">
-                        <div class="cost-metal">⚙️${formatNumber(cost.metal)}</div>
-                        <div class="cost-crystal">💎${formatNumber(cost.crystal)}</div>
-                        ${cost.deuterium > 0 ? `<div class="cost-deuterium">🛢️${formatNumber(cost.deuterium)}</div>` : ''}
-                    </div>
-                    <div class="build-time" id="time-${defenseKey}">🕐 ${formatCountdown(buildTime)}</div>
-                    ${isLocked ? `
-                        <div class="locked-message">🔒 Unlock at Shipyard Level ${minLevel}</div>
-                    ` : `
-                        <div class="defense-actions">
-                            <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="Qty" min="1" max="100" data-id="${defenseKey}">
-                            <button class="btn btn-sm ${canBuild ? 'btn-success' : ''}" 
-                                    id="btn-${defenseKey}"
-                                    ${!canBuild ? 'disabled' : ''} 
-                                    onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
-                                Build
-                            </button>
+                <div class="research-card ${isLocked ? 'locked' : ''}" id="variant-${defenseKey}">
+                    <div class="card-corner-top"></div>
+                    <div class="card-header" title="${defense.description}">
+                        <div class="header-main">
+                            <div class="title-row">
+                                <span class="name">${defense.icon} ${defense.name}</span>
+                            </div>
+                            <div class="blueprint-row">
+                                <span class="level-indicator">${count} ACTIVE</span>
+                            </div>
                         </div>
-                    `}
+                        <div class="header-actions">
+                            <button class="btn-info" onclick="window.showDefenseDetails('${defenseKey}')" title="Technical Data">ℹ️</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="diagnostic-section">
+                            <div class="section-tag">Specifications</div>
+                            <div class="ship-stats-grid">
+                                <div class="stat-item"><span class="stat-label">ATTACK</span><span class="stat-val">${defense.attack}</span></div>
+                                <div class="stat-item"><span class="stat-label">SHIELD</span><span class="stat-val">${defense.shield}</span></div>
+                                <div class="stat-item"><span class="stat-label">HULL</span><span class="stat-val">${defense.hull}</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="diagnostic-section">
+                            <div class="section-tag">Requisition</div>
+                            <div class="tech-costs" id="cost-${defenseKey}">
+                                <div class="cost-item">⚙️ ${formatNumber(cost.metal)}</div>
+                                <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
+                                ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
+                            </div>
+                            <div class="build-time" id="time-${defenseKey}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatCountdown(buildTime)}</div>
+                        </div>
+                    </div>
+                    <div class="building-actions">
+                        ${isLocked ? `
+                            <div class="locked-message" style="width: 100%; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent-red); padding: 10px;">
+                                LOCKED: SHIPYARD LVL ${minLevel}
+                            </div>
+                        ` : `
+                            <div class="action-group" style="width: 100%;">
+                                <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" min="1" max="100" data-id="${defenseKey}"
+                                       style="width: 80px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;">
+                                <button class="btn upgrade-btn" 
+                                        style="padding: 10px !important; font-size: 0.75rem !important;"
+                                        id="btn-${defenseKey}"
+                                        ${!canBuild ? 'disabled' : ''} 
+                                        onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
+                                    DEPLOY
+                                </button>
+                            </div>
+                        `}
+                    </div>
                 </div>
             `;
         }
@@ -544,9 +594,9 @@ function updateProductionInfo(type, id, quantity, planet) {
     
     if (costEl) {
         costEl.innerHTML = `
-            <div class="cost-metal">⚙️${formatNumber(cost.metal)}</div>
-            <div class="cost-crystal">💎${formatNumber(cost.crystal)}</div>
-            ${cost.deuterium > 0 ? `<div class="cost-deuterium">🛢️${formatNumber(cost.deuterium)}</div>` : ''}
+            <div class="cost-item">⚙️ ${formatNumber(cost.metal)}</div>
+            <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
+            ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
         `;
     }
     
@@ -616,11 +666,88 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
     const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
     
     const naniteMultiplier = Math.pow(2, naniteLevel);
-    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
+        const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
     
-    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier / naniteMultiplier * configMultiplier));
-}
-
+        return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier / naniteMultiplier * configMultiplier));
+    }
+    
+    /**
+     * Show ship details modal
+     */
+    window.showShipDetails = function(shipKey, identifier) {
+        // Find ship definition (base or blueprint)
+        let ship = currentShipyardData.availableShips[shipKey];
+        let name = ship?.name || shipKey;
+        
+        // Check if it's a blueprint
+        if (currentShipyardData.shipBlueprints && currentShipyardData.shipBlueprints[shipKey]) {
+            const found = currentShipyardData.shipBlueprints[shipKey].find(b => b.id === identifier);
+            if (found) {
+                ship = found.customDefinition;
+                name = found.name;
+            }
+        }
+        
+        if (!ship) return;
+    
+        const effects = [
+            { label: 'Attack Power', value: ship.attack, icon: '⚔️' },
+            { label: 'Shield Strength', value: ship.shield, icon: '🛡️' },
+            { label: 'Hull Integrity', value: ship.hull, icon: '❤️' },
+            { label: 'Engine Speed', value: formatNumber(ship.speed), icon: '🚀' },
+            { label: 'Cargo Capacity', value: formatNumber(ship.cargoCapacity), icon: '📦' },
+            { label: 'Fuel Usage', value: ship.fuel, icon: '🛢️' },
+            { label: 'Crew Requirement', value: ship.populationRequired, icon: '👥' }
+        ];
+    
+        const rapidFire = [];
+        if (ship.rapidFire) {
+            for (const target in ship.rapidFire) {
+                rapidFire.push({ label: `vs ${target.charAt(0).toUpperCase() + target.slice(1)}`, value: ship.rapidFire[target] });
+            }
+        }
+    
+        renderDetailsModal({
+            title: `${ship.icon} ${name}`,
+            description: ship.description,
+            effects: effects,
+            table: rapidFire.length > 0 ? {
+                headers: ['Rapid Fire Target', 'Multiplier'],
+                rows: rapidFire.map(rf => [rf.label, `x${rf.value}`])
+            } : null
+        });
+    };
+    
+    /**
+     * Show defense details modal
+     */
+    window.showDefenseDetails = function(defenseKey) {
+        const defense = currentShipyardData.availableDefenses[defenseKey];
+        if (!defense) return;
+    
+        const effects = [
+            { label: 'Attack Power', value: defense.attack, icon: '⚔️' },
+            { label: 'Shield Strength', value: defense.shield, icon: '🛡️' },
+            { label: 'Hull Integrity', value: defense.hull, icon: '❤️' }
+        ];
+    
+        const rapidFire = [];
+        if (defense.rapidFire) {
+            for (const target in defense.rapidFire) {
+                rapidFire.push({ label: `vs ${target.charAt(0).toUpperCase() + target.slice(1)}`, value: defense.rapidFire[target] });
+            }
+        }
+    
+        renderDetailsModal({
+            title: `${defense.icon} ${defense.name}`,
+            description: defense.description,
+            effects: effects,
+            table: rapidFire.length > 0 ? {
+                headers: ['Rapid Fire Target', 'Multiplier'],
+                rows: rapidFire.map(rf => [rf.label, `x${rf.value}`])
+            } : null
+        });
+    };
 /**
  * Calculate defense build time (client-side estimate)
  */

@@ -36,150 +36,39 @@
 
 .ships-grid, .defenses-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
     padding: 12px;
 }
 
-.ship-card, .defense-card {
-    background: #0f1525;
-    border: 1px solid #252e46;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
+.shipyard-container .research-card {
+    min-height: 260px; /* Reduced from 320px for a more compact feel */
 }
 
-.ship-card:hover, .defense-card:hover {
-    border-color: var(--accent-blue);
+/* Ship & Defense Stats Grid */
+.ship-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 32px; /* Further increased horizontal gap */
 }
 
-.ship-header, .defense-header {
-    padding: 8px 12px;
+.stat-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.02);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 2px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-.ship-header h5, .defense-header h5 {
-    margin: 0;
-    font-size: 0.8rem;
-    font-weight: 800;
-    text-transform: uppercase;
+.stat-label {
+    color: var(--text-secondary);
+}
+
+.stat-val {
     color: #fff;
-}
-
-.ship-count, .defense-count {
-    font-family: 'Courier New', monospace;
-    font-size: 0.75rem;
-    font-weight: 900;
-    color: var(--accent-blue);
-    background: rgba(56, 189, 248, 0.1);
-    padding: 1px 6px;
-    border-radius: 2px;
-}
-
-.ship-description, .defense-description {
-    padding: 8px 12px 4px 12px;
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.ship-stats, .defense-stats {
-    padding: 6px 12px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.65rem;
-}
-
-.ship-stats div, .defense-stats div {
-    color: var(--text-secondary);
-}
-
-.ship-cost, .defense-cost {
-    padding: 6px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    margin: 0 12px 8px 12px;
-    border-radius: 3px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.65rem;
     font-weight: bold;
-}
-
-.build-time {
-    padding: 0 12px 8px 12px;
-    font-size: 0.7rem;
-    font-family: 'Courier New', monospace;
-    color: var(--accent-yellow);
-}
-
-.ship-actions, .defense-actions {
-    display: flex;
-    gap: 5px;
-    padding: 0 12px 12px 12px;
-    margin-top: auto;
-}
-
-.ship-quantity, .defense-quantity {
-    width: 60px;
-    background: #05080f;
-    border: 1px solid var(--border-color);
-    color: #fff;
-    padding: 4px 8px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.75rem;
-    border-radius: 2px;
-    margin: 0 !important;
-}
-
-.ship-card .btn, .defense-card .btn {
-    flex: 1;
-    border-radius: 2px !important;
-    padding: 6px !important;
-    font-size: 0.7rem !important;
-}
-
-/* Locked State */
-.ship-card.locked, .defense-card.locked {
-    opacity: 0.6;
-    filter: grayscale(0.8);
-}
-
-.locked-message {
-    padding: 10px;
-    font-size: 0.65rem;
-    text-align: center;
-    color: var(--accent-red);
-    background: rgba(244, 63, 94, 0.05);
-}
-
-/* Blueprints */
-.blueprint-card { border-style: dashed; }
-.blueprint-badge {
-    position: absolute;
-    top: 30px;
-    right: 10px;
-    font-size: 0.55rem;
-    background: var(--accent-green);
-    color: #000;
-    padding: 1px 4px;
-    font-weight: 900;
-    text-transform: uppercase;
-    transform: rotate(5deg);
 }
 
 /* Production Queue */
@@ -188,4 +77,16 @@
     flex-direction: column;
     gap: 5px;
     padding: 10px;
+}
+
+/* Locked State */
+.research-card.locked {
+    opacity: 0.6;
+    filter: grayscale(0.8);
+}
+
+/* LED blink animation */
+@keyframes led-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
