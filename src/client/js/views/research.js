@@ -469,20 +469,26 @@ async function renderPracticalResearch() {
             const currentBreakthroughs = tree.currentBreakthroughs || 0;
             const totalEfficiency = 1 + (bankedBreakthroughs * 0.02);
 
-            const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
-            const isDisabled = queue.length >= maxQueue || researchLabLevel === 0;
-            
             // Get last result status
             let lastResultHtml = '';
             if (tree.lastResult) {
                 const last = tree.lastResult;
                 const color = last.type === 'breakthrough' ? 'var(--accent-green)' : (last.type === 'failure' ? 'var(--accent-red)' : 'var(--text-primary)');
-                lastResultHtml = `<div class="last-result" style="color: ${color}">Last run: ${last.type.toUpperCase()} (+${last.xpGain} XP)</div>`;
+                lastResultHtml = `<div class="last-result" style="color: ${color}; font-size: 0.75rem; margin-top: 5px; font-family: 'Share Tech Mono', monospace; text-transform: uppercase;">Last run: ${last.type} (+${last.xpGain} XP)</div>`;
             }
 
+            const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+            const isDisabled = queue.length >= maxQueue || researchLabLevel === 0;
+            
             const currentBlueprints = (researchData?.blueprints?.[res.baseType] || []).length;
             const MAX_BLUEPRINTS = 5;
             const canCreate = currentBlueprints < MAX_BLUEPRINTS;
+
+            // Sleek modifier for the title row
+            const modPercent = ((totalEfficiency - 1) * 100).toFixed(0);
+            const modifierHtml = `<span class="xp-modifier-label" title="Total Bonus: +${modPercent}% (from ${bankedBreakthroughs} banked breakthroughs)">
+                +${modPercent}% XP
+            </span>`;
 
             html += `
         <div class="research-card ${isDisabled ? 'locked' : ''}">
@@ -490,12 +496,12 @@ async function renderPracticalResearch() {
           <div class="card-corner-bottom"></div>
           <div class="card-header" title="${res.description}">
             <div class="header-main">
-              <div class="title-row">
-                <span class="status-led led-on"></span>
-                <span class="name">${res.icon} ${res.name}</span>
-              </div>
-              <div class="blueprint-row">
-                <span class="eff-multiplier" title="Total Bonus: +${((totalEfficiency - 1) * 100).toFixed(0)}% (from ${bankedBreakthroughs} banked breakthroughs)">+${((totalEfficiency - 1) * 100).toFixed(0)}% XP GEN</span>
+              <div class="title-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="status-led led-on"></span>
+                  <span class="name">${res.icon} ${res.name.replace(/ (Specialization|Customization)$/, '')}</span>
+                </div>
+                ${modifierHtml}
               </div>
             </div>
             <button class="btn-info" onclick="window.showResearchHistory('${res.baseType}')" title="View historical data">📋</button>
@@ -531,11 +537,12 @@ async function renderPracticalResearch() {
                       <strong>${bankedBreakthroughs}</strong> 💎
                   </span>
               </div>
+              ${lastResultHtml}
             </div>
           </div>
           <div class="building-actions">
             <div class="action-group">
-              <button class="btn upgrade-btn" onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
+              <button class="btn upgrade-btn" onclick="openAllocationModal('${key}', '${res.name.replace(/ (Specialization|Customization)$/, '')}', '${res.baseType}', '${res.icon}', event)">
                 🔬 Run Experiment
               </button>
               <button class="btn design-btn" onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)" 

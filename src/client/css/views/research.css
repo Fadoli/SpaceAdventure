@@ -148,7 +148,22 @@
 
 /* XP Gauges */
 .xp-section { gap: 8px; }
-.xp-label { font-size: 0.75rem; margin-bottom: 4px; } /* Increased */
+.xp-label { 
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 0.7rem; 
+    margin-bottom: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.xp-label span:last-child {
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    font-weight: normal;
+}
 .xp-bar-container { height: 6px; }
 
 .efficiency-summary {
@@ -179,6 +194,15 @@
     animation: led-blink 4s infinite ease-in-out;
 }
 .led-off { background: #334155; }
+
+.xp-modifier-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent-blue);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
 
 @keyframes led-blink {
     0%, 100% { opacity: 1; }
