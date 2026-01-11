@@ -1,32 +1,47 @@
-/* Ranking Table Styles */
+/* High-Tech Sci-Fi Ranking View */
+
+/* 1. Ranking Header */
 .ranking-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    background: var(--bg-secondary);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    background: #0c121d;
+    padding: 15px 25px;
+    border-radius: 4px;
+    border: 1px solid #1e293b;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.ranking-info h2 {
+    margin: 0 0 5px 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .ranking-info p {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    font-family: 'Share Tech Mono', monospace;
 }
 
 .ranking-nav {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
+/* 2. Table Wrapper */
 .ranking-wrapper {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: #0c121d;
+    border: 1px solid #1e293b;
+    border-radius: 4px;
     overflow: hidden;
     margin-top: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .ranking-table {
@@ -35,37 +50,78 @@
 }
 
 .ranking-table th {
-    background: var(--bg-tertiary);
+    background: rgba(255, 255, 255, 0.03);
     color: var(--accent-blue);
-    padding: 12px 15px;
+    padding: 15px;
     text-align: left;
-    font-size: 0.9rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 900;
     text-transform: uppercase;
-    border-bottom: 2px solid var(--accent-blue);
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .ranking-table td {
     padding: 12px 15px;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    font-size: 0.9rem;
+    vertical-align: middle;
 }
 
-.current-player-row {
-    background: rgba(74, 144, 226, 0.1);
-    border-left: 4px solid var(--accent-blue);
+.ranking-table tr:hover td {
+    background: rgba(56, 189, 248, 0.02);
 }
 
-.rank-col { width: 80px; text-align: center; }
-.score-col { font-weight: bold; color: var(--accent-green); text-align: right; }
-.coords-col { font-family: monospace; }
+/* 3. Special Rows & Columns */
+.current-player-row td {
+    background: rgba(56, 189, 248, 0.08) !important;
+}
 
+.current-player-row .player-col {
+    color: #fff;
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+.rank-col { 
+    width: 80px; 
+    text-align: center; 
+    font-family: 'Share Tech Mono', monospace; 
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.player-col {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+}
+
+.score-col { 
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold; 
+    color: var(--accent-green); 
+    text-align: right; 
+    font-size: 1.1rem;
+}
+
+.coords-col { 
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent-blue);
+}
+
+/* 4. Links */
 .galaxy-link {
     color: var(--accent-blue);
     text-decoration: none;
-    border-bottom: 1px dashed var(--accent-blue);
+    padding: 2px 4px;
+    background: rgba(56, 189, 248, 0.05);
+    border: 1px solid transparent;
+    transition: all 0.2s;
 }
 
 .galaxy-link:hover {
     color: white;
-    border-bottom-style: solid;
+    border-color: var(--accent-blue);
+    background: rgba(56, 189, 248, 0.15);
 }

@@ -25,6 +25,11 @@
     animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.modal-small {
+    max-width: 450px;
+    margin-top: 15vh;
+}
+
 @keyframes modalSlideIn {
     from { transform: translateY(-30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -41,6 +46,7 @@
 
 .modal-header h2 {
     margin: 0;
+    font-family: 'Orbitron', sans-serif;
     font-size: 1.1rem;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -63,6 +69,33 @@
     padding: 25px;
     max-height: 80vh;
     overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: #05080f;
+    border: 1px solid #1e293b;
+    border-radius: 2px;
+    color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.modal-input:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
 }
 
 /* Custom Scrollbar for Sci-Fi feel */

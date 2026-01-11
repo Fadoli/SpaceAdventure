@@ -1,120 +1,157 @@
-/* Authentication Screen (Login/Register) */
+/* High-Tech Sci-Fi Authentication Screen */
 
 #auth-screen {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: radial-gradient(circle at center, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    background: radial-gradient(circle at center, #0c121d 0%, #05080f 100%);
     padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+#auth-screen::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(244, 63, 94, 0.05) 0%, transparent 50%);
+    pointer-events: none;
 }
 
 .auth-container {
     width: 100%;
-    max-width: 400px;
-    background: var(--bg-tertiary);
+    max-width: 420px;
+    background: rgba(12, 18, 29, 0.8);
+    backdrop-filter: blur(15px);
     padding: 40px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid #1e293b;
+    border-radius: 4px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.1);
     text-align: center;
+    position: relative;
+    z-index: 10;
 }
 
 .auth-container h1 {
-    font-size: 2rem;
-    color: var(--accent-blue);
-    margin-bottom: 5px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
 }
 
 .tagline {
-    color: var(--text-secondary);
-    margin-bottom: 30px;
-    font-style: italic;
-    font-size: 0.9rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent-blue);
+    margin-bottom: 35px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.8rem;
 }
 
 .auth-tabs {
     display: flex;
-    margin-bottom: 25px;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 30px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tab-btn {
     flex: 1;
     background: transparent;
     border: none;
-    padding: 12px;
+    padding: 10px;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    border-bottom: 2px solid transparent;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+    border-radius: 2px;
 }
 
 .tab-btn:hover {
-    color: var(--text-primary);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .tab-btn.active {
     color: var(--accent-blue);
-    border-bottom-color: var(--accent-blue);
+    background: rgba(56, 189, 248, 0.1);
+    box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.1);
 }
 
-.auth-form {
-    display: none;
-    text-align: left;
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-.auth-form.active {
-    display: block;
-}
-
+/* Form Styling */
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    text-align: left;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    color: var(--text-primary);
-    font-weight: 500;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
 }
 
 .form-group input {
     width: 100%;
-    padding: 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    color: var(--text-primary);
+    padding: 14px 16px;
+    background: #05080f;
+    border: 1px solid #1e293b;
+    border-radius: 2px;
+    color: #fff;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 1rem;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .form-group input:focus {
     outline: none;
     border-color: var(--accent-blue);
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .form-group small {
     display: block;
-    margin-top: 5px;
+    margin-top: 8px;
     color: var(--text-secondary);
-    font-size: 0.8rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    opacity: 0.6;
 }
 
 .error-message {
-    margin-top: 15px;
+    margin-top: 20px;
     color: var(--accent-red);
-    font-size: 0.9rem;
-    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    text-transform: uppercase;
     min-height: 20px;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.auth-container .btn-primary {
+    padding: 16px !important;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    margin-top: 10px;
 }

@@ -145,25 +145,31 @@ export async function renderAllocation() {
       
       <div class="allocation-summary">
         <div class="summary-card">
+          <div class="card-corner-top"></div>
           <h3>⚡ Power Status</h3>
           <div class="resource-bar">
             <div class="bar-fill" style="width: ${Math.min(100, Math.max(0, (consumedPowerTotal / Math.max(1, producedPower)) * 100))}%"></div>
           </div>
-          <p><strong>Produced:</strong> ${producedPower.toFixed(0)}</p>
-          <p><strong>Consumed (Total):</strong> ${consumedPowerTotal.toFixed(0)}</p>
-          <p style="margin-left: 20px; font-size: 0.9em; color: var(--text-secondary);">└─ Buildings: ${allocatableEnergyConsumption.toFixed(0)}</p>
-          <p style="margin-left: 20px; font-size: 0.9em; color: var(--text-secondary);">└─ Other: ${otherEnergyConsumption.toFixed(0)}</p>
-          <p><strong>Balance:</strong> <span style="color: ${(producedPower - consumedPowerTotal) >= -0.01 ? '#5cb85c' : '#d9534f'}">${(producedPower - consumedPowerTotal).toFixed(0)}</span></p>
+          <div class="summary-details">
+            <div class="summary-row"><span>Produced:</span> <span class="text-success">${producedPower.toFixed(0)}</span></div>
+            <div class="summary-row"><span>Consumed (Total):</span> <span class="text-warning">${consumedPowerTotal.toFixed(0)}</span></div>
+            <div class="summary-row sub-row"><span>└─ Buildings:</span> <span>${allocatableEnergyConsumption.toFixed(0)}</span></div>
+            <div class="summary-row sub-row"><span>└─ Other:</span> <span>${otherEnergyConsumption.toFixed(0)}</span></div>
+            <div class="summary-row balance-row"><span>Balance:</span> <span class="${(producedPower - consumedPowerTotal) >= -0.01 ? 'text-success' : 'text-danger'}">${(producedPower - consumedPowerTotal).toFixed(0)}</span></div>
+          </div>
         </div>
         
         <div class="summary-card">
+          <div class="card-corner-top"></div>
           <h3>👥 Population Status</h3>
           <div class="resource-bar">
             <div class="bar-fill" style="width: ${Math.min(100, (totalPopulationAllocated / Math.max(1, currentPopulation)) * 100)}%"></div>
           </div>
-          <p><strong>Assigned (Base):</strong> ${totalPopulationAllocated.toFixed(0)}</p>
-          <p><strong>Total Available:</strong> ${currentPopulation.toFixed(0)}</p>
-          <small>Max Population: ${maxPopulation.toFixed(0)}</small>
+          <div class="summary-details">
+            <div class="summary-row"><span>Assigned (Base):</span> <span>${totalPopulationAllocated.toFixed(0)}</span></div>
+            <div class="summary-row"><span>Total Available:</span> <span>${currentPopulation.toFixed(0)}</span></div>
+            <div class="summary-row"><span>Max Population:</span> <span class="text-secondary">${maxPopulation.toFixed(0)}</span></div>
+          </div>
         </div>
       </div>
       
@@ -172,12 +178,14 @@ export async function renderAllocation() {
         <ul>
           <li><strong>50%</strong> allocation → <strong>~70%</strong> effectiveness</li>
           <li><strong>100%</strong> allocation → <strong>100%</strong> effectiveness</li>
-          <li><strong>200%</strong> allocation → <strong>~150%</strong> effectiveness (diminishing returns)</li>
+          <li><strong>200%</strong> allocation → <strong>~150%</strong> effectiveness</li>
         </ul>
         <p>Both power and population effectiveness multiply together!</p>
       </div>
       
-      <h3>🏭 Building Allocations</h3>
+      <div class="section-header-row">
+        <h3>🏭 Building Allocations</h3>
+      </div>
       <div class="allocation-list">
   `;
   
@@ -194,7 +202,7 @@ export async function renderAllocation() {
     const effectiveBuildingsObj = { ...BUILDINGS, [buildingType]: effectiveDef };
     const isCustom = effectiveDef !== BUILDINGS[buildingType];
 
-    // Calculate base requirements for this building at current level using shared functions
+    // Calculate base requirements for this building at current level
     const baseEnergyRequired = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj, energyEfficiencyBonus);
     const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
     
@@ -207,21 +215,20 @@ export async function renderAllocation() {
     const populationEffectiveness = calculateAllocationEffectiveness(allocation.population * 100) / 100;
     const totalEffectiveness = powerEffectiveness * populationEffectiveness;
     
-    // Calculate ACTUAL effectiveness (based on priority and available resources)
+    // Calculate ACTUAL effectiveness
     const actualPowerEffectiveness = calculateAllocationEffectiveness(actualAllocation.power * 100) / 100;
     const actualPopulationEffectiveness = calculateAllocationEffectiveness(actualAllocation.population * 100) / 100;
     const actualTotalEffectiveness = actualPowerEffectiveness * actualPopulationEffectiveness;
     
-    // Check if building has energy consumption (skip power slider for solarPlant)
     const hasEnergyConsumption = baseEnergyRequired > 0;
     
     html += `
       <div class="allocation-item" data-building="${buildingType}">
         <div class="allocation-header">
-          <h4>
-            ${building.icon} ${building.name} (Level ${level})
-            ${isCustom ? '<span class="blueprint-badge" style="font-size: 0.7em; margin-left: 5px; background: #9c27b0; padding: 2px 6px; border-radius: 4px;">Blueprint Active</span>' : ''}
-          </h4>
+          <div class="header-main-info">
+            <h4>${building.icon} ${building.name} <span class="level-tag">Lvl ${level}</span></h4>
+            ${isCustom ? '<span class="blueprint-badge">Blueprint Active</span>' : ''}
+          </div>
           <div class="header-right">
             <div class="priority-select">
               <label>Priority:</label>
@@ -231,12 +238,14 @@ export async function renderAllocation() {
                 <option value="3" ${allocation.priority === 3 ? 'selected' : ''}>Low (3)</option>
               </select>
             </div>
-            <span class="effectiveness-badge ${getEffectivenessClass(totalEffectiveness)}">
-              Desired: ${(totalEffectiveness * 100).toFixed(0)}%
-            </span>
-            <span class="effectiveness-badge ${getEffectivenessClass(actualTotalEffectiveness)}" style="margin-left: 5px;">
-              Actual: ${(actualTotalEffectiveness * 100).toFixed(0)}%
-            </span>
+            <div class="badge-group">
+              <span class="effectiveness-badge ${getEffectivenessClass(totalEffectiveness)}">
+                Target: ${(totalEffectiveness * 100).toFixed(0)}%
+              </span>
+              <span class="effectiveness-badge ${getEffectivenessClass(actualTotalEffectiveness)}">
+                Actual: ${(actualTotalEffectiveness * 100).toFixed(0)}%
+              </span>
+            </div>
             ${getLimitingFactorBadge(baseEnergyRequired, basePopulationRequired, allocation.power, allocation.population, producedPower, currentPopulation, totalPowerAllocated, totalPopulationAllocated)}
           </div>
         </div>
@@ -245,31 +254,25 @@ export async function renderAllocation() {
           ${hasEnergyConsumption ? `
           <div class="allocation-slider">
             <div class="allocation-label-row">
-              <label>⚡ Energy <span class="allocation-display">${(allocation.power * 100).toFixed(0)}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${(powerEffectiveness * 100) >= 100 ? '#5cb85c' : '#d9534f'}">(${((powerEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((powerEffectiveness * 100) - 100).toFixed(0)}%)</span></label>
+              <label>⚡ Energy <span class="allocation-display">${(allocation.power * 100).toFixed(0)}%</span></label>
+              <div class="requirement-preview">
+                <span class="base-requirement">${energyRequired.toFixed(0)} GW</span>
+                <span class="${(powerEffectiveness * 100) >= 100 ? 'text-success' : 'text-danger'}">(${((powerEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((powerEffectiveness * 100) - 100).toFixed(0)}%)</span>
+              </div>
             </div>
-            <input 
-              type="range" 
-              class="power-slider" 
-              min="0" 
-              max="200" 
-              value="${allocation.power * 100}"
-              data-building="${buildingType}"
-            >
+            <input type="range" class="power-slider" min="0" max="200" value="${allocation.power * 100}" data-building="${buildingType}">
           </div>
           ` : ''}
           
           <div class="allocation-slider">
             <div class="allocation-label-row">
-              <label>👥 Workers <span class="allocation-display">${(allocation.population * 100).toFixed(0)}%</span> : <span class="base-requirement">${populationRequired.toFixed(0)}</span> <span style="color: ${(populationEffectiveness * 100) >= 100 ? '#5cb85c' : '#d9534f'}">(${((populationEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((populationEffectiveness * 100) - 100).toFixed(0)}%)</span></label>
+              <label>👥 Workers <span class="allocation-display">${(allocation.population * 100).toFixed(0)}%</span></label>
+              <div class="requirement-preview">
+                <span class="base-requirement">${populationRequired.toFixed(0)} K</span>
+                <span class="${(populationEffectiveness * 100) >= 100 ? 'text-success' : 'text-danger'}">(${((populationEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((populationEffectiveness * 100) - 100).toFixed(0)}%)</span>
+              </div>
             </div>
-            <input 
-              type="range" 
-              class="population-slider" 
-              min="0" 
-              max="200" 
-              value="${allocation.population * 100}"
-              data-building="${buildingType}"
-            >
+            <input type="range" class="population-slider" min="0" max="200" value="${allocation.population * 100}" data-building="${buildingType}">
           </div>
         </div>
       </div>

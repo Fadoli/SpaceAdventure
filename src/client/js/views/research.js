@@ -740,7 +740,11 @@ function renderVariantCard(baseType, variant, type) {
     let focusesHtml = '';
     for (const f in focusLevels) {
         if (focusLevels[f] > 0) {
-            focusesHtml += `<span class="focus-badge focus-${f}" title="${f.toUpperCase()} level ${focusLevels[f]}">${f.charAt(0).toUpperCase()}${f.slice(1)}: ${focusLevels[f]}</span>`;
+            focusesHtml += `
+                <div class="focus-badge focus-${f}" title="${f.toUpperCase()} level ${focusLevels[f]}">
+                    <span>${f.toUpperCase()}</span>
+                    <span>${focusLevels[f]}</span>
+                </div>`;
         }
     }
 
@@ -776,12 +780,16 @@ function renderVariantCard(baseType, variant, type) {
         }
     }
 
+    const escapedName = (name || baseType).replace(/'/g, "\\'");
+
     return `
         <div class="variant-card-improved" id="variant-${id}">
+            <div class="card-corner-top"></div>
+            <div class="card-corner-bottom"></div>
             <div class="variant-card-header">
                 <h4>${name || baseType}</h4>
                 <div class="variant-card-actions">
-                    <button class="btn-icon-action" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${name}')" title="Rename Blueprint">✏️</button>
+                    <button class="btn-icon-action" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${escapedName}')" title="Rename Blueprint">✏️</button>
                     <button class="btn-icon-action" onclick="window.shareVariant('${baseType}', '${id}', '${type}')" title="Share with Allies">🔗</button>
                     <button class="btn-icon-delete" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete Blueprint">🗑️</button>
                 </div>

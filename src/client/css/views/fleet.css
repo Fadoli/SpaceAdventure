@@ -1,212 +1,209 @@
-/* Fleet View */
-.fleet-summary {
-    margin-bottom: 20px;
+/* High-Tech Sci-Fi Fleet View */
+
+.fleet-view {
+    max-width: 1300px;
+    margin: 0 auto;
 }
 
+/* 1. Fleet Stats */
 .fleet-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
 
 .stat-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 20px;
+    background: #0c121d;
+    border: 1px solid #1e293b;
+    border-radius: 2px;
+    padding: 15px;
     text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 2px;
+    background: var(--accent-blue);
+    opacity: 0.3;
 }
 
 .stat-card span {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
     color: var(--text-secondary);
+    letter-spacing: 1px;
     display: block;
     margin-bottom: 10px;
 }
 
 .stat-value {
-    color: var(--accent-blue);
-    font-size: 2rem;
+    color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2.2rem;
     font-weight: bold;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
+/* 2. Ship Lists */
 .fleets-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 15px;
 }
 
 .fleet-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: #0f1525;
+    border: 1px solid #252e46;
+    border-radius: 2px;
     padding: 20px;
+    position: relative;
 }
 
 .fleet-card h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
     color: var(--accent-blue);
-    margin: 0 0 15px 0;
-}
-
-.fleet-details {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.fleet-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.fleet-section h4 {
-    color: var(--text-primary);
-    margin: 0;
-    font-size: 1rem;
-}
-
-.ship-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
 }
 
 .fleet-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    background: var(--bg-tertiary);
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+    border-radius: 2px;
 }
 
 .fleet-item-name {
-    color: var(--text-primary);
-    flex: 1;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
 }
 
 .fleet-item-count {
+    font-family: 'Share Tech Mono', monospace;
     color: var(--accent-green);
     font-weight: bold;
-    font-size: 1.1rem;
-    min-width: 80px;
-    text-align: right;
+    font-size: 1.2rem;
 }
 
-/* Mission Specific Modal Styles (from Galaxy View usage) */
+/* 3. Expedition/Mission Modal (Shared with Galaxy) */
+.expedition-ship-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.mission-section h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
 .expedition-ships-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 15px;
-    max-height: 500px;
+    gap: 10px;
+    max-height: 400px;
     overflow-y: auto;
     padding-right: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 2px;
 }
 
 .expedition-ship-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 10px 15px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.expedition-ship-item .ship-input {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
+.ship-name { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: 700; }
+.ship-available { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); }
 
-.expedition-ship-item.dense {
-    padding: 6px 12px;
-    gap: 15px;
-}
-
-.expedition-ship-item.dense .ship-name {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.expedition-ship-item.dense .ship-available {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    min-width: 80px;
-    text-align: right;
-}
-
-.mission-section h4 {
-    margin-bottom: 10px;
-    color: var(--accent-blue);
-    font-size: 0.9rem;
-    text-transform: uppercase;
-}
-
-.dense-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 8px;
-}
-
-.mission-res-item-dense {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.mission-res-item-dense .res-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.8rem;
-}
-
-.mission-res-item-dense .res-name {
-    font-weight: bold;
-    color: var(--text-secondary);
-}
-
-.mission-res-item-dense .res-avail {
-    color: var(--accent-blue);
-}
-
-.mission-res-item-dense .res-input-group {
-    display: flex;
-    gap: 5px;
-}
-
-.mission-res-item-dense .exp-qty-input {
-    flex: 1;
-    padding: 2px 5px;
-    font-size: 0.85rem;
-}
+.ship-input { display: flex; gap: 8px; align-items: center; }
 
 .exp-qty-input {
     width: 80px;
-    padding: 8px;
-    background: var(--bg-tertiary);
+    background: #05080f;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    color: white;
+    color: #fff;
+    padding: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
     text-align: center;
+    outline: none;
 }
 
+.exp-qty-input:focus { border-color: var(--accent-blue); }
+
 .btn-max {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent-blue);
+    border: 1px solid var(--accent-blue);
     padding: 4px 8px;
-    background: var(--accent-blue);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.75rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 900;
     cursor: pointer;
+}
+
+.btn-max:hover { background: var(--accent-blue); color: #000; }
+
+.mission-res-item-dense {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.res-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+}
+
+.res-avail { color: var(--accent-blue); }
+
+.res-input-group {
+    display: flex;
+    gap: 5px;
+}
+
+.res-qty-input { flex: 1; }
+
+#mission-calc-summary {
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px;
+}
+
+#mission-calc-summary strong {
+    color: var(--accent-blue);
 }

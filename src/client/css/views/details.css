@@ -1,94 +1,115 @@
-/* Detailed Info Modal Content Styles */
+/* High-Tech Sci-Fi Detailed Info Modal */
+
 .details-effects strong, 
 #details-modal-body h4 {
     display: block;
-    margin-top: 15px;
-    margin-bottom: 8px;
+    margin-top: 20px;
+    margin-bottom: 10px;
     color: var(--accent-green);
     text-transform: uppercase;
-    font-size: 0.9rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
 }
 
 #details-modal-body ul {
-    list-style-position: inside;
-    margin: 10px 0;
-    padding-left: 5px;
+    list-style: none;
+    margin: 15px 0;
+    padding: 0;
 }
 
 #details-modal-body li {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     color: var(--text-secondary);
-    font-size: 0.95rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#details-modal-body li::before {
+    content: ">";
+    color: var(--accent-blue);
+    font-weight: 900;
 }
 
 .details-description {
     color: var(--text-secondary);
-    margin: 20px 0;
-    padding: 15px;
-    background: var(--bg-tertiary);
-    border-radius: 6px;
+    margin: 25px 0;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
     border-left: 4px solid var(--accent-blue);
     line-height: 1.6;
+    font-size: 0.95rem;
 }
 
 .details-effects {
     color: var(--text-primary);
-    margin: 20px 0;
-    padding: 15px;
-    background: rgba(92, 184, 92, 0.05);
-    border-radius: 6px;
+    margin: 25px 0;
+    padding: 15px 20px;
+    background: rgba(74, 222, 128, 0.03);
+    border-radius: 2px;
     border-left: 4px solid var(--accent-green);
 }
 
 /* Stats Table within Modal */
 .stats-table-container {
     overflow-x: auto;
-    margin-top: 25px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    margin-top: 30px;
+    border: 1px solid #1e293b;
+    border-radius: 2px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .stats-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--bg-tertiary);
-    font-size: 0.9rem;
+    background: #0c121d;
 }
 
 .stats-table th {
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.03);
     color: var(--accent-blue);
     padding: 12px 15px;
     text-align: left;
-    font-weight: bold;
-    border-bottom: 2px solid var(--accent-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 900;
+    border-bottom: 1px solid var(--border-color);
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .stats-table td {
-    padding: 10px 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
 }
 
-.stats-table tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+.stats-table tr:hover td {
+    background: rgba(56, 189, 248, 0.02);
 }
 
 .current-level-row {
-    background: rgba(92, 184, 92, 0.1) !important;
+    background: rgba(74, 222, 128, 0.05) !important;
 }
 
 .current-level-row td {
     font-weight: bold;
     color: var(--accent-green);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
 }
 
 .details-footer {
-    margin-top: 20px;
+    margin-top: 30px;
     padding-top: 15px;
-    border-top: 1px solid var(--border-color);
-    font-size: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
     color: var(--text-secondary);
-    font-style: italic;
+    opacity: 0.6;
     text-align: center;
 }
