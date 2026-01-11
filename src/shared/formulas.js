@@ -7,8 +7,9 @@ import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
 /**
  * Calculate building cost based on level
  */
-export function calculateBuildingCost(baseCost, level, costReductionBonus = 0) {
-  const multiplier = Math.pow(SCALING.BUILDING_COST, level);
+export function calculateBuildingCost(baseCost, level, costReductionBonus = 0, costScaling = null) {
+  const scaling = costScaling || SCALING.BUILDING_COST;
+  const multiplier = Math.pow(scaling, level);
   const reduction = 1 - costReductionBonus;
   return {
     metal: Math.floor(baseCost.metal * multiplier * reduction),

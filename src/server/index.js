@@ -814,6 +814,7 @@ async function handleRequest(req) {
           nextLevel,
           cost,
           baseCost: baseCostForNextLevel,
+          costScaling: buildingDef.costScaling || SCALING.BUILDING_COST,
           buildTime,
           production,
           storage,

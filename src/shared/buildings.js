@@ -228,6 +228,7 @@ export const BUILDINGS = {
       deuterium: 100000
     },
     maxLevel: 50,
+    costScaling: 2,
     requirements: {
       roboticsFactory: 10,
       computerTech: 10

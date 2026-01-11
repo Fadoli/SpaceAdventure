@@ -70,7 +70,8 @@ export function getBuildingCost(buildingType, level, planet = null, player = nul
   const building = getEffectiveBuildingDefinition(buildingType, planet, player);
   if (!building) return null;
   
-  const multiplier = Math.pow(SCALING.BUILDING_COST, level);
+  const scaling = building.costScaling || SCALING.BUILDING_COST;
+  const multiplier = Math.pow(scaling, level);
   const costMultiplier = getResourceCostMultiplier();
   
   // Apply research bonus: data-driven globalCostReduction

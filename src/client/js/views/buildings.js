@@ -800,10 +800,11 @@ export async function showBuildingDetails(buildingKey) {
     const levels = [];
     
     // Estimate base costs from current level costs
+    const scaling = building.costScaling || SCALING.BUILDING_COST;
     const baseCostEstimate = {
-        metal: Math.round(building.cost.metal / Math.pow(SCALING.BUILDING_COST, building.nextLevel)),
-        crystal: Math.round(building.cost.crystal / Math.pow(SCALING.BUILDING_COST, building.nextLevel)),
-        deuterium: Math.round(building.cost.deuterium / Math.pow(SCALING.BUILDING_COST, building.nextLevel))
+        metal: Math.round(building.cost.metal / Math.pow(scaling, building.nextLevel)),
+        crystal: Math.round(building.cost.crystal / Math.pow(scaling, building.nextLevel)),
+        deuterium: Math.round(building.cost.deuterium / Math.pow(scaling, building.nextLevel))
     };
 
     const roboticsLevel = planet?.buildings.roboticsFactory || 0;
@@ -871,7 +872,8 @@ export async function showBuildingDetails(buildingKey) {
         }
         
         const level = levelItem;
-        const multiplier = Math.pow(SCALING.BUILDING_COST, level);
+        const scaling = building.costScaling || SCALING.BUILDING_COST;
+        const multiplier = Math.pow(scaling, level);
         const cost = {
             metal: Math.floor(baseCostEstimate.metal * multiplier),
             crystal: Math.floor(baseCostEstimate.crystal * multiplier),
