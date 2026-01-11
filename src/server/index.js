@@ -1753,6 +1753,33 @@ async function handleRequest(req) {
       const result = await clearMessages(user.id);
       return successResponse(req, { success: result });
     }
+
+    // POST /api/game/planet/:planetId/building/:buildingType/activate-blueprint
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/activate-blueprint$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const pathParts = path.split('/');
+      const planetId = pathParts[4];
+      const buildingType = pathParts[6];
+
+      const body = await req.json();
+      const { blueprintId } = body;
+      
+      try {
+        const player = await getPlayerByUserId(user.id);
+        const planet = player.planets.find(p => p.id === planetId);
+        if (!planet) return errorResponse(req, 'Planet not found', 404);
+
+        if (!planet.activeVariants) planet.activeVariants = {};
+        planet.activeVariants[buildingType] = blueprintId;
+        
+        await updatePlayer(user.id, player);
+        return successResponse(req, { success: true });
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
     
     // 404 for unknown API routes
     return errorResponse(req, 'Route not found', 404);

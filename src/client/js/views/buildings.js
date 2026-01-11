@@ -544,13 +544,11 @@ window.openDesignSelection = openDesignSelection;
  */
 export async function showBlueprintSelectionModal(buildingKey, building, planet) {
     const modal = document.getElementById('custom-variant-modal') || createCustomVariantModal();
-    modalBody.innerHTML = html;
-    modal.style.display = 'flex';
-    
     const modalTitle = document.getElementById('modal-variant-title');
     const modalBody = document.getElementById('modal-variant-body');
     
     modalTitle.innerHTML = `Design Options: ${building.name}`;
+    modal.style.display = 'flex';
     
     const blueprints = building.availableBlueprints || [];
     renderBlueprintList(modalBody, buildingKey, building, blueprints, planet);
@@ -708,11 +706,12 @@ function createCustomVariantModalElement() {
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
+            <div class="card-corner-top"></div>
             <div class="modal-header">
-                <h2 id="modal-variant-title">Select Customization</h2>
+                <h2 id="modal-variant-title">CONFIGURATION INTERFACE</h2>
                 <button onclick="window.closeCustomVariantModal()" class="modal-close">&times;</button>
             </div>
-            <div id="modal-variant-body"></div>
+            <div id="modal-variant-body" class="modal-body"></div>
         </div>
     `;
     document.body.appendChild(modal);
