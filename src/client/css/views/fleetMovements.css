@@ -184,6 +184,20 @@
 .mission-expedition { border-left: 3px solid #00cec9; }
 .mission-expedition .mission-name { color: #00cec9; }
 
+.mission-hostile { border-left: 3px solid var(--accent-red); background: rgba(244, 63, 94, 0.05); }
+.mission-hostile .mission-name { color: var(--accent-red); font-weight: 900; }
+.mission-hostile .mission-status-tag { background: var(--accent-red); color: #fff; }
+.mission-hostile .coord-arrow { color: var(--accent-red); opacity: 1; font-weight: bold; }
+
+.fleet-row.hostile {
+    animation: hostile-alert 2s infinite ease-in-out;
+}
+
+@keyframes hostile-alert {
+    0%, 100% { background: rgba(244, 63, 94, 0.05); }
+    50% { background: rgba(244, 63, 94, 0.15); }
+}
+
 .mission-return .mission-status-tag { color: var(--accent-yellow); border: 1px solid rgba(251, 191, 36, 0.2); }
 .mission-stay .mission-status-tag { color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.2); }
 

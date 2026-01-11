@@ -77,8 +77,10 @@ export function updateFleetMovements(gameState) {
     const container = document.getElementById('fleet-movements-bar');
     if (!container) return;
     
+    const allFleets = [...(gameState?.fleets || []), ...(gameState?.hostileFleets || [])];
+
     // If no fleets, clear container
-    if (!gameState || !gameState.fleets || gameState.fleets.length === 0) {
+    if (allFleets.length === 0) {
         container.innerHTML = '';
         container.classList.remove('active');
         lastFleetSignature = '';
@@ -88,10 +90,10 @@ export function updateFleetMovements(gameState) {
     container.classList.add('active');
     
     // Sort fleets by arrival time (next event)
-    const sortedFleets = [...gameState.fleets].sort((a, b) => a.arrivalTime - b.arrivalTime);
+    const sortedFleets = allFleets.sort((a, b) => a.arrivalTime - b.arrivalTime);
     
     // Generate signature to detect structural changes
-    const currentSignature = sortedFleets.map(f => `${f.id}-${f.missionType}-${f.returning}-${f.waiting}`).join('|');
+    const currentSignature = sortedFleets.map(f => `${f.id}-${f.missionType}-${f.returning}-${f.waiting}-${f.isHostile ? 'h' : 'f'}`).join('|');
     
     // Check if header/structure exists
     let header = document.getElementById('fleet-header');
@@ -157,23 +159,29 @@ function renderFleetRow(fleet) {
     const now = Date.now();
     const isReturning = fleet.returning;
     const timeRemaining = Math.max(0, Math.floor((fleet.arrivalTime - now) / 1000));
+    const isHostile = fleet.isHostile;
     
     // Skip if expired (server will clean up)
     if (timeRemaining <= 0) return '';
     
-    let missionClass = 'mission-transport';
+    let missionClass = isHostile ? 'mission-hostile' : 'mission-transport';
     let missionName = fleet.missionType.toUpperCase();
     
-    switch (fleet.missionType) {
-        case 'attack': missionClass = 'mission-attack'; break;
-        case 'espionage': missionClass = 'mission-espionage'; break;
-        case 'colonize': missionClass = 'mission-colonize'; break;
-        case 'transport': missionClass = 'mission-transport'; break;
-        case 'deploy': missionClass = 'mission-deploy'; break;
-        case 'expedition': missionClass = 'mission-expedition'; break;
+    if (!isHostile) {
+        switch (fleet.missionType) {
+            case 'attack': missionClass = 'mission-attack'; break;
+            case 'espionage': missionClass = 'mission-espionage'; break;
+            case 'colonize': missionClass = 'mission-colonize'; break;
+            case 'transport': missionClass = 'mission-transport'; break;
+            case 'deploy': missionClass = 'mission-deploy'; break;
+            case 'expedition': missionClass = 'mission-expedition'; break;
+        }
+    } else {
+        missionClass = 'mission-attack'; // All hostiles look like attacks for now or keep their type
+        if (fleet.missionType === 'espionage') missionClass = 'mission-espionage';
     }
     
-    let statusLabel = 'EN ROUTE';
+    let statusLabel = isHostile ? 'INBOUND' : 'EN ROUTE';
     if (isReturning) {
         missionClass += ' mission-return';
         statusLabel = 'RETURNING';
@@ -194,51 +202,61 @@ function renderFleetRow(fleet) {
     const startTime = formatTime(fleet.startTime);
     const arrivalTime = formatTime(fleet.arrivalTime);
     
-    // Generate ship list for tooltip
-    const shipList = Object.entries(fleet.ships)
-        .filter(([_, count]) => count > 0)
-        .map(([type, count]) => `${type.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}: ${count}`)
-        .join('<br>');
-        
-    const resourceList = (fleet.resources && !isEmpty(fleet.resources)) ? Object.entries(fleet.resources)
-        .filter(([_, amount]) => amount > 0)
-        .map(([type, amount]) => `${type.toUpperCase()}: ${amount}`)
-        .join('<br>') : '';
-        
-    // Calculate estimated final return time for traveling/exploring expeditions
-    let timelineHtml = '';
-    if (fleet.missionType === 'expedition' && !isReturning) {
-        const travelDuration = (fleet.arrivalTime - fleet.startTime); // Approximate
-        let finalReturn;
-        if (fleet.waiting) {
-            // Already exploring, final return = now + remaining explore + travel
-            finalReturn = formatTime(fleet.arrivalTime + travelDuration);
-        } else {
-            // Still traveling, final return = now + travel to + stay + travel back
-            const stayMs = (fleet.stayTime || 1) * 60 * 60 * 1000;
-            finalReturn = formatTime(fleet.arrivalTime + stayMs + travelDuration);
+    // Tooltip content
+    let tooltipContent = '';
+    if (isHostile) {
+        tooltipContent = `
+            <strong>THREAT SOURCE:</strong> ${fleet.ownerName || 'UNKNOWN'}<br>
+            <strong>MISSION:</strong> ${missionName}<br><br>
+            <em>Sensors cannot determine vessel composition of hostile fleets.</em>
+        `;
+    } else {
+        // Generate ship list for tooltip
+        const shipList = Object.entries(fleet.ships)
+            .filter(([_, count]) => count > 0)
+            .map(([type, count]) => `${type.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}: ${count}`)
+            .join('<br>');
+            
+        const resourceList = (fleet.resources && !isEmpty(fleet.resources)) ? Object.entries(fleet.resources)
+            .filter(([_, amount]) => amount > 0)
+            .map(([type, amount]) => `${type.toUpperCase()}: ${amount}`)
+            .join('<br>') : '';
+            
+        // Calculate estimated final return time for traveling/exploring expeditions
+        let timelineHtml = '';
+        if (fleet.missionType === 'expedition' && !isReturning) {
+            const travelDuration = (fleet.arrivalTime - fleet.startTime); // Approximate
+            let finalReturn;
+            if (fleet.waiting) {
+                // Already exploring, final return = now + remaining explore + travel
+                finalReturn = formatTime(fleet.arrivalTime + travelDuration);
+            } else {
+                // Still traveling, final return = now + travel to + stay + travel back
+                const stayMs = (fleet.stayTime || 1) * 60 * 60 * 1000;
+                finalReturn = formatTime(fleet.arrivalTime + stayMs + travelDuration);
+            }
+            timelineHtml = `<br><br><strong>ESTIMATED TIMELINE:</strong><br>
+                • TARGET ARRIVAL: ${arrivalTime}<br>
+                • RETURN ARRIVAL: ${finalReturn}`;
         }
-        timelineHtml = `<br><br><strong>ESTIMATED TIMELINE:</strong><br>
-            • TARGET ARRIVAL: ${arrivalTime}<br>
-            • RETURN ARRIVAL: ${finalReturn}`;
-    }
 
-    const tooltipContent = `
-        <strong>VESSEL COMPOSITION:</strong><br>${shipList}
-        ${resourceList ? `<br><br><strong>CARGO MANIFEST:</strong><br>${resourceList}` : ''}
-        ${timelineHtml}
-    `;
+        tooltipContent = `
+            <strong>VESSEL COMPOSITION:</strong><br>${shipList}
+            ${resourceList ? `<br><br><strong>CARGO MANIFEST:</strong><br>${resourceList}` : ''}
+            ${timelineHtml}
+        `;
+    }
     
     return `
-        <div id="fleet-row-${fleet.id}" class="fleet-row ${missionClass}">
+        <div id="fleet-row-${fleet.id}" class="fleet-row ${missionClass} ${isHostile ? 'hostile' : ''}">
             <div class="fleet-info-cell type-cell">
                 <span class="mission-status-tag">${statusLabel}</span>
-                <span class="mission-name">${missionName}</span>
+                <span class="mission-name">${isHostile ? 'HOSTILE ' : ''}${missionName}</span>
             </div>
             
             <div class="fleet-info-cell coords-cell">
                 <span class="coord-from">${originLink}</span>
-                <span class="coord-arrow">>>></span>
+                <span class="coord-arrow">${isHostile ? '<<< ALERT <<<' : '>>>'}</span>
                 <span class="coord-to">${targetLink}</span>
             </div>
             
@@ -252,7 +270,7 @@ function renderFleetRow(fleet) {
             
             <!-- Hidden data for tooltip -->
             <div class="fleet-tooltip-data" style="display: none;">
-                <div class="fleet-tooltip-header-text">${missionName} OPS DETAILS</div>
+                <div class="fleet-tooltip-header-text">${isHostile ? 'THREAT DATA' : missionName + ' OPS DETAILS'}</div>
                 <div class="fleet-tooltip-content">${tooltipContent}</div>
             </div>
         </div>

@@ -414,8 +414,37 @@ async function handleRequest(req) {
       if (updated) {
         await updatePlayer(user.id, player);
       }
+
+      // Find hostile fleets targeting this player
+      const allPlayers = await getPlayers();
+      const hostileFleets = [];
+      const myPlanetCoords = player.planets.map(p => p.coordinates.join(':'));
+
+      for (const otherPlayer of allPlayers) {
+        if (otherPlayer.userId === user.id) continue;
+        if (!otherPlayer.fleets) continue;
+
+        for (const fleet of otherPlayer.fleets) {
+          if (myPlanetCoords.includes(fleet.targetCoords.join(':')) && !fleet.returning) {
+            // It's a hostile fleet targeting us!
+            // We only send minimal info for hostile fleets
+            hostileFleets.push({
+                id: fleet.id,
+                missionType: fleet.missionType,
+                originCoords: fleet.originCoords,
+                targetCoords: fleet.targetCoords,
+                startTime: fleet.startTime,
+                arrivalTime: fleet.arrivalTime,
+                isHostile: true,
+                ownerName: otherPlayer.username
+            });
+          }
+        }
+      }
+
+      const responseData = { ...player, hostileFleets };
       
-      return successResponse(req, player);
+      return successResponse(req, responseData);
     }
     
     // POST /api/game/planet/:planetId/build
