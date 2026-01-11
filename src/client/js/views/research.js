@@ -191,39 +191,34 @@ function updateTheoreticalResearchButtons() {
         const isDisabled = isQueueFull || !requirementsMet || !canAfford || !hasLab;
 
         // Find elements in DOM
-        const card = document.querySelector(`.tech-card[data-tech="${techKey}"]`);
+        const card = document.querySelector(`.research-card[data-tech="${techKey}"]`);
         if (!card) continue;
 
-        // Update cost classes
-        const costs = card.querySelector('.tech-costs');
-        if (costs) {
-            const metalEl = costs.querySelector('[title="Metal"]');
-            const crystalEl = costs.querySelector('[title="Crystal"]');
-            const deutEl = costs.querySelector('[title="Deuterium"]');
-            
-            if (metalEl) metalEl.className = `cost-item ${canAffordMetal ? '' : 'text-error'}`;
-            if (crystalEl) crystalEl.className = `cost-item ${canAffordCrystal ? '' : 'text-error'}`;
-            if (deutEl) deutEl.className = `cost-item ${canAffordDeut ? '' : 'text-error'}`;
+        // Update cost colors
+        const costsItems = card.querySelectorAll('.tech-costs .cost-item');
+        if (costsItems.length > 0) {
+            costsItems[0].className = `cost-item ${canAffordMetal ? '' : 'text-danger'}`;
+            costsItems[1].className = `cost-item ${canAffordCrystal ? '' : 'text-danger'}`;
+            if (costsItems[2]) {
+                costsItems[2].className = `cost-item ${canAffordDeut ? '' : 'text-danger'}`;
+            }
         }
 
-        // Update button
-        const btn = card.querySelector('.btn-primary, .btn-secondary');
+        const btn = card.querySelector('.upgrade-btn');
         if (btn) {
             btn.disabled = isDisabled;
-            btn.className = `btn ${isDisabled ? 'btn-secondary' : 'btn-primary'} btn-small`;
-            
-            // Update tooltip
-            let buttonTitle = 'Research next level';
-            if (isQueueFull) buttonTitle = 'Research queue is full';
-            else if (!hasLab) buttonTitle = 'A Research Lab is required';
-            else if (!requirementsMet) buttonTitle = 'Requirements not met';
-            else if (!canAfford) buttonTitle = 'Insufficient resources';
-            btn.title = buttonTitle;
+            if (isQueueFull) {
+                btn.textContent = 'QUEUE FULL';
+            } else if (!requirementsMet) {
+                btn.textContent = 'LOCKED';
+            } else if (!hasLab) {
+                btn.textContent = 'LAB REQUIRED';
+            } else if (!canAfford) {
+                btn.textContent = 'INSUFFICIENT FUNDS';
+            } else {
+                btn.textContent = `INITIATE RESEARCH LVL ${nextLevelToQueue}`;
+            }
         }
-        
-        // Update locked class on card
-        if (!requirementsMet || !hasLab) card.classList.add('locked');
-        else card.classList.remove('locked');
     }
 }
 
@@ -283,7 +278,14 @@ function renderTheoreticalResearch() {
     }
 
     for (const category in grouped) {
-        html += `<div class="research-category"><h3>${category}</h3><div class="tech-list">`;
+        html += `
+            <div class="research-category">
+                <div class="category-header-technical">
+                    <h3>${category.toUpperCase()} DIVISION</h3>
+                    <span class="category-stats-tag">${grouped[category].length} TECHNOLOGIES AVAILABLE</span>
+                </div>
+                <div class="tech-list">`;
+        
         const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
         const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
         const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
@@ -301,43 +303,47 @@ function renderTheoreticalResearch() {
             const isDisabled = isQueueFull || !requirementsMet || researchLabLevel === 0;
 
             html += `
-        <div class="tech-card" data-tech="${tech.key}">
+        <div class="research-card" data-tech="${tech.key}">
           <div class="card-corner-top"></div>
-          <div class="tech-header" title="${tech.description}">
+          <div class="card-header" title="${tech.description}">
             <div class="header-main">
               <div class="title-row">
-                <h4>${tech.icon} ${tech.name}</h4>
+                <span class="name">${tech.icon} ${tech.name}</span>
               </div>
               <div class="blueprint-row">
-                <span class="level-indicator">Lvl ${level}</span>
+                <span class="level-indicator">CURRENT LEVEL: ${level}</span>
               </div>
             </div>
-            <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="View detailed information">ℹ️</button>
+            <div class="header-actions">
+                <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="Technical Data">ℹ️</button>
+            </div>
           </div>
           
           <div class="card-body">
             <div class="diagnostic-section">
-              <div class="section-tag">Requisition</div>
+              <div class="section-tag">Requisition Data</div>
               <div class="tech-costs">
-                <div class="cost-item" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
-                <div class="cost-item" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
-                ${nextLevelCost.deuterium > 0 ? `<div class="cost-item" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
+                <div class="cost-item">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
+                <div class="cost-item">💎 ${formatNumber(nextLevelCost.crystal)}</div>
+                ${nextLevelCost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
               </div>
             </div>
 
             <div class="diagnostic-section">
-              <div class="section-tag">Diagnostics</div>
+              <div class="section-tag">Project Timeline</div>
               <div class="tech-footer">
-                <span class="build-time">🕐 ${formatTime(nextLevelTime * 1000)}</span>
-                ${queuedCount > 0 ? `<span class="queued-badge">📋 QUEUED: ${queuedCount}</span>` : ''}
+                <span class="build-time" style="font-size: 0.8rem;">🕐 ${formatTime(nextLevelTime * 1000)}</span>
+                ${queuedCount > 0 ? `<span class="queued-badge" style="background: var(--accent-yellow); color: #000; padding: 1px 6px; font-weight: bold; border-radius: 1px;">QUEUED: ${queuedCount}</span>` : ''}
               </div>
             </div>
           </div>
 
           <div class="building-actions">
-            <button class="btn btn-primary upgrade-btn" onclick="window.startTheoreticalResearch('${tech.key}')">
-              Initialize Research
-            </button>
+            <div class="action-group">
+                <button class="btn upgrade-btn" style="padding: 12px !important; font-size: 0.8rem !important;" onclick="window.startTheoreticalResearch('${tech.key}')">
+                    INITIATE RESEARCH LVL ${nextLevelToQueue}
+                </button>
+            </div>
           </div>
         </div>`;
         }
