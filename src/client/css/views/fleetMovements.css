@@ -1,23 +1,24 @@
-/* High-Tech Sci-Fi Fleet Movements Bar */
+/* Modernized Sci-Fi Fleet Movements Bar */
 
 .fleet-movements-bar {
-    background: rgba(12, 18, 29, 0.9);
-    backdrop-filter: blur(10px);
+    background: rgba(12, 18, 29, 0.95);
+    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-color);
     padding: 0;
     display: none;
     width: 100%;
     position: relative;
     z-index: 100;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
 }
 
 .fleet-movements-bar.active {
     display: block;
 }
 
+/* 1. Technical Header */
 .fleet-header {
-    background: rgba(56, 189, 248, 0.05);
+    background: rgba(56, 189, 248, 0.03);
     padding: 8px 25px;
     display: flex;
     justify-content: space-between;
@@ -28,41 +29,86 @@
 }
 
 .fleet-header:hover {
-    background: rgba(56, 189, 248, 0.1);
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.header-left-group, .header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .header-title {
     font-family: 'Orbitron', sans-serif;
     font-weight: 900;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    color: var(--accent-blue);
-    letter-spacing: 1.5px;
+    color: #fff;
+    letter-spacing: 2px;
 }
 
+.header-stats-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent-blue);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 2px 8px;
+    border-radius: 1px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.header-status-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.fleet-header .toggle-icon {
+    color: var(--accent-blue);
+    font-size: 0.7rem;
+}
+
+/* 2. Structured Operation Rows */
 .fleet-list {
-    max-height: 250px;
+    max-height: 300px;
     overflow-y: auto;
+}
+
+.fleet-list.collapsed {
+    max-height: 0;
 }
 
 .fleet-row {
     display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1.5fr 120px 40px;
+    grid-template-columns: 1.8fr 1.5fr 1.2fr 100px;
     align-items: center;
-    padding: 6px 25px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    font-size: 0.8rem;
-    transition: background-color 0.2s;
+    padding: 8px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
 }
 
 .fleet-row:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .fleet-info-cell {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    min-width: 0;
+}
+
+.mission-status-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    min-width: 75px;
+    text-align: center;
 }
 
 .mission-name {
@@ -70,34 +116,42 @@
     font-weight: 700;
     font-size: 0.7rem;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .coords-cell {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.85rem;
     color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .coord-arrow {
     color: var(--accent-blue);
-    opacity: 0.5;
+    opacity: 0.3;
+    font-size: 0.7rem;
+    letter-spacing: -2px;
 }
 
 .clickable-coord {
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.2s;
     color: var(--accent-blue);
-    background: rgba(56, 189, 248, 0.05);
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: 0 2px;
 }
 
 .clickable-coord:hover {
     color: #fff;
-    background: var(--accent-blue);
+    text-shadow: 0 0 8px var(--accent-blue);
+}
+
+.time-cell {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
 }
 
 .fleet-timer {
@@ -106,43 +160,35 @@
     color: var(--accent-green);
     text-align: right;
     font-size: 0.9rem;
+    letter-spacing: 1px;
 }
 
-/* Mission Types Styling */
+/* Mission Specific Highlights */
+.mission-attack { border-left: 3px solid var(--accent-red); background: rgba(244, 63, 94, 0.02); }
 .mission-attack .mission-name { color: var(--accent-red); }
 .mission-attack .fleet-timer { color: var(--accent-red); }
+.mission-attack .mission-status-tag { border: 1px solid rgba(244, 63, 94, 0.2); }
 
+.mission-espionage { border-left: 3px solid var(--accent-yellow); }
 .mission-espionage .mission-name { color: var(--accent-yellow); }
 
+.mission-colonize { border-left: 3px solid var(--accent-green); }
 .mission-colonize .mission-name { color: var(--accent-green); }
 
+.mission-transport { border-left: 3px solid var(--accent-blue); }
 .mission-transport .mission-name { color: var(--accent-blue); }
 
+.mission-deploy { border-left: 3px solid #a29bfe; }
 .mission-deploy .mission-name { color: #a29bfe; }
 
+.mission-expedition { border-left: 3px solid #00cec9; }
 .mission-expedition .mission-name { color: #00cec9; }
 
-/* Global Tooltip Styling Overlay */
-.fleet-tooltip-fixed {
-    position: fixed;
-    background: #0c121d;
-    border: 1px solid var(--accent-blue);
-    border-radius: 2px;
-    padding: 12px;
-    z-index: 2000;
-    pointer-events: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-    min-width: 220px;
-    font-family: 'Share Tech Mono', monospace;
-}
+.mission-return .mission-status-tag { color: var(--accent-yellow); border: 1px solid rgba(251, 191, 36, 0.2); }
+.mission-stay .mission-status-tag { color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.2); }
 
-.tooltip-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 900;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--accent-blue);
-}
+/* Custom Scrollbar */
+.fleet-list::-webkit-scrollbar { width: 4px; }
+.fleet-list::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+.fleet-list::-webkit-scrollbar-thumb { background: #1e293b; }
+.fleet-list::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }

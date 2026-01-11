@@ -110,12 +110,18 @@ export function updateFleetMovements(gameState) {
         }
         
         const collapseClass = isCollapsed ? 'collapsed' : '';
-        const arrow = isCollapsed ? '▼' : '▲';
+        const statusText = isCollapsed ? 'DATA FEED COLLAPSED' : 'ACTIVE OPERATIONS';
         
         container.innerHTML = `
             <div id="fleet-header" class="fleet-header ${collapseClass}" onclick="window.toggleFleetMovements()">
-                <span class="header-title">Fleet Movements (${count})</span>
-                <span class="toggle-icon">${arrow}</span>
+                <div class="header-left-group">
+                    <span class="header-title">FLEET TELEMETRY FEED</span>
+                    <span class="header-stats-tag">${count} ACTIVE SIGNATURES</span>
+                </div>
+                <div class="header-right-group">
+                    <span class="header-status-text">${statusText}</span>
+                    <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
+                </div>
             </div>
             <div id="fleet-list" class="fleet-list ${collapseClass}">
                 ${sortedFleets.map(f => renderFleetRow(f)).join('')}
@@ -127,8 +133,8 @@ export function updateFleetMovements(gameState) {
         lastFleetSignature = currentSignature;
     } else {
         // Partial Update: Just update timers and header count
-        const title = header.querySelector('.header-title');
-        if (title) title.textContent = `Fleet Movements (${count})`;
+        const statsTag = header.querySelector('.header-stats-tag');
+        if (statsTag) statsTag.textContent = `${count} ACTIVE SIGNATURES`;
         
         sortedFleets.forEach(fleet => {
             const row = document.getElementById(`fleet-row-${fleet.id}`);
@@ -155,45 +161,25 @@ function renderFleetRow(fleet) {
     // Skip if expired (server will clean up)
     if (timeRemaining <= 0) return '';
     
-    let missionIcon = '🚀';
     let missionClass = 'mission-transport';
-    let missionName = fleet.missionType.charAt(0).toUpperCase() + fleet.missionType.slice(1);
+    let missionName = fleet.missionType.toUpperCase();
     
     switch (fleet.missionType) {
-        case 'attack':
-            missionIcon = '⚔️';
-            missionClass = 'mission-attack';
-            break;
-        case 'espionage':
-            missionIcon = '🕵️';
-            missionClass = 'mission-espionage';
-            break;
-        case 'colonize':
-            missionIcon = '🌱';
-            missionClass = 'mission-colonize';
-            break;
-        case 'transport':
-            missionIcon = '📦';
-            missionClass = 'mission-transport';
-            break;
-        case 'deploy':
-            missionIcon = '🏁';
-            missionClass = 'mission-deploy';
-            break;
-        case 'expedition':
-            missionIcon = '🚀';
-            missionClass = 'mission-expedition';
-            break;
+        case 'attack': missionClass = 'mission-attack'; break;
+        case 'espionage': missionClass = 'mission-espionage'; break;
+        case 'colonize': missionClass = 'mission-colonize'; break;
+        case 'transport': missionClass = 'mission-transport'; break;
+        case 'deploy': missionClass = 'mission-deploy'; break;
+        case 'expedition': missionClass = 'mission-expedition'; break;
     }
     
+    let statusLabel = 'EN ROUTE';
     if (isReturning) {
         missionClass += ' mission-return';
-        missionName = `${missionName} (Returning)`;
+        statusLabel = 'RETURNING';
     } else if (fleet.waiting) {
         missionClass += ' mission-stay';
-        missionName = `${missionName} (Exploring)`;
-    } else if (fleet.missionType === 'expedition') {
-        missionName = `${missionName} (Traveling)`;
+        statusLabel = 'OPERATING';
     }
 
     // Helper to generate clickable coord
@@ -211,12 +197,12 @@ function renderFleetRow(fleet) {
     // Generate ship list for tooltip
     const shipList = Object.entries(fleet.ships)
         .filter(([_, count]) => count > 0)
-        .map(([type, count]) => `${type}: ${count}`)
+        .map(([type, count]) => `${type.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}: ${count}`)
         .join('<br>');
         
     const resourceList = (fleet.resources && !isEmpty(fleet.resources)) ? Object.entries(fleet.resources)
         .filter(([_, amount]) => amount > 0)
-        .map(([type, amount]) => `${type}: ${amount}`)
+        .map(([type, amount]) => `${type.toUpperCase()}: ${amount}`)
         .join('<br>') : '';
         
     // Calculate estimated final return time for traveling/exploring expeditions
@@ -232,32 +218,32 @@ function renderFleetRow(fleet) {
             const stayMs = (fleet.stayTime || 1) * 60 * 60 * 1000;
             finalReturn = formatTime(fleet.arrivalTime + stayMs + travelDuration);
         }
-        timelineHtml = `<br><br><strong>Estimated Timeline:</strong><br>
-            • Arrives at Target: ${arrivalTime}<br>
-            • Return Arrival: ${finalReturn}`;
+        timelineHtml = `<br><br><strong>ESTIMATED TIMELINE:</strong><br>
+            • TARGET ARRIVAL: ${arrivalTime}<br>
+            • RETURN ARRIVAL: ${finalReturn}`;
     }
 
     const tooltipContent = `
-        <strong>Ships:</strong><br>${shipList}
-        ${resourceList ? `<br><br><strong>Resources:</strong><br>${resourceList}` : ''}
+        <strong>VESSEL COMPOSITION:</strong><br>${shipList}
+        ${resourceList ? `<br><br><strong>CARGO MANIFEST:</strong><br>${resourceList}` : ''}
         ${timelineHtml}
     `;
     
     return `
         <div id="fleet-row-${fleet.id}" class="fleet-row ${missionClass}">
             <div class="fleet-info-cell type-cell">
-                <span class="mission-icon">${missionIcon}</span>
+                <span class="mission-status-tag">${statusLabel}</span>
                 <span class="mission-name">${missionName}</span>
             </div>
             
             <div class="fleet-info-cell coords-cell">
                 <span class="coord-from">${originLink}</span>
-                <span class="coord-arrow">➔</span>
+                <span class="coord-arrow">>>></span>
                 <span class="coord-to">${targetLink}</span>
             </div>
             
             <div class="fleet-info-cell time-cell">
-                <span class="time-range">${startTime} - ${arrivalTime}</span>
+                <span class="time-range">${startTime} -> ${arrivalTime}</span>
             </div>
             
             <div class="fleet-info-cell timer-cell">
@@ -266,7 +252,7 @@ function renderFleetRow(fleet) {
             
             <!-- Hidden data for tooltip -->
             <div class="fleet-tooltip-data" style="display: none;">
-                <div class="fleet-tooltip-header-text">${missionName} Details</div>
+                <div class="fleet-tooltip-header-text">${missionName} OPS DETAILS</div>
                 <div class="fleet-tooltip-content">${tooltipContent}</div>
             </div>
         </div>
