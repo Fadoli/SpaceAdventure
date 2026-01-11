@@ -242,11 +242,11 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                         LOCKED: SHIPYARD LVL ${shipyardLevel}
                     </div>
                 ` : `
-                    <div class="action-group" style="width: 100%;">
+                    <div class="action-group" style="width: 100%; height: 38px;">
                         <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" min="1" max="100" data-id="${identifier}" 
-                               style="width: 80px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;">
+                               style="flex: 0 0 70px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; text-align: center;">
                         <button class="btn upgrade-btn" 
-                                style="padding: 10px !important; font-size: 0.75rem !important;"
+                                style="flex: 1; padding: 0 !important; font-size: 0.7rem !important; height: 100%; border: none !important; background: rgba(56, 189, 248, 0.08) !important;"
                                 id="btn-${identifier}"
                                 ${!canBuild ? 'disabled' : ''} 
                                 onclick="window.buildShip('${identifier}', '${name}')">
@@ -357,11 +357,11 @@ function renderDefensesList(planet, shipyardData) {
                                 LOCKED: SHIPYARD LVL ${minLevel}
                             </div>
                         ` : `
-                            <div class="action-group" style="width: 100%;">
+                            <div class="action-group" style="width: 100%; height: 38px;">
                                 <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" min="1" max="100" data-id="${defenseKey}"
-                                       style="width: 80px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;">
+                                       style="flex: 0 0 70px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; text-align: center;">
                                 <button class="btn upgrade-btn" 
-                                        style="padding: 10px !important; font-size: 0.75rem !important;"
+                                        style="flex: 1; padding: 0 !important; font-size: 0.7rem !important; height: 100%; border: none !important; background: rgba(56, 189, 248, 0.08) !important;"
                                         id="btn-${defenseKey}"
                                         ${!canBuild ? 'disabled' : ''} 
                                         onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
@@ -690,31 +690,66 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
         
         if (!ship) return;
     
-        const effects = [
-            { label: 'Attack Power', value: ship.attack, icon: '⚔️' },
-            { label: 'Shield Strength', value: ship.shield, icon: '🛡️' },
-            { label: 'Hull Integrity', value: ship.hull, icon: '❤️' },
-            { label: 'Engine Speed', value: formatNumber(ship.speed), icon: '🚀' },
-            { label: 'Cargo Capacity', value: formatNumber(ship.cargoCapacity), icon: '📦' },
-            { label: 'Fuel Usage', value: ship.fuel, icon: '🛢️' },
-            { label: 'Crew Requirement', value: ship.populationRequired, icon: '👥' }
-        ];
-    
-        const rapidFire = [];
+            const stats = [
+                { label: 'Attack Power', value: ship.attack, icon: '⚔️' },
+                { label: 'Shield Strength', value: ship.shield, icon: '🛡️' },
+                { label: 'Hull Integrity', value: ship.hull, icon: '❤️' },
+                { label: 'Engine Speed', value: formatNumber(ship.speed), icon: '🚀' },
+                { label: 'Cargo Capacity', value: formatNumber(ship.cargoCapacity), icon: '📦' },
+                { label: 'Fuel Consumption', value: ship.fuel, icon: '🛢️' },
+                { label: 'Crew Required', value: ship.populationRequired, icon: '👥' }
+            ];    
+        // Rapid Fire AGAINST others
+        const rapidFireAgainst = [];
         if (ship.rapidFire) {
             for (const target in ship.rapidFire) {
-                rapidFire.push({ label: `vs ${target.charAt(0).toUpperCase() + target.slice(1)}`, value: ship.rapidFire[target] });
+                const targetName = SHIPS[target]?.name || DEFENSES[target]?.name || target;
+                rapidFireAgainst.push({ label: targetName, value: ship.rapidFire[target] });
             }
+        }
+    
+        // Rapid Fire FROM others
+        const rapidFireFrom = [];
+        // Search all ships
+        for (const key in SHIPS) {
+            if (SHIPS[key].rapidFire && SHIPS[key].rapidFire[shipKey]) {
+                rapidFireFrom.push({ label: SHIPS[key].name, value: SHIPS[key].rapidFire[shipKey] });
+            }
+        }
+        // Search all defenses
+        for (const key in DEFENSES) {
+            if (DEFENSES[key].rapidFire && DEFENSES[key].rapidFire[shipKey]) {
+                rapidFireFrom.push({ label: DEFENSES[key].name, value: DEFENSES[key].rapidFire[shipKey] });
+            }
+        }
+    
+        let sections = [];
+        
+        if (rapidFireAgainst.length > 0) {
+            sections.push({
+                title: 'Offensive Systems (Rapid Fire)',
+                table: {
+                    headers: ['Target Unit', 'Multiplier'],
+                    rows: rapidFireAgainst.map(rf => [rf.label, `x${rf.value}`])
+                }
+            });
+        }
+    
+        if (rapidFireFrom.length > 0) {
+            sections.push({
+                title: 'Defensive Vulnerabilities',
+                table: {
+                    headers: ['Attacking Unit', 'Vulnerability'],
+                    rows: rapidFireFrom.map(rf => [rf.label, `x${rf.value}`])
+                }
+            });
         }
     
         renderDetailsModal({
             title: `${ship.icon} ${name}`,
             description: ship.description,
-            effects: effects,
-            table: rapidFire.length > 0 ? {
-                headers: ['Rapid Fire Target', 'Multiplier'],
-                rows: rapidFire.map(rf => [rf.label, `x${rf.value}`])
-            } : null
+            effects: stats,
+            sections: sections
         });
     };
     
@@ -725,30 +760,65 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
         const defense = currentShipyardData.availableDefenses[defenseKey];
         if (!defense) return;
     
-        const effects = [
+        const stats = [
             { label: 'Attack Power', value: defense.attack, icon: '⚔️' },
             { label: 'Shield Strength', value: defense.shield, icon: '🛡️' },
             { label: 'Hull Integrity', value: defense.hull, icon: '❤️' }
         ];
     
-        const rapidFire = [];
+        // Rapid Fire AGAINST others
+        const rapidFireAgainst = [];
         if (defense.rapidFire) {
             for (const target in defense.rapidFire) {
-                rapidFire.push({ label: `vs ${target.charAt(0).toUpperCase() + target.slice(1)}`, value: defense.rapidFire[target] });
+                const targetName = SHIPS[target]?.name || DEFENSES[target]?.name || target;
+                rapidFireAgainst.push({ label: targetName, value: defense.rapidFire[target] });
             }
+        }
+    
+        // Rapid Fire FROM others
+        const rapidFireFrom = [];
+        // Search all ships
+        for (const key in SHIPS) {
+            if (SHIPS[key].rapidFire && SHIPS[key].rapidFire[defenseKey]) {
+                rapidFireFrom.push({ label: SHIPS[key].name, value: SHIPS[key].rapidFire[defenseKey] });
+            }
+        }
+        // Search all defenses
+        for (const key in DEFENSES) {
+            if (DEFENSES[key].rapidFire && DEFENSES[key].rapidFire[defenseKey]) {
+                rapidFireFrom.push({ label: DEFENSES[key].name, value: DEFENSES[key].rapidFire[defenseKey] });
+            }
+        }
+    
+        let sections = [];
+        
+        if (rapidFireAgainst.length > 0) {
+            sections.push({
+                title: 'Offensive Systems (Rapid Fire)',
+                table: {
+                    headers: ['Target Unit', 'Multiplier'],
+                    rows: rapidFireAgainst.map(rf => [rf.label, `x${rf.value}`])
+                }
+            });
+        }
+    
+        if (rapidFireFrom.length > 0) {
+            sections.push({
+                title: 'Vulnerability Analysis',
+                table: {
+                    headers: ['Attacking Unit', 'Vulnerability'],
+                    rows: rapidFireFrom.map(rf => [rf.label, `x${rf.value}`])
+                }
+            });
         }
     
         renderDetailsModal({
             title: `${defense.icon} ${defense.name}`,
             description: defense.description,
-            effects: effects,
-            table: rapidFire.length > 0 ? {
-                headers: ['Rapid Fire Target', 'Multiplier'],
-                rows: rapidFire.map(rf => [rf.label, `x${rf.value}`])
-            } : null
+            effects: stats,
+            sections: sections
         });
-    };
-/**
+    };/**
  * Calculate defense build time (client-side estimate)
  */
 function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1, naniteLevel = 0) {

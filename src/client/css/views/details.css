@@ -1,96 +1,110 @@
 /* High-Tech Sci-Fi Detailed Info Modal */
 
-.details-effects strong, 
-#details-modal-body h4 {
-    display: block;
-    margin-top: 20px;
-    margin-bottom: 10px;
-    color: var(--accent-green);
-    text-transform: uppercase;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.85rem;
-    letter-spacing: 1.5px;
-}
-
-#details-modal-body ul {
-    list-style: none;
-    margin: 15px 0;
-    padding: 0;
-}
-
-#details-modal-body li {
-    margin-bottom: 8px;
-    color: var(--text-secondary);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#details-modal-body li::before {
-    content: ">";
-    color: var(--accent-blue);
-    font-weight: 900;
-}
-
 .details-description {
     color: var(--text-secondary);
-    margin: 25px 0;
-    padding: 15px 20px;
-    background: rgba(0, 0, 0, 0.2);
+    margin: 15px 0 25px 0;
+    padding: 12px 15px;
+    background: rgba(56, 189, 248, 0.03);
     border-radius: 2px;
-    border-left: 4px solid var(--accent-blue);
-    line-height: 1.6;
-    font-size: 0.95rem;
+    border-left: 3px solid var(--accent-blue);
+    line-height: 1.5;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
 }
 
-.details-effects {
-    color: var(--text-primary);
-    margin: 25px 0;
-    padding: 15px 20px;
-    background: rgba(74, 222, 128, 0.03);
-    border-radius: 2px;
-    border-left: 4px solid var(--accent-green);
+/* Diagnostic Stats Grid */
+.diagnostic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.stat-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stat-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: bold;
+}
+
+.stat-icon {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* Section Styling */
+.details-section {
+    margin-bottom: 25px;
+}
+
+.section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    padding-bottom: 4px;
+    display: inline-block;
 }
 
 /* Stats Table within Modal */
 .stats-table-container {
     overflow-x: auto;
-    margin-top: 30px;
-    border: 1px solid #1e293b;
-    border-radius: 2px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .stats-table {
     width: 100%;
     border-collapse: collapse;
-    background: #0c121d;
 }
 
 .stats-table th {
-    background: rgba(255, 255, 255, 0.03);
-    color: var(--accent-blue);
-    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    padding: 10px 15px;
     text-align: left;
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 900;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .stats-table td {
-    padding: 12px 15px;
+    padding: 8px 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    color: #fff;
 }
 
 .stats-table tr:hover td {
-    background: rgba(56, 189, 248, 0.02);
+    background: rgba(56, 189, 248, 0.03);
 }
 
 .current-level-row {
@@ -100,7 +114,6 @@
 .current-level-row td {
     font-weight: bold;
     color: var(--accent-green);
-    text-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
 }
 
 .details-footer {
@@ -108,7 +121,7 @@
     padding-top: 15px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     opacity: 0.6;
     text-align: center;

@@ -31,45 +31,82 @@ export function renderDetailsModal(data) {
     // Build Content
     let html = `<div class="details-description">${data.detailedDescription || data.description}</div>`;
 
-    // Render Effects
+    // Render Stats (formerly effects)
     if (data.effects) {
         if (typeof data.effects === 'string') {
             html += data.effects;
         } else if (Array.isArray(data.effects) && data.effects.length > 0) {
-            html += `<div class="details-effects">`;
-            data.effects.forEach(effect => {
-                if (effect.title) html += `<strong>${effect.title}</strong>`;
-                if (effect.items) {
-                    html += `<ul>${effect.items.map(item => `<li>${item}</li>`).join('')}</ul>`;
-                } else if (effect.label && effect.value) {
-                    html += `<div>${effect.label}: ${effect.value}</div>`;
+            html += `<div class="diagnostic-grid">`;
+            data.effects.forEach(stat => {
+                if (stat.label && stat.value !== undefined) {
+                    html += `
+                        <div class="stat-box">
+                            <div class="stat-header">
+                                <span class="stat-icon">${stat.icon || ''}</span>
+                                <span class="stat-label">${stat.label.toUpperCase()}</span>
+                            </div>
+                            <div class="stat-value">${stat.value}</div>
+                        </div>`;
                 }
             });
             html += `</div>`;
         }
     }
 
-    // Render Table
-    if (data.table && data.table.headers && data.table.rows) {
-        html += `<div class="stats-table-container">
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        ${data.table.headers.map(h => `<th>${h}</th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody>
-                    ${data.table.rows.map((row, index) => {
-                        const isHighlight = index === data.table.highlightRowIndex;
-                        const rowClass = isHighlight ? 'current-level-row' : '';
-                        return `
-                            <tr class="${rowClass}">
-                                ${row.map(cell => `<td>${cell}</td>`).join('')}
+    // Render Sections (for Rapid Fire, etc.)
+    if (data.sections && Array.isArray(data.sections)) {
+        data.sections.forEach(section => {
+            html += `<div class="details-section">
+                <div class="section-title">${section.title.toUpperCase()}</div>`;
+            
+            if (section.table) {
+                html += `
+                <div class="stats-table-container">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                ${section.table.headers.map(h => `<th>${h}</th>`).join('')}
                             </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
+                        </thead>
+                        <tbody>
+                            ${section.table.rows.map(row => `
+                                <tr>
+                                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+            }
+            
+            html += `</div>`;
+        });
+    }
+
+    // Legacy Table support
+    if (data.table && data.table.headers && data.table.rows) {
+        html += `
+        <div class="details-section">
+            <div class="stats-table-container">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            ${data.table.headers.map(h => `<th>${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.table.rows.map((row, index) => {
+                            const isHighlight = index === data.table.highlightRowIndex;
+                            const rowClass = isHighlight ? 'current-level-row' : '';
+                            return `
+                                <tr class="${rowClass}">
+                                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
         </div>`;
     }
 
@@ -81,8 +118,6 @@ export function renderDetailsModal(data) {
     modalBody.innerHTML = html;
     modal.style.display = 'block';
 
-    // Event listeners for closing are handled globally or set up once
-    // We ensure they are set up here just in case, but ideally should be in main.js or init
     setupModalCloseHandlers(modal);
 }
 
