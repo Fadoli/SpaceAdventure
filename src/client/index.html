@@ -164,17 +164,19 @@
                     <h2 id="details-modal-title"></h2>
                     <span class="modal-close" onclick="window.closeDetailsModal()">&times;</span>
                 </div>
-                <div id="details-modal-body"></div>
+                <div id="details-modal-body" class="modal-body"></div>
             </div>
         </div>
 
         <!-- Input/Confirm Modal -->
         <div id="input-modal" class="modal">
             <div class="modal-content modal-small">
-                <span class="modal-close" onclick="window.closeInputModal()">&times;</span>
-                <h2 id="input-modal-title">Confirm Action</h2>
-                <div id="input-modal-body"></div>
-                <div id="input-modal-field-container" style="display: none; margin: 15px 0;">
+                <div class="modal-header">
+                    <h2 id="input-modal-title">Confirm Action</h2>
+                    <span class="modal-close" onclick="window.closeInputModal()">&times;</span>
+                </div>
+                <div id="input-modal-body" class="modal-body"></div>
+                <div id="input-modal-field-container" style="display: none; padding: 0 25px; margin-bottom: 15px;">
                     <input type="text" id="input-modal-field" class="modal-input">
                 </div>
                 <div class="modal-footer">
