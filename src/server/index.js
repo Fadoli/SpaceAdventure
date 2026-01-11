@@ -415,6 +415,11 @@ async function handleRequest(req) {
       }
       
       const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json();
       const { building } = body;
       
@@ -434,6 +439,11 @@ async function handleRequest(req) {
       }
       
       const planetId = path.split('/')[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json().catch(() => ({}));
       const queuePosition = body.queuePosition || 1;
       
@@ -455,6 +465,12 @@ async function handleRequest(req) {
       const pathParts = path.split('/');
       const planetId = pathParts[3];
       const buildingType = pathParts[5];
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json();
       const { power, population } = body;
       
@@ -476,6 +492,12 @@ async function handleRequest(req) {
       const pathParts = path.split('/');
       const planetId = pathParts[4];
       const buildingType = pathParts[6];
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json();
       const { toCustom } = body;
       
@@ -498,15 +520,11 @@ async function handleRequest(req) {
       const planetId = pathParts[4];
       const buildingType = pathParts[6];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
-      
       try {
         // Get available variants with their focus combinations
         const baseCost = getBuildingCost(buildingType, planet.buildings[buildingType] || 1);
@@ -583,6 +601,12 @@ async function handleRequest(req) {
       const pathParts = path.split('/');
       const planetId = pathParts[4];
       const buildingType = pathParts[6];
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json();
       const { focusLevels } = body;
       
@@ -596,7 +620,6 @@ async function handleRequest(req) {
           return successResponse(req, result);
         } else {
           // Switch to custom variant with the specified focus levels
-          const player = await getPlayerByUserId(user.id);
           selectCustomBuildingVariant(player, planetId, buildingType, focusLevels);
           const result = await queueVariantSwitch(user.id, planetId, buildingType, true);
           return successResponse(req, result);
@@ -636,15 +659,12 @@ async function handleRequest(req) {
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
-      
+
       // Calculate building details for each building type
       const buildingsDetails = {};
       const maxQueueSize = getBuildQueueSize();
@@ -834,6 +854,11 @@ async function handleRequest(req) {
       const parts = path.split('/');
       const planetId = parts[4];
       
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json();
       const { allocations } = body;
       
@@ -860,6 +885,11 @@ async function handleRequest(req) {
       const planetId = parts[4];
       const buildingType = parts[6];
       
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
       const body = await req.json();
       const { power, population, priority } = body;
       
@@ -884,14 +914,11 @@ async function handleRequest(req) {
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
       
       // Process any completed production
       processCompletedProduction(planet);
@@ -950,14 +977,11 @@ async function handleRequest(req) {
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
       
       const body = await req.json();
       const { ships } = body;
@@ -987,14 +1011,11 @@ async function handleRequest(req) {
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
       
       const body = await req.json();
       const { defenses } = body;
@@ -1025,18 +1046,15 @@ async function handleRequest(req) {
       const parts = path.split('/');
       const planetId = parts[4];
       const queueId = parts[6];
-      const body = await req.json().catch(() => ({}));
-      const type = body.type || 'ships';
       
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
+      const body = await req.json().catch(() => ({}));
+      const type = body.type || 'ships';
       
       try {
         const result = cancelProduction(planet, queueId, type);
@@ -1063,14 +1081,11 @@ async function handleRequest(req) {
       
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
       
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
       
       // Process any completed production
       processCompletedProduction(planet);
@@ -1301,24 +1316,18 @@ async function handleRequest(req) {
 
     // POST /api/game/planet/:planetId/research/theoretical - Start theoretical research
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/theoretical$/) && method === 'POST') {
-      console.log('POST /api/game/planet/:planetId/research/theoretical');
       const user = await requireAuth(req);
       if (!user) {
         return errorResponse(req, 'Not authenticated', 401);
       }
 
       const planetId = path.split('/')[4];
-      console.log('Planet ID:', planetId);
-      
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
 
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
 
       const body = await req.json();
       const { techKey } = body;
@@ -1343,12 +1352,12 @@ async function handleRequest(req) {
 
       const parts = path.split('/');
       const planetId = parts[4];
-      const queueId = parts[7];
-
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
+      
+      const queueId = parts[7];
 
       try {
         const refund = cancelTheoreticalResearch(player, queueId, planetId);
@@ -1369,14 +1378,11 @@ async function handleRequest(req) {
 
       const planetId = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
 
       const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) {
-        return errorResponse(req, 'Planet not found', 404);
-      }
 
       const body = await req.json();
       const { researchKey, allocation, strength } = body;
@@ -1409,12 +1415,12 @@ async function handleRequest(req) {
 
       const parts = path.split('/');
       const planetId = parts[4];
-      const queueId = parts[7];
-
       const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
       }
+      
+      const queueId = parts[7];
 
       try {
         const refund = cancelPracticalResearch(player, queueId, planetId);
@@ -1472,6 +1478,11 @@ async function handleRequest(req) {
 
       const parts = path.split('/');
       const planetId = parts[4];
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+      
       const baseType = parts[6];
       const body = await req.json();
       const { blueprintId } = body;
