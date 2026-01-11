@@ -1,112 +1,250 @@
-/* Sci-Fi Galaxy Map */
+/* High-Tech Sci-Fi Galaxy View */
 
-.galaxy-controls {
+.ogame-galaxy-view {
     display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 1. Navigation Panel */
+.galaxy-nav-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
     background: #0c121d;
-    padding: 15px;
+    padding: 15px 25px;
     border-radius: 4px;
     border: 1px solid #1e293b;
-    align-items: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-.galaxy-input-group {
+.nav-item-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
-.galaxy-input-group label {
+.nav-item-label {
+    font-family: 'Orbitron', sans-serif;
     font-size: 0.75rem;
-    font-weight: 800;
+    font-weight: 900;
     text-transform: uppercase;
     color: var(--text-secondary);
+    letter-spacing: 1px;
 }
 
-.galaxy-input {
+.nav-coord-input {
     width: 70px;
+    height: 30px;
     background: #05080f;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--accent-blue);
     color: #fff;
-    padding: 6px 10px;
-    font-family: 'Courier New', monospace;
+    padding: 0 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
     font-weight: bold;
+    text-align: center;
     border-radius: 2px;
+    outline: none;
+    box-shadow: inset 0 0 5px rgba(56, 189, 248, 0.2);
 }
 
-.galaxy-table-container {
+.nav-arrow-btn {
+    background: transparent;
+    border: 1px solid #2a3650;
+    color: var(--accent-blue);
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.nav-arrow-btn:hover {
+    border-color: var(--accent-blue);
+    background: rgba(56, 189, 248, 0.1);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.nav-show-btn {
+    font-family: 'Orbitron', sans-serif !important;
+    padding: 0 20px !important;
+    height: 30px;
+}
+
+/* 2. System Table */
+.ogame-table-wrapper {
     background: #0c121d;
     border: 1px solid #1e293b;
     border-radius: 4px;
     overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-.galaxy-table {
+.ogame-system-table {
     width: 100%;
     border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
 }
 
-.galaxy-table th {
+.ogame-system-table th {
     background: rgba(255, 255, 255, 0.03);
     padding: 12px 15px;
     text-align: left;
+    font-family: 'Orbitron', sans-serif;
     font-size: 0.7rem;
+    font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     color: var(--accent-blue);
     border-bottom: 1px solid var(--border-color);
 }
 
-.galaxy-table td {
-    padding: 10px 15px;
+.ogame-system-table td {
+    padding: 8px 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-    font-size: 0.85rem;
+    vertical-align: middle;
 }
 
-.galaxy-table tr:hover td {
+.ogame-system-table tr:hover td {
     background: rgba(56, 189, 248, 0.02);
 }
 
-.pos-cell {
-    font-family: 'Courier New', monospace;
-    font-weight: 900;
-    color: var(--text-secondary);
-    width: 50px;
-}
+/* Column Specifics */
+.pos-col { width: 50px; text-align: center; }
+.pos-col strong { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: var(--text-secondary); }
 
+.planet-col { min-width: 200px; }
+.debris-col { width: 120px; }
+.player-col { min-width: 150px; }
+.status-col { width: 150px; }
+.action-col { width: 180px; text-align: right; }
+
+/* Planet Cell */
 .planet-name-cell {
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.planet-icon-mini { font-size: 1.2rem; }
+
+.planet-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
     color: #fff;
+    text-transform: uppercase;
 }
 
-.player-name-cell {
-    color: var(--accent-blue);
-    font-weight: 600;
-}
-
-.status-cell {
-    font-size: 0.75rem;
+.planet-activity {
+    font-size: 0.65rem;
     color: var(--text-secondary);
+    font-family: 'Share Tech Mono', monospace;
 }
 
-.action-cell {
-    text-align: right;
-}
-
-.btn-galaxy-action {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-    padding: 4px 10px;
+/* Debris Cell */
+.debris-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 8px;
     border-radius: 2px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-.btn-galaxy-action:hover {
-    background: var(--accent-blue);
-    color: var(--bg-primary);
+.debris-icon { font-size: 0.8rem; }
+.debris-info small { font-family: 'Share Tech Mono', monospace; color: var(--accent-green); font-size: 0.75rem; }
+
+/* Player Cell */
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-blue);
+}
+
+/* Status Badge */
+.status-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-own { background: rgba(74, 222, 128, 0.1); color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.2); }
+.status-other { background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.2); }
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.action-btn:hover:not(:disabled) {
     border-color: var(--accent-blue);
+    background: rgba(56, 189, 248, 0.1);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.action-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Special Rows */
+.my-planet-row td {
+    background: rgba(74, 222, 128, 0.02);
+}
+
+.my-planet-row .planet-name {
+    color: var(--accent-green);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+}
+
+.empty-row .pos-col strong { opacity: 0.3; }
+.empty-cell { color: rgba(255, 255, 255, 0.1); }
+
+.expedition-row {
+    border-top: 2px solid rgba(56, 189, 248, 0.2);
+}
+
+.expedition-row td {
+    padding: 12px 15px !important;
+}
+
+.expedition-btn {
+    width: auto !important;
+    padding: 0 15px !important;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem !important;
+    font-weight: 900;
+    letter-spacing: 1px;
 }

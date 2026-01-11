@@ -251,9 +251,9 @@ function renderTheoreticalResearch() {
     if (queue.length > 0) {
         html += `
       <div class="research-queue-section">
-        <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <h3 style="margin: 0;">🔬 Research Queue (${queue.length}/${maxQueue})</h3>
-          <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
+        <div class="queue-header" onclick="window.toggleResearchQueueVisibility()">
+          <h3>🔬 Research Queue (${queue.length}/${maxQueue})</h3>
+          <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
         </div>
         <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
     `;
@@ -295,28 +295,51 @@ function renderTheoreticalResearch() {
             const nextLevelToQueue = level + 1 + queuedCount;
             const nextLevelTime = calculateTheoreticalResearchTime(tech, nextLevelToQueue - 1, researchLabLevel, researchSpeedBonus, configMultiplier);
             const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
+            
+            const requirementsMet = canResearchTheoretical(tech.key, playerTech, currentPlanetBuildings);
+            const isQueueFull = queue.length >= maxQueue;
+            const isDisabled = isQueueFull || !requirementsMet || researchLabLevel === 0;
 
             html += `
         <div class="tech-card" data-tech="${tech.key}">
-          <div class="tech-header">
-            <span class="tech-icon">${tech.icon}</span>
-            <div class="tech-name">
-              <h4>${tech.name}</h4>
-              <span class="tech-level">Level: ${level}</span>
+          <div class="card-corner-top"></div>
+          <div class="card-corner-bottom"></div>
+          <div class="tech-header" title="${tech.description}">
+            <div class="header-main">
+              <div class="title-row">
+                <span class="status-led ${isDisabled ? 'led-off' : 'led-on'}"></span>
+                <h4>${tech.icon} ${tech.name}</h4>
+              </div>
+              <div class="blueprint-row">
+                <span class="level-indicator">Lvl ${level}</span>
+              </div>
             </div>
             <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="View detailed information">ℹ️</button>
           </div>
-          <div class="tech-costs">
-            <div class="cost-item" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
-            <div class="cost-item" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
-            ${nextLevelCost.deuterium > 0 ? `<div class="cost-item" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
-          </div>
-          <div class="tech-footer">
-            <span class="build-time">🕐 ${formatTime(nextLevelTime * 1000)}</span>
-            <div class="tech-actions">
-              ${queuedCount > 0 ? `<span class="queued-badge">📋 ${queuedCount}</span>` : ''}
-              <button class="btn btn-primary btn-small" onclick="window.startTheoreticalResearch('${tech.key}')">Research</button>
+          
+          <div class="card-body">
+            <div class="diagnostic-section">
+              <div class="section-tag">Requisition</div>
+              <div class="tech-costs">
+                <div class="cost-item" title="Metal">⚙️ ${formatNumber(nextLevelCost.metal)}</div>
+                <div class="cost-item" title="Crystal">💎 ${formatNumber(nextLevelCost.crystal)}</div>
+                ${nextLevelCost.deuterium > 0 ? `<div class="cost-item" title="Deuterium">🛢️ ${formatNumber(nextLevelCost.deuterium)}</div>` : ''}
+              </div>
             </div>
+
+            <div class="diagnostic-section">
+              <div class="section-tag">Diagnostics</div>
+              <div class="tech-footer">
+                <span class="build-time">🕐 ${formatTime(nextLevelTime * 1000)}</span>
+                ${queuedCount > 0 ? `<span class="queued-badge">📋 QUEUED: ${queuedCount}</span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="building-actions">
+            <button class="btn btn-primary upgrade-btn" onclick="window.startTheoreticalResearch('${tech.key}')">
+              Initialize Research
+            </button>
           </div>
         </div>`;
         }
@@ -381,9 +404,9 @@ async function renderPracticalResearch() {
         if (queue.length > 0) {
             html += `
         <div class="research-queue-section">
-          <div class="queue-header" onclick="window.toggleResearchQueueVisibility()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <h3 style="margin: 0;">🔬 Active Experiments (${queue.length}/${maxQueue})</h3>
-            <span style="font-size: 0.8rem; color: var(--text-secondary);">${researchQueueVisible ? '🔼' : '🔽'}</span>
+          <div class="queue-header" onclick="window.toggleResearchQueueVisibility()">
+            <h3>🔬 Active Experiments (${queue.length}/${maxQueue})</h3>
+            <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
           </div>
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
       `;
@@ -463,51 +486,66 @@ async function renderPracticalResearch() {
 
             html += `
         <div class="research-card ${isDisabled ? 'locked' : ''}">
+          <div class="card-corner-top"></div>
+          <div class="card-corner-bottom"></div>
           <div class="card-header" title="${res.description}">
-            <span class="icon">${res.icon}</span>
-            <span class="name">${res.name}</span>
-            <span class="eff-multiplier" title="Total Bonus: +${((totalEfficiency - 1) * 100).toFixed(0)}% (from ${bankedBreakthroughs} banked breakthroughs)">+${((totalEfficiency - 1) * 100).toFixed(0)}%</span>
+            <div class="header-main">
+              <div class="title-row">
+                <span class="status-led led-on"></span>
+                <span class="name">${res.icon} ${res.name}</span>
+              </div>
+              <div class="blueprint-row">
+                <span class="eff-multiplier" title="Total Bonus: +${((totalEfficiency - 1) * 100).toFixed(0)}% (from ${bankedBreakthroughs} banked breakthroughs)">+${((totalEfficiency - 1) * 100).toFixed(0)}% XP GEN</span>
+              </div>
+            </div>
+            <button class="btn-info" onclick="window.showResearchHistory('${res.baseType}')" title="View historical data">📋</button>
           </div>
           <div class="card-body">
-            <div class="xp-section">
-                ${['output', 'automation', 'energy', 'cost'].map(f => {
-                    const level = levels[f];
-                    const nextXp = Math.pow(level + 1, 2) * 100;
-                    const currentXp = exp[f];
-                    const prevXp = Math.pow(level, 2) * 100;
-                    const progress = Math.min(100, ((currentXp - prevXp) / (nextXp - prevXp)) * 100);
-                    
-                    return `
-                        <div class="xp-row" title="${currentXp} / ${nextXp} XP">
-                            <div class="xp-label"><span>${f.toUpperCase()}</span><span>Lvl ${level}</span></div>
-                            <div class="xp-bar-container"><div class="xp-bar-fill focus-${f}" style="width: ${progress}%"></div></div>
-                        </div>
-                    `;
-                }).join('')}
+            <div class="diagnostic-section">
+              <div class="section-tag">Focus Levels</div>
+              <div class="xp-section">
+                  ${['output', 'automation', 'energy', 'cost'].map(f => {
+                      const level = levels[f];
+                      const nextXp = Math.pow(level + 1, 2) * 100;
+                      const currentXp = exp[f];
+                      const prevXp = Math.pow(level, 2) * 100;
+                      const progress = Math.min(100, ((currentXp - prevXp) / (nextXp - prevXp)) * 100);
+                      
+                      return `
+                          <div class="xp-row" title="${currentXp} / ${nextXp} XP">
+                              <div class="xp-label"><span>${f.toUpperCase()}</span><span>Lvl ${level}</span></div>
+                              <div class="xp-bar-container"><div class="xp-bar-fill focus-${f}" style="width: ${progress}%"></div></div>
+                          </div>
+                      `;
+                  }).join('')}
+              </div>
             </div>
 
-            <div class="efficiency-summary">
-                <span class="bt-stat" title="Current breakthroughs found in this run. Bank them by resetting.">
-                    <strong class="current-breakthroughs-val">${currentBreakthroughs}</strong> 🌟
-                </span>
-                <span class="bt-stat" title="Banked breakthroughs (Permanent).">
-                    <strong>${bankedBreakthroughs}</strong> 💎
-                </span>
+            <div class="diagnostic-section">
+              <div class="section-tag">Breakthroughs</div>
+              <div class="efficiency-summary">
+                  <span class="bt-stat" title="Current breakthroughs found in this run. Bank them by resetting.">
+                      <strong class="current-breakthroughs-val">${currentBreakthroughs}</strong> 🌟
+                  </span>
+                  <span class="bt-stat" title="Banked breakthroughs (Permanent).">
+                      <strong>${bankedBreakthroughs}</strong> 💎
+                  </span>
+              </div>
             </div>
           </div>
-          <div class="card-footer">
-            <button class="btn btn-secondary btn-small" onclick="window.showResearchHistory('${res.baseType}')">📋 History</button>
-            <button class="btn btn-danger btn-small" onclick="window.resetPracticalResearchUI('${res.baseType}')" 
-                    title="Bank current breakthroughs and reset levels.">
-                ♻️ Reset
-            </button>
-            <button class="btn btn-success btn-small btn-create-variant" ${!canCreate ? 'disabled' : ''} 
-                    onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)">
-                🔧 Create (${currentBlueprints}/${MAX_BLUEPRINTS})
-            </button>
-            <button class="btn btn-primary" ${isDisabled ? 'disabled' : ''} onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
-              🔬 Run Experiment
-            </button>
+          <div class="building-actions">
+            <div class="action-group">
+              <button class="btn upgrade-btn" onclick="openAllocationModal('${key}', '${res.name}', '${res.baseType}', '${res.icon}', event)">
+                🔬 Run Experiment
+              </button>
+              <button class="btn design-btn" onclick="window.buildCustomVariantFromResearch('${res.baseType}', 'building', event)" 
+                      ${!canCreate ? 'disabled' : ''} title="Create design (${currentBlueprints}/${MAX_BLUEPRINTS})">
+                🔧
+              </button>
+              <button class="btn design-btn" onclick="window.resetPracticalResearchUI('${res.baseType}')" title="Reset / Bank breakthroughs">
+                ♻️
+              </button>
+            </div>
           </div>
         </div>`;
         }

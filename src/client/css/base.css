@@ -380,6 +380,135 @@ body::before {
     text-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
 }
 
+/* Shared Queue Styles */
+.queue-container-base, .build-queue-summary, .research-queue-section {
+    background: #0a0e1a;
+    border: 1px solid #252e46;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.queue-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.progress-bar-mini {
+    flex: 2;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-yellow);
+    box-shadow: 0 0 10px var(--accent-yellow);
+    transition: width 1s linear;
+}
+
+.btn-cancel-small {
+    background: transparent;
+    border: none;
+    color: var(--accent-red);
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    transition: all 0.2s;
+    padding: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-cancel-small:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.q-pos {
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    color: var(--text-secondary);
+    width: 20px;
+}
+
+.q-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex: 1;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.q-time-mini {
+    width: 80px;
+    text-align: right;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent-green);
+    font-size: 0.75rem;
+}
+
+.queue-item-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.queue-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.queue-item.active {
+    border-color: var(--accent-yellow);
+    background: rgba(251, 191, 36, 0.03);
+}
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 10px;
+}
+
+.queue-header h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    margin: 0;
+    color: var(--accent-yellow);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.toggle-icon {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.lock-icon {
+    font-size: 0.7rem;
+    color: var(--accent-red);
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+}
+
 /* Sci-Fi Cards (Base) */
 .card-base {
     background: var(--bg-secondary);

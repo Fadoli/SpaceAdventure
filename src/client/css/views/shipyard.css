@@ -34,28 +34,6 @@
     margin-bottom: 10px;
 }
 
-.category-header {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-}
-
-.category-header h3, .category-header h4 {
-    margin: 0;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--accent-blue);
-    flex: 1;
-}
-
-.toggle-icon { font-size: 0.7rem; opacity: 0.6; }
-.lock-icon { font-size: 0.7rem; color: var(--accent-red); font-family: monospace; }
-
 .ships-grid, .defenses-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -210,20 +188,4 @@
     flex-direction: column;
     gap: 5px;
     padding: 10px;
-}
-
-.queue-item {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 6px 12px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.75rem;
-}
-
-.queue-item.active {
-    border-color: var(--accent-yellow);
-    background: rgba(251, 191, 36, 0.03);
 }

@@ -149,10 +149,12 @@ function renderShipsList(planet, shipyardData) {
         const isLocked = shipyardLevel < data.minLevel;
         
         html += `<div class="shipyard-section">
-            <div class="category-header" onclick="window.toggleCategory('ships-${category}')">
-                <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
-                <h4>${data.label}</h4>
-                ${isLocked ? `<span class="lock-icon">🔒 Requires Level ${data.minLevel}</span>` : ''}
+            <div class="queue-header" onclick="window.toggleCategory('ships-${category}')">
+                <h3>${data.label}</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    ${isLocked ? `<span class="lock-icon">🔒 Level ${data.minLevel}</span>` : ''}
+                    <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+                </div>
             </div>`;
         
         if (!isCollapsed) {
@@ -265,10 +267,12 @@ function renderDefensesList(planet, shipyardData) {
     const isLocked = shipyardLevel < minLevel;
     
     let html = '<div class="shipyard-section">';
-    html += `<div class="category-header" onclick="window.toggleCategory('defenses')">
-        <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+    html += `<div class="queue-header" onclick="window.toggleCategory('defenses')">
         <h3>🛡️ Planetary Defenses</h3>
-        ${isLocked ? `<span class="lock-icon">🔒 Requires Level ${minLevel}</span>` : ''}
+        <div style="display: flex; gap: 10px; align-items: center;">
+            ${isLocked ? `<span class="lock-icon">🔒 Level ${minLevel}</span>` : ''}
+            <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+        </div>
     </div>`;
     
     if (!isCollapsed) {
@@ -342,9 +346,9 @@ function renderBuildQueue(shipyardData) {
     }
     
     let html = '<div class="shipyard-section">';
-    html += `<div class="category-header" onclick="window.toggleCategory('queue')">
-        <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+    html += `<div class="queue-header" onclick="window.toggleCategory('queue')">
         <h3>📋 Build Queue</h3>
+        <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
     </div>`;
     
     if (!isCollapsed) {

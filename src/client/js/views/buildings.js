@@ -140,20 +140,25 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
             allocationBadge = `<div id="allocation-badge-${key}" class="allocation-badge-container"></div>`;
         }
 
-        const isCustom = building.currentVariant !== 'base';
+        const isOperational = (planet.actualAllocations?.[key]?.power || 0) > 0 && building.currentLevel > 0;
+        const hasBlueprints = (building.availableBlueprints || []).length > 0 || building.currentVariant !== 'base';
 
         buildingHtmls.push(`
-            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''} ${isCustom ? 'custom-active' : ''}" id="building-card-${key}">
+            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''} ${building.currentVariant !== 'base' ? 'custom-active' : ''}" id="building-card-${key}">
+                <div class="card-corner-top"></div>
+                <div class="card-corner-bottom"></div>
+                
                 <div class="building-header" title="${building.description}">
                     <div class="header-main">
-                        <h3>${building.icon} ${building.name}</h3>
+                        <div class="title-row">
+                            <span class="status-led ${isOperational ? 'led-on' : 'led-off'}"></span>
+                            <h3>${building.icon} ${building.name}</h3>
+                        </div>
                         <div class="blueprint-row">
-                            <span class="blueprint-indicator">${blueprintName}</span>
                             <span class="level-indicator">Lvl ${building.currentLevel}</span>
                         </div>
                     </div>
                     <div class="header-actions">
-                        ${designSelector}
                         <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
                     </div>
                 </div>
@@ -161,18 +166,33 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
                 <div class="building-body">
                     ${allocationBadge}
                     <div id="queue-badge-${key}"></div>
-                    <div class="building-cost" id="cost-display-${key}"></div>
-                    <div class="building-stats">
-                        <div class="build-time" id="time-display-${key}">🕐 Build time: --</div>
-                        <div id="stats-info-${key}"></div>
-                        <div id="energy-info-${key}"></div>
+                    
+                    <div class="diagnostic-section">
+                        <div class="section-tag">Requisition</div>
+                        <div class="building-cost" id="cost-display-${key}"></div>
+                    </div>
+
+                    <div class="diagnostic-section">
+                        <div class="section-tag">Diagnostics</div>
+                        <div class="building-stats">
+                            <div class="build-time" id="time-display-${key}">🕐 Build time: --</div>
+                            <div id="stats-info-${key}"></div>
+                            <div id="energy-info-${key}"></div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="building-actions">
-                    <button class="btn btn-full upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
-                        Upgrade
-                    </button>
+                    <div class="action-group">
+                        <button class="btn upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
+                            Upgrade
+                        </button>
+                        ${hasBlueprints ? `
+                            <button class="btn design-btn" onclick="window.openDesignSelection('${key}')" title="Operational Configuration / Change Blueprint">
+                                ⚙️
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `);
@@ -191,18 +211,16 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
             const building = buildings[key];
             const queueCount = queue.filter(item => item.building === key).length;
             
-            // Update cost display
-            const costEl = document.getElementById(`cost-display-${key}`);
-            if (costEl && building.cost) {
-                // Classic Grid Cost
-                costEl.innerHTML = `
-                    <strong>Cost for level ${building.nextLevel}:</strong>
-                    <div class="${planet.resources.metal < building.cost.metal ? 'text-error' : ''}">⚙️ Metal: ${formatNumber(building.cost.metal)}</div>
-                    <div class="${planet.resources.crystal < building.cost.crystal ? 'text-error' : ''}">💎 Crystal: ${formatNumber(building.cost.crystal)}</div>
-                    ${building.cost.deuterium > 0 ? `<div class="${planet.resources.deuterium < building.cost.deuterium ? 'text-error' : ''}">🛢️ Deuterium: ${formatNumber(building.cost.deuterium)}</div>` : ''}
-                `;
-            } else if (costEl) {
-                costEl.innerHTML = building.currentLevel >= (building.maxLevel || 50) ? '<div class="text-success">Maximum level reached</div>' : '<div>Cost info unavailable</div>';
+                    // Update cost display
+                    const costEl = document.getElementById(`cost-display-${key}`);
+                    if (costEl && building.cost) {
+                        // Classic Grid Cost
+                        costEl.innerHTML = `
+                            <div class="${planet.resources.metal < building.cost.metal ? 'text-error' : ''}">⚙️ ${formatNumber(building.cost.metal)}</div>
+                            <div class="${planet.resources.crystal < building.cost.crystal ? 'text-error' : ''}">💎 ${formatNumber(building.cost.crystal)}</div>
+                            ${building.cost.deuterium > 0 ? `<div class="${planet.resources.deuterium < building.cost.deuterium ? 'text-error' : ''}">🛢️ ${formatNumber(building.cost.deuterium)}</div>` : ''}
+                        `;
+                    } else if (costEl) {                costEl.innerHTML = building.currentLevel >= (building.maxLevel || 50) ? '<div class="text-success">Maximum level reached</div>' : '<div>Cost info unavailable</div>';
             }
 
             // Update build time
@@ -409,10 +427,10 @@ function updateQueueView(queue, maxQueueSize, buildings) {
         const queueSummary = `
             <div class="build-queue-summary">
                 <div class="queue-header" onclick="window.toggleQueueVisibility()">
-                    <h3 style="margin: 0; font-size: 0.9rem; color: var(--accent-yellow);">🔨 Queue (${queue.length}/${maxQueueSize})</h3>
-                    <span style="font-size: 0.8rem; color: var(--text-secondary);">${queueVisible ? '🔼' : '🔽'}</span>
+                    <h3>🔨 Queue (${queue.length}/${maxQueueSize})</h3>
+                    <span class="toggle-icon">${queueVisible ? '🔼' : '🔽'}</span>
                 </div>
-                <div class="queue-items" style="${queueVisible ? 'display: flex; margin-top: 4px;' : 'display: none;'}">
+                <div class="queue-items" style="${queueVisible ? 'display: flex;' : 'display: none;'}">
                     ${queue.map((item, index) => {
                         const isActive = index === 0;
                         const elapsed = Date.now() - item.startTime;
