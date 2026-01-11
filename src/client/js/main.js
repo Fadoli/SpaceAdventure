@@ -222,9 +222,35 @@ function switchView(view, updateHistory = true) {
 }
 
 // Game State Management
+let lastFetchTime = 0;
+let nextEarliestCompletion = 0;
+
+function findNextCompletion(state) {
+    if (!state) return 0;
+    let times = [];
+
+    // Research
+    if (state.researchQueue?.length > 0) times.push(state.researchQueue[0].endTime);
+    if (state.practicalResearchQueue?.length > 0) times.push(state.practicalResearchQueue[0].endTime);
+
+    // Planets
+    if (state.planets) {
+        state.planets.forEach(p => {
+            if (p.buildQueue?.length > 0) times.push(p.buildQueue[0].finishTime);
+            if (p.shipQueue?.length > 0) times.push(p.shipQueue[0].finishTime);
+            if (p.defenseQueue?.length > 0) times.push(p.defenseQueue[0].finishTime);
+        });
+    }
+
+    // Filter out past times and find minimum
+    const futureTimes = times.filter(t => t > Date.now());
+    return futureTimes.length > 0 ? Math.min(...futureTimes) : 0;
+}
+
 async function loadGameState() {
     try {
         gameState = await API.getGameState();
+        nextEarliestCompletion = findNextCompletion(gameState);
         setGameState(gameState);
         updateUI();
     } catch (error) {
@@ -351,18 +377,37 @@ function startResourceUpdate() {
     }
     
     let tickCount = 0;
+    lastFetchTime = Date.now();
     
     updateInterval = setInterval(async () => {
-        await loadGameState();
+        const now = Date.now();
+        let shouldFetch = false;
+
+        // 1. Default 10s fetch
+        if (now >= lastFetchTime + 10000) {
+            shouldFetch = true;
+        } 
+        // 2. Fetch 1s after an event is supposed to end
+        else if (nextEarliestCompletion > 0 && now >= nextEarliestCompletion + 1000) {
+            shouldFetch = true;
+        }
+
+        if (shouldFetch) {
+            await loadGameState();
+            lastFetchTime = Date.now();
+            nextEarliestCompletion = findNextCompletion(gameState);
+        }
+
+        // Always update timers and movements for smooth UI
         updateTimers();
         updateFleetMovements(gameState);
         
-        // Update messages count every 5 seconds
+        // Update messages count every 5 seconds (of ticks)
         tickCount++;
         if (tickCount % 5 === 0) {
             updateUnreadCount();
         }
-    }, 1000); // Every 1 second
+    }, 1000); // Check every 1 second
 }
 
 // Global window functions for onclick handlers
