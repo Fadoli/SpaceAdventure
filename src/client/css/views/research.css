@@ -429,8 +429,8 @@
 }
 
 .variant-focuses-list {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 4px;
     padding: 10px 12px 6px 12px;
 }
@@ -444,6 +444,9 @@
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .focus-badge.focus-output { border-color: rgba(255, 23, 68, 0.3); }
@@ -462,15 +465,25 @@
 
 .mod-row {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
     font-size: 0.7rem;
     padding: 2px 0;
     color: var(--text-secondary);
 }
 
+.mod-row .mod-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
 .mod-value {
     font-weight: bold;
     font-family: 'Courier New', monospace;
+    min-width: 55px;
+    text-align: right;
 }
 
 .mod-row.pos .mod-value { color: var(--accent-green); }
