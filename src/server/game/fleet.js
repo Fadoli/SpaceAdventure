@@ -595,6 +595,18 @@ async function executeEspionage(player, fleet, allPlayers) {
       targetPlanet.defenses = combatReport.survivingDefenderDefenses;
       fleet.ships = combatReport.survivingAttackerShips;
 
+      // Update Debris Field in Galaxy
+      if (combatReport.debris.metal > 0 || combatReport.debris.crystal > 0) {
+        const galaxy = await getGalaxyData();
+        const coordKey = fleet.targetCoords.join(':');
+        const existingDebris = galaxy.debrisFields?.[coordKey] || { metal: 0, crystal: 0 };
+        
+        await updateDebrisField(fleet.targetCoords, {
+          metal: existingDebris.metal + combatReport.debris.metal,
+          crystal: existingDebris.crystal + combatReport.debris.crystal
+        });
+      }
+
       // If all probes destroyed, mission ends
       if (isEmpty(fleet.ships)) {
         await addMessage(player.userId, {
