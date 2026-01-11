@@ -243,7 +243,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                     </div>
                 ` : `
                     <div class="action-group" style="width: 100%; height: 38px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <input type="number" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" min="1" max="100" data-id="${identifier}" 
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" min="1" max="100" data-id="${identifier}" 
                                style="flex: 0 0 100px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; text-align: center; height: 100%;">
                         <button class="btn upgrade-btn" 
                                 style="flex: 1; padding: 0 !important; font-size: 0.75rem !important; height: 100%; border: none !important; border-radius: 0 !important; background: rgba(56, 189, 248, 0.08) !important;"
@@ -358,7 +358,7 @@ function renderDefensesList(planet, shipyardData) {
                             </div>
                         ` : `
                             <div class="action-group" style="width: 100%; height: 38px; border-top: 1px solid rgba(255,255,255,0.1);">
-                                <input type="number" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" min="1" max="100" data-id="${defenseKey}"
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" min="1" max="100" data-id="${defenseKey}"
                                        style="flex: 0 0 100px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; text-align: center; height: 100%;">
                                 <button class="btn upgrade-btn" 
                                         style="flex: 1; padding: 0 !important; font-size: 0.75rem !important; height: 100%; border: none !important; border-radius: 0 !important; background: rgba(56, 189, 248, 0.08) !important;"
