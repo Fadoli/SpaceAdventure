@@ -122,17 +122,16 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
         let designSelector = '';
         if (building.availableBlueprints && building.availableBlueprints.length > 0) {
             designSelector = `
-                <div class="design-btn-container" style="margin: 8px 0;">
-                    <button class="btn btn-secondary btn-small btn-full" onclick="window.openDesignSelection('${key}')">
-                        🎨 Change Design
-                    </button>
-                </div>
+                <button class="btn-icon-action" onclick="window.openDesignSelection('${key}')" title="Modify planetary design / Change blueprint">
+                    🎨
+                </button>
             `;
         }
 
-        let customVariantBadge = '';
-        if (building.currentVariant !== 'base') {
-            customVariantBadge = `<div class="custom-variant-badge">🔧 Custom Blueprint Active</div>`;
+        let blueprintName = 'Standard Model';
+        if (building.currentVariant !== 'base' && building.availableBlueprints) {
+            const activeBp = building.availableBlueprints.find(bp => bp.id === building.currentVariant);
+            if (activeBp) blueprintName = activeBp.name;
         }
 
         let allocationBadge = '';
@@ -141,27 +140,40 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
             allocationBadge = `<div id="allocation-badge-${key}" class="allocation-badge-container"></div>`;
         }
 
+        const isCustom = building.currentVariant !== 'base';
+
         buildingHtmls.push(`
-            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''}" id="building-card-${key}">
-                <div class="building-header">
-                    <h3>${building.icon} ${building.name}</h3>
-                    <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
+            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''} ${isCustom ? 'custom-active' : ''}" id="building-card-${key}">
+                <div class="building-header" title="${building.description}">
+                    <div class="header-main">
+                        <h3>${building.icon} ${building.name}</h3>
+                        <div class="blueprint-row">
+                            <span class="blueprint-indicator">${blueprintName}</span>
+                            <span class="level-indicator">Lvl ${building.currentLevel}</span>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        ${designSelector}
+                        <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
+                    </div>
                 </div>
-                <div class="building-level">Level ${building.currentLevel}</div>
-                ${customVariantBadge}
-                ${designSelector}
-                ${allocationBadge}
-                <div id="queue-badge-${key}"></div>
-                <p>${building.description}</p>
-                <div class="building-cost" id="cost-display-${key}"></div>
-                <div class="building-stats">
-                    <div class="build-time" id="time-display-${key}">🕐 Build time: --</div>
-                    <div id="stats-info-${key}"></div>
-                    <div id="energy-info-${key}"></div>
+                
+                <div class="building-body">
+                    ${allocationBadge}
+                    <div id="queue-badge-${key}"></div>
+                    <div class="building-cost" id="cost-display-${key}"></div>
+                    <div class="building-stats">
+                        <div class="build-time" id="time-display-${key}">🕐 Build time: --</div>
+                        <div id="stats-info-${key}"></div>
+                        <div id="energy-info-${key}"></div>
+                    </div>
                 </div>
-                <button class="btn btn-full upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
-                    Upgrade
-                </button>
+
+                <div class="building-actions">
+                    <button class="btn btn-full upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
+                        Upgrade
+                    </button>
+                </div>
             </div>
         `);
     }
@@ -304,30 +316,33 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
                 energyEl.innerHTML = energyHtml;
             }
 
-            // Update allocation badges
-            const allocContainer = document.getElementById(`allocation-badge-${key}`);
-            if (allocContainer) {
-                const allocation = planet.buildingAllocations?.[key];
-                const actualAllocation = planet.actualAllocations?.[key];
-                
-                if (allocation) {
-                    const powerEff = calculateAllocationEffectiveness(allocation.power * 100) / 100;
-                    const popEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
-                    const totalEff = powerEff * popEff;
-                    const effPercent = (totalEff * 100).toFixed(0);
-                    const effClass = totalEff >= 0.9 ? 'good' : totalEff >= 0.6 ? 'medium' : 'low';
-                    
-                    let html = `<div class="allocation-badge ${effClass}" title="Desired: Power ${(allocation.power * 100).toFixed(0)}%, Workers ${(allocation.population * 100).toFixed(0)}%">⚙️ Desired: ${effPercent}%</div>`;
-                    
-                    if (actualAllocation) {
-                        const actualTotalEff = (calculateAllocationEffectiveness(actualAllocation.power * 100) / 100) * (calculateAllocationEffectiveness(actualAllocation.population * 100) / 100);
-                        const actualEffClass = actualTotalEff >= 0.9 ? 'good' : actualTotalEff >= 0.6 ? 'medium' : 'low';
-                        html += `<div class="allocation-badge ${actualEffClass}" style="margin-top: 5px;">⚙️ Actual: ${(actualTotalEff * 100).toFixed(0)}%</div>`;
+                    // Update allocation badges
+                    const allocContainer = document.getElementById(`allocation-badge-${key}`);
+                    if (allocContainer) {
+                        const allocation = planet.buildingAllocations?.[key];
+                        const actualAllocation = planet.actualAllocations?.[key];
+                        
+                        if (allocation) {
+                            const powerEff = calculateAllocationEffectiveness(allocation.power * 100) / 100;
+                            const popEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
+                            const totalEff = powerEff * popEff;
+                            const effPercent = (totalEff * 100).toFixed(0);
+                            
+                            let html = `<div class="allocation-badge-row" title="Detailed Target: Power ${(allocation.power * 100).toFixed(0)}%, Workers ${(allocation.population * 100).toFixed(0)}%">`;
+                            html += `<span class="alloc-label">⚙️ EFFICIENCY:</span>`;
+                            html += `<span class="alloc-val">Target ${effPercent}%</span>`;
+                            
+                            if (actualAllocation) {
+                                const actualTotalEff = (calculateAllocationEffectiveness(actualAllocation.power * 100) / 100) * (calculateAllocationEffectiveness(actualAllocation.population * 100) / 100);
+                                const actualEffPercent = (actualTotalEff * 100).toFixed(0);
+                                const actualEffClass = actualTotalEff >= 0.9 ? 'text-success' : actualTotalEff >= 0.6 ? 'text-warning' : 'text-danger';
+                                html += `<span class="alloc-divider">|</span>`;
+                                html += `<span class="alloc-val">Actual <span class="${actualEffClass}">${actualEffPercent}%</span></span>`;
+                            }
+                            html += `</div>`;
+                            allocContainer.innerHTML = html;
+                        }
                     }
-                    allocContainer.innerHTML = html;
-                }
-            }
-
             // Update variant switch buttons (handled via modal now, but kept for HUD if needed)
             const variantActions = document.getElementById(`variant-actions-${key}`);
             if (variantActions && building.hasCustomVariant && building.customVariant) {
