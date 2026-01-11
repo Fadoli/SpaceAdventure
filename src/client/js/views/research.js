@@ -463,16 +463,12 @@ async function renderPracticalResearch() {
 
             html += `
         <div class="research-card ${isDisabled ? 'locked' : ''}">
-          <div class="card-header">
+          <div class="card-header" title="${res.description}">
             <span class="icon">${res.icon}</span>
-            <div class="tech-name">
-              <span class="name">${res.name}</span>
-              <span class="eff-multiplier" title="Total Bonus: +${((totalEfficiency - 1) * 100).toFixed(0)}% (from ${bankedBreakthroughs} banked breakthroughs)">+${((totalEfficiency - 1) * 100).toFixed(0)}% XP</span>
-            </div>
+            <span class="name">${res.name}</span>
+            <span class="eff-multiplier" title="Total Bonus: +${((totalEfficiency - 1) * 100).toFixed(0)}% (from ${bankedBreakthroughs} banked breakthroughs)">+${((totalEfficiency - 1) * 100).toFixed(0)}%</span>
           </div>
           <div class="card-body">
-            <p class="description">${res.description}</p>
-            
             <div class="xp-section">
                 ${['output', 'automation', 'energy', 'cost'].map(f => {
                     const level = levels[f];
@@ -756,9 +752,6 @@ function renderVariantCard(baseType, variant, type) {
                     ${modifiersHtml || '<div class="no-mods">No significant modifiers</div>'}
                 </div>
             </div>
-            <div class="variant-card-footer">
-                <button class="btn btn-primary btn-small btn-full" onclick="window.buildCustomVariant('${baseType}', '${type}')">Activate on Planet</button>
-            </div>
         </div>
     `;
 }
@@ -852,44 +845,6 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
     }
 
     // Get current blueprints count to suggest a version number
-    const currentCount = (researchData?.blueprints?.[baseType] || []).length;
-    const nextVersion = currentCount + 1;
-
-    // Prompt for name
-    const { showPrompt } = await import('./modals.js');
-    const defaultName = `${baseType.charAt(0).toUpperCase() + baseType.slice(1).replace(/([A-Z])/g, ' $1')} Mk ${nextVersion}`;
-    const name = await showPrompt('Blueprint Name', `Enter a name for your custom design:`, defaultName);
-    if (!name) return;
-
-    // Convert XP to levels for the variant creation
-    const focusLevels = {};
-    for (const focus in tree.experience) {
-        focusLevels[focus] = Math.floor(Math.sqrt(tree.experience[focus] / 100));
-    }
-
-    try {
-        const planetId = getCurrentPlanetId();
-        const endpoint = type === 'building' 
-            ? `/api/game/planet/${planetId}/research/building-variant` 
-            : `/api/game/research/ship-blueprint`;
-
-        const response = await fetch(endpoint, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ baseType, focusLevels, name }) 
-        });
-        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
-        Notifications.showSuccess('Blueprint created!'); await loadResearchData();
-    } catch (e) { Notifications.showError(e.message); }
-};
-
-window.buildCustomVariant = async function (baseType, type) {
-    const tree = researchData?.practical?.[baseType];
-    if (!tree || !tree.experience) {
-        Notifications.showError(`No research available for ${baseType}`);
-        return;
-    }
-
     const currentCount = (researchData?.blueprints?.[baseType] || []).length;
     const nextVersion = currentCount + 1;
 
