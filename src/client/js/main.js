@@ -20,6 +20,7 @@ import { renderAllocation, setupAllocationHandlers } from './views/allocation.js
 import { updateFleetMovements } from './views/fleetMovements.js';
 import { Notifications } from './notifications.js';
 import { showConfirm } from './views/modals.js';
+import { calculatePopulationChange } from '../../shared/formulas.js';
 
 // State
 let currentUser = null;
@@ -396,6 +397,65 @@ function startResourceUpdate() {
             await loadGameState();
             lastFetchTime = Date.now();
             nextEarliestCompletion = findNextCompletion(gameState);
+        } else if (gameState) {
+            // Local resource interpolation (happens every second)
+            gameState.planets.forEach(planet => {
+                const timeDeltaHours = 1 / 3600; // 1 second in hours
+                
+                // Metal
+                if (planet.resources.metal < planet.storage.metal) {
+                    planet.resources.metal += planet.production.metal * timeDeltaHours;
+                    if (planet.resources.metal > planet.storage.metal) planet.resources.metal = planet.storage.metal;
+                }
+                
+                // Crystal
+                if (planet.resources.crystal < planet.storage.crystal) {
+                    planet.resources.crystal += planet.production.crystal * timeDeltaHours;
+                    if (planet.resources.crystal > planet.storage.crystal) planet.resources.crystal = planet.storage.crystal;
+                }
+                
+                // Deuterium
+                if (planet.resources.deuterium < planet.storage.deuterium) {
+                    planet.resources.deuterium += planet.production.deuterium * timeDeltaHours;
+                    if (planet.resources.deuterium > planet.storage.deuterium) planet.resources.deuterium = planet.storage.deuterium;
+                }
+
+                // Water
+                const waterStorage = planet.storage.water || 10000;
+                const netWater = (planet.production.water || 0) - (planet.consumption?.water || 0);
+                if (netWater > 0 && planet.resources.water < waterStorage) {
+                    planet.resources.water += netWater * timeDeltaHours;
+                    if (planet.resources.water > waterStorage) planet.resources.water = waterStorage;
+                } else if (netWater < 0) {
+                    planet.resources.water += netWater * timeDeltaHours;
+                    if (planet.resources.water < 0) planet.resources.water = 0;
+                }
+
+                // Food
+                const foodStorage = planet.storage.food || 10000;
+                const netFood = (planet.production.food || 0) - (planet.consumption?.food || 0);
+                if (netFood > 0 && planet.resources.food < foodStorage) {
+                    planet.resources.food += netFood * timeDeltaHours;
+                    if (planet.resources.food > foodStorage) planet.resources.food = foodStorage;
+                } else if (netFood < 0) {
+                    planet.resources.food += netFood * timeDeltaHours;
+                    if (planet.resources.food < 0) planet.resources.food = 0;
+                }
+
+                // Population
+                const prodMult = window.GAME_CONFIG?.gameSpeed?.resourceProduction || 1.0;
+                planet.resources.population = calculatePopulationChange(
+                    planet.resources.population || 0,
+                    planet.maxPopulation || 0,
+                    (planet.resources.food || 0) > 0,
+                    (planet.resources.water || 0) > 0,
+                    timeDeltaHours,
+                    prodMult
+                );
+            });
+            
+            // Force UI update with interpolated values
+            updateUI();
         }
 
         // Always update timers and movements for smooth UI
