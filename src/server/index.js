@@ -25,9 +25,19 @@ import {
   getEffectiveBuildingDefinition,
   createBuildingBlueprint,
   setActiveBlueprint,
-  deleteBuildingBlueprint
+  deleteBuildingBlueprint,
+  renameBuildingBlueprint
 } from './game/buildings.js';
-import { buildShips, buildDefenses, cancelProduction, processCompletedProduction, getShipyardDetails, createShipBlueprint, deleteShipBlueprint } from './game/shipyard.js';
+import { 
+  buildShips, 
+  buildDefenses, 
+  cancelProduction, 
+  processCompletedProduction, 
+  getShipyardDetails, 
+  createShipBlueprint, 
+  deleteShipBlueprint,
+  renameShipBlueprint
+} from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
@@ -1552,6 +1562,25 @@ async function handleRequest(req) {
       }
     }
 
+    // PATCH /api/game/blueprints/:baseType/:blueprintId - Rename building blueprint
+    if (path.match(/^\/api\/game\/blueprints\/[^/]+\/[^/]+$/) && method === 'PATCH') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const parts = path.split('/');
+      const baseType = parts[4];
+      const blueprintId = parts[5];
+      const body = await req.json();
+      const { name } = body;
+
+      try {
+        const result = await renameBuildingBlueprint(user.id, baseType, blueprintId, name);
+        return successResponse(req, result);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
     // POST /api/game/research/ship-blueprint - Create a new ship blueprint
     if (path === '/api/game/research/ship-blueprint' && method === 'POST') {
       const user = await requireAuth(req);
@@ -1579,6 +1608,25 @@ async function handleRequest(req) {
 
       try {
         const result = await deleteShipBlueprint(user.id, baseType, blueprintId);
+        return successResponse(req, result);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // PATCH /api/game/research/ship-blueprint/:baseType/:blueprintId - Rename ship blueprint
+    if (path.match(/^\/api\/game\/research\/ship-blueprint\/[^/]+\/[^/]+$/) && method === 'PATCH') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const parts = path.split('/');
+      const baseType = parts[5];
+      const blueprintId = parts[6];
+      const body = await req.json();
+      const { name } = body;
+
+      try {
+        const result = await renameShipBlueprint(user.id, baseType, blueprintId, name);
         return successResponse(req, result);
       } catch (error) {
         return errorResponse(req, error.message, 400);

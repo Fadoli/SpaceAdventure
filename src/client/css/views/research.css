@@ -144,6 +144,28 @@
     flex: 1;
 }
 
+.card-body {
+    padding: 10px 12px;
+    gap: 8px;
+}
+
+.description {
+    font-size: 0.75rem;
+    min-height: 0;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--text-secondary);
+}
+
+.tech-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .eff-multiplier {
     font-size: 0.7rem;
     font-weight: 800;
@@ -201,26 +223,6 @@
     border-radius: 4px;
     padding: 4px 8px;
     margin-top: 6px;
-}
-
-.bt-stat {
-    font-size: 0.7rem;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    text-transform: uppercase;
-}
-
-.bt-stat strong {
-    font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
-}
-
-.last-run-xp {
-    font-size: 0.65rem;
-    color: var(--text-secondary);
-    font-family: 'Courier New', monospace;
-    opacity: 0.8;
 }
 
 /* Small Stats always visible */
@@ -332,353 +334,150 @@
 }
 
 .current-breakthroughs-val {
-
     color: var(--accent-yellow);
-
     animation: pulse-bt 2s infinite ease-in-out;
-
 }
-
-
 
 /* 8. Custom Variants View - Restored & Optimized */
-
 .variants-container {
-
     display: flex;
-
     flex-direction: column;
-
     gap: 20px;
-
 }
-
-
 
 .variants-section h3 {
-
     margin-bottom: 10px;
-
     font-size: 1rem;
-
     color: #fff;
-
     padding-left: 10px;
-
     border-left: 3px solid var(--accent-green);
-
     text-transform: uppercase;
-
     letter-spacing: 1px;
-
 }
-
-
 
 .variant-grid {
-
     display: grid;
-
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-
     gap: 10px;
-
 }
-
-
 
 .variant-card-improved {
-
     background: #0f1525;
-
     border: 1px solid #252e46;
-
     border-radius: 6px;
-
     display: flex;
-
     flex-direction: column;
-
     overflow: hidden;
-
     transition: all 0.2s ease;
-
 }
-
-
 
 .variant-card-improved:hover {
-
     border-color: var(--accent-green);
-
     transform: translateY(-2px);
-
 }
-
-
 
 .variant-card-header {
-
     background: rgba(255, 255, 255, 0.03);
-
     padding: 8px 12px;
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-
 }
-
-
 
 .variant-card-header h4 {
-
-
-
     margin: 0;
-
-
-
     font-size: 0.85rem;
-
-
-
     color: var(--accent-green);
-
-
-
     font-weight: 700;
-
-
-
 }
 
-
-
-
-
-
-
-.variant-card-body {
-
-
-
-    padding: 0;
-
-
-
+.variant-card-actions {
     display: flex;
-
-
-
-    flex-direction: column;
-
-
-
+    gap: 8px;
 }
 
-
-
-
-
-
-
-.variant-focuses-list {
-
-
-
-    display: flex;
-
-
-
-    flex-wrap: wrap;
-
-
-
-    gap: 4px;
-
-
-
-    padding: 10px 12px 6px 12px;
-
-
-
-}
-
-
-
-
-
-
-
-.focus-badge {
-
-
-
-    font-size: 0.6rem;
-
-
-
-    padding: 2px 6px;
-
-
-
-    border-radius: 3px;
-
-
-
-    font-weight: 800;
-
-
-
-    text-transform: uppercase;
-
-
-
-    background: rgba(0, 0, 0, 0.3);
-
-
-
-    border: 1px solid rgba(255, 255, 255, 0.1);
-
-
-
-    color: var(--text-secondary);
-
-
-
-}
-
-
-
-
-
-
-
-.focus-badge.focus-output { border-color: rgba(255, 23, 68, 0.3); }
-
-
-
-.focus-badge.focus-automation { border-color: rgba(41, 121, 255, 0.3); }
-
-
-
-.focus-badge.focus-energy { border-color: rgba(255, 234, 0, 0.3); }
-
-
-
-.focus-badge.focus-cost { border-color: rgba(0, 230, 118, 0.3); }
-
-
-
-
-
-
-
-.variant-modifiers-list {
-
-
-
-    padding: 8px 10px;
-
-
-
-    background: rgba(0, 0, 0, 0.2);
-
-
-
-    margin: 0 10px 10px 10px;
-
-
-
-    border-radius: 4px;
-
-
-
-    border: 1px solid rgba(255, 255, 255, 0.02);
-
-
-
-    flex: 1;
-
-
-
-}
-
-
-
-.mod-row {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    font-size: 0.7rem;
-
-    padding: 2px 0;
-
-    color: var(--text-secondary);
-
-}
-
-
-
-.mod-value {
-
-    font-weight: bold;
-
-    font-family: 'Courier New', monospace;
-
-}
-
-
-
-.mod-row.pos .mod-value { color: var(--accent-green); }
-
-.mod-row.neg .mod-value { color: var(--accent-red); }
-
-
-
-.variant-card-footer {
-
-    padding: 8px 10px;
-
-    background: rgba(255, 255, 255, 0.02);
-
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-
-}
-
-
-
-.btn-icon-delete {
-
+.btn-icon-action, .btn-icon-delete {
     background: transparent;
-
     border: none;
-
     cursor: pointer;
-
     font-size: 0.8rem;
-
     opacity: 0.5;
-
     transition: all 0.2s;
-
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-
+.btn-icon-action:hover {
+    opacity: 1;
+    color: var(--accent-blue);
+    transform: scale(1.2);
+}
 
 .btn-icon-delete:hover {
-
     opacity: 1;
-
     color: var(--accent-red);
-
     transform: scale(1.2);
+}
 
+.variant-card-body {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.variant-focuses-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 10px 12px 6px 12px;
+}
+
+.focus-badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+
+.focus-badge.focus-output { border-color: rgba(255, 23, 68, 0.3); }
+.focus-badge.focus-automation { border-color: rgba(41, 121, 255, 0.3); }
+.focus-badge.focus-energy { border-color: rgba(255, 234, 0, 0.3); }
+.focus-badge.focus-cost { border-color: rgba(0, 230, 118, 0.3); }
+
+.variant-modifiers-list {
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    margin: 0 10px 10px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    flex: 1;
+}
+
+.mod-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    padding: 2px 0;
+    color: var(--text-secondary);
+}
+
+.mod-value {
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.mod-row.pos .mod-value { color: var(--accent-green); }
+.mod-row.neg .mod-value { color: var(--accent-red); }
+
+.variant-card-footer {
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }

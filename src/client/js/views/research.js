@@ -743,6 +743,8 @@ function renderVariantCard(baseType, variant, type) {
             <div class="variant-card-header">
                 <h4>${name || baseType}</h4>
                 <div class="variant-card-actions">
+                    <button class="btn-icon-action" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${name}')" title="Rename Blueprint">✏️</button>
+                    <button class="btn-icon-action" onclick="window.shareVariant('${baseType}', '${id}', '${type}')" title="Share with Allies">🔗</button>
                     <button class="btn-icon-delete" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete Blueprint">🗑️</button>
                 </div>
             </div>
@@ -755,6 +757,40 @@ function renderVariantCard(baseType, variant, type) {
         </div>
     `;
 }
+
+window.renameVariant = async function(baseType, blueprintId, type, currentName) {
+    const { showPrompt } = await import('./modals.js');
+    const newName = await showPrompt('Rename Blueprint', `Enter a new name for your design:`, currentName);
+    if (!newName || newName === currentName) return;
+
+    try {
+        const endpoint = type === 'building' 
+            ? `/api/game/blueprints/${baseType}/${blueprintId}`
+            : `/api/game/research/ship-blueprint/${baseType}/${blueprintId}`;
+            
+        const response = await fetch(endpoint, { 
+            method: 'PATCH', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName }) 
+        });
+        const result = await response.json();
+        
+        if (!response.ok) {
+            Notifications.showError(result.message || 'Failed to rename blueprint');
+            return;
+        }
+        
+        Notifications.showSuccess('Blueprint renamed');
+        await loadResearchData();
+        if (window.loadGameState) await window.loadGameState();
+    } catch (e) {
+        Notifications.showError('Error renaming blueprint: ' + e.message);
+    }
+};
+
+window.shareVariant = function(baseType, blueprintId, type) {
+    Notifications.showInfo('Sharing with allies will be available once the Alliance system is online!');
+};
 
 window.deleteVariant = async function(baseType, blueprintId, type) {
     if (!(await showConfirm('Delete Blueprint', `Are you sure you want to delete this blueprint? Any planets using it will revert to the standard model.`))) return;

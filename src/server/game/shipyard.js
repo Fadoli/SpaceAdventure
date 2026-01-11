@@ -433,3 +433,24 @@ export async function deleteShipBlueprint(userId, baseType, blueprintId) {
   await updatePlayer(userId, player);
   return { success: true };
 }
+
+/**
+ * Rename a ship blueprint
+ */
+export async function renameShipBlueprint(userId, baseType, blueprintId, newName) {
+  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  if (!player.shipBlueprints || !player.shipBlueprints[baseType]) {
+    throw new Error('Blueprint not found');
+  }
+
+  const blueprint = player.shipBlueprints[baseType].find(bp => bp.id === blueprintId);
+  if (!blueprint) throw new Error('Blueprint not found');
+
+  blueprint.name = newName;
+
+  await updatePlayer(userId, player);
+  return blueprint;
+}

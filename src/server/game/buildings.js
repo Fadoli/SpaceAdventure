@@ -1372,3 +1372,31 @@ export async function deleteBuildingBlueprint(userId, baseType, blueprintId) {
   await updatePlayer(userId, player);
   return { success: true };
 }
+
+/**
+ * Rename a building blueprint
+ */
+export async function renameBuildingBlueprint(userId, baseType, blueprintId, newName) {
+  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  if (!player.buildingBlueprints || !player.buildingBlueprints[baseType]) {
+    throw new Error('Blueprint not found');
+  }
+
+  const blueprint = player.buildingBlueprints[baseType].find(bp => bp.id === blueprintId);
+  if (!blueprint) throw new Error('Blueprint not found');
+
+  blueprint.name = newName;
+
+  // Also update any planets using this blueprint locally
+  for (const planet of player.planets) {
+    if (planet.activeVariants?.[baseType] === blueprintId && planet.localBlueprints?.[baseType]) {
+      planet.localBlueprints[baseType].name = newName;
+    }
+  }
+
+  await updatePlayer(userId, player);
+  return blueprint;
+}
