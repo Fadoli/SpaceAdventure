@@ -1187,6 +1187,21 @@ async function handleRequest(req) {
         }
       }
 
+      // Add Galactic Market Hub at System 250, Position 1
+      if (system === 250) {
+        if (!planetsInSystem.find(p => p.position === 1)) {
+          planetsInSystem.push({
+            position: 1,
+            player: 'GALACTIC COUNCIL',
+            playerType: 'market',
+            planetName: 'COMMODITIES EXCHANGE',
+            activity: 'LIVE',
+            moon: false,
+            debris: null
+          });
+        }
+      }
+
       // Check for debris fields in empty slots
       for (const coordKey in (galaxyData.debrisFields || {})) {
         const [dg, ds, dp] = coordKey.split(':').map(Number);
@@ -1242,7 +1257,7 @@ async function handleRequest(req) {
       }
 
       const body = await req.json();
-      const { missionType, targetCoords, ships, originPlanetId, stayTime } = body;
+      const { missionType, targetCoords, ships, resources, buyResources, originPlanetId, stayTime } = body;
 
       if (!missionType || !targetCoords || !ships) {
         return errorResponse(req, 'Missing mission details', 400);
@@ -1273,7 +1288,7 @@ async function handleRequest(req) {
           return errorResponse(req, 'No planet found with sufficient ships for this mission', 400);
         }
 
-        const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships, {}, stayTime);
+        const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships, resources || {}, stayTime, buyResources);
         return successResponse(req, fleet);
       } catch (error) {
         return errorResponse(req, error.message, 400);

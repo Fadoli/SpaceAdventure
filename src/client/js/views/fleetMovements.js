@@ -1,4 +1,4 @@
-import { formatCountdown, formatTime } from '../utils.js';
+import { formatCountdown, formatTime, formatNumber } from '../utils.js';
 import { isEmpty } from '../../../shared/utils.js';
 
 // Global toggle handler
@@ -207,6 +207,18 @@ function renderFleetRow(fleet) {
     const startTime = formatTime(fleet.startTime);
     const arrivalTime = formatTime(fleet.arrivalTime);
     
+    // Resource summary for the row
+    let resSummary = '';
+    if (fleet.resources && !isEmpty(fleet.resources)) {
+        const entries = Object.entries(fleet.resources).filter(([_, v]) => v > 0);
+        if (entries.length > 0) {
+            resSummary = entries.map(([type, amount]) => {
+                const icon = { metal: '⚙️', crystal: '💎', deuterium: '🛢️', water: '💦', food: '🍞' }[type] || '';
+                return `<span>${icon}${formatNumber(amount)}</span>`;
+            }).join(' ');
+        }
+    }
+
     // Tooltip content
     let tooltipContent = '';
     if (isHostile) {
@@ -263,6 +275,10 @@ function renderFleetRow(fleet) {
                 <span class="coord-from">${originLink}</span>
                 <span class="coord-arrow">${isHostile ? '<<< ALERT <<<' : '>>>'}</span>
                 <span class="coord-to">${targetLink}</span>
+            </div>
+
+            <div class="fleet-info-cell res-cell">
+                ${resSummary}
             </div>
             
             <div class="fleet-info-cell time-cell">

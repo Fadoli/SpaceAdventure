@@ -214,6 +214,7 @@
 }
 
 .status-own { background: rgba(74, 222, 128, 0.1); color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.2); }
+.status-market { background: rgba(251, 191, 36, 0.1); color: var(--accent-yellow); border: 1px solid rgba(251, 191, 36, 0.2); }
 .status-other { background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.2); }
 
 /* Action Buttons */
@@ -221,6 +222,14 @@
     display: flex;
     gap: 5px;
     justify-content: flex-end;
+}
+
+.market-row td {
+    background: rgba(251, 191, 36, 0.02);
+}
+
+.market-row .planet-name {
+    color: var(--accent-yellow) !important;
 }
 
 .action-btn {

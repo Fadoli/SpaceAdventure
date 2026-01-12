@@ -4,7 +4,7 @@ import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
 import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../../shared/ships.js';
-import { calculateDistance } from '../../../shared/formulas.js';
+import { calculateDistance, calculateTravelTime } from '../../../shared/formulas.js';
 
 let lastRenderedGalaxy = null;
 let lastRenderedSystem = null;
@@ -51,7 +51,7 @@ async function openMissionModal(missionType, targetCoords) {
     const modalTitle = document.getElementById('details-modal-title');
     const modalBody = document.getElementById('details-modal-body');
 
-    const typeLabel = missionType.charAt(0).toUpperCase() + missionType.slice(1);
+    const typeLabel = missionType === MISSION_TYPES.MARKET_TRADE ? 'Commodity Exchange' : (missionType.charAt(0).toUpperCase() + missionType.slice(1));
     modalTitle.innerHTML = `🚀 ${typeLabel} Mission [${targetCoords.join(':')}]`;
     
     let html = '<div class="expedition-ship-selection">';
@@ -68,15 +68,15 @@ async function openMissionModal(missionType, targetCoords) {
                 continue;
             }
 
-            const shipName = shipKey.replace(/([A-Z])/g, ' $1').trim();
+            const shipName = SHIPS[shipKey]?.name || shipKey.replace(/([A-Z])/g, ' $1').trim();
             // Pre-selection logic
             let initialValue = 0;
             if (missionType === MISSION_TYPES.HARVEST && shipKey === 'recycler') {
                 initialValue = Math.min(count, 1);
             } else if (missionType === MISSION_TYPES.ESPIONAGE && shipKey === 'espionageProbe') {
                 initialValue = Math.min(count, 1);
-            } else if (missionType === MISSION_TYPES.ATTACK && SHIPS[shipKey]?.type === 'military') {
-                initialValue = 0; // Highlighting but not auto-selecting
+            } else if (missionType === MISSION_TYPES.MARKET_TRADE && (shipKey === 'smallCargo' || shipKey === 'largeCargo')) {
+                initialValue = 0; // User will select
             }
             
             html += `
@@ -93,12 +93,66 @@ async function openMissionModal(missionType, targetCoords) {
     }
     html += '</div></div>';
 
-    // --- Resource Selection Section ---
+    // --- Market Trade Section ---
+    if (missionType === MISSION_TYPES.MARKET_TRADE) {
+        const resourceKeys = ['metal', 'crystal', 'deuterium'];
+        html += `
+            <div class="mission-section" style="margin-top: 15px;">
+                <div class="v-readout-header" style="color: var(--accent-yellow);">COMMODITIES EXCHANGE PROTOCOL</div>
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border: 1px solid rgba(255,255,255,0.05); border-radius: 2px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;">
+                        <span>EXCHANGE RATES:</span>
+                        <span>M:3 | C:2 | D:1</span>
+                    </div>
+
+                    <div class="available-resources-mini" style="display: flex; gap: 10px; margin-bottom: 15px; padding: 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+                        ${resourceKeys.map(res => `
+                            <div style="flex: 1; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;">
+                                <span style="color: var(--text-secondary);">${res.toUpperCase()}:</span>
+                                <span style="color: #fff; font-weight: bold;">${formatNumber(Math.floor(planet.resources[res] || 0))}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="trade-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="trade-side">
+                            <h5 style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 8px;">SELL ASSETS</h5>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                ${['metal', 'crystal', 'deuterium'].map(res => `
+                                    <div class="res-input-group" style="display: flex; align-items: center; gap: 5px;">
+                                        <span style="font-size: 0.8rem; width: 20px;">${{metal:'⚙️',crystal:'💎',deuterium:'🛢️'}[res]}</span>
+                                        <input type="number" class="exp-qty-input sell-qty-input" data-res="${res}" placeholder="0" min="0" style="flex: 1; height: 28px;">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="trade-side">
+                            <h5 style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 8px;">BUY ASSETS</h5>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                ${['metal', 'crystal', 'deuterium'].map(res => `
+                                    <div class="res-input-group" style="display: flex; align-items: center; gap: 5px;">
+                                        <span style="font-size: 0.8rem; width: 20px;">${{metal:'⚙️',crystal:'💎',deuterium:'🛢️'}[res]}</span>
+                                        <input type="number" class="exp-qty-input buy-qty-input" data-res="${res}" placeholder="0" min="0" style="flex: 1; height: 28px;">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="trade-balance-warning" style="margin-top: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; text-align: center;">
+                        <span id="trade-value-info" style="color: var(--accent-blue);">CREDIT BALANCE: 0</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Resource Selection Section (Normal Transport/Deploy) ---
     if (missionType === MISSION_TYPES.TRANSPORT || missionType === MISSION_TYPES.DEPLOY) {
         html += '<div class="mission-section" style="margin-top: 15px;">';
         html += '<h4>📦 Select Resources</h4>';
-        html += '<div id="cargo-status" style="margin-bottom: 8px; font-weight: bold; color: var(--accent-blue);">Cargo: 0 / 0</div>';
-        html += '<div class="mission-resources-list dense-grid">';
+        html += '<div id="cargo-status" style="margin-bottom: 8px; font-weight: bold; color: var(--accent-blue);">CARGO CAPACITY: 0 / 0</div>';
+        html += '<div class="mission-resources-list dense-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">';
         
         const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
         for (const res of resourceKeys) {
@@ -170,6 +224,7 @@ async function openMissionModal(missionType, targetCoords) {
 window.updateMissionCalculations = function() {
     const planet = window.getCurrentPlanet();
     const targetCoords = window.lastTargetCoords || [1, 1, 1];
+    const isMarket = document.querySelector('.sell-qty-input') !== null;
     
     const shipsToSend = {};
     const resourcesToTransport = {};
@@ -191,19 +246,57 @@ window.updateMissionCalculations = function() {
         }
     });
 
-    // Get resources
-    document.querySelectorAll('.res-qty-input').forEach(input => {
-        const qty = parseInt(input.value) || 0;
-        if (qty > 0) {
-            resourcesToTransport[input.dataset.res] = qty;
-            totalTransported += qty;
+    if (isMarket) {
+        // Market Trade Calculation
+        const rates = { metal: 1, crystal: 1.5, deuterium: 3 }; // Normalize to metal units
+        let totalSellValue = 0;
+        let totalBuyValue = 0;
+        let totalSellWeight = 0;
+        let totalBuyWeight = 0;
+
+        document.querySelectorAll('.sell-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                totalSellValue += qty * (rates[input.dataset.res] || 1);
+                totalSellWeight += qty;
+            }
+        });
+
+        document.querySelectorAll('.buy-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                totalBuyValue += qty * (rates[input.dataset.res] || 1);
+                totalBuyWeight += qty;
+            }
+        });
+
+        const balance = totalSellValue - totalBuyValue;
+        const infoEl = document.getElementById('trade-value-info');
+        const balanceWarning = document.getElementById('trade-balance-warning');
+        
+        if (infoEl) {
+            infoEl.textContent = `CREDIT BALANCE: ${Math.floor(balance)}`;
+            infoEl.style.color = balance < 0 ? 'var(--accent-red)' : 'var(--accent-green)';
         }
-    });
+
+        // Cargo required is the MAXIMUM of what we send and what we receive
+        totalTransported = Math.max(totalSellWeight, totalBuyWeight);
+    } else {
+        // Get resources (Normal Transport)
+        document.querySelectorAll('.res-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                resourcesToTransport[input.dataset.res] = qty;
+                totalTransported += qty;
+            }
+        });
+    }
 
     // Update cargo status if visible
-    const cargoStatus = document.getElementById('cargo-status');
+    const cargoStatus = document.getElementById('cargo-status') || { textContent: '', style: {} };
     if (cargoStatus) {
-        cargoStatus.textContent = `Cargo: ${formatNumber(totalTransported)} / ${formatNumber(totalCargoCapacity)}`;
+        const cargoText = `CARGO CAPACITY: ${formatNumber(totalTransported)} / ${formatNumber(totalCargoCapacity)}`;
+        if (cargoStatus.textContent !== cargoText) cargoStatus.textContent = cargoText;
         cargoStatus.style.color = totalTransported > totalCargoCapacity ? 'var(--accent-red)' : 'var(--accent-blue)';
     }
 
@@ -211,22 +304,55 @@ window.updateMissionCalculations = function() {
     const distance = planet ? calculateDistance(planet.coordinates, targetCoords) : 0;
     const fuelCost = calculateFleetFuelCost(shipsToSend, distance);
     
-    // Survival needs calculation
+    // Find slowest ship speed for accurate travel time
+    let slowestSpeed = Infinity;
+    for (const shipKey in shipsToSend) {
+        if (shipsToSend[shipKey] > 0) {
+            const speed = SHIPS[shipKey]?.speed || 100;
+            if (speed < slowestSpeed) slowestSpeed = speed;
+        }
+    }
+    if (slowestSpeed === Infinity) slowestSpeed = 100;
+
+    // Survival needs calculation using SHARED formula
+    const fleetSpeedMultiplier = window.GAME_CONFIG?.gameSpeed?.fleetSpeed || 1.0;
+    const travelTimeSeconds = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier);
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
-    const travelTimeSeconds = 600; // estimate
+    
+    // Total mission duration (travel both ways + stay time for expeditions)
     const totalDurationSeconds = (travelTimeSeconds * 2) + (stayTime * 3600);
     const survivalNeeds = calculateFleetSurvivalNeeds(totalCrew, totalDurationSeconds);
 
     const summary = document.getElementById('mission-calc-summary');
     if (summary) {
         summary.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
-                <div>👥 Crew: <strong>${totalCrew}</strong></div>
-                <div>🛢️ Fuel: <strong>${formatNumber(fuelCost)}</strong></div>
-                <div>🍞 Food: <strong>${formatNumber(survivalNeeds.food)}</strong></div>
-                <div>💦 Water: <strong>${formatNumber(survivalNeeds.water)}</strong></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; font-family: 'Share Tech Mono', monospace;">
+                <div>👥 CREW: <strong>${totalCrew}</strong></div>
+                <div>🛢️ FUEL: <strong>${formatNumber(fuelCost)}</strong></div>
+                <div>🍞 FOOD: <strong>${formatNumber(survivalNeeds.food)}</strong></div>
+                <div>💦 WATER: <strong>${formatNumber(survivalNeeds.water)}</strong></div>
             </div>
         `;
+    }
+    
+    // Update launch button state
+    const launchBtn = document.querySelector('.modal-footer .btn-primary');
+    if (launchBtn) {
+        let disabled = totalTransported > totalCargoCapacity || totalCrew === 0;
+        if (isMarket) {
+            const sellInputs = Array.from(document.querySelectorAll('.sell-qty-input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+            const buyInputs = Array.from(document.querySelectorAll('.buy-qty-input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+            
+            // Need some trade to occur, and balance must be non-negative (can't buy more than sell)
+            const rates = { metal: 1, crystal: 1.5, deuterium: 3 };
+            let totalSellValue = 0;
+            let totalBuyValue = 0;
+            document.querySelectorAll('.sell-qty-input').forEach(i => totalSellValue += (parseInt(i.value) || 0) * (rates[i.dataset.res]));
+            document.querySelectorAll('.buy-qty-input').forEach(i => totalBuyValue += (parseInt(i.value) || 0) * (rates[i.dataset.res]));
+            
+            disabled = disabled || (sellInputs === 0 && buyInputs === 0) || (totalSellValue < totalBuyValue);
+        }
+        launchBtn.disabled = disabled;
     }
 };
 
@@ -259,7 +385,9 @@ window.submitMission = async function(missionType, targetCoords) {
 
     const shipsToSend = {};
     const resourcesToSend = {};
+    const tradeData = { sell: {}, buy: {} };
     let totalShips = 0;
+    const isMarket = missionType === MISSION_TYPES.MARKET_TRADE;
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
 
     document.querySelectorAll('.ship-qty-input').forEach(input => {
@@ -275,12 +403,23 @@ window.submitMission = async function(missionType, targetCoords) {
         return;
     }
 
-    document.querySelectorAll('.res-qty-input').forEach(input => {
-        const qty = parseInt(input.value) || 0;
-        if (qty > 0) {
-            resourcesToSend[input.dataset.res] = qty;
-        }
-    });
+    if (isMarket) {
+        document.querySelectorAll('.sell-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) tradeData.sell[input.dataset.res] = qty;
+        });
+        document.querySelectorAll('.buy-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) tradeData.buy[input.dataset.res] = qty;
+        });
+    } else {
+        document.querySelectorAll('.res-qty-input').forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                resourcesToSend[input.dataset.res] = qty;
+            }
+        });
+    }
 
     try {
         const response = await fetch('/api/game/galaxy/mission', {
@@ -290,7 +429,8 @@ window.submitMission = async function(missionType, targetCoords) {
                 missionType,
                 targetCoords,
                 ships: shipsToSend,
-                resources: resourcesToSend,
+                resources: isMarket ? tradeData.sell : resourcesToSend,
+                buyResources: isMarket ? tradeData.buy : null,
                 originPlanetId: planetId,
                 stayTime
             })
@@ -371,6 +511,11 @@ window.deployToPlanetFromGalaxy = function(position) {
 window.harvestDebrisFromGalaxy = function(position) {
     const coords = [window.currentGalaxy, window.currentSystem, position];
     openMissionModal(MISSION_TYPES.HARVEST, coords);
+};
+
+window.openMarketTrade = function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    openMissionModal(MISSION_TYPES.MARKET_TRADE, coords);
 };
 
 // Galaxy Navigation Functions
@@ -580,13 +725,13 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
  */
 function renderOGameTableRow(planet, position, isPlayerPlanet) {
     const moonBadge = planet.moon ? '<span class="moon-badge">🌙</span>' : '';
-    const playerIcon = planet.playerType === 'player' ? '👨‍💼' : '🤖';
-    const rowClass = isPlayerPlanet ? 'my-planet-row' : '';
-    const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : 'ai-planet-row';
+    const playerIcon = planet.playerType === 'player' ? '👨‍💼' : (planet.playerType === 'market' ? '🏛️' : '🤖');
+    const rowClass = isPlayerPlanet ? 'my-planet-row' : (planet.playerType === 'market' ? 'market-row' : '');
+    const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : (planet.playerType === 'market' ? 'market-planet-row' : 'ai-planet-row');
     
     // Check relations
     const relation = currentGameState?.relations?.[planet.playerId] || 'none';
-    const relationClass = relation !== 'none' ? `relation-${relation}` : '';
+    const relationClass = (relation !== 'none' && !isPlayerPlanet && planet.playerType !== 'market') ? `relation-${relation}` : '';
 
     // Check if this is the currently active planet
     const currentPlanet = window.getCurrentPlanet();
@@ -614,7 +759,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
             <td class="pos-col"><strong>${position}</strong></td>
             <td class="planet-col">
                 <div class="planet-name-cell">
-                    <div class="planet-icon-mini">🌍</div>
+                    <div class="planet-icon-mini">${planet.playerType === 'market' ? '⚖️' : '🌍'}</div>
                     <div class="planet-details">
                         <div class="planet-name">${planet.planetName}</div>
                         <div class="planet-activity">Last: ${planet.activity}</div>
@@ -624,20 +769,23 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
             </td>
             <td class="debris-col">${debrisHtml}</td>
             <td class="player-col">
-                <div class="player-info clickable" onclick="window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')">
+                <div class="player-info ${planet.playerType !== 'market' ? 'clickable' : ''}" 
+                     onclick="${planet.playerType !== 'market' ? `window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')` : ''}">
                     ${playerIcon}
                     <span>${planet.player}</span>
-                    ${relation !== 'none' ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
+                    ${(relation !== 'none' && planet.playerType !== 'market') ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
                 </div>
             </td>
             <td class="status-col">
-                <span class="status-badge ${isPlayerPlanet ? 'status-own' : 'status-other'}">
-                    ${isPlayerPlanet ? (isCurrentPlanet ? '🏠 Current' : '🏠 Own') : '👾 Other'}
+                <span class="status-badge ${isPlayerPlanet ? 'status-own' : (planet.playerType === 'market' ? 'status-market' : 'status-other')}">
+                    ${isPlayerPlanet ? (isCurrentPlanet ? '🏠 Current' : '🏠 Own') : (planet.playerType === 'market' ? '⚖️ Market' : '👾 Other')}
                 </span>
             </td>
             <td class="action-col">
                 <div class="action-buttons">
-                    ${isPlayerPlanet ? `
+                    ${planet.playerType === 'market' ? `
+                        <button class="action-btn market-btn" onclick="window.openMarketTrade('${position}')" title="Trade Commodities">⚖️</button>
+                    ` : (isPlayerPlanet ? `
                         <button class="action-btn view-btn" onclick="window.selectPlanetFromGalaxy(${position})" title="View planet">👁️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🚚</button>
                         <button class="action-btn deploy-btn" onclick="window.deployToPlanetFromGalaxy(${position})" title="Deploy Fleet" ${isCurrentPlanet ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🪂</button>
@@ -645,7 +793,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                         <button class="action-btn info-btn" onclick="window.spyOnPlanetFromGalaxy(${position})" title="Spy">🕵️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
                         <button class="action-btn attack-btn" onclick="window.attackPlanetFromGalaxy(${position})" title="Attack">⚔️</button>
-                    `}
+                    `)}
                     ${planet.debris ? `<button class="action-btn harvest-btn" onclick="window.harvestDebrisFromGalaxy(${position})" title="Recycle Debris">♻️</button>` : ''}
                 </div>
             </td>

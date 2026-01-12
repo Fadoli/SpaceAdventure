@@ -84,11 +84,20 @@
 
 .fleet-row {
     display: grid;
-    grid-template-columns: 1.8fr 1.5fr 1.2fr 100px;
+    grid-template-columns: 1.8fr 1.5fr 1.5fr 1.2fr 100px;
     align-items: center;
     padding: 8px 25px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     transition: all 0.2s;
+}
+
+.res-cell {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: #fff;
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .fleet-row:hover {

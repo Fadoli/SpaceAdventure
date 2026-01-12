@@ -87,7 +87,17 @@ export const MISSION_TYPES = {
   COLONIZE: 'colonize',
   ESPIONAGE: 'espionage',
   HARVEST: 'harvest',
-  EXPEDITION: 'expedition'
+  EXPEDITION: 'expedition',
+  MARKET_TRADE: 'market'
+};
+
+export const MARKET_CONFIG = {
+  POSITION: [250, 1], // [System, Position]
+  RATES: {
+    metal: 3,
+    crystal: 2,
+    deuterium: 1
+  }
 };
 
 export const AI_TYPES = {
@@ -168,8 +178,8 @@ export const SCALING = {
   BUILDING_HOUSING: 1.15,
   RESEARCH_COST: 1.5,
   RESEARCH_TIME: 1.5,
-  MISSION_FOOD_COST_FACTOR: 50, // Multiplier for mission food requirements
-  MISSION_WATER_COST_FACTOR: 50  // Multiplier for mission water requirements
+  MISSION_FOOD_COST_FACTOR: 1.0, // Reduced from 50 to match population x time
+  MISSION_WATER_COST_FACTOR: 1.0  // Reduced from 50 to match population x time
 };
 
 export const PLANET_TYPES = {}

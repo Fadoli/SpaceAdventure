@@ -4,6 +4,7 @@ import { BUILDING_SPEED_MULTIPLIER, CONFIG, SCALING } from './constants.js';
 import { calculateBaseTime } from './time.js';
 import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
 import { BUILDINGS } from './buildings.js';
+import { calculateFuelConsumption } from './formulas.js';
 
 export const SHIPS = {
   // Civilian Ships
@@ -522,16 +523,5 @@ export function calculateFleetSurvivalNeeds(crew, travelTimeInSeconds) {
  * Calculate total fleet fuel cost
  */
 export function calculateFleetFuelCost(ships, distance) {
-  let totalFuelCost = 0;
-
-  for (const shipKey in ships) {
-    const count = ships[shipKey];
-    const ship = getShip(shipKey);
-    if (ship) {
-      // Fuel cost per unit per distance
-      totalFuelCost += (ship.fuel * count * distance) / 35000; // 35000 is reference distance
-    }
-  }
-
-  return Math.ceil(totalFuelCost);
+  return calculateFuelConsumption(distance, ships, SHIPS);
 }

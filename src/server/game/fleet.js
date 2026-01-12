@@ -12,7 +12,7 @@ import { getGalaxyData, updateDebrisField } from './galaxyData.js';
 /**
  * Start a new mission
  */
-export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0) {
+export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null) {
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
 
@@ -36,8 +36,12 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     }
   }
 
-  if (totalResources > cargoCapacity) {
-    throw new Error(`Insufficient cargo capacity: ${totalResources} / ${cargoCapacity}`);
+  // Market trade check: cargo must fit either what we send or what we expect to bring back
+  const buyWeight = buyResources ? Object.values(buyResources).reduce((a, b) => a + b, 0) : 0;
+  const maxWeight = Math.max(totalResources, buyWeight);
+
+  if (maxWeight > cargoCapacity) {
+    throw new Error(`Insufficient cargo capacity: ${maxWeight} / ${cargoCapacity}`);
   }
 
   // Calculate stats
@@ -55,7 +59,7 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
   if (slowestSpeed === Infinity) throw new Error('No ships selected');
 
   const fleetSpeedMultiplier = getFleetSpeedMultiplier();
-  const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
+  const travelTime = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier);
   
   // Calculate mission costs
   const fuelCost = calculateFleetFuelCost(ships, distance);
@@ -79,6 +83,7 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     missionType,
     ships: { ...ships },
     resources: { ...resources },
+    buyResources: buyResources, // Store requested buy assets for market trade
     costs: {
       deuterium: fuelCost,
       food: survivalNeeds.food,
@@ -154,8 +159,7 @@ export async function processFleets(player, allPlayers) {
           const speed = calculateShipSpeed(shipKey, player.research);
           if (speed < slowestSpeed) slowestSpeed = speed;
         }
-        const fleetSpeedMultiplier = getFleetSpeedMultiplier();
-        const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
+        const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier());
         
         fleet.returning = true;
         fleet.waiting = false;
@@ -181,21 +185,24 @@ export async function processFleets(player, allPlayers) {
             fleet.startTime = now;
             const stayTime = (fleet.stayTime || 1) * 60 * 60 * 1000; // Use stored hours or default to 1h
             fleet.arrivalTime = now + stayTime;
-          } else {
-            const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
-            let slowestSpeed = Infinity;
-            for (const shipKey in fleet.ships) {
-              const speed = calculateShipSpeed(shipKey, player.research);
-              if (speed < slowestSpeed) slowestSpeed = speed;
-            }
-            const fleetSpeedMultiplier = getFleetSpeedMultiplier();
-            const travelTime = calculateTravelTime(distance, slowestSpeed, 1.0 / fleetSpeedMultiplier);
-            
-            fleet.returning = true;
-            fleet.startTime = now;
-            fleet.arrivalTime = now + (travelTime * 1000);
-          }
-        }
+                        } else {
+                          const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
+                          let slowestSpeed = Infinity;
+                          for (const shipKey in fleet.ships) {
+                            const speed = calculateShipSpeed(shipKey, player.research);
+                            if (speed < slowestSpeed) slowestSpeed = speed;
+                          }
+                          const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier());
+                          
+                          fleet.returning = true;
+                          fleet.startTime = now;
+                          fleet.arrivalTime = now + (travelTime * 1000);
+                          
+                          // Swap coords
+                          const origin = [...fleet.originCoords];
+                          fleet.originCoords = [...fleet.targetCoords];
+                          fleet.targetCoords = origin;
+                        }        }
         updated = true;
       }
     }
@@ -250,6 +257,9 @@ async function handleFleetArrival(player, fleet, allPlayers) {
     case MISSION_TYPES.HARVEST:
       await executeHarvest(player, fleet);
       return false; // Returns home with recycled resources
+    case MISSION_TYPES.MARKET_TRADE:
+      await executeMarketTrade(player, fleet);
+      return false; // Returns home with exchanged resources
     default:
       return false;
   }
@@ -834,5 +844,56 @@ async function executeExpedition(player, fleet) {
     body,
     type: 'expedition',
     data: { resultType, coords: [...fleet.targetCoords] }
+  });
+}
+
+/**
+ * Handle resource exchange at Galactic Market Hub
+ */
+async function executeMarketTrade(player, fleet) {
+  if (!fleet.buyResources) {
+    return;
+  }
+
+  const rates = { metal: 1, crystal: 1.5, deuterium: 3 }; // Value in metal units
+  let sellValue = 0;
+  let buyValue = 0;
+
+  // Calculate value of resources brought to sell
+  for (const res in fleet.resources) {
+    sellValue += (fleet.resources[res] || 0) * (rates[res] || 1);
+  }
+
+  // Calculate value of resources requested to buy
+  for (const res in fleet.buyResources) {
+    buyValue += (fleet.buyResources[res] || 0) * (rates[res] || 1);
+  }
+
+  // Verification: Cannot buy more than you sold
+  if (buyValue > sellValue + 0.1) {
+    await addMessage(player.userId, {
+      from: 'Galactic Market Hub',
+      subject: `TRADE REJECTED: [${fleet.originCoords.join(':')}]`,
+      body: `Your trade request was rejected due to insufficient credit value. Resources are being returned.`,
+      type: 'market'
+    });
+    return;
+  }
+
+  // Execute exchange
+  const oldResources = { ...fleet.resources };
+  
+  // Update only the traded resources, preserve water/food
+  const tradedKeys = ['metal', 'crystal', 'deuterium'];
+  tradedKeys.forEach(res => {
+    fleet.resources[res] = fleet.buyResources[res] || 0;
+  });
+  
+  await addMessage(player.userId, {
+    from: 'Galactic Market Hub',
+    subject: `TRADE CONFIRMED: [${fleet.originCoords.join(':')}]`,
+    body: `Exchange successful. Your fleet is returning with the requested commodities.`,
+    type: 'market',
+    data: { sold: oldResources, bought: fleet.buyResources }
   });
 }

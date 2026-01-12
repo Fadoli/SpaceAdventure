@@ -76,36 +76,55 @@ export function calculateStorage(baseStorage, level) {
  * Calculate distance between two sets of coordinates [G, S, P]
  */
 export function calculateDistance(coord1, coord2) {
+  // 1. Galaxy difference (Inter-galactic)
   if (coord1[0] !== coord2[0]) {
-    return Math.abs(coord1[0] - coord2[0]) * 20000;
+    return Math.abs(coord1[0] - coord2[0]) * 5000;
   }
+  
+  // 2. System difference (Intra-galactic, Linear)
   if (coord1[1] !== coord2[1]) {
-    return Math.abs(coord1[1] - coord2[1]) * 95 + 2700;
+    const diff = Math.abs(coord1[1] - coord2[1]);
+    return diff * 30 + 1000;
   }
+  
+  // 3. Planet difference (Intra-system)
   if (coord1[2] !== coord2[2]) {
-    return Math.abs(coord1[2] - coord2[2]) * 5 + 1000;
+    const diff = Math.abs(coord1[2] - coord2[2]);
+    return diff * 20 + 200;
   }
+  
   return 5; // Same planet
 }
 
 /**
  * Calculate fleet fuel consumption
  */
-export function calculateFuelConsumption(distance, ships) {
-  // Simplified calculation
-  let totalMass = 0;
-  for (const key in ships) {
-    totalMass += ships[key];
+export function calculateFuelConsumption(distance, ships, definitions) {
+  let totalFuel = 0;
+  for (const shipKey in ships) {
+    const count = ships[shipKey];
+    if (count <= 0) continue;
+    
+    const def = definitions[shipKey];
+    if (!def) continue;
+
+    // OGame-like simplified fuel formula
+    // cost = 1 + [baseConsumption * distance * (speed_factor) / 35000]
+    // We assume speed factor is 1 for simplicity here as we use base speed
+    const shipFuel = 1 + (def.fuel * count * distance) / 35000;
+    totalFuel += shipFuel;
   }
-  return Math.floor(distance * totalMass * 0.1);
+  return Math.ceil(totalFuel);
 }
 
 /**
  * Calculate fleet travel time
  */
 export function calculateTravelTime(distance, speed, configMultiplier = 1.0) {
-  // Simplified: distance in systems, speed is base speed
-  return Math.floor(((distance * 3600) / speed) * configMultiplier); // Returns seconds
+  // OGame-like formula: (10 + (3500 * sqrt(10 * distance / speed))) / globalSpeed
+  // distance is in standard units, speed is slowest ship speed
+  const time = (10 + (3500 * Math.sqrt((10 * distance) / speed))) / configMultiplier;
+  return Math.max(1, Math.floor(time));
 }
 
 /**
