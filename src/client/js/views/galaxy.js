@@ -596,9 +596,11 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
     if (planet.debris) {
         const { metal, crystal } = planet.debris;
         debrisHtml = `
-            <div class="debris-info" title="M: ${formatNumber(metal)} | C: ${formatNumber(crystal)}">
-                <span class="debris-icon">♻️</span>
-                <small>${formatNumber(metal + crystal)}</small>
+            <div class="debris-scanner-tag" 
+                 title="METAL: ${formatNumber(metal)} | CRYSTAL: ${formatNumber(crystal)}\nCLICK TO INITIATE RECOVERY"
+                 onclick="window.harvestDebrisFromGalaxy(${position})">
+                <span class="scanner-pulse"></span>
+                <span class="debris-val">${formatNumber(metal + crystal)}</span>
             </div>
         `;
     }
@@ -653,9 +655,11 @@ function renderOGameEmptyRow(position, debris = null) {
     let debrisHtml = '-';
     if (debris) {
         debrisHtml = `
-            <div class="debris-info" title="M: ${formatNumber(debris.metal)} | C: ${formatNumber(debris.crystal)}">
-                <span class="debris-icon">♻️</span>
-                <small>${formatNumber(debris.metal + debris.crystal)}</small>
+            <div class="debris-scanner-tag" 
+                 title="METAL: ${formatNumber(debris.metal)} | CRYSTAL: ${formatNumber(debris.crystal)}\nCLICK TO INITIATE RECOVERY"
+                 onclick="window.harvestDebrisFromGalaxy(${position})">
+                <span class="scanner-pulse"></span>
+                <span class="debris-val">${formatNumber(debris.metal + debris.crystal)}</span>
             </div>
         `;
     }
