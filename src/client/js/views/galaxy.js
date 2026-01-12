@@ -601,8 +601,8 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
         const { metal, crystal } = planet.debris;
         debrisHtml = `
             <div class="debris-scanner-tag" 
-                 title="METAL: ${formatNumber(metal)} | CRYSTAL: ${formatNumber(crystal)}\nCLICK TO INITIATE RECOVERY"
-                 onclick="window.harvestDebrisFromGalaxy(${position})">
+                 title="METAL: ${formatNumber(metal)} | CRYSTAL: ${formatNumber(crystal)}\nLEFT CLICK FOR RECOVERY OPTIONS"
+                 onclick="window.openDebrisMenu(event, ${position}, ${metal}, ${crystal})">
                 <span class="scanner-pulse"></span>
                 <span class="debris-val">${formatNumber(metal + crystal)}</span>
             </div>
@@ -729,8 +729,8 @@ function renderOGameEmptyRow(position, debris = null) {
     if (debris) {
         debrisHtml = `
             <div class="debris-scanner-tag" 
-                 title="METAL: ${formatNumber(debris.metal)} | CRYSTAL: ${formatNumber(debris.crystal)}\nCLICK TO INITIATE RECOVERY"
-                 onclick="window.harvestDebrisFromGalaxy(${position})">
+                 title="METAL: ${formatNumber(debris.metal)} | CRYSTAL: ${formatNumber(debris.crystal)}\nLEFT CLICK FOR RECOVERY OPTIONS"
+                 onclick="window.openDebrisMenu(event, ${position}, ${debris.metal}, ${debris.crystal})">
                 <span class="scanner-pulse"></span>
                 <span class="debris-val">${formatNumber(debris.metal + debris.crystal)}</span>
             </div>
@@ -753,6 +753,92 @@ function renderOGameEmptyRow(position, debris = null) {
         </tr>
     `;
 }
+
+window.openDebrisMenu = function(event, position, metal, crystal) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Close any existing menu
+    const existing = document.getElementById('debris-context-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'debris-context-menu';
+    menu.className = 'context-menu-scifi';
+    
+    const totalDebris = metal + crystal;
+    const harvesterCapacity = SHIPS.recycler.cargoCapacity || 20000;
+    const harvestersNeeded = Math.ceil(totalDebris / harvesterCapacity);
+
+    menu.innerHTML = `
+        <div class="menu-header">DEBRIS RECOVERY PROTOCOL</div>
+        <button class="menu-item" onclick="window.quickHarvestDebris(${position}, ${harvestersNeeded})">
+            <span class="indicator friend"></span> SIMPLE RECOVERY (${harvestersNeeded}x HARVESTER)
+        </button>
+        <button class="menu-item" onclick="window.harvestDebrisFromGalaxy(${position})">
+            <span class="indicator clear"></span> ADVANCED CALIBRATION
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Position menu next to mouse
+    menu.style.left = `${event.pageX + 10}px`;
+    menu.style.top = `${event.pageY + 10}px`;
+
+    // Close handler
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+};
+
+window.quickHarvestDebris = async function(position, harvestersNeeded) {
+    const planetId = window.getCurrentPlanetId();
+    const planet = window.getCurrentPlanet();
+    const targetCoords = [window.currentGalaxy, window.currentSystem, position];
+
+    if (!planet) {
+        Notifications.showError('No origin planet selected');
+        return;
+    }
+
+    const availableHarvesters = planet.ships?.recycler || 0;
+    const toSend = Math.min(harvestersNeeded, availableHarvesters);
+
+    if (toSend <= 0) {
+        Notifications.showError('No Harvester-Utility Vessels available on this planet.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/game/galaxy/mission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                missionType: MISSION_TYPES.HARVEST,
+                targetCoords,
+                ships: { recycler: toSend },
+                originPlanetId: planetId
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            Notifications.showSuccess(`Simple Recovery initiated: ${toSend}x Harvester dispatched.`);
+            const menu = document.getElementById('debris-context-menu');
+            if (menu) menu.remove();
+            if (window.loadGameState) await window.loadGameState();
+        } else {
+            Notifications.showError(`Protocol failure: ${result.error}`);
+        }
+    } catch (error) {
+        Notifications.showError(`System error: ${error.message}`);
+    }
+};
 
 /**
  * Render a table row for deep space (expedition)
