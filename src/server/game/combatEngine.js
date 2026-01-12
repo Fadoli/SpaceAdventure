@@ -104,18 +104,27 @@ export function simulateCombat(attacker, defender) {
   }
 
   // Calculate Debris
-  // Ships: Standard debris (30% of metal/crystal)
-  // Defenses: scales on (1 - repair%) * defense_to_debris_chance
-  const debrisShipsValue = calculateLossValue(report.attackerLosses, SHIPS) + 
-                           calculateLossValue(report.defenderLosses.ships, SHIPS);
-  
-  const defenseToDebrisChance = CONFIG.DEFENSE_TO_DEBRIS_CHANCE || 0.1;
-  const debrisDefensesValue = calculateLossValue(report.defenderLosses.defenses, DEFENSES) * defenseToDebrisChance;
+  const debris = { metal: 0, crystal: 0 };
 
-  const totalDebrisValue = debrisShipsValue + debrisDefensesValue;
-  
-  report.debris.metal = Math.floor(totalDebrisValue * 0.3 * 0.7); // Simplified distribution
-  report.debris.crystal = Math.floor(totalDebrisValue * 0.3 * 0.3);
+  // Helper to sum debris from losses
+  const addDebris = (losses, definitions, ratio) => {
+    for (const key in losses) {
+      const def = definitions[key];
+      if (def && def.baseCost) {
+        debris.metal += Math.floor((def.baseCost.metal || 0) * losses[key] * ratio);
+        debris.crystal += Math.floor((def.baseCost.crystal || 0) * losses[key] * ratio);
+      }
+    }
+  };
+
+  // Ship debris percentage from config
+  addDebris(report.attackerLosses, SHIPS, CONFIG.DEBRIS_PERCENTAGE);
+  addDebris(report.defenderLosses.ships, SHIPS, CONFIG.DEBRIS_PERCENTAGE);
+
+  // Defense debris percentage from config
+  addDebris(report.defenderLosses.defenses, DEFENSES, CONFIG.DEFENSE_TO_DEBRIS_CHANCE);
+
+  report.debris = debris;
 
   // 5. Consolidate survivors (including repaired defenses)
   report.survivingAttackerShips = consolidateGroups(attackerGroups);
