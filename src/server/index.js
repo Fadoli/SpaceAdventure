@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation, getFriends } from './game/player.js';
 import { getGalaxyData } from './game/galaxyData.js';
 import { 
   upgradeBuilding, 
@@ -42,7 +42,7 @@ import { sendFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
-import { getAlliances, getAllianceById, createAlliance, joinAlliance, leaveAlliance } from './game/alliance.js';
+import { getAlliances, getAllianceById, createAlliance, joinAlliance, leaveAlliance, shareBlueprint } from './game/alliance.js';
 import { 
   startTheoreticalResearch, 
   completeTheoreticalResearch, 
@@ -1861,6 +1861,33 @@ async function handleRequest(req) {
       try {
         const relations = await updatePlayerRelation(user.id, targetUserId, tag);
         return successResponse(req, relations);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // GET /api/game/friends
+    if (path === '/api/game/friends' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      try {
+        const friends = await getFriends(user.id);
+        return successResponse(req, friends);
+      } catch (error) {
+        return errorResponse(req, error.message, 500);
+      }
+    }
+
+    // POST /api/game/blueprints/share
+    if (path === '/api/game/blueprints/share' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const { baseType, blueprintId, type, targetType, targetId } = await req.json();
+      try {
+        const result = await shareBlueprint(user.id, baseType, blueprintId, type, targetType, targetId);
+        return successResponse(req, result);
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }

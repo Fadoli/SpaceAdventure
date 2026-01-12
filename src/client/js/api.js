@@ -215,5 +215,16 @@ export const API = {
             method: 'POST',
             body: JSON.stringify({ targetUserId, tag })
         });
+    },
+
+    async getFriends() {
+        return await this.request('/game/friends');
+    },
+
+    async shareBlueprint(baseType, blueprintId, type, targetType, targetId = null) {
+        return await this.request('/game/blueprints/share', {
+            method: 'POST',
+            body: JSON.stringify({ baseType, blueprintId, type, targetType, targetId })
+        });
     }
 };

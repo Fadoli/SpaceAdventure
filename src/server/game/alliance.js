@@ -150,3 +150,73 @@ export async function leaveAlliance(userId) {
   player.allianceRole = null;
   await updatePlayer(userId, player);
 }
+
+/**
+ * Share a blueprint with alliance or a specific friend
+ */
+export async function shareBlueprint(userId, baseType, blueprintId, type, targetType, targetId = null) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  // 1. Get the blueprint
+  const blueprints = type === 'building' ? player.buildingBlueprints : player.shipBlueprints;
+  const blueprint = blueprints?.[baseType]?.find(bp => bp.id === blueprintId);
+  if (!blueprint) throw new Error('Blueprint not found');
+
+  const targets = [];
+
+  // 2. Identify targets
+  if (targetType === 'alliance') {
+    if (!player.allianceId) throw new Error('You are not in an alliance');
+    const alliance = await getAllianceById(player.allianceId);
+    if (!alliance) throw new Error('Alliance not found');
+    
+    // Add all alliance members except self
+    alliance.members.forEach(m => {
+      if (m.userId !== userId) targets.push(m.userId);
+    });
+  } else if (targetType === 'player') {
+    if (!targetId) throw new Error('Target player ID required');
+    // Verify target is a friend
+    if (player.relations?.[targetId] !== 'friend') {
+      throw new Error('You can only share blueprints with players tagged as FRIEND');
+    }
+    targets.push(targetId);
+  }
+
+  if (targets.length === 0) return { sharedCount: 0 };
+
+  // 3. Clone and Distribute
+  let sharedCount = 0;
+  for (const tId of targets) {
+    const targetPlayer = await getPlayerByUserId(tId);
+    if (!targetPlayer) continue;
+
+    // Determine target collection
+    if (type === 'building') {
+      if (!targetPlayer.buildingBlueprints) targetPlayer.buildingBlueprints = {};
+      if (!targetPlayer.buildingBlueprints[baseType]) targetPlayer.buildingBlueprints[baseType] = [];
+      
+      // Don't share if they already have an EXACT copy (same ID)
+      if (targetPlayer.buildingBlueprints[baseType].some(bp => bp.id === blueprintId)) continue;
+
+      const sharedBp = JSON.parse(JSON.stringify(blueprint));
+      sharedBp.sharedBy = player.username;
+      targetPlayer.buildingBlueprints[baseType].push(sharedBp);
+    } else {
+      if (!targetPlayer.shipBlueprints) targetPlayer.shipBlueprints = {};
+      if (!targetPlayer.shipBlueprints[baseType]) targetPlayer.shipBlueprints[baseType] = [];
+      
+      if (targetPlayer.shipBlueprints[baseType].some(bp => bp.id === blueprintId)) continue;
+
+      const sharedBp = JSON.parse(JSON.stringify(blueprint));
+      sharedBp.sharedBy = player.username;
+      targetPlayer.shipBlueprints[baseType].push(sharedBp);
+    }
+
+    await updatePlayer(tId, targetPlayer);
+    sharedCount++;
+  }
+
+  return { sharedCount };
+}

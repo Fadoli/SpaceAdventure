@@ -1,4 +1,5 @@
 // Research view - theoretical and practical research management
+import { API } from '../api.js';
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical } from '../../../shared/research.js';
 import { formatNumber, formatDuration, formatCountdown } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
@@ -835,6 +836,9 @@ function renderVariantCard(baseType, variant, type) {
                     <button class="btn upgrade-btn" style="padding: 10px !important;" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${escapedName}')">
                         Rename
                     </button>
+                    <button class="btn design-btn" onclick="window.shareVariant('${baseType}', '${id}', '${type}', event)" title="Share Design">
+                        🔗
+                    </button>
                     <button class="btn design-btn" style="border-color: rgba(244, 63, 94, 0.3); color: var(--accent-red);" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete">
                         ✕
                     </button>
@@ -874,8 +878,140 @@ window.renameVariant = async function(baseType, blueprintId, type, currentName) 
     }
 };
 
-window.shareVariant = function(baseType, blueprintId, type) {
-    Notifications.showInfo('Sharing with allies will be available once the Alliance system is online!');
+window.shareVariant = async function(baseType, blueprintId, type, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    // Close any existing menu
+    const existing = document.getElementById('share-context-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'share-context-menu';
+    menu.className = 'context-menu-scifi';
+    
+    // Check if player is in an alliance
+    const state = window.getGameState();
+    const hasAlliance = !!state?.allianceId;
+
+    let html = `<div class="menu-header">BLUEPRINT DISSEMINATION</div>`;
+    
+    if (hasAlliance) {
+        html += `
+            <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', '${type}', 'alliance')">
+                <span class="indicator friend"></span> BROADCAST TO ALLIANCE
+            </button>`;
+    }
+
+    // Find all players tagged as 'friend'
+    const relations = state?.relations || {};
+    const friends = Object.entries(relations).filter(([_, rel]) => rel === 'friend');
+
+    if (friends.length > 0) {
+        if (hasAlliance) {
+            html += `<div class="menu-divider" style="height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;"></div>`;
+        }
+        
+        // Main "Share with friend" button that opens sub-menu
+        html += `
+            <button class="menu-item" onclick="window.openFriendShareSubMenu('${baseType}', '${blueprintId}', '${type}', event)">
+                <span class="indicator clear"></span> SHARE WITH FRIEND...
+            </button>`;
+    }
+
+    if (!hasAlliance && friends.length === 0) {
+        html += `<div class="menu-item" style="opacity: 0.5; font-size: 0.6rem;">NO VALID TARGETS FOR DATA TRANSFER</div>`;
+    }
+
+    menu.innerHTML = html;
+    document.body.appendChild(menu);
+
+    // Position menu next to click
+    const x = event ? event.pageX : window.innerWidth / 2;
+    const y = event ? event.pageY : window.innerHeight / 2;
+    menu.style.left = `${x + 10}px`;
+    menu.style.top = `${y + 10}px`;
+
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+};
+
+window.openFriendShareSubMenu = async function(baseType, blueprintId, type, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    try {
+        // Use the dedicated friends API
+        const friends = await API.getFriends();
+
+        if (friends.length === 0) {
+            Notifications.showInfo('No contacts available for data transfer.');
+            return;
+        }
+
+        // Close current menu
+        const existing = document.getElementById('share-context-menu');
+        if (existing) existing.remove();
+
+        // Create sub-menu
+        const menu = document.createElement('div');
+        menu.id = 'share-context-menu';
+        menu.className = 'context-menu-scifi';
+        
+        let html = `<div class="menu-header">SELECT RECIPIENT</div>`;
+        
+        friends.forEach(f => {
+            html += `
+                <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', '${type}', 'player', '${f.id}')">
+                    <span class="indicator friend"></span> ${f.username.toUpperCase()}
+                </button>`;
+        });
+
+        // Add back button
+        html += `
+            <div class="menu-divider" style="height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;"></div>
+            <button class="menu-item" onclick="window.shareVariant('${baseType}', '${blueprintId}', '${type}', event)">
+                <span class="indicator clear"></span> << BACK
+            </button>`;
+
+        menu.innerHTML = html;
+        document.body.appendChild(menu);
+
+        // Position next to mouse
+        menu.style.left = `${event.pageX + 10}px`;
+        menu.style.top = `${event.pageY + 10}px`;
+
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 10);
+
+    } catch (error) {
+        Notifications.showError('Failed to resolve contacts: ' + error.message);
+    }
+};
+
+window.executeShareBlueprint = async function(baseType, blueprintId, type, targetType, targetId = null) {
+    try {
+        const result = await API.shareBlueprint(baseType, blueprintId, type, targetType, targetId);
+        Notifications.showSuccess(`Blueprint successfully shared with ${result.sharedCount} recipients.`);
+        const menu = document.getElementById('share-context-menu');
+        if (menu) menu.remove();
+    } catch (error) {
+        Notifications.showError(`Data transfer failed: ${error.message}`);
+    }
 };
 
 window.deleteVariant = async function(baseType, blueprintId, type) {

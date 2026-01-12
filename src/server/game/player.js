@@ -235,6 +235,29 @@ export async function updatePlayerRelation(userId, targetUserId, tag) {
 }
 
 /**
+ * Get list of friends (ID and Username)
+ */
+export async function getFriends(userId) {
+  const player = await getPlayerByUserId(userId);
+  if (!player || !player.relations) return [];
+
+  const friends = [];
+  const allPlayers = await getPlayers();
+
+  for (const targetId in player.relations) {
+    if (player.relations[targetId] === 'friend') {
+      const targetPlayer = allPlayers.find(p => p.userId === targetId);
+      friends.push({
+        id: targetId,
+        username: targetPlayer ? targetPlayer.username : 'Unknown'
+      });
+    }
+  }
+
+  return friends;
+}
+
+/**
  * Track spent resources for ranking
  */
 export function trackSpentResources(player, cost) {
