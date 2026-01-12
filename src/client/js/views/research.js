@@ -912,18 +912,36 @@ window.startTheoreticalResearch = async function (techKey) {
 
 window.showResearchDetails = function (techKey) {
     const res = getTheoreticalResearch()[techKey];
-    const lv = typeof researchData.theoretical[techKey] === 'object' ? (researchData.theoretical[techKey].level ?? 0) : (researchData.theoretical[techKey] ?? 0);
     if (!res) return;
-    let eff = '';
-    if (res.bonuses) { eff += '<ul>'; for (const b in res.bonuses) eff += `<li>+${(res.bonuses[b] * 100).toFixed(0)}% ${b}</li>`; eff += '</ul>'; }
-    if (res.requirements) { eff += '<h4>Reqs:</h4><ul>'; for (const b in res.requirements) eff += `<li>${b}: ${res.requirements[b]}</li>`; eff += '</ul>'; }
+
+    const lv = typeof researchData.theoretical[techKey] === 'object' ? (researchData.theoretical[techKey].level ?? 0) : (researchData.theoretical[techKey] ?? 0);
+    
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+    const researchSpeedBonus = getResearchBonus(researchData.theoretical || {}, 'globalResearchSpeed');
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+
+    const stats = [];
+    if (res.bonuses) { 
+        for (const b in res.bonuses) {
+            stats.push({ label: b.replace(/([A-Z])/g, ' $1').toUpperCase(), value: `+${(res.bonuses[b] * 100).toFixed(0)}%` });
+        }
+    }
+
     const rows = [];
-    for (let i = level; i < level + 15; i++) {
+    for (let i = lv; i < lv + 15; i++) {
         const c = calculateTheoreticalResearchCost(res.baseCost, i);
         const t = calculateTheoreticalResearchTime(res, i, researchLabLevel, researchSpeedBonus, configMultiplier);
         rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatDuration(t * 1000)]);
     }
-    renderDetailsModal({ title: `${res.icon} ${res.name}`, description: res.description, effects: eff, table: { headers: ['Lvl', 'Cost', 'Time'], rows } });
+
+    renderDetailsModal({ 
+        title: `${res.icon} ${res.name.toUpperCase()}`, 
+        description: res.detailedDescription || res.description, 
+        effects: stats, 
+        sections: [
+            { title: 'Projected Development Schedule', table: { headers: ['Lvl', 'Requisition', 'Duration'], rows } }
+        ] 
+    });
 };
 
 window.closeResearchModal = function () { closeDetailsModal(); };

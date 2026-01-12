@@ -743,14 +743,14 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
                     }
                 });
             }    
-        renderDetailsModal({
-            title: `${ship.icon} ${name}`,
-            description: ship.description,
-            effects: stats,
-            sections: sections
-        });
-    };
-    
+            renderDetailsModal({
+                title: `${ship.icon} ${name}`,
+                description: ship.description,
+                detailedDescription: ship.detailedDescription,
+                effects: stats,
+                sections: sections
+            });
+        };    
     /**
      * Show defense details modal
      */
@@ -808,13 +808,14 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
                     }
                 });
             }    
-        renderDetailsModal({
-            title: `${defense.icon} ${defense.name}`,
-            description: defense.description,
-            effects: stats,
-            sections: sections
-        });
-    };/**
+            renderDetailsModal({
+                title: `${defense.icon} ${defense.name}`,
+                description: defense.description,
+                detailedDescription: defense.detailedDescription,
+                effects: stats,
+                sections: sections
+            });
+        };/**
  * Calculate defense build time (client-side estimate)
  */
 function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1, naniteLevel = 0) {
