@@ -208,5 +208,12 @@ export const API = {
         return await this.request('/game/alliance/leave', {
             method: 'POST'
         });
+    },
+
+    async updateRelation(targetUserId, tag) {
+        return await this.request('/game/relation', {
+            method: 'POST',
+            body: JSON.stringify({ targetUserId, tag })
+        });
     }
 };

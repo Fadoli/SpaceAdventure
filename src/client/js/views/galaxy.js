@@ -584,6 +584,10 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
     const rowClass = isPlayerPlanet ? 'my-planet-row' : '';
     const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : 'ai-planet-row';
     
+    // Check relations
+    const relation = currentGameState?.relations?.[planet.playerId] || 'none';
+    const relationClass = relation !== 'none' ? `relation-${relation}` : '';
+
     // Check if this is the currently active planet
     const currentPlanet = window.getCurrentPlanet();
     const isCurrentPlanet = currentPlanet && 
@@ -606,7 +610,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
     }
 
     return `
-        <tr class="planet-row ${rowClass} ${planetTypeClass}">
+        <tr class="planet-row ${rowClass} ${planetTypeClass} ${relationClass}">
             <td class="pos-col"><strong>${position}</strong></td>
             <td class="planet-col">
                 <div class="planet-name-cell">
@@ -620,9 +624,10 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
             </td>
             <td class="debris-col">${debrisHtml}</td>
             <td class="player-col">
-                <div class="player-info">
+                <div class="player-info clickable" onclick="window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')">
                     ${playerIcon}
                     <span>${planet.player}</span>
+                    ${relation !== 'none' ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
                 </div>
             </td>
             <td class="status-col">
@@ -647,6 +652,74 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
         </tr>
     `;
 }
+
+window.openRelationMenu = function(event, targetUserId, username) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Close any existing menu
+    const existing = document.getElementById('relation-context-menu');
+    if (existing) existing.remove();
+
+    const currentRelation = currentGameState?.relations?.[targetUserId] || 'none';
+
+    const menu = document.createElement('div');
+    menu.id = 'relation-context-menu';
+    menu.className = 'context-menu-scifi';
+    
+    menu.innerHTML = `
+        <div class="menu-header">INTELLIGENCE CLASSIFICATION: ${username.toUpperCase()}</div>
+        <button class="menu-item ${currentRelation === 'friend' ? 'active' : ''}" onclick="window.setPlayerRelation('${targetUserId}', 'friend')">
+            <span class="indicator friend"></span> TAG AS FRIEND
+        </button>
+        <button class="menu-item ${currentRelation === 'enemy' ? 'active' : ''}" onclick="window.setPlayerRelation('${targetUserId}', 'enemy')">
+            <span class="indicator enemy"></span> TAG AS ENEMY
+        </button>
+        ${currentRelation !== 'none' ? `
+            <button class="menu-item" onclick="window.setPlayerRelation('${targetUserId}', 'none')">
+                <span class="indicator clear"></span> REMOVE CLASSIFICATION
+            </button>
+        ` : ''}
+    `;
+
+    document.body.appendChild(menu);
+
+    // Position menu next to mouse
+    menu.style.left = `${event.pageX + 10}px`;
+    menu.style.top = `${event.pageY + 10}px`;
+
+    // Close handler
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    
+    // Use timeout to avoid immediate close from current click
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+};
+
+window.setPlayerRelation = async function(targetUserId, tag) {
+    try {
+        const relations = await API.updateRelation(targetUserId, tag);
+        if (currentGameState) currentGameState.relations = relations;
+        
+        // Refresh view
+        const container = document.getElementById('galaxy-view');
+        if (container) {
+            await loadAndRenderGalaxy(container, currentGalaxy, currentSystem, currentGameState);
+        }
+        
+        // Remove menu
+        const menu = document.getElementById('relation-context-menu');
+        if (menu) menu.remove();
+        
+        Notifications.showSuccess(`Intelligence updated for subject.`);
+    } catch (error) {
+        Notifications.showError(`System error: ${error.message}`);
+    }
+};
 
 /**
  * Render a table row for an empty position

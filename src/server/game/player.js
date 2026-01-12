@@ -89,6 +89,7 @@ export async function getPlayerByUserId(userId) {
     if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
     if (player.allianceId === undefined) player.allianceId = null;
     if (player.allianceRole === undefined) player.allianceRole = null;
+    if (!player.relations) player.relations = {};
     
     playersCache.set(userId, player);
   }
@@ -151,6 +152,7 @@ export async function createPlayer(userId, username) {
     customBuildingVariants: {},
     customShipVariants: {},
     fleets: [],
+    relations: {},
     statistics: { totalResourcesSpent: 0 }
   };
   
@@ -209,6 +211,27 @@ export async function renamePlanet(userId, planetId, newName) {
   planet.lastRenamed = now;
   await updatePlayer(userId, player);
   return planet;
+}
+
+/**
+ * Update relation tag for another player
+ */
+export async function updatePlayerRelation(userId, targetUserId, tag) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+  
+  if (!player.relations) player.relations = {};
+  
+  if (tag === null || tag === 'none') {
+    delete player.relations[targetUserId];
+  } else if (['friend', 'enemy'].includes(tag)) {
+    player.relations[targetUserId] = tag;
+  } else {
+    throw new Error('Invalid relation tag');
+  }
+  
+  await updatePlayer(userId, player);
+  return player.relations;
 }
 
 /**

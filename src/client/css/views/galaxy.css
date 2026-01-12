@@ -279,3 +279,97 @@
     font-weight: 900;
     letter-spacing: 1px;
 }
+
+/* Sci-Fi Context Menu */
+.context-menu-scifi {
+    position: absolute;
+    background: rgba(12, 18, 29, 0.98);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--accent-blue);
+    border-radius: 2px;
+    padding: 5px;
+    z-index: 2500;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.1);
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: menuFadeIn 0.2s ease-out;
+}
+
+@keyframes menuFadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.context-menu-scifi .menu-header {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.context-menu-scifi .menu-item {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.context-menu-scifi .menu-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--accent-blue);
+}
+
+.context-menu-scifi .menu-item.active {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent-blue);
+}
+
+.indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.indicator.friend { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+.indicator.enemy { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+.indicator.clear { background: var(--text-secondary); }
+
+/* Relation Tags and Highlighting */
+.relation-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    border-radius: 1px;
+    margin-left: auto;
+}
+
+.relation-friend .relation-tag { background: rgba(74, 222, 128, 0.15); color: var(--accent-green); }
+.relation-enemy .relation-tag { background: rgba(244, 63, 94, 0.15); color: var(--accent-red); }
+
+.relation-friend .planet-name { color: var(--accent-green) !important; }
+.relation-enemy .planet-name { color: var(--accent-red) !important; }
+
+.player-info.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.player-info.clickable:hover {
+    opacity: 0.8;
+}

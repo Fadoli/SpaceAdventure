@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation } from './game/player.js';
 import { getGalaxyData } from './game/galaxyData.js';
 import { 
   upgradeBuilding, 
@@ -1176,7 +1176,8 @@ async function handleRequest(req) {
             planetsInSystem.push({
               position: pPosition,
               player: player.username,
-              playerType: 'ai', // Could be enhanced to track player vs AI
+              playerId: player.userId,
+              playerType: player.isAI ? 'ai' : 'player',
               planetName: planet.name,
               activity: planet.lastActivity ? getActivityString(planet.lastActivity) : 'Unknown',
               moon: planet.moon || false,
@@ -1194,6 +1195,7 @@ async function handleRequest(req) {
           if (!planetsInSystem.find(p => p.position === dp)) {
             planetsInSystem.push({
               position: dp,
+              playerType: 'none',
               debris: galaxyData.debrisFields[coordKey]
             });
           }
@@ -1845,6 +1847,20 @@ async function handleRequest(req) {
       try {
         await leaveAlliance(user.id);
         return successResponse(req, { success: true });
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/relation
+    if (path === '/api/game/relation' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const { targetUserId, tag } = await req.json();
+      try {
+        const relations = await updatePlayerRelation(user.id, targetUserId, tag);
+        return successResponse(req, relations);
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }
