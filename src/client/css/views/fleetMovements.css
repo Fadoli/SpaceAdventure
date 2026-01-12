@@ -3,11 +3,13 @@
 .fleet-movements-bar {
     background: rgba(12, 18, 29, 0.95);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-color);
+    border: none;
     padding: 0;
     display: none;
     width: 100%;
-    position: relative;
+    position: sticky;
+    top: 76px; /* Header (40) + Nav (36) */
+    left: 0;
     z-index: 100;
     box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
 }
@@ -19,7 +21,8 @@
 /* 1. Technical Header */
 .fleet-header {
     background: rgba(56, 189, 248, 0.03);
-    padding: 8px 25px;
+    padding: 0 25px;
+    height: 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -206,3 +209,49 @@
 .fleet-list::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
 .fleet-list::-webkit-scrollbar-thumb { background: #1e293b; }
 .fleet-list::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+/* Global Tooltip Styling Overlay */
+.fleet-tooltip-fixed {
+    position: fixed;
+    background: rgba(12, 18, 29, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--accent-blue);
+    border-radius: 2px;
+    padding: 15px;
+    z-index: 3000;
+    pointer-events: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    min-width: 240px;
+    font-family: 'Share Tech Mono', monospace;
+    display: none;
+}
+
+.tooltip-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    letter-spacing: 1px;
+}
+
+.tooltip-body {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #fff;
+}
+
+.tooltip-body strong {
+    color: var(--accent-blue);
+    font-size: 0.7rem;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+
+.tooltip-body strong:first-child {
+    margin-top: 0;
+}

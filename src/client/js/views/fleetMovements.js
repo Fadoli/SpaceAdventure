@@ -22,8 +22,13 @@ function setupTooltipHandlers() {
     
     document.querySelectorAll('.fleet-row').forEach(row => {
         row.addEventListener('mouseenter', (e) => {
-            const content = row.querySelector('.fleet-tooltip-content').innerHTML;
-            const header = row.querySelector('.fleet-tooltip-header-text').textContent;
+            const contentEl = row.querySelector('.fleet-tooltip-content');
+            const headerEl = row.querySelector('.fleet-tooltip-header-text');
+            
+            if (!contentEl || !headerEl) return;
+
+            const content = contentEl.innerHTML;
+            const header = headerEl.textContent;
             
             tooltip.querySelector('.tooltip-header').textContent = header;
             tooltip.querySelector('.tooltip-body').innerHTML = content;
