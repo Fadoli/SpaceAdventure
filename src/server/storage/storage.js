@@ -127,6 +127,12 @@ export async function initializeStorage() {
     await createAiPlayer('Nebula AI', AI_TYPES.BALANCED);
     console.log('Spawned initial AI bots');
   }
+
+  // Initialize alliances.json if it doesn't exist
+  const alliances = await readJsonFile('alliances.json');
+  if (!alliances) {
+    await writeJsonFile('alliances.json', { alliances: {} });
+  }
   
   console.log('Storage initialized');
 }

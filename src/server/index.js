@@ -42,6 +42,7 @@ import { sendFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
+import { getAlliances, getAllianceById, createAlliance, joinAlliance, leaveAlliance } from './game/alliance.js';
 import { 
   startTheoreticalResearch, 
   completeTheoreticalResearch, 
@@ -1781,6 +1782,68 @@ async function handleRequest(req) {
         planet.activeVariants[buildingType] = blueprintId;
         
         await updatePlayer(user.id, player);
+        return successResponse(req, { success: true });
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // GET /api/game/alliances
+    if (path === '/api/game/alliances' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const alliances = await getAlliances();
+      return successResponse(req, Object.values(alliances));
+    }
+
+    // GET /api/game/alliance/:id
+    if (path.startsWith('/api/game/alliance/') && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const allianceId = path.split('/')[4];
+      const alliance = await getAllianceById(allianceId);
+      if (!alliance) return errorResponse(req, 'Alliance not found', 404);
+      
+      return successResponse(req, alliance);
+    }
+
+    // POST /api/game/alliance/create
+    if (path === '/api/game/alliance/create' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const { name, tag } = await req.json();
+      try {
+        const alliance = await createAlliance(user.id, name, tag);
+        return successResponse(req, alliance);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/alliance/join/:id
+    if (path.startsWith('/api/game/alliance/join/') && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      const allianceId = path.split('/')[4];
+      try {
+        const alliance = await joinAlliance(user.id, allianceId);
+        return successResponse(req, alliance);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/alliance/leave
+    if (path === '/api/game/alliance/leave' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+      
+      try {
+        await leaveAlliance(user.id);
         return successResponse(req, { success: true });
       } catch (error) {
         return errorResponse(req, error.message, 400);

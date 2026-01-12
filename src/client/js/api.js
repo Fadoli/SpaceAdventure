@@ -181,5 +181,32 @@ export const API = {
         return await this.request('/game/messages', {
             method: 'DELETE'
         });
+    },
+
+    async getAlliances() {
+        return await this.request('/game/alliances');
+    },
+
+    async getAlliance(allianceId) {
+        return await this.request(`/game/alliance/${allianceId}`);
+    },
+
+    async createAlliance(name, tag) {
+        return await this.request('/game/alliance/create', {
+            method: 'POST',
+            body: JSON.stringify({ name, tag })
+        });
+    },
+
+    async joinAlliance(allianceId) {
+        return await this.request(`/game/alliance/join/${allianceId}`, {
+            method: 'POST'
+        });
+    },
+
+    async leaveAlliance() {
+        return await this.request('/game/alliance/leave', {
+            method: 'POST'
+        });
     }
 };

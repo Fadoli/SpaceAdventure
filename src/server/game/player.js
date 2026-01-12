@@ -87,6 +87,8 @@ export async function getPlayerByUserId(userId) {
     if (!player.buildingBlueprints) player.buildingBlueprints = {};
     if (!player.shipBlueprints) player.shipBlueprints = {};
     if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
+    if (player.allianceId === undefined) player.allianceId = null;
+    if (player.allianceRole === undefined) player.allianceRole = null;
     
     playersCache.set(userId, player);
   }

@@ -7,9 +7,11 @@
     background: rgba(56, 189, 248, 0.03);
     border-radius: 2px;
     border-left: 3px solid var(--accent-blue);
-    line-height: 1.5;
-    font-size: 0.9rem;
+    line-height: 1.6;
+    font-size: 0.95rem;
     font-family: 'Inter', sans-serif;
+    white-space: pre-wrap; /* Support for manual line breaks */
+    font-style: italic;
 }
 
 /* Diagnostic Stats Grid */

@@ -1,0 +1,33 @@
+/* Modernized Sci-Fi Alliance View */
+
+.alliance-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 1. Dashboard Grid */
+.alliance-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+}
+
+.alliance-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+/* 2. Components */
+.alliance-main-col {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Reusing existing sci-fi components from research/messages */
+
+@media (max-width: 900px) {
+    .alliance-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -16,6 +16,7 @@ import { updateFleetView } from './views/fleet.js';
 import { updateRankingView } from './views/ranking.js';
 import { updateGalaxyView } from './views/galaxy.js';
 import { updateMessagesView, updateUnreadCount } from './views/messages.js';
+import { updateAllianceView } from './views/alliance.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 import { updateFleetMovements } from './views/fleetMovements.js';
 import { Notifications } from './notifications.js';
@@ -214,6 +215,8 @@ function switchView(view, updateHistory = true) {
             initializeResearch(planet);
         } else if (view === 'messages') {
             updateMessagesView();
+        } else if (view === 'alliance') {
+            updateAllianceView();
         } else if (view === 'ranking') {
             updateRankingView();
         } else {
@@ -348,6 +351,9 @@ function updateCurrentView() {
             break;
         case 'messages':
             updateMessagesView();
+            break;
+        case 'alliance':
+            updateAllianceView();
             break;
         case 'ranking':
             // Don't auto-update ranking view to save bandwidth and prevent jitter

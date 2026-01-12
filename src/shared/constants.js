@@ -98,6 +98,12 @@ export const AI_TYPES = {
   RAIDER: 'raider'
 };
 
+export const ALLIANCE_ROLES = {
+  FOUNDER: 'founder',
+  ADMIN: 'admin',
+  MEMBER: 'member'
+};
+
 // Starting resources for new players
 export const STARTING_RESOURCES = {
   metal: 500,
