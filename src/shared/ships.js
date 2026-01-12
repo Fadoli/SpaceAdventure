@@ -8,12 +8,12 @@ import { BUILDINGS } from './buildings.js';
 export const SHIPS = {
   // Civilian Ships
   smallCargo: {
-    name: 'Small Cargo',
+    name: 'SC-12 Logistics Shuttle',
     icon: '📦',
     type: 'civilian',
     driveType: 'combustion',
     description: 'Basic transport ship for small cargo operations.',
-    detailedDescription: 'The Small Cargo ship is the workhorse of any developing colony.\n\nDesigned for reliability and ease of maintenance, its simple combustion engines and modular cargo hold make it ideal for transporting resources between nearby planets.\n\nWhile it lacks significant defensive capabilities, its low cost allows for the rapid assembly of a substantial logistics network.',
+    detailedDescription: 'The SC-12 Logistics Shuttle is the workhorse of any developing colony.\n\nDesigned for reliability and ease of maintenance, its simple combustion engines and modular cargo hold make it ideal for transporting resources between nearby planets.\n\nWhile it lacks significant defensive capabilities, its low cost allows for the rapid assembly of a substantial logistics network.',
     baseCost: {
       metal: 2000,
       crystal: 2000,
@@ -32,12 +32,12 @@ export const SHIPS = {
   },
 
   largeCargo: {
-    name: 'Large Cargo',
+    name: 'LC-45 Heavy Transporter',
     icon: '📫',
     type: 'civilian',
     driveType: 'combustion',
     description: 'Heavy transport ship for large cargo operations.',
-    detailedDescription: 'When an empire grows beyond its home system, the Large Cargo becomes indispensable.\n\nThis massive vessel features a reinforced hull and advanced stabilization systems to safely carry enormous quantities of raw materials and refined goods.\n\nIts improved combustion array allows it to maintain a steady sub-light speed despite its immense mass, making it the primary choice for deep-space resource distribution and trade routes.',
+    detailedDescription: 'When an empire grows beyond its home system, the LC-45 Heavy Transporter becomes indispensable.\n\nThis massive vessel features a reinforced hull and advanced stabilization systems to safely carry enormous quantities of raw materials and refined goods.\n\nIts improved combustion array allows it to maintain a steady sub-light speed despite its immense mass, making it the primary choice for deep-space resource distribution and trade routes.',
     baseCost: {
       metal: 6000,
       crystal: 6000,
@@ -56,12 +56,12 @@ export const SHIPS = {
   },
 
   colonyShip: {
-    name: 'Colony Ship',
+    name: 'Vanguard Colonizer',
     icon: '🏗️',
     type: 'civilian',
     driveType: 'impulse',
     description: 'Colonizes new planets. Single-use, one-way trip.',
-    detailedDescription: 'The Colony Ship is a marvel of engineering, essentially a pre-fabricated planetary outpost equipped with powerful impulse engines. It carries everything necessary to establish a foothold on a new world: modular housing, basic atmospheric scrubbers, and enough supplies to sustain the first wave of pioneers. Upon reaching its destination, the ship disassembles itself to provide the foundation for the new colony\'s initial infrastructure.',
+    detailedDescription: 'The Vanguard Colonizer is a marvel of engineering, essentially a pre-fabricated planetary outpost equipped with powerful impulse engines. It carries everything necessary to establish a foothold on a new world: modular housing, basic atmospheric scrubbers, and enough supplies to sustain the first wave of pioneers. Upon reaching its destination, the ship disassembles itself to provide the foundation for the new colony\'s initial infrastructure.',
     baseCost: {
       metal: 10000,
       crystal: 20000,
@@ -80,12 +80,12 @@ export const SHIPS = {
   },
 
   recycler: {
-    name: 'Recycler',
+    name: 'Harvester-Utility Vessel',
     icon: '♻️',
     type: 'civilian',
     driveType: 'combustion',
     description: 'Collects debris from destroyed ships in battle.',
-    detailedDescription: 'The Recycler is a specialized industrial vessel equipped with massive tractor beams and high-capacity processing bays. Its primary purpose is to harvest the wreckage of destroyed fleets, reclaiming valuable metal and crystal from the void of space. While slow and vulnerable, a fleet accompanied by recyclers can effectively turn a battlefield into a secondary resource mine, significantly accelerating an empire\'s recovery after a major engagement.',
+    detailedDescription: 'The Harvester-Utility Vessel is a specialized industrial vessel equipped with massive tractor beams and high-capacity processing bays. Its primary purpose is to harvest the wreckage of destroyed fleets, reclaiming valuable metal and crystal from the void of space. While slow and vulnerable, a fleet accompanied by recyclers can effectively turn a battlefield into a secondary resource mine, significantly accelerating an empire\'s recovery after a major engagement.',
     baseCost: {
       metal: 10000,
       crystal: 6000,
@@ -104,12 +104,12 @@ export const SHIPS = {
   },
 
   espionageProbe: {
-    name: 'Espionage Probe',
+    name: 'Vector-Class Recon Probe',
     icon: '🛸',
     type: 'civilian',
     driveType: 'combustion',
     description: 'Gathers intelligence on target planets.',
-    detailedDescription: 'Small, unmanned, and incredibly fast, the Espionage Probe is designed to slip past planetary sensors and transmit detailed telemetry back to its origin. Equipped with advanced scanning arrays and high-gain communication arrays, it can reveal everything from resource stockpiles to the exact composition of enemy fleets. However, their light frames and lack of shielding make them easy targets if detected by planetary defense systems.',
+    detailedDescription: 'Small, unmanned, and incredibly fast, the Vector-Class Recon Probe is designed to slip past planetary sensors and transmit detailed telemetry back to its origin. Equipped with advanced scanning arrays and high-gain communication arrays, it can reveal everything from resource stockpiles to the exact composition of enemy fleets. However, their light frames and lack of shielding make them easy targets if detected by planetary defense systems.',
     baseCost: {
       metal: 0,
       crystal: 1000,
@@ -126,12 +126,12 @@ export const SHIPS = {
 
   // Military Ships - Fighters
   lightFighter: {
-    name: 'Light Fighter',
+    name: 'Swift-Strike Interceptor',
     icon: '🛩️',
     type: 'military',
     driveType: 'combustion',
     description: 'Fast, cheap attack ship with low hull strength.',
-    detailedDescription: 'The Light Fighter is the fundamental unit of any space-faring military.\n\nBy prioritizing speed and firepower over armor, it provides a highly mobile and cost-effective solution for escorting cargo fleets or overwhelming slower targets through superior numbers.\n\nWhile a single fighter is easily dispatched, a coordinated swarm can bypass the tracking systems of much larger capital ships.',
+    detailedDescription: 'The Swift-Strike Interceptor is the fundamental unit of any space-faring military.\n\nBy prioritizing speed and firepower over armor, it provides a highly mobile and cost-effective solution for escorting cargo fleets or overwhelming slower targets through superior numbers.\n\nWhile a single fighter is easily dispatched, a coordinated swarm can bypass the tracking systems of much larger capital ships.',
     baseCost: {
       metal: 3000,
       crystal: 1000,
@@ -150,12 +150,12 @@ export const SHIPS = {
   },
 
   heavyFighter: {
-    name: 'Heavy Fighter',
+    name: 'Aegis-Class Vanguard',
     icon: '🛡️',
     type: 'military',
     driveType: 'impulse',
     description: 'Stronger fighter with better armor and shield.',
-    detailedDescription: 'Representing a significant advancement in small-craft design, the Heavy Fighter incorporates localized shielding and multi-layered alloy plating.\n\nIts impulse drive provides better sub-light maneuverability and high-speed acceleration compared to its lighter counterpart.\n\nDesigned to survive long-duration engagements, the Heavy Fighter is the preferred choice for front-line combat and aggressive reconnaissance.',
+    detailedDescription: 'Representing a significant advancement in small-craft design, the Aegis-Class Vanguard incorporates localized shielding and multi-layered alloy plating.\n\nIts impulse drive provides better sub-light maneuverability and high-speed acceleration compared to its lighter counterpart.\n\nDesigned to survive long-duration engagements, the Aegis-Class is the preferred choice for front-line combat and aggressive reconnaissance.',
     baseCost: {
       metal: 6000,
       crystal: 4000,
@@ -176,14 +176,14 @@ export const SHIPS = {
 
   // Medium Ships
   cruiser: {
-    name: 'Cruiser',
+    name: 'Strider-Class Cruiser',
     icon: '🚢',
     type: 'military',
     driveType: 'impulse',
     description: 'Medium combat ship, good against fighters.',
-    detailedDescription: 'The Cruiser is a versatile medium-tonnage vessel specialized in anti-fighter operations.\n\nEquipped with advanced tracking computers and rapid-cycle laser arrays, it can engage and neutralize swarms of smaller craft with devastating efficiency.\n\nIts reinforced hull and balanced shielding allow it to serve as a reliable line ship in fleet engagements or as a powerful enforcer for trade lane security.',
+    detailedDescription: 'The Strider-Class Cruiser is a versatile medium-tonnage vessel specialized in anti-fighter operations.\n\nEquipped with advanced tracking computers and rapid-cycle laser arrays, it can engage and neutralize swarms of smaller craft with devastating efficiency.\n\nIts reinforced hull and balanced shielding allow it to serve as a reliable line ship in fleet engagements or as a powerful enforcer for trade lane security.',
     baseCost: {
-      metal: 2000,
+      metal: 20000,
       crystal: 7000,
       deuterium: 2000
     },
@@ -202,12 +202,12 @@ export const SHIPS = {
   },
 
   bomber: {
-    name: 'Bomber',
+    name: 'Eclipse Siege Bomber',
     icon: '💣',
     type: 'military',
     driveType: 'impulse',
     description: 'Specialized for destroying planetary defenses.',
-    detailedDescription: 'Designed with a single purpose in mind, the Bomber carries a massive payload of high-energy ordinance designed to penetrate planetary shield domes and bypass reinforced bunkers.\n\nWhile slower and more specialized than other combat craft, its ability to quickly dismantle static defensive positions makes it an essential component of any successful planetary invasion force.',
+    detailedDescription: 'Designed with a single purpose in mind, the Eclipse Siege Bomber carries a massive payload of high-energy ordinance designed to penetrate planetary shield domes and bypass reinforced bunkers.\n\nWhile slower and more specialized than other combat craft, its ability to quickly dismantle static defensive positions makes it an essential component of any successful planetary invasion force.',
     baseCost: {
       metal: 50000,
       crystal: 25000,
@@ -230,12 +230,12 @@ export const SHIPS = {
 
   // Heavy Ships
   battleship: {
-    name: 'Battleship',
+    name: 'Leviathan Battleship',
     icon: '⚓',
     type: 'military',
     driveType: 'hyperspace',
     description: 'Heavy combat ship with high damage and durability.',
-    detailedDescription: 'The Battleship is the pride of any intergalactic fleet.\n\nThis massive vessel is a mobile fortress, boasting heavy armor plating, extensive shield arrays, and a primary armament capable of vaporizing smaller ships in a single volley.\n\nIts hyperspace drive allows it to project power across entire systems, making it the definitive symbol of an empire\'s military might.',
+    detailedDescription: 'The Leviathan Battleship is the pride of any intergalactic fleet.\n\nThis massive vessel is a mobile fortress, boasting heavy armor plating, extensive shield arrays, and a primary armament capable of vaporizing smaller ships in a single volley.\n\nIts hyperspace drive allows it to project power across entire systems, making it the definitive symbol of an empire\'s military might.',
     baseCost: {
       metal: 45000,
       crystal: 15000,
@@ -255,12 +255,12 @@ export const SHIPS = {
   },
 
   destroyer: {
-    name: 'Destroyer',
+    name: 'Obsidian-Class Destroyer',
     icon: '⚡',
     type: 'military',
     driveType: 'hyperspace',
     description: 'Anti-capital ship specialized against large vessels.',
-    detailedDescription: 'The Destroyer is an advanced heavy combatant designed to counter the largest capital ships and planetary defense installations.\n\nUtilizing focused antimatter projectors and high-frequency shielding, it can withstand enormous punishment while delivering concentrated damage to critical enemy systems.\n\nIt is often deployed at the vanguard of major offensives to neutralize the enemy\'s most powerful assets.',
+    detailedDescription: 'The Obsidian-Class Destroyer is an advanced heavy combatant designed to counter the largest capital ships and planetary defense installations.\n\nUtilizing focused antimatter projectors and high-frequency shielding, it can withstand enormous punishment while delivering concentrated damage to critical enemy systems.\n\nIt is often deployed at the vanguard of major offensives to neutralize the enemy\'s most powerful assets.',
     baseCost: {
       metal: 60000,
       crystal: 50000,
@@ -278,6 +278,65 @@ export const SHIPS = {
       lightFighter: 10,
       plasmaTurret: 5,
       espionageProbe: 5
+    }
+  },
+
+  carrier: {
+    name: 'Nova-Class Stellar Carrier',
+    icon: '🚢',
+    type: 'military',
+    driveType: 'hyperspace',
+    description: 'Mobile base capable of deploying and supporting fighter wings.',
+    detailedDescription: 'The Nova-Class Stellar Carrier is a specialized heavy vessel that serves as a mobile base of operations. It is equipped with massive automated launch bays and advanced field-repair systems for smaller craft.\n\nWhile its own offensive armament is secondary to its complement of fighters, its ability to project a massive fighter screen makes it the ultimate force multiplier in large-scale fleet engagements.',
+    baseCost: {
+      metal: 2000000,
+      crystal: 1500000,
+      deuterium: 500000
+    },
+    cargoCapacity: 50000,
+    fuel: 5000,
+    speed: 2500,
+    attack: 5000,
+    shield: 10000,
+    hull: 200000,
+    populationRequired: 2000,
+    rapidFire: {
+      lightFighter: 20,
+      heavyFighter: 20,
+      espionageProbe: 10
+    }
+  },
+
+  dreadnought: {
+    name: 'Void-Class Dreadnought',
+    icon: '🌌',
+    type: 'military',
+    driveType: 'hyperspace',
+    description: 'Ultimate end-game capital ship. Destroys everything in its path.',
+    detailedDescription: 'The Void-Class Dreadnought is the pinnacle of naval architecture. More a moon than a ship, it generates a localized singularity to power its main battery, which can penetrate any known shielding.\n\nA single Dreadnought can hold an entire system in terror, its sheer presence being enough to force surrender from lesser civilizations.\n\nBuilding one requires an astronomical amount of resources and the most advanced technological facilities in the galaxy.',
+    baseCost: {
+      metal: 5000000,
+      crystal: 2500000,
+      deuterium: 1000000
+    },
+    cargoCapacity: 100000,
+    fuel: 10000,
+    speed: 1500,
+    attack: 50000,
+    shield: 50000,
+    hull: 500000,
+    populationRequired: 5000,
+    rapidFire: {
+      battleship: 10,
+      destroyer: 5,
+      cruiser: 20,
+      smallCargo: 50,
+      largeCargo: 50,
+      lightFighter: 100,
+      heavyFighter: 100,
+      gaussCannon: 10,
+      ionCannon: 20,
+      laserCannon: 50
     }
   }
 };

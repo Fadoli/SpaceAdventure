@@ -71,6 +71,10 @@ export const SHIPS = {
   HEAVY_FIGHTER: 'heavyFighter',
   CRUISER: 'cruiser',
   BATTLESHIP: 'battleship',
+  DESTROYER: 'destroyer',
+  BOMBER: 'bomber',
+  DREADNOUGHT: 'dreadnought',
+  CARRIER: 'carrier',
   COLONY_SHIP: 'colonyShip',
   RECYCLER: 'recycler',
   ESPIONAGE_PROBE: 'espionageProbe'

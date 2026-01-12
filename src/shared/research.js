@@ -157,7 +157,7 @@ export const THEORETICAL_RESEARCH = {
       deuterium: 6000
     },
     prerequisites: ['impulseDrive', 'computerTech'],
-    unlocks: ['cruiser', 'battleship'],
+    unlocks: ['cruiser', 'battleship', 'destroyer', 'dreadnought', 'carrier'],
     bonuses: {
       shipHyperSpeed: 0.5 // 50% per level
     },
@@ -255,6 +255,7 @@ export const THEORETICAL_RESEARCH = {
       deuterium: 2500
     },
     prerequisites: ['armorTech'],
+    unlocks: ['dreadnought', 'carrier'],
     bonuses: {
       unitHullBonus: 0.05 // 5% per level
     }
