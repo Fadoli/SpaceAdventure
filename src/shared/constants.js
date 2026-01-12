@@ -40,6 +40,17 @@ export const BUILDINGS = {
   HOUSING: 'housing'
 };
 
+export const DEFENSES = {
+  ROCKET_LAUNCHER: 'rocketLauncher',
+  LASER_CANNON: 'laserCannon',
+  PARTICLE_BEAM: 'particleBeam',
+  GAUSS_CANNON: 'gaussCannon',
+  ION_CANNON: 'ionCannon',
+  DISRUPTOR: 'disruptor',
+  PLASMA_TURRET: 'plasmaTurret',
+  SHIELD: 'shield'
+};
+
 export const TECHNOLOGIES = {
   ENERGY_TECH: 'energyTech',
   COMPUTER_TECH: 'computerTech',

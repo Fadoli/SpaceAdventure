@@ -6,10 +6,10 @@ import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
 
 export const DEFENSES = {
   rocketLauncher: {
-    name: 'Rocket Launcher',
+    name: 'MAG-7 Kinetic Launcher',
     icon: '🚀',
-    description: 'Basic planetary defense that launches missiles.',
-    detailedDescription: 'The Rocket Launcher is the primary line of defense for any new colony.\n\nUtilizing a multi-tube array of high-explosive missiles, it provides a reliable and inexpensive deterrent against light raiders and swarms of fighters.\n\nWhile its guidance systems are rudimentary, its sheer volume of fire can overwhelm targets through saturation bombardment.',
+    description: 'Basic planetary defense that launches high-velocity kinetic missiles.',
+    detailedDescription: 'The MAG-7 Kinetic Launcher is the primary line of defense for any new colony.\n\nUtilizing a multi-tube array of high-explosive kinetic slugs, it provides a reliable and inexpensive deterrent against light raiders and swarms of fighters.\n\nWhile its guidance systems are rudimentary, its sheer volume of fire can overwhelm targets through saturation bombardment.',
     baseCost: {
       metal: 2000,
       crystal: 0,
@@ -21,10 +21,10 @@ export const DEFENSES = {
   },
 
   laserCannon: {
-    name: 'Laser Cannon',
+    name: 'Phased Pulse Emitter',
     icon: '🔫',
-    description: 'Energy-based defense weapon with high precision.',
-    detailedDescription: 'Refining planetary defense through focused optics, the Laser Cannon delivers high-precision energy beams at extreme ranges.\n\nUnlike projectile weapons, its beams travel at the speed of light, making them virtually impossible to evade for smaller craft.\n\nIts rapid-cycle capacitors allow for sustained fire, effectively thinning out fighter screens before they can reach the planet\'s atmosphere.',
+    description: 'Energy-based defense weapon with high-frequency phased pulses.',
+    detailedDescription: 'Refining planetary defense through focused optics, the Phased Pulse Emitter delivers high-precision energy beams at extreme ranges.\n\nUnlike projectile weapons, its beams travel at the speed of light, making them virtually impossible to evade for smaller craft.\n\nIts rapid-cycle capacitors allow for sustained fire, effectively thinning out fighter screens before they can reach the planet\'s atmosphere.',
     baseCost: {
       metal: 1500,
       crystal: 500,
@@ -39,10 +39,10 @@ export const DEFENSES = {
   },
 
   particleBeam: {
-    name: 'Particle Beam',
+    name: 'Hadron Beam Projector',
     icon: '⚛️',
-    description: 'Advanced energy weapon dealing massive damage.',
-    detailedDescription: 'The Particle Beam accelerates subatomic particles to relativistic speeds, creating a concentrated stream of matter that can bypass conventional shielding and shred reinforced alloys.\n\nThis advanced weapon system bridges the gap between light point defense and heavy orbital artillery, providing substantial stopping power against medium-tonnage vessels and heavily armored bombers.',
+    description: 'Advanced energy weapon dealing massive subatomic damage.',
+    detailedDescription: 'The Hadron Beam Projector accelerates subatomic particles to relativistic speeds, creating a concentrated stream of matter that can bypass conventional shielding and shred reinforced alloys.\n\nThis advanced weapon system bridges the gap between light point defense and heavy orbital artillery, providing substantial stopping power against medium-tonnage vessels and heavily armored bombers.',
     baseCost: {
       metal: 6000,
       crystal: 2000,
@@ -56,62 +56,68 @@ export const DEFENSES = {
     }
   },
 
-  shield: {
-    name: 'Planetary Shield',
-    icon: '🛡️',
-    description: 'Protective energy shield around the planet.',
-    detailedDescription: 'The Planetary Shield Dome is a massive installation designed to protect an entire colony from orbital bombardment.\n\nBy generating a high-frequency gravitic barrier, it can absorb and redistribute the energy of incoming attacks, significantly increasing the survivability of planetary infrastructure and fleets stationed in the dock.\n\nWhile it possesses no offensive capabilities, its presence is often the difference between total annihilation and survival.',
+  gaussCannon: {
+    name: 'Hyper-Velocity Gauss Cannon',
+    icon: '🔋',
+    description: 'Electromagnetic accelerator firing heavy metallic slugs.',
+    detailedDescription: 'Utilizing massive electromagnetic rails, the Gauss Cannon accelerates high-density slugs to a significant fraction of the speed of light.\n\nThe sheer kinetic energy of the impact can penetrate the thickest battleship hulls, making it an excellent medium-tier defense against armored targets.\n\nIt requires significant metal for its specialized ammunition but remains one of the most cost-effective heavy weapons.',
     baseCost: {
-      metal: 10000,
-      crystal: 10000,
-      deuterium: 0
+      metal: 20000,
+      crystal: 15000,
+      deuterium: 2000
     },
-    attack: 0,
-    shield: 2000,
-    hull: 20000
-  },
-
-  interceptor: {
-    name: 'Interceptor Missile',
-    icon: '🎯',
-    description: 'Fast-moving defense against incoming attacks.',
-    detailedDescription: 'Specialized in high-speed kinetic interception, the Interceptor Missile is a sophisticated counter-measure against bombers and specialized siege vessels.\n\nIts advanced tracking computers allow it to navigate through chaotic debris fields and fighter screens to deliver a precision strike to critical enemy systems.\n\nIt is the definitive solution for neutralizing threats that lighter laser arrays cannot penetrate.',
-    baseCost: {
-      metal: 8000,
-      crystal: 2000,
-      deuterium: 0
-    },
-    attack: 150,
-    shield: 50,
-    hull: 10000,
+    attack: 1100,
+    shield: 200,
+    hull: 35000,
     rapidFire: {
-      espionageProbe: 5
+      smallCargo: 3,
+      largeCargo: 3
     }
   },
 
-  antiAirMissile: {
-    name: 'Anti-Air Missile',
-    icon: '💣',
-    description: 'Specialized defense against air/space attacks.',
-    detailedDescription: 'The Anti-Air Missile system utilizes a multi-layered warhead designed to fracture upon impact, creating a localized field of shrapnel that is lethal to any ship within its radius.\n\nThis makes it exceptionally effective against swarms of fighters and light reconnaissance craft that rely on speed and evasion rather than heavy shielding.\n\nIt serves as a vital area-denial asset for planetary airspace.',
+  ionCannon: {
+    name: 'Cascading Ion Disruptor',
+    icon: '⚡',
+    description: 'Long-range defense weapon that overloads enemy electronics.',
+    detailedDescription: 'Utilizing ionized gas accelerated to near-light speed, the Cascading Ion Disruptor is a long-range defensive system specialized in disrupting enemy electronics and overloading shield generators.\n\nUnlike thermal or kinetic weapons, its beams cause cascading power failures in target vessels, making it ideal for disabling incoming fleets and rendering them vulnerable to coordinated counter-attacks.',
     baseCost: {
-      metal: 10000,
-      crystal: 4000,
+      metal: 2000,
+      crystal: 6000,
       deuterium: 0
     },
-    attack: 200,
-    shield: 60,
-    hull: 14000,
+    attack: 150,
+    shield: 500,
+    hull: 8000,
     rapidFire: {
-      espionageProbe: 5
+      espionageProbe: 5,
+      smallCargo: 2
+    }
+  },
+
+  disruptor: {
+    name: 'Sub-Atomic Disruptor',
+    icon: '🌀',
+    description: 'Experimental weapon that destabilizes molecular bonds.',
+    detailedDescription: 'The Sub-Atomic Disruptor fires high-frequency spatial distortions that resonate with the target\'s molecular structure, causing matter to literally dissolve.\n\nThis experimental technology ignores a portion of conventional shielding, making it deadly against high-tech capital ships.\n\nIts complexity makes it expensive, but its presence on a planet is a terrifying prospect for any invader.',
+    baseCost: {
+      metal: 35000,
+      crystal: 25000,
+      deuterium: 10000
+    },
+    attack: 1800,
+    shield: 400,
+    hull: 60000,
+    rapidFire: {
+      heavyFighter: 4,
+      cruiser: 2
     }
   },
 
   plasmaTurret: {
-    name: 'Plasma Turret',
+    name: 'Omega Plasma Array',
     icon: '🌋',
-    description: 'Extreme damage output at the cost of shorter range.',
-    detailedDescription: 'The pinnacle of static planetary defense, the Plasma Turret harnesses the same energy that powers stars.\n\nIt fires superheated bolts of ionized gas that can vaporize a battleship\'s hull in seconds.\n\nWhile the energy requirements and heat-management systems are enormous, the sheer destructive potential of this turret makes it the ultimate deterrent against any large-scale orbital invasion force.',
+    description: 'Extreme damage output utilizing superheated solar gas.',
+    detailedDescription: 'The pinnacle of static planetary defense, the Omega Plasma Array harnesses the same energy that powers stars.\n\nIt fires superheated bolts of ionized gas that can vaporize a battleship\'s hull in seconds.\n\nWhile the energy requirements and heat-management systems are enormous, the sheer destructive potential of this turret makes it the ultimate deterrent against any large-scale orbital invasion force.',
     baseCost: {
       metal: 50000,
       crystal: 50000,
@@ -125,23 +131,19 @@ export const DEFENSES = {
     }
   },
 
-  ionCannon: {
-    name: 'Ion Cannon',
-    icon: '⚡',
-    description: 'Long-range defense weapon with sustained fire.',
-    detailedDescription: 'Utilizing ionized gas accelerated to near-light speed, the Ion Cannon is a long-range defensive system specialized in disrupting enemy electronics and overloading shield generators.\n\nUnlike thermal or kinetic weapons, its beams cause cascading power failures in target vessels, making it ideal for disabling incoming fleets and rendering them vulnerable to coordinated counter-attacks.',
+  shield: {
+    name: 'Gravitic Deflector Dome',
+    icon: '🛡️',
+    description: 'Protective gravitic barrier that deflects incoming fire.',
+    detailedDescription: 'The Gravitic Deflector Dome is a massive installation designed to protect an entire colony from orbital bombardment.\n\nBy generating a high-frequency gravitic barrier, it can absorb and redistribute the energy of incoming attacks, significantly increasing the survivability of planetary infrastructure and fleets stationed in the dock.\n\nWhile it possesses no offensive capabilities, its presence is often the difference between total annihilation and survival.',
     baseCost: {
-      metal: 2000,
-      crystal: 6000,
+      metal: 10000,
+      crystal: 10000,
       deuterium: 0
     },
-    attack: 150,
-    shield: 500,
-    hull: 8000,
-    rapidFire: {
-      espionageProbe: 5,
-      smallCargo: 2
-    }
+    attack: 0,
+    shield: 2000,
+    hull: 20000
   }
 };
 
