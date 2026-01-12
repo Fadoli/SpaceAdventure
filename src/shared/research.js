@@ -8,7 +8,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Energy',
     icon: '⚡',
     description: 'Improves energy production and efficiency across all buildings.',
-    detailedDescription: 'Energy Technology is the cornerstone of all advanced planetary infrastructure. It covers the mastery of high-density power generation, superconducting transmission, and localized grid optimization. As scientists delve deeper into quantum energetics and zero-point fluctuations, they unlock the ability to construct Fusion Reactors, which harness the power of artificial suns. Higher levels of this research not only unlock new energy structures but also improve the efficiency of existing ones, making it easier to power a rapidly growing colony without constant blackouts.',
+    detailedDescription: 'Energy Technology is the cornerstone of all advanced planetary infrastructure.\n\nIt covers the mastery of high-density power generation, superconducting transmission, and localized grid optimization. As scientists delve deeper into quantum energetics and zero-point fluctuations, they unlock the ability to construct Fusion Reactors, which harness the power of artificial suns.\n\nHigher levels of this research not only unlock new energy structures but also improve the efficiency of existing ones, making it easier to power a rapidly growing colony without constant blackouts.',
     baseCost: {
       metal: 200,
       crystal: 100,
@@ -26,7 +26,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Computing',
     icon: '💻',
     description: 'Accelerates research and improves fleet efficiency.',
-    detailedDescription: 'From localized AI sub-routines to massive planet-wide neural networks, Computer Technology governs the processing power available to your empire. Advanced computing allows for more efficient management of complex research simulations and the coordination of vast robotic workforces. Strategically, this is one of the most critical technologies to advance early, as its "research speed" bonus applies to every other technological field. It is also a fundamental requirement for advanced defensive systems and the sophisticated navigation computers required for deep-space combat vessels.',
+    detailedDescription: 'From localized AI sub-routines to massive planet-wide neural networks, Computer Technology governs the processing power available to your empire.\n\nAdvanced computing allows for more efficient management of complex research simulations and the coordination of vast robotic workforces. Strategically, this is one of the most critical technologies to advance early, as its "research speed" bonus applies to every other technological field.\n\nIt is also a fundamental requirement for advanced defensive systems and the sophisticated navigation computers required for deep-space combat vessels.',
     baseCost: {
       metal: 400,
       crystal: 600,
@@ -47,7 +47,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '⚔️',
     description: 'Increases attack power of all units.',
-    detailedDescription: 'In a galaxy full of potential threats, superior firepower is the ultimate deterrent. Weapons Technology encompasses research into high-energy laser focal points, railgun acceleration, and focused antimatter warheads. By refining the destructive potential of your fleet\'s primary armaments, this technology increases the damage output of every ship and planetary defense turret in your arsenal. Commanders who neglect Weapons Tech often find their fleets outmatched by smaller, more specialized forces that hit harder and more precisely.',
+    detailedDescription: 'In a galaxy full of potential threats, superior firepower is the ultimate deterrent.\n\nWeapons Technology encompasses research into high-energy laser focal points, railgun acceleration, and focused antimatter warheads. By refining the destructive potential of your fleet\'s primary armaments, this technology increases the damage output of every ship and planetary defense turret in your arsenal.\n\nCommanders who neglect Weapons Tech often find their fleets outmatched by smaller, more specialized forces that hit harder and more precisely.',
     baseCost: {
       metal: 800,
       crystal: 200,
@@ -68,7 +68,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '🛡️',
     description: 'Improves shield strength and defense.',
-    detailedDescription: 'Shielding Technology focuses on the generation and stabilization of high-frequency gravitic and electromagnetic barriers. These shields are designed to absorb and redistribute the energy from incoming attacks, protecting the underlying hull from damage. As this research progresses, shield generators become more resilient and faster to cycle, significantly increasing the survivability of your ships. High levels of shielding are also required to construct the massive planetary shield domes that can withstand prolonged orbital bombardments.',
+    detailedDescription: 'Shielding Technology focuses on the generation and stabilization of high-frequency gravitic and electromagnetic barriers.\n\nThese shields are designed to absorb and redistribute the energy from incoming attacks, protecting the underlying hull from damage. As this research progresses, shield generators become more resilient and faster to cycle, significantly increasing the survivability of your ships.\n\nHigh levels of shielding are also required to construct the massive planetary shield domes that can withstand prolonged orbital bombardments.',
     baseCost: {
       metal: 200,
       crystal: 600,
@@ -89,7 +89,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '🔒',
     description: 'Strengthens hull armor of ships.',
-    detailedDescription: 'When shields fail, only the cold, hard metal of the hull stands between your crew and the vacuum of space. Armor Technology focuses on the development of multi-layered composite alloys and structural reinforcement techniques that can withstand extreme heat and kinetic impacts. This research directly increases the maximum hull integrity of all units, allowing them to remain in the fight long after their counterparts would have been reduced to space dust. It is essential for the construction of massive Battleships and heavily armored planetary bunkers.',
+    detailedDescription: 'When shields fail, only the cold, hard metal of the hull stands between your crew and the vacuum of space.\n\nArmor Technology focuses on the development of multi-layered composite alloys and structural reinforcement techniques that can withstand extreme heat and kinetic impacts. This research directly increases the maximum hull integrity of all units, allowing them to remain in the fight long after their counterparts would have been reduced to space dust.\n\nIt is essential for the construction of massive Battleships and heavily armored planetary bunkers.',
     baseCost: {
       metal: 1000,
       crystal: 0,
@@ -109,7 +109,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Propulsion',
     icon: '🚀',
     description: 'Enables basic spaceship travel.',
-    detailedDescription: 'The fundamental propulsion system for any interstellar civilization. Combustion Drives utilize high-efficiency chemical reactions to generate the massive thrust needed to exit a planet\'s gravity well and travel between nearby celestial bodies. While lacking the sheer speed of advanced fusion or hyperspace drives, the Combustion Drive is reliable, cost-effective, and forms the backbone of early transport and trade fleets. Mastering this tech is the first step toward exploring the stars and establishing your first colonies.',
+    detailedDescription: 'The fundamental propulsion system for any interstellar civilization.\n\nCombustion Drives utilize high-efficiency chemical reactions to generate the massive thrust needed to exit a planet\'s gravity well and travel between nearby celestial bodies. While lacking the sheer speed of advanced fusion or hyperspace drives, the Combustion Drive is reliable, cost-effective, and forms the backbone of early transport and trade fleets.\n\nMastering this tech is the first step toward exploring the stars and establishing your first colonies.',
     baseCost: {
       metal: 400,
       crystal: 150,
@@ -129,7 +129,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Propulsion',
     icon: '🌠',
     description: 'Faster interplanetary travel.',
-    detailedDescription: 'Impulse Drives represent a significant leap over basic chemical rockets. By utilizing localized fusion reactions to accelerate plasma to relativistic speeds, these drives provide a massive increase in sub-light velocity and maneuverability. Ships equipped with Impulse Drives can cross entire solar systems in a fraction of the time required by combustion-based vessels. This technology is vital for rapid response fleets and is a prerequisite for the construction of agile Light Fighters and more capable combat vessels.',
+    detailedDescription: 'Impulse Drives represent a significant leap over basic chemical rockets.\n\nBy utilizing localized fusion reactions to accelerate plasma to relativistic speeds, these drives provide a massive increase in sub-light velocity and maneuverability. Ships equipped with Impulse Drives can cross entire solar systems in a fraction of the time required by combustion-based vessels.\n\nThis technology is vital for rapid response fleets and is a prerequisite for the construction of agile Light Fighters and more capable combat vessels.',
     baseCost: {
       metal: 2000,
       crystal: 4000,
@@ -150,7 +150,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Propulsion',
     icon: '🌌',
     description: 'Enables intergalactic travel.',
-    detailedDescription: 'The pinnacle of propulsion technology. Hyperspace Drives function by creating a localized tear in the fabric of space-time, allowing a ship to enter a "sub-space" dimension where the speed of light is not a barrier. This allows for near-instantaneous travel across vast distances that would otherwise take centuries to cross. The Hyperspace Drive is the lifeblood of a sprawling intergalactic empire, enabling the rapid deployment of massive battle-fleets and the efficient coordination of far-flung colonies. It is required for the construction of the most powerful capital ships.',
+    detailedDescription: 'The pinnacle of propulsion technology.\n\nHyperspace Drives function by creating a localized tear in the fabric of space-time, allowing a ship to enter a "sub-space" dimension where the speed of light is not a barrier. This allows for near-instantaneous travel across vast distances that would otherwise take centuries to cross.\n\nThe Hyperspace Drive is the lifeblood of a sprawling intergalactic empire, enabling the rapid deployment of massive battle-fleets and the efficient coordination of far-flung colonies. It is required for the construction of the most powerful capital ships.',
     baseCost: {
       metal: 10000,
       crystal: 20000,
@@ -171,7 +171,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Espionage',
     icon: '🕵️',
     description: 'Enables espionage missions and improves intelligence gathering.',
-    detailedDescription: 'In the dark reaches of space, information is often more valuable than gold. Espionage Technology focuses on the development of ultra-sensitive long-range scanners, advanced encryption algorithms, and stealth-coatings for probes. Advancing this tech allows your empire to gain detailed insights into enemy planet infrastructure and fleet movements while simultaneously making your own systems much harder to penetrate. High-level espionage is essential for planning successful attacks and avoiding costly ambushes.',
+    detailedDescription: 'In the dark reaches of space, information is often more valuable than gold.\n\nEspionage Technology focuses on the development of ultra-sensitive long-range scanners, advanced encryption algorithms, and stealth-coatings for probes. Advancing this tech allows your empire to gain detailed insights into enemy planet infrastructure and fleet movements while simultaneously making your own systems much harder to penetrate.\n\nHigh-level espionage is essential for planning successful attacks and avoiding costly ambushes.',
     baseCost: {
       metal: 1000,
       crystal: 1000,
@@ -192,7 +192,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Science',
     icon: '🔭',
     description: 'Unlocks additional galaxy slots and colony expansion.',
-    detailedDescription: 'The study of the cosmos and the formation of star systems. Advanced knowledge of Astrophysics is required to identify and exploit habitable worlds across the galaxy. This research directly determines the maximum number of planets your empire can colonize and manage effectively. It also covers the logistical challenges of maintaining distant outposts, ensuring your colonists have the life-support and communications systems needed to survive in the most remote corners of the universe. Every level expands your reach and your influence.',
+    detailedDescription: 'The study of the cosmos and the formation of star systems.\n\nAdvanced knowledge of Astrophysics is required to identify and exploit habitable worlds across the galaxy. This research directly determines the maximum number of planets your empire can colonize and manage effectively.\n\nIt also covers the logistical challenges of maintaining distant outposts, ensuring your colonists have the life-support and communications systems needed to survive in the most remote corners of the universe. Every level expands your reach and your influence.',
     baseCost: {
       metal: 4000,
       crystal: 8000,
@@ -214,7 +214,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Engineering',
     icon: '♻️',
     description: 'Reduces the construction cost of buildings, defenses, and ships.',
-    detailedDescription: 'Resource Efficiency focus on minimizing waste and optimizing the use of raw materials during construction. By implementing advanced recycling protocols and structural optimization algorithms, your engineers can build larger structures and more complex vessels with fewer resources. Each level reduces the Metal, Crystal, and Deuterium cost of all buildings, ships, and defenses by 0.5%.',
+    detailedDescription: 'Resource Efficiency focus on minimizing waste and optimizing the use of raw materials during construction.\n\nBy implementing advanced recycling protocols and structural optimization algorithms, your engineers can build larger structures and more complex vessels with fewer resources. Each level reduces the Metal, Crystal, and Deuterium cost of all buildings, ships, and defenses by 0.5%.',
     baseCost: {
       metal: 2000,
       crystal: 4000,
@@ -231,7 +231,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Engineering',
     icon: '🏗️',
     description: 'Reduces the construction time of all structures and units.',
-    detailedDescription: 'Modular Construction utilizes standardized structural components and pre-fabricated modules to streamline the assembly process. Instead of building from scratch, your robotics and shipyard crews can simply snap together tested and verified sections. Each level of this research reduces the base time required to build buildings, ships, and defenses by 1%.',
+    detailedDescription: 'Modular Construction utilizes standardized structural components and pre-fabricated modules to streamline the assembly process.\n\nInstead of building from scratch, your robotics and shipyard crews can simply snap together tested and verified sections. Each level of this research reduces the base time required to build buildings, ships, and defenses by 1%.',
     baseCost: {
       metal: 5000,
       crystal: 2000,
@@ -248,7 +248,7 @@ export const THEORETICAL_RESEARCH = {
     category: 'Military',
     icon: '💎',
     description: 'Increases the hull integrity of all ships and defenses.',
-    detailedDescription: 'Research into carbon-nanotube weaving and self-healing polymers allows for the creation of incredibly resilient hulls. Advanced Materials go beyond simple armor plating, reinforcing the very skeleton of your vessels and defensive structures. Each level of this research increases the base hull strength (HP) of all ships and planetary defenses by 5%.',
+    detailedDescription: 'Research into carbon-nanotube weaving and self-healing polymers allows for the creation of incredibly resilient hulls.\n\nAdvanced Materials go beyond simple armor plating, reinforcing the very skeleton of your vessels and defensive structures. Each level of this research increases the base hull strength (HP) of all ships and planetary defenses by 5%.',
     baseCost: {
       metal: 1000,
       crystal: 5000,

@@ -9,6 +9,7 @@ export const DEFENSES = {
     name: 'Rocket Launcher',
     icon: '🚀',
     description: 'Basic planetary defense that launches missiles.',
+    detailedDescription: 'The Rocket Launcher is the primary line of defense for any new colony.\n\nUtilizing a multi-tube array of high-explosive missiles, it provides a reliable and inexpensive deterrent against light raiders and swarms of fighters.\n\nWhile its guidance systems are rudimentary, its sheer volume of fire can overwhelm targets through saturation bombardment.',
     baseCost: {
       metal: 2000,
       crystal: 0,
@@ -23,6 +24,7 @@ export const DEFENSES = {
     name: 'Laser Cannon',
     icon: '🔫',
     description: 'Energy-based defense weapon with high precision.',
+    detailedDescription: 'Refining planetary defense through focused optics, the Laser Cannon delivers high-precision energy beams at extreme ranges.\n\nUnlike projectile weapons, its beams travel at the speed of light, making them virtually impossible to evade for smaller craft.\n\nIts rapid-cycle capacitors allow for sustained fire, effectively thinning out fighter screens before they can reach the planet\'s atmosphere.',
     baseCost: {
       metal: 1500,
       crystal: 500,
@@ -40,6 +42,7 @@ export const DEFENSES = {
     name: 'Particle Beam',
     icon: '⚛️',
     description: 'Advanced energy weapon dealing massive damage.',
+    detailedDescription: 'The Particle Beam accelerates subatomic particles to relativistic speeds, creating a concentrated stream of matter that can bypass conventional shielding and shred reinforced alloys.\n\nThis advanced weapon system bridges the gap between light point defense and heavy orbital artillery, providing substantial stopping power against medium-tonnage vessels and heavily armored bombers.',
     baseCost: {
       metal: 6000,
       crystal: 2000,
@@ -57,6 +60,7 @@ export const DEFENSES = {
     name: 'Planetary Shield',
     icon: '🛡️',
     description: 'Protective energy shield around the planet.',
+    detailedDescription: 'The Planetary Shield Dome is a massive installation designed to protect an entire colony from orbital bombardment.\n\nBy generating a high-frequency gravitic barrier, it can absorb and redistribute the energy of incoming attacks, significantly increasing the survivability of planetary infrastructure and fleets stationed in the dock.\n\nWhile it possesses no offensive capabilities, its presence is often the difference between total annihilation and survival.',
     baseCost: {
       metal: 10000,
       crystal: 10000,
@@ -71,6 +75,7 @@ export const DEFENSES = {
     name: 'Interceptor Missile',
     icon: '🎯',
     description: 'Fast-moving defense against incoming attacks.',
+    detailedDescription: 'Specialized in high-speed kinetic interception, the Interceptor Missile is a sophisticated counter-measure against bombers and specialized siege vessels.\n\nIts advanced tracking computers allow it to navigate through chaotic debris fields and fighter screens to deliver a precision strike to critical enemy systems.\n\nIt is the definitive solution for neutralizing threats that lighter laser arrays cannot penetrate.',
     baseCost: {
       metal: 8000,
       crystal: 2000,
@@ -88,6 +93,7 @@ export const DEFENSES = {
     name: 'Anti-Air Missile',
     icon: '💣',
     description: 'Specialized defense against air/space attacks.',
+    detailedDescription: 'The Anti-Air Missile system utilizes a multi-layered warhead designed to fracture upon impact, creating a localized field of shrapnel that is lethal to any ship within its radius.\n\nThis makes it exceptionally effective against swarms of fighters and light reconnaissance craft that rely on speed and evasion rather than heavy shielding.\n\nIt serves as a vital area-denial asset for planetary airspace.',
     baseCost: {
       metal: 10000,
       crystal: 4000,
@@ -105,6 +111,7 @@ export const DEFENSES = {
     name: 'Plasma Turret',
     icon: '🌋',
     description: 'Extreme damage output at the cost of shorter range.',
+    detailedDescription: 'The pinnacle of static planetary defense, the Plasma Turret harnesses the same energy that powers stars.\n\nIt fires superheated bolts of ionized gas that can vaporize a battleship\'s hull in seconds.\n\nWhile the energy requirements and heat-management systems are enormous, the sheer destructive potential of this turret makes it the ultimate deterrent against any large-scale orbital invasion force.',
     baseCost: {
       metal: 50000,
       crystal: 50000,
@@ -122,6 +129,7 @@ export const DEFENSES = {
     name: 'Ion Cannon',
     icon: '⚡',
     description: 'Long-range defense weapon with sustained fire.',
+    detailedDescription: 'Utilizing ionized gas accelerated to near-light speed, the Ion Cannon is a long-range defensive system specialized in disrupting enemy electronics and overloading shield generators.\n\nUnlike thermal or kinetic weapons, its beams cause cascading power failures in target vessels, making it ideal for disabling incoming fleets and rendering them vulnerable to coordinated counter-attacks.',
     baseCost: {
       metal: 2000,
       crystal: 6000,
