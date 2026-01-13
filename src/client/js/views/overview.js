@@ -3,7 +3,7 @@ import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
-import { calculatePopulationChange } from '../../../shared/formulas.js';
+import { calculatePopulationChange, calculatePositionMultiplier } from '../../../shared/formulas.js';
 
 let lastOverviewPlanetId = null;
 
@@ -99,20 +99,8 @@ function initializeOverviewStructure(container, planet, allPlanets) {
             
             <div class="planet-stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Coordinates</div>
+                    <div class="stat-label">Imperial Coordinates</div>
                     <div class="stat-value" id="ov-planet-coords">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Sector Analysis</div>
-                    <div class="stat-value" id="ov-planet-diameter">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Thermal Range</div>
-                    <div class="stat-value" id="ov-planet-temp">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Orbital Garrison</div>
-                    <div class="stat-value" id="ov-military-summary">-</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Imperial Standing</div>
@@ -120,51 +108,88 @@ function initializeOverviewStructure(container, planet, allPlanets) {
                         <button class="btn btn-primary btn-small" onclick="window.viewMyRank()" style="font-size: 0.7rem; width: 100%;">View Rank</button>
                     </div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-label">Orbital Garrison</div>
+                    <div class="stat-value" id="ov-military-summary">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Strategic Intel: Deuterium</div>
+                    <div class="stat-value" id="ov-bonus-deut">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Strategic Intel: Water</div>
+                    <div class="stat-value" id="ov-bonus-water">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Strategic Intel: Food</div>
+                    <div class="stat-value" id="ov-bonus-food">-</div>
+                </div>
             </div>
         </div>
         
         <div class="production-report">
-            <h3>Planetary Logistics Report</h3>
+            <div class="section-header-technical">
+                <h3>PLANETARY LOGISTICS & SUSTAINMENT</h3>
+                <div class="header-line"></div>
+            </div>
             <div class="production-grid">
                 <div class="production-item metal">
                     <div class="prod-header">
-                        <span class="prod-label">Metal Supply</span>
+                        <span class="prod-label">METAL</span>
                         <span class="prod-value" id="ov-res-metal">-</span>
                     </div>
                     <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-metal" style="width: 0%"></div></div>
-                    <div id="ov-prod-metal">-</div>
+                    <div id="ov-prod-metal" class="prod-net">-</div>
                 </div>
                 <div class="production-item crystal">
                     <div class="prod-header">
-                        <span class="prod-label">Crystal Supply</span>
+                        <span class="prod-label">CRYSTAL</span>
                         <span class="prod-value" id="ov-res-crystal">-</span>
                     </div>
                     <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-crystal" style="width: 0%"></div></div>
-                    <div id="ov-prod-crystal">-</div>
+                    <div id="ov-prod-crystal" class="prod-net">-</div>
                 </div>
                 <div class="production-item deuterium">
                     <div class="prod-header">
-                        <span class="prod-label">Deuterium Fuel</span>
+                        <span class="prod-label">DEUTERIUM</span>
                         <span class="prod-value" id="ov-res-deuterium">-</span>
                     </div>
                     <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-deuterium" style="width: 0%"></div></div>
-                    <div id="ov-prod-deuterium">-</div>
+                    <div id="ov-prod-deuterium" class="prod-net">-</div>
                 </div>
                 <div class="production-item energy">
                     <div class="prod-header">
-                        <span class="prod-label">Energy Grid</span>
+                        <span class="prod-label">ENERGY</span>
                         <span class="prod-value" id="ov-energy-net">-</span>
                     </div>
-                    <div id="ov-energy-details">
-                        Net: <span id="ov-energy-prod" class="text-success"></span> / <span id="ov-energy-cons" class="text-danger"></span>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-energy" style="width: 0%"></div></div>
+                    <div id="ov-energy-details" class="prod-net">
+                        <span id="ov-energy-prod" class="text-success"></span><span class="sep">/</span><span id="ov-energy-cons" class="text-danger"></span>
                     </div>
                 </div>
-                <div class="production-item">
+                <div class="production-item water">
                     <div class="prod-header">
-                        <span class="prod-label">Workforce</span>
+                        <span class="prod-label">WATER</span>
+                        <span class="prod-value" id="ov-res-water">-</span>
+                    </div>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-water" style="width: 0%"></div></div>
+                    <div id="ov-prod-water" class="prod-net">-</div>
+                </div>
+                <div class="production-item food">
+                    <div class="prod-header">
+                        <span class="prod-label">FOOD</span>
+                        <span class="prod-value" id="ov-res-food">-</span>
+                    </div>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-food" style="width: 0%"></div></div>
+                    <div id="ov-prod-food" class="prod-net">-</div>
+                </div>
+                <div class="production-item population">
+                    <div class="prod-header">
+                        <span class="prod-label">POPULATION</span>
                         <span class="prod-value" id="ov-pop-val">-</span>
                     </div>
-                    <div id="ov-pop-prod">-</div>
+                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-population" style="width: 0%"></div></div>
+                    <div id="ov-pop-prod" class="prod-net">-</div>
                 </div>
             </div>
             <div id="ov-efficiency-warning-container"></div>
@@ -177,17 +202,6 @@ function initializeOverviewStructure(container, planet, allPlanets) {
             </div>
         </div>
     `;
-}
-
-/**
- * Calculate planet fields
- */
-function calculateFields(planet) {
-    const used = Object.values(planet.buildings || {}).reduce((sum, level) => sum + level, 0);
-    const base = 163; // Standard starter size
-    const terraformer = (planet.buildings?.terraformer || 0) * 5;
-    const total = base + terraformer;
-    return { used, total };
 }
 
 /**
@@ -207,30 +221,47 @@ export function updateOverview(planet, allPlanets = []) {
     if (!container) return;
 
     // Initialize structure if planet changed or container is empty
-    if (lastOverviewPlanetId !== planet.id || !container.querySelector('.planet-profile')) {
+    if (lastOverviewPlanetId !== planet.id || !container.querySelector('.planet-main-info')) {
         initializeOverviewStructure(container, planet, allPlanets);
         lastOverviewPlanetId = planet.id;
     }
 
     const { resources, storage, production, consumption, energyConsumption, energyEfficiency, populationEfficiency, coordinates, ships, defenses } = planet;
     const [galaxy, system, position] = coordinates;
-    const { used, total } = calculateFields(planet);
-    const { min, max } = calculateTemperature(position);
     
+    // Strategic Bonuses
+    const deutBonus = calculatePositionMultiplier(position, 'deuterium');
+    const waterBonus = calculatePositionMultiplier(position, 'water');
+    const foodBonus = calculatePositionMultiplier(position, 'food');
+
     // Update simple text values
     const safeSetText = (id, val) => {
         const el = document.getElementById(id);
         if (el && el.textContent !== val) el.textContent = val;
     };
 
+    const formatBonus = (val) => {
+        const percent = ((val - 1) * 100).toFixed(0);
+        const sign = val >= 1 ? '+' : '';
+        const color = val > 1 ? 'var(--accent-green)' : (val < 1 ? 'var(--accent-red)' : 'var(--text-secondary)');
+        return `<span style="color: ${color}">${sign}${percent}%</span> <span style="font-size: 0.7rem; opacity: 0.6;">(${val.toFixed(1)}x)</span>`;
+    };
+
     safeSetText('ov-planet-name', planet.name);
     safeSetText('ov-planet-coords', `[${coordinates.join(':')}]`);
-    safeSetText('ov-planet-diameter', `12,800km (${used}/${total} fields)`);
-    safeSetText('ov-planet-temp', `${min}°C to ${max}°C`);
+    
+    const deutEl = document.getElementById('ov-bonus-deut');
+    if (deutEl) deutEl.innerHTML = formatBonus(deutBonus);
+    
+    const waterEl = document.getElementById('ov-bonus-water');
+    if (waterEl) waterEl.innerHTML = formatBonus(waterBonus);
+    
+    const foodEl = document.getElementById('ov-bonus-food');
+    if (foodEl) foodEl.innerHTML = formatBonus(foodBonus);
     
     const shipCount = Object.values(ships || {}).reduce((a, b) => a + b, 0);
     const defenseCount = Object.values(defenses || {}).reduce((a, b) => a + b, 0);
-    safeSetText('ov-military-summary', `${formatNumber(shipCount)} Ships, ${formatNumber(defenseCount)} Defenses`);
+    safeSetText('ov-military-summary', `${formatNumber(shipCount)} Fleet Units / ${formatNumber(defenseCount)} Tactical Defenses`);
 
     // Update resources
     const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
@@ -260,23 +291,40 @@ export function updateOverview(planet, allPlanets = []) {
         }
     });
 
-    // Update energy
     const energyTotal = (production.energy || 0) + (energyConsumption || 0);
     const energyBalance = production.energy || 0;
     const isNegative = energyBalance < 0;
 
-    safeSetText('ov-energy-prod', `+${formatNumber(energyTotal)}`);
-    safeSetText('ov-energy-cons', `-${formatNumber(Math.abs(energyConsumption || 0))}`);
+    safeSetText('ov-energy-prod', `${formatNumber(energyTotal)}`);
+    safeSetText('ov-energy-cons', `${formatNumber(Math.abs(energyConsumption || 0))}`);
     
     const netEl = document.getElementById('ov-energy-net');
     if (netEl) {
         netEl.textContent = (energyBalance >= 0 ? '+' : '') + formatNumber(energyBalance);
-        netEl.className = `res-val ${isNegative ? 'text-danger' : 'text-success'}`;
+        netEl.className = `prod-val ${isNegative ? 'text-danger' : 'text-success'}`;
+    }
+
+    // Energy Bar (Load %)
+    const energyBar = document.getElementById('ov-bar-energy');
+    if (energyBar) {
+        const loadPercent = energyTotal > 0 ? Math.min(100, (Math.abs(energyConsumption || 0) / energyTotal) * 100) : 0;
+        energyBar.style.width = `${loadPercent}%`;
+        energyBar.style.backgroundColor = isNegative ? 'var(--accent-red)' : 'var(--accent-green)';
     }
 
     // Update population
-    safeSetText('ov-pop-val', `${formatNumber(resources.population || 0)} / ${formatNumber(planet.maxPopulation || 0)}`);
+    const currentPop = resources.population || 0;
+    const maxPop = planet.maxPopulation || 100;
+    safeSetText('ov-pop-val', `${formatNumber(currentPop)} / ${formatNumber(maxPop)}`);
     
+    // Population Bar
+    const popBar = document.getElementById('ov-bar-population');
+    if (popBar) {
+        const popPercent = Math.min(100, (currentPop / maxPop) * 100);
+        popBar.style.width = `${popPercent}%`;
+        popBar.style.backgroundColor = popPercent > 95 ? 'var(--accent-red)' : 'var(--population-color)';
+    }
+
     const popProdEl = document.getElementById('ov-pop-prod');
     if (popProdEl) {
         const prodMult = window.GAME_CONFIG?.gameSpeed?.resourceProduction || 1.0;
@@ -290,7 +338,7 @@ export function updateOverview(planet, allPlanets = []) {
         );
         const netChange = nextPop - (resources.population || 0);
         popProdEl.textContent = (netChange >= 0 ? '+' : '') + formatNumber(netChange) + '/h';
-        popProdEl.className = `res-val ${netChange < 0 ? 'text-danger' : (netChange > 0 ? 'text-success' : '')}`;
+        popProdEl.className = `prod-net ${netChange < 0 ? 'text-danger' : (netChange > 0 ? 'text-success' : '')}`;
     }
 
     // Warnings

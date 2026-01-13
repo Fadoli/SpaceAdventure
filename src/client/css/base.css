@@ -18,6 +18,9 @@
     --crystal-color: #38bdf8;
     --deuterium-color: #4ade80;
     --energy-color: #fbbf24;
+    --water-color: #0ea5e9;
+    --food-color: #f97316;
+    --population-color: #a78bfa;
     
     /* Global Glows */
     --shadow-glow: 0 0 15px rgba(56, 189, 248, 0.15);
