@@ -84,7 +84,7 @@ async function openMissionModal(missionType, targetCoords) {
                     <span class="ship-name">${shipName}</span>
                     <span class="ship-available">Avail: ${formatNumber(count)}</span>
                     <div class="ship-input">
-                        <input type="number" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" min="0" max="${count}" value="${initialValue}">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" value="${initialValue}">
                         <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateMissionCalculations();">MAX</button>
                     </div>
                 </div>
@@ -121,7 +121,7 @@ async function openMissionModal(missionType, targetCoords) {
                                 ${['metal', 'crystal', 'deuterium'].map(res => `
                                     <div class="res-input-group" style="display: flex; align-items: center; gap: 5px;">
                                         <span style="font-size: 0.8rem; width: 20px;">${{metal:'⚙️',crystal:'💎',deuterium:'🛢️'}[res]}</span>
-                                        <input type="number" class="exp-qty-input sell-qty-input" data-res="${res}" placeholder="0" min="0" style="flex: 1; height: 28px;">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input sell-qty-input" data-res="${res}" placeholder="0" style="flex: 1; height: 28px;">
                                     </div>
                                 `).join('')}
                             </div>
@@ -132,7 +132,7 @@ async function openMissionModal(missionType, targetCoords) {
                                 ${['metal', 'crystal', 'deuterium'].map(res => `
                                     <div class="res-input-group" style="display: flex; align-items: center; gap: 5px;">
                                         <span style="font-size: 0.8rem; width: 20px;">${{metal:'⚙️',crystal:'💎',deuterium:'🛢️'}[res]}</span>
-                                        <input type="number" class="exp-qty-input buy-qty-input" data-res="${res}" placeholder="0" min="0" style="flex: 1; height: 28px;">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input buy-qty-input" data-res="${res}" placeholder="0" style="flex: 1; height: 28px;">
                                     </div>
                                 `).join('')}
                             </div>
@@ -166,7 +166,7 @@ async function openMissionModal(missionType, targetCoords) {
                         <span class="res-avail">${formatNumber(amount)}</span>
                     </div>
                     <div class="res-input-group">
-                        <input type="number" class="exp-qty-input res-qty-input" data-res="${res}" min="0" max="${amount}" value="0">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input res-qty-input" data-res="${res}" value="0">
                         <button class="btn-max" onclick="window.maxResource('${res}', ${amount})">M</button>
                     </div>
                 </div>
@@ -639,14 +639,14 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
                 <div class="nav-item-group">
                     <span class="nav-item-label">Galaxy</span>
                     <button class="nav-arrow-btn" onclick="window.navigateGalaxy(-1)">◀</button>
-                    <input type="number" id="galaxy-input" class="nav-coord-input" value="${galaxy}" min="1" max="9">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="galaxy-input" class="nav-coord-input" value="${galaxy}">
                     <button class="nav-arrow-btn" onclick="window.navigateGalaxy(1)">▶</button>
                 </div>
                 
                 <div class="nav-item-group">
                     <span class="nav-item-label">System</span>
                     <button class="nav-arrow-btn" onclick="window.navigateSystem(-1)">◀</button>
-                    <input type="number" id="system-input" class="nav-coord-input" value="${system}" min="1" max="499">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="system-input" class="nav-coord-input" value="${system}">
                     <button class="nav-arrow-btn" onclick="window.navigateSystem(1)">▶</button>
                 </div>
                 
