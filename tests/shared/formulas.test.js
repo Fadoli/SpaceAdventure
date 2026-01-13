@@ -28,6 +28,7 @@ import { BUILDINGS } from '../../src/shared/buildings.js';
 import { SCALING, BUILDING_SPEED_MULTIPLIER } from '../../src/shared/constants.js';
 
 import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH } from '../../src/shared/research.js';
+import { SHIPS } from '../../src/shared/ships.js';
 
 // ============ Building Cost Tests ============
 describe('calculateBuildingCost', () => {
@@ -199,23 +200,23 @@ describe('calculateStorage', () => {
 // ============ Fuel Consumption Tests ============
 describe('calculateFuelConsumption', () => {
   it('should calculate basic fuel consumption', () => {
-    const ships = { smallCargoShip: 10, largeCargoShip: 5 };
-    const result = calculateFuelConsumption(100, ships);
+    const ships = { smallCargo: 10, largeCargo: 5 };
+    const result = calculateFuelConsumption(100, ships, SHIPS);
     expect(result).toBeGreaterThan(0);
   });
 
   it('should scale with distance', () => {
-    const ships = { smallCargoShip: 10 };
-    const result1 = calculateFuelConsumption(100, ships);
-    const result2 = calculateFuelConsumption(200, ships);
+    const ships = { smallCargo: 10 };
+    const result1 = calculateFuelConsumption(100, ships, SHIPS);
+    const result2 = calculateFuelConsumption(200, ships, SHIPS);
     expect(result2).toBeGreaterThan(result1);
   });
 
   it('should scale with total ship mass', () => {
-    const ships1 = { smallCargoShip: 10 };
-    const ships2 = { smallCargoShip: 20 };
-    const result1 = calculateFuelConsumption(100, ships1);
-    const result2 = calculateFuelConsumption(100, ships2);
+    const ships1 = { smallCargo: 10 };
+    const ships2 = { smallCargo: 20 };
+    const result1 = calculateFuelConsumption(100, ships1, SHIPS);
+    const result2 = calculateFuelConsumption(100, ships2, SHIPS);
     expect(result2).toBeGreaterThan(result1);
   });
 });
@@ -223,13 +224,17 @@ describe('calculateFuelConsumption', () => {
 // ============ Travel Time Tests ============
 describe('calculateTravelTime', () => {
   it('should calculate travel time in seconds', () => {
-    const result = calculateTravelTime(1, 10000);
-    expect(result).toBe(Math.floor((1 * 3600) / 10000));
+    const distance = 1000;
+    const speed = 10000;
+    const result = calculateTravelTime(distance, speed);
+    // Formula: (10 + (3500 * sqrt(10 * distance / speed)))
+    const expected = Math.floor(10 + (3500 * Math.sqrt((10 * distance) / speed)));
+    expect(result).toBe(expected);
   });
 
   it('should increase with distance', () => {
-    const result1 = calculateTravelTime(1, 10000);
-    const result2 = calculateTravelTime(10, 10000);
+    const result1 = calculateTravelTime(1000, 10000);
+    const result2 = calculateTravelTime(2000, 10000);
     expect(result2).toBeGreaterThan(result1);
   });
 });

@@ -165,17 +165,7 @@ function renderShipsList(planet, shipyardData) {
             html += '<div class="ships-grid">';
             for (const shipKey in data.ships) {
                 const baseShip = data.ships[shipKey];
-                
-                // Get blueprints for this ship type
-                const blueprints = (currentShipyardData.shipBlueprints && currentShipyardData.shipBlueprints[shipKey]) || [];
-                
-                // Render the Base Model first
-                html += renderShipCard(planet, shipKey, baseShip, shipyardLevel, isLocked, null);
-                
-                // Render each blueprint
-                for (const blueprint of blueprints) {
-                    html += renderShipCard(planet, shipKey, blueprint.customDefinition, shipyardLevel, isLocked, blueprint);
-                }
+                html += renderShipCard(planet, shipKey, baseShip, shipyardLevel, isLocked);
             }
             html += '</div>';
         }
@@ -187,10 +177,8 @@ function renderShipsList(planet, shipyardData) {
     return html;
 }
 
-function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprint = null) {
-    const identifier = blueprint ? blueprint.id : shipKey;
-    const name = blueprint ? blueprint.name : ship.name;
-    const count = currentShipyardData.ships[identifier] || 0; 
+function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
+    const count = currentShipyardData.ships[shipKey] || 0; 
     const cost = calculateShipCostForDef(ship, 1);
     const buildTime = calculateShipBuildTimeForDef(ship, 1, shipyardLevel, currentShipyardData.naniteLevel || 0);
     
@@ -200,19 +188,19 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                    planet.resources.deuterium >= cost.deuterium;
 
     return `
-        <div class="research-card ${isLocked ? 'locked' : ''} ${blueprint ? 'custom-active' : ''}" id="variant-${identifier}">
+        <div class="research-card ${isLocked ? 'locked' : ''}" id="variant-${shipKey}">
             <div class="card-corner-top"></div>
             <div class="card-header" title="${ship.description}">
                 <div class="header-main">
                     <div class="title-row">
-                        <span class="name">${ship.icon} ${name}</span>
+                        <span class="name">${ship.icon} ${ship.name}</span>
                     </div>
                     <div class="blueprint-row">
                         <span class="level-indicator">${count} IN DOCK</span>
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="btn-info" onclick="window.showShipDetails('${shipKey}', '${identifier}')" title="Technical Data">ℹ️</button>
+                    <button class="btn-info" onclick="window.showShipDetails('${shipKey}')" title="Technical Data">ℹ️</button>
                 </div>
             </div>
             <div class="card-body">
@@ -228,12 +216,12 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                 
                 <div class="diagnostic-section">
                     <div class="section-tag">Requisition</div>
-                    <div class="tech-costs" id="cost-${identifier}">
+                    <div class="tech-costs" id="cost-${shipKey}">
                         <div class="cost-item">⚙️ ${formatNumber(cost.metal)}</div>
                         <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
                         ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
                     </div>
-                    <div class="build-time" id="time-${identifier}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatDuration(buildTime * 1000)}</div>
+                    <div class="build-time" id="time-${shipKey}" style="margin-top: 8px; font-size: 0.75rem;">🕐 ${formatDuration(buildTime * 1000)}</div>
                 </div>
             </div>
             <div class="building-actions">
@@ -243,11 +231,11 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
                     </div>
                 ` : `
                     <div class="action-group">
-                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" data-id="${identifier}">
+                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${shipKey}" placeholder="QTY" data-id="${shipKey}">
                         <button class="btn upgrade-btn" 
-                                id="btn-${identifier}"
+                                id="btn-${shipKey}"
                                 ${!canBuild ? 'disabled' : ''} 
-                                onclick="window.buildShip('${identifier}', '${name}')">
+                                onclick="window.buildShip('${shipKey}', '${ship.name}')">
                             CONSTRUCT
                         </button>
                     </div>
@@ -541,19 +529,7 @@ function updateProductionInfo(type, id, quantity, planet) {
     let cost, buildTime, def;
     
     if (type === 'ship') {
-        // Find ship definition (base or blueprint)
         def = currentShipyardData.availableShips[id];
-        if (!def && currentShipyardData.shipBlueprints) {
-             for (const baseKey in currentShipyardData.shipBlueprints) {
-                const blueprints = currentShipyardData.shipBlueprints[baseKey];
-                const found = blueprints.find(b => b.id === id);
-                if (found) {
-                    def = found.customDefinition;
-                    break;
-                }
-            }
-        }
-        
         if (!def) return;
         
         cost = calculateShipCostForDef(def, quantity);
@@ -671,20 +647,8 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
     /**
      * Show ship details modal
      */
-    window.showShipDetails = function(shipKey, identifier) {
-        // Find ship definition (base or blueprint)
-        let ship = currentShipyardData.availableShips[shipKey];
-        let name = ship?.name || shipKey;
-        
-        // Check if it's a blueprint
-        if (currentShipyardData.shipBlueprints && currentShipyardData.shipBlueprints[shipKey]) {
-            const found = currentShipyardData.shipBlueprints[shipKey].find(b => b.id === identifier);
-            if (found) {
-                ship = found.customDefinition;
-                name = found.name;
-            }
-        }
-        
+    window.showShipDetails = function(shipKey) {
+        const ship = currentShipyardData.availableShips[shipKey];
         if (!ship) return;
     
             const stats = [
@@ -741,7 +705,7 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
                 });
             }    
             renderDetailsModal({
-                title: `${ship.icon} ${name}`,
+                title: `${ship.icon} ${ship.name}`,
                 description: ship.description,
                 detailedDescription: ship.detailedDescription,
                 effects: stats,

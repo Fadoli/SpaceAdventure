@@ -328,9 +328,6 @@ async function handlePracticalResearch(player) {
   if (player.aiConfig.archetype === AI_TYPES.DEFENSIVE) {
     targetType = 'solarPlant';
     allocation = { output: 0.5, automation: 0, energy: 0, cost: 0.5 };
-  } else if (player.aiConfig.archetype === AI_TYPES.AGGRESSIVE) {
-    targetType = 'lightFighter';
-    allocation = { output: 1.0, automation: 0, energy: 0, cost: 0 };
   }
 
   // Resource check

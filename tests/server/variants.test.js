@@ -263,7 +263,7 @@ describe('Building Variants System', () => {
       expect(updated).toBe(true);
       expect(planet.variantSwitchQueue.length).toBe(1);
       expect(planet.activeVariants.metalMine).toBe('custom');
-      expect(planet.activeVariants.crystalMine).toBeUndefined();
+      expect(planet.activeVariants.crystalMine).toBe('base');
     });
 
     it('should switch back to base variant', async () => {

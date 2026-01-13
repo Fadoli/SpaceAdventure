@@ -31,7 +31,6 @@ const mockPlayer = {
   practicalResearch: {},
   practicalResearchQueue: [],
   customBuildingVariants: {},
-  customShipVariants: {},
 };
 
 // Mock dependencies

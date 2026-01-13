@@ -303,87 +303,6 @@ const PRODUCTION_BUILDING_MODIFIERS = {
   }
 };
 
-const SHIP_MODIFIERS = {
-  output: {
-    cargoMultiplier: 1.03,           // +3% capacity
-    costMultiplier: 1.01,
-    fuelMultiplier: 1.015,
-    speedMultiplier: 0.995           // reduced penalty
-  },
-  automation: {
-    crewRequirement: 0.975,          // -2.5%
-    costMultiplier: 1.02,
-    fuelMultiplier: 1.025,
-    cargoMultiplier: 0.998           // reduced penalty
-  },
-  energy: {
-    fuelMultiplier: 0.975,           // -2.5%
-    costMultiplier: 1.015,
-    speedMultiplier: 1.015,          // +1.5% speed
-    cargoMultiplier: 1.01            // +1% capacity
-  },
-  cost: {
-    costMultiplier: 0.975,           // -2.5%
-    cargoMultiplier: 0.998,          // reduced penalty
-    fuelMultiplier: 1.002,
-    speedMultiplier: 1.005
-  }
-};
-
-const MILITARY_SHIP_MODIFIERS = {
-  output: {
-    attackMultiplier: 1.03,          // +3%
-    hullMultiplier: 1.015,           // +1.5%
-    costMultiplier: 1.015,
-    speedMultiplier: 0.995           // reduced penalty
-  },
-  automation: {
-    crewRequirement: 0.975,
-    costMultiplier: 1.02,
-    fuelMultiplier: 1.02,
-    attackMultiplier: 0.998          // reduced penalty
-  },
-  energy: {
-    fuelMultiplier: 0.975,
-    shieldMultiplier: 1.025,         // +2.5%
-    costMultiplier: 1.01,
-    speedMultiplier: 1.015           // +1.5%
-  },
-  cost: {
-    costMultiplier: 0.975,
-    hullMultiplier: 0.998,           // reduced penalty
-    attackMultiplier: 0.998,         // reduced penalty
-    speedMultiplier: 1.005
-  }
-};
-
-const CIVILIAN_SHIP_MODIFIERS = {
-  output: {
-    cargoCapacityMultiplier: 1.03,   // +3%
-    fuelMultiplier: 1.01,
-    costMultiplier: 1.01,
-    speedMultiplier: 0.995           // reduced penalty
-  },
-  automation: {
-    crewRequirement: 0.975,
-    costMultiplier: 1.02,
-    fuelMultiplier: 1.025,
-    cargoCapacityMultiplier: 0.998   // reduced penalty
-  },
-  energy: {
-    fuelMultiplier: 0.975,
-    speedMultiplier: 1.02,           // +2%
-    costMultiplier: 1.01,
-    cargoCapacityMultiplier: 1.01    // +1%
-  },
-  cost: {
-    costMultiplier: 0.975,
-    cargoCapacityMultiplier: 0.998,  // reduced penalty
-    fuelMultiplier: 1.002,
-    speedMultiplier: 1.005
-  }
-};
-
 /**
  * Practical research definitions - one per base building/ship type
  * Each tracks which focuses a player has invested in
@@ -580,39 +499,6 @@ export const PRACTICAL_RESEARCH = {
     },
     maxLevels: 30,
     focusModifiers: PRODUCTION_BUILDING_MODIFIERS
-  },
-
-  // Ship customizations
-  smallCargo: {
-    name: 'Small Cargo',
-    baseType: 'smallCargo',
-    type: 'ship',
-    category: 'Civilian',
-    icon: '📦',
-    description: 'Optimize small cargo ship logistics and efficiency.',
-    baseCost: {
-      metal: 20,
-      crystal: 10,
-      deuterium: 5
-    },
-    maxLevels: 30,
-    focusModifiers: CIVILIAN_SHIP_MODIFIERS
-  },
-
-  lightFighter: {
-    name: 'Light Fighter',
-    baseType: 'lightFighter',
-    type: 'ship',
-    category: 'Military',
-    icon: '🛩️',
-    description: 'Enhance light fighter combat performance.',
-    baseCost: {
-      metal: 20,
-      crystal: 10,
-      deuterium: 5
-    },
-    maxLevels: 30,
-    focusModifiers: MILITARY_SHIP_MODIFIERS
   }
 };
 
@@ -693,8 +579,6 @@ export function getAvailablePracticalResearch(playerBuildings, playerShips) {
     const research = PRACTICAL_RESEARCH[key];
     if (research.type === 'building' && playerBuildings[research.baseType]) {
       available[key] = research;
-    } else if (research.type === 'ship' && playerShips[research.baseType]) {
-      available[key] = research;
     }
   }
 
@@ -702,15 +586,15 @@ export function getAvailablePracticalResearch(playerBuildings, playerShips) {
 }
 
 /**
- * Get a custom variant of a building/ship based on practical research focus
+ * Get a custom variant of a building based on practical research focus
  * Returns modified stats based on the focus levels
  */
-export function getCustomVariant(baseType, type, focusLevels) {
+export function getCustomVariant(baseType, focusLevels) {
   // focusLevels = { output: 5, automation: 3, energy: 2, cost: 0 }
   let research = null;
   for (const key in PRACTICAL_RESEARCH) {
     const r = PRACTICAL_RESEARCH[key];
-    if (r.baseType === baseType && r.type === type) {
+    if (r.baseType === baseType) {
       research = r;
       break;
     }
@@ -720,7 +604,6 @@ export function getCustomVariant(baseType, type, focusLevels) {
 
   return {
     baseType,
-    type,
     focusLevels,
     modifiers: calculateFocusModifiers(research, focusLevels)
   };
@@ -736,15 +619,7 @@ export function calculateFocusModifiers(research, focusLevels) {
     timeMultiplier: 1,
     costMultiplier: 1,
     energyMultiplier: 1,
-    populationMultiplier: 1,
-    cargoCapacityMultiplier: 1,
-    fuelMultiplier: 1,
-    speedMultiplier: 1,
-    attackMultiplier: 1,
-    hullMultiplier: 1,
-    shieldMultiplier: 1,
-    cargoMultiplier: 1,
-    crewRequirement: 1
+    populationMultiplier: 1
   };
 
   // Apply exponential modifiers from each focus
@@ -767,7 +642,7 @@ export function calculateFocusModifiers(research, focusLevels) {
 }
 
 /**
- * Apply practical research modifiers to a building/ship definition
+ * Apply practical research modifiers to a building definition
  */
 export function applyCustomization(baseDefinition, modifiers) {
   // Deep clone the definition to avoid modifying the original constants
@@ -804,31 +679,6 @@ export function applyCustomization(baseDefinition, modifiers) {
   // Apply population modifier
   if (modifiers.populationMultiplier !== 1 && customized.populationRequired !== undefined) {
     customized.populationRequired *= modifiers.populationMultiplier;
-  }
-
-  // Apply ship-specific modifiers
-  if (modifiers.cargoMultiplier !== 1 && customized.cargoCapacity !== undefined) {
-    customized.cargoCapacity *= modifiers.cargoMultiplier;
-  }
-
-  if (modifiers.fuelMultiplier !== 1 && customized.fuel !== undefined) {
-    customized.fuel *= modifiers.fuelMultiplier;
-  }
-
-  if (modifiers.speedMultiplier !== 1 && customized.speed !== undefined) {
-    customized.speed *= modifiers.speedMultiplier;
-  }
-
-  if (modifiers.attackMultiplier !== 1 && customized.attack !== undefined) {
-    customized.attack *= modifiers.attackMultiplier;
-  }
-
-  if (modifiers.hullMultiplier !== 1 && customized.hull !== undefined) {
-    customized.hull *= modifiers.hullMultiplier;
-  }
-
-  if (modifiers.shieldMultiplier !== 1 && customized.shield !== undefined) {
-    customized.shield *= modifiers.shieldMultiplier;
   }
 
   return customized;

@@ -398,13 +398,7 @@ export function calculatePracticalModifiers(baseDefinition, focusLevels, researc
     productionMultiplier: 0,
     costMultiplier: 0,
     energyMultiplier: 0,
-    populationMultiplier: 0,
-    cargoMultiplier: 0,
-    fuelMultiplier: 0,
-    speedMultiplier: 0,
-    attackMultiplier: 0,
-    hullMultiplier: 0,
-    shieldMultiplier: 0
+    populationMultiplier: 0
   };
   
   // Sum modifiers from each focus

@@ -60,7 +60,7 @@ describe('Defenses - getDefense Function', () => {
   it('should retrieve defense by key', () => {
     const rocketLauncher = getDefense('rocketLauncher');
     expect(rocketLauncher).not.toBeNull();
-    expect(rocketLauncher.name).toBe('Rocket Launcher');
+    expect(rocketLauncher.name).toBe('MAG-7 Kinetic Launcher');
   });
 
   it('should return undefined for unknown defense', () => {

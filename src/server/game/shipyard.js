@@ -26,32 +26,13 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   // ships object can now contain either base ship keys or blueprint IDs
   // Format: { "smallCargo": 5, "sbp_12345": 2 }
   
-  for (const identifier in ships) {
-    const quantity = ships[identifier];
+  for (const shipKey in ships) {
+    const quantity = ships[shipKey];
     if (quantity <= 0) continue;
 
-    let shipDef;
-    let shipKey = identifier;
-
-    // Check if it's a blueprint
-    if (identifier.startsWith('sbp_')) {
-      // Find blueprint in player data
-      let blueprint = null;
-      for (const key in player.shipBlueprints || {}) {
-        blueprint = player.shipBlueprints[key].find(bp => bp.id === identifier);
-        if (blueprint) {
-          shipKey = key;
-          break;
-        }
-      }
-      if (!blueprint) throw new Error(`Unknown blueprint: ${identifier}`);
-      shipDef = blueprint.customDefinition;
-    } else {
-      shipDef = SHIPS[identifier];
-    }
-
+    const shipDef = SHIPS[shipKey];
     if (!shipDef) {
-      throw new Error(`Unknown ship type: ${identifier}`);
+      throw new Error(`Unknown ship type: ${shipKey}`);
     }
 
     // Calculate cost based on the specific definition
@@ -329,15 +310,6 @@ export function getShipyardDetails(planet, player = null) {
   const roboticsLevel = planet.buildings?.roboticsFactory || 0;
   const naniteLevel = planet.buildings?.naniteFactory || 0;
 
-  // Calculate effective speeds if player is provided
-  const effectiveSpeeds = {};
-  const shipBlueprints = player?.shipBlueprints || {};
-  if (player) {
-    for (const shipKey in SHIPS) {
-      effectiveSpeeds[shipKey] = calculateShipSpeed(shipKey, player.research);
-    }
-  }
-
   return {
     planetId: planet.id,
     shipyardLevel,
@@ -345,8 +317,6 @@ export function getShipyardDetails(planet, player = null) {
     naniteLevel,
     ships: planet.ships,
     defenses: planet.defenses,
-    effectiveSpeeds,
-    shipBlueprints,
     shipQueue: planet.shipQueue.map(item => ({
       ...item,
       ships: item.ships || {},
@@ -364,93 +334,4 @@ export function getShipyardDetails(planet, player = null) {
       timeRemaining: Math.max(0, item.finishTime - Date.now())
     }))
   };
-}
-
-/**
- * Create a new ship blueprint
- */
-export async function createShipBlueprint(userId, baseType, focusLevels, name) {
-  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
-  const player = await getPlayerByUserId(userId);
-  if (!player) throw new Error('Player not found');
-
-  if (!player.shipBlueprints) player.shipBlueprints = {};
-  if (!player.shipBlueprints[baseType]) player.shipBlueprints[baseType] = [];
-
-  const MAX_BLUEPRINTS = 5;
-  if (player.shipBlueprints[baseType].length >= MAX_BLUEPRINTS) {
-    throw new Error(`Maximum limit of ${MAX_BLUEPRINTS} blueprints reached for ${baseType}.`);
-  }
-
-  const practical = getPracticalResearch();
-  let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'ship');
-  if (!researchConfig) throw new Error('No practical research available for ' + baseType);
-
-  // Validate focus levels
-  for (const focus in focusLevels) {
-    const level = focusLevels[focus];
-    const currentExp = player.practicalResearch?.[baseType]?.experience?.[focus] || 0;
-    const maxLevel = Math.floor(Math.sqrt(currentExp / 100));
-    if (level > maxLevel) throw new Error('Focus level ' + level + ' exceeds research level ' + maxLevel);
-  }
-
-  const blueprintId = 'sbp_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-  const modifiers = calculateFocusModifiers(researchConfig, focusLevels);
-  const customDefinition = applyCustomization(SHIPS[baseType], modifiers);
-
-  const blueprint = {
-    id: blueprintId,
-    name: name || (SHIPS[baseType].name + ' Variant ' + (player.shipBlueprints[baseType].length + 1)),
-    baseType,
-    focusLevels,
-    modifiers,
-    customDefinition,
-    createdAt: Date.now()
-  };
-
-  player.shipBlueprints[baseType].push(blueprint);
-  await updatePlayer(userId, player);
-  return blueprint;
-}
-
-/**
- * Delete a ship blueprint
- */
-export async function deleteShipBlueprint(userId, baseType, blueprintId) {
-  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
-  const player = await getPlayerByUserId(userId);
-  if (!player) throw new Error('Player not found');
-
-  if (!player.shipBlueprints || !player.shipBlueprints[baseType]) {
-    throw new Error('Blueprint not found');
-  }
-
-  const index = player.shipBlueprints[baseType].findIndex(bp => bp.id === blueprintId);
-  if (index === -1) throw new Error('Blueprint not found');
-
-  player.shipBlueprints[baseType].splice(index, 1);
-
-  await updatePlayer(userId, player);
-  return { success: true };
-}
-
-/**
- * Rename a ship blueprint
- */
-export async function renameShipBlueprint(userId, baseType, blueprintId, newName) {
-  const { getPlayerByUserId, updatePlayer } = await import('./player.js');
-  const player = await getPlayerByUserId(userId);
-  if (!player) throw new Error('Player not found');
-
-  if (!player.shipBlueprints || !player.shipBlueprints[baseType]) {
-    throw new Error('Blueprint not found');
-  }
-
-  const blueprint = player.shipBlueprints[baseType].find(bp => bp.id === blueprintId);
-  if (!blueprint) throw new Error('Blueprint not found');
-
-  blueprint.name = newName;
-
-  await updatePlayer(userId, player);
-  return blueprint;
 }

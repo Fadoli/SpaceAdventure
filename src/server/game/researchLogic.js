@@ -21,7 +21,6 @@ import {
 } from '../../shared/formulas.js';
 import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
-import { SHIPS } from '../../shared/ships.js';
 import { BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
 import { addResearchHistoryEntry, getResearchHistory } from './researchHistory.js';
 
@@ -388,7 +387,7 @@ export function resetPracticalResearch(player, baseType) {
 export function getAvailablePracticalResearchForPlayer(player, planetId) {
   const planet = player.planets.find(p => p.id === planetId);
   if (!planet) return {};
-  return getAvailablePracticalResearch(planet.buildings, planet.ships);
+  return getAvailablePracticalResearch(planet.buildings);
 }
 
 /**
@@ -420,39 +419,9 @@ export function selectCustomBuildingVariant(player, planetId, baseType, focusLev
   return player.customBuildingVariants[baseType];
 }
 
-/**
- * Select or update a custom ship variant
- */
-export function selectCustomShipVariant(player, baseType, focusLevels) {
-  if (!SHIPS[baseType]) throw new Error(`Ship ${baseType} not found`);
-  
-  const practical = getPracticalResearch();
-  let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'ship');
-  if (!researchConfig) throw new Error(`No practical research available for ${baseType}`);
-  
-  const currentExp = player.practicalResearch?.[baseType]?.experience || { output: 0, automation: 0, energy: 0, cost: 0 };
-  for (const focus in focusLevels) {
-    const level = focusLevels[focus];
-    const maxLevel = calculateFocusLevel(currentExp[focus]);
-    if (level > maxLevel) throw new Error(`Focus level exceeds research level`);
-  }
-  
-  if (!player.customShipVariants) player.customShipVariants = {};
-  const modifiers = calculateFocusModifiers(researchConfig, focusLevels);
-  const customized = applyCustomization(SHIPS[baseType], modifiers);
-  
-  player.customShipVariants[baseType] = { focusLevels, modifiers, customDefinition: customized };
-  return player.customShipVariants[baseType];
-}
-
 export function getActiveBuildingVariant(player, planetId, baseType) {
   const variant = player.customBuildingVariants?.[baseType];
   return variant ? variant.customDefinition : BUILDINGS[baseType];
-}
-
-export function getActiveShipVariant(player, baseType) {
-  const variant = player.customShipVariants?.[baseType];
-  return variant ? variant.customDefinition : SHIPS[baseType];
 }
 
 export function getResearchProgress(player) {
@@ -475,4 +444,3 @@ export function getResearchProgress(player) {
 export function getTheoreticalResearchLevels(player) { return player.research || {}; }
 export function getPracticalResearchProgress(player) { return player.practicalResearch || {}; }
 export function getActiveCustomVariants(player, planetId) { return player.customBuildingVariants || {}; }
-export function getActiveShipCustomVariants(player) { return player.customShipVariants || {}; }

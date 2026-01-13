@@ -592,25 +592,14 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
     const res = getPracticalResearch()[researchKey];
     if (!res) { Notifications.showError('Research not found'); return; }
 
-    const isShip = res.type === 'ship';
-    const focusHints = isShip ? {
-        output: 'Increases cargo capacity / firepower',
-        automation: 'Reduces crew requirement',
-        energy: 'Improves fuel efficiency',
-        cost: 'Reduces build costs'
-    } : {
+    const focusHints = {
         output: 'Increases production output',
         automation: 'Reduces workforce needs',
         energy: 'Reduces energy consumption',
         cost: 'Reduces construction costs'
     };
 
-    const focusLabels = isShip ? {
-        output: '📦 OUTPUT',
-        automation: '🤖 AUTOMATION',
-        energy: '🛢️ FUEL',
-        cost: '💰 ECONOMY'
-    } : {
+    const focusLabels = {
         output: '📈 OUTPUT',
         automation: '🤖 AUTOMATION',
         energy: '⚡ ENERGY',
@@ -738,7 +727,7 @@ async function renderCustomVariants() {
     if (!container) return;
     try {
         const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/variants`);
-        const { building, ships } = (await response.json()).data;
+        const { building } = (await response.json()).data;
         let html = '<div class="variants-container">';
         
         const buildingTypes = Object.keys(building).filter(type => building[type].length > 0);
@@ -747,30 +736,18 @@ async function renderCustomVariants() {
             for (const baseType of buildingTypes) {
                 const blueprints = building[baseType];
                 blueprints.forEach(bp => {
-                    html += renderVariantCard(baseType, bp, 'building');
+                    html += renderVariantCard(baseType, bp);
                 });
             }
             html += '</div></div>'; 
         }
         
-        const shipTypes = Object.keys(ships).filter(type => ships[type].length > 0);
-        if (shipTypes.length > 0) { 
-            html += '<div class="variants-section"><h3>Ships</h3><div class="variant-grid">'; 
-            for (const baseType of shipTypes) {
-                const blueprints = ships[baseType];
-                blueprints.forEach(bp => {
-                    html += renderVariantCard(baseType, bp, 'ship');
-                });
-            }
-            html += '</div></div>'; 
-        }
-        
-        if (buildingTypes.length === 0 && shipTypes.length === 0) html += '<p>No variants yet.</p>';
+        if (buildingTypes.length === 0) html += '<p style="padding: 20px; opacity: 0.5; font-family: \'Share Tech Mono\', monospace;">NO ACTIVE BLUEPRINTS DETECTED</p>';
         container.innerHTML = html + '</div>';
     } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }
 }
 
-function renderVariantCard(baseType, variant, type) {
+function renderVariantCard(baseType, variant) {
     const { id, name, focusLevels, modifiers } = variant;
     
     let focusesHtml = '';
@@ -790,21 +767,14 @@ function renderVariantCard(baseType, variant, type) {
             productionMultiplier: { label: 'Production', isPos: true },
             costMultiplier: { label: 'Build Cost', isPos: false },
             energyMultiplier: { label: 'Energy Cons.', isPos: false },
-            populationMultiplier: { label: 'Workforce', isPos: false },
-            cargoMultiplier: { label: 'Cargo', isPos: true },
-            cargoCapacityMultiplier: { label: 'Cargo', isPos: true },
-            fuelMultiplier: { label: 'Fuel Cons.', isPos: false },
-            speedMultiplier: { label: 'Engine Speed', isPos: true },
-            attackMultiplier: { label: 'Attack Power', isPos: true },
-            hullMultiplier: { label: 'Hull Integrity', isPos: true },
-            shieldMultiplier: { label: 'Shield Strength', isPos: true },
-            crewRequirement: { label: 'Crew Req.', isPos: false }
+            populationMultiplier: { label: 'Workforce', isPos: false }
         };
 
         for (const modKey in modifiers) {
             const val = modifiers[modKey];
             if (val !== undefined && Math.abs(val - 1) > 0.001) {
-                const config = modifierLabels[modKey] || { label: modKey, isPos: true };
+                const config = modifierLabels[modKey];
+                if (!config) continue;
                 const percent = ((val - 1) * 100).toFixed(1);
                 const isGood = (val > 1) === config.isPos;
                 modifiersHtml += `
@@ -827,7 +797,7 @@ function renderVariantCard(baseType, variant, type) {
                         <span class="name">${name || baseType}</span>
                     </div>
                     <div class="blueprint-row">
-                        <span class="eff-multiplier" style="color: var(--accent-blue); opacity: 0.8; font-size: 0.65rem;">${type.toUpperCase()} MODEL</span>
+                        <span class="eff-multiplier" style="color: var(--accent-blue); opacity: 0.8; font-size: 0.65rem;">BUILDING MODEL</span>
                     </div>
                 </div>
             </div>
@@ -847,13 +817,13 @@ function renderVariantCard(baseType, variant, type) {
             </div>
             <div class="building-actions">
                 <div class="action-group">
-                    <button class="btn upgrade-btn" style="padding: 10px !important;" onclick="window.renameVariant('${baseType}', '${id}', '${type}', '${escapedName}')">
+                    <button class="btn upgrade-btn" style="padding: 10px !important;" onclick="window.renameVariant('${baseType}', '${id}', '${escapedName}')">
                         Rename
                     </button>
-                    <button class="btn design-btn" onclick="window.shareVariant('${baseType}', '${id}', '${type}', event)" title="Share Design">
+                    <button class="btn design-btn" onclick="window.shareVariant('${baseType}', '${id}', event)" title="Share Design">
                         🔗
                     </button>
-                    <button class="btn design-btn" style="border-color: rgba(244, 63, 94, 0.3); color: var(--accent-red);" onclick="window.deleteVariant('${baseType}', '${id}', '${type}')" title="Delete">
+                    <button class="btn design-btn" style="border-color: rgba(244, 63, 94, 0.3); color: var(--accent-red);" onclick="window.deleteVariant('${baseType}', '${id}')" title="Delete">
                         ✕
                     </button>
                 </div>
@@ -862,17 +832,13 @@ function renderVariantCard(baseType, variant, type) {
     `;
 }
 
-window.renameVariant = async function(baseType, blueprintId, type, currentName) {
+window.renameVariant = async function(baseType, blueprintId, currentName) {
     const { showPrompt } = await import('./modals.js');
     const newName = await showPrompt('Rename Blueprint', `Enter a new name for your design:`, currentName);
     if (!newName || newName === currentName) return;
 
     try {
-        const endpoint = type === 'building' 
-            ? `/api/game/blueprints/${baseType}/${blueprintId}`
-            : `/api/game/research/ship-blueprint/${baseType}/${blueprintId}`;
-            
-        const response = await fetch(endpoint, { 
+        const response = await fetch(`/api/game/blueprints/${baseType}/${blueprintId}`, { 
             method: 'PATCH', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newName }) 
@@ -892,7 +858,7 @@ window.renameVariant = async function(baseType, blueprintId, type, currentName) 
     }
 };
 
-window.shareVariant = async function(baseType, blueprintId, type, event) {
+window.shareVariant = async function(baseType, blueprintId, event) {
     if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -914,7 +880,7 @@ window.shareVariant = async function(baseType, blueprintId, type, event) {
     
     if (hasAlliance) {
         html += `
-            <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', '${type}', 'alliance')">
+            <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', 'alliance')">
                 <span class="indicator friend"></span> BROADCAST TO ALLIANCE
             </button>`;
     }
@@ -930,7 +896,7 @@ window.shareVariant = async function(baseType, blueprintId, type, event) {
         
         // Main "Share with friend" button that opens sub-menu
         html += `
-            <button class="menu-item" onclick="window.openFriendShareSubMenu('${baseType}', '${blueprintId}', '${type}', event)">
+            <button class="menu-item" onclick="window.openFriendShareSubMenu('${baseType}', '${blueprintId}', event)">
                 <span class="indicator clear"></span> SHARE WITH FRIEND...
             </button>`;
     }
@@ -957,7 +923,7 @@ window.shareVariant = async function(baseType, blueprintId, type, event) {
     setTimeout(() => document.addEventListener('click', closeMenu), 10);
 };
 
-window.openFriendShareSubMenu = async function(baseType, blueprintId, type, event) {
+window.openFriendShareSubMenu = async function(baseType, blueprintId, event) {
     if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -985,7 +951,7 @@ window.openFriendShareSubMenu = async function(baseType, blueprintId, type, even
         
         friends.forEach(f => {
             html += `
-                <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', '${type}', 'player', '${f.id}')">
+                <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', 'player', '${f.id}')">
                     <span class="indicator friend"></span> ${f.username.toUpperCase()}
                 </button>`;
         });
@@ -993,7 +959,7 @@ window.openFriendShareSubMenu = async function(baseType, blueprintId, type, even
         // Add back button
         html += `
             <div class="menu-divider" style="height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;"></div>
-            <button class="menu-item" onclick="window.shareVariant('${baseType}', '${blueprintId}', '${type}', event)">
+            <button class="menu-item" onclick="window.shareVariant('${baseType}', '${blueprintId}', event)">
                 <span class="indicator clear"></span> << BACK
             </button>`;
 
@@ -1017,9 +983,9 @@ window.openFriendShareSubMenu = async function(baseType, blueprintId, type, even
     }
 };
 
-window.executeShareBlueprint = async function(baseType, blueprintId, type, targetType, targetId = null) {
+window.executeShareBlueprint = async function(baseType, blueprintId, targetType, targetId = null) {
     try {
-        const result = await API.shareBlueprint(baseType, blueprintId, type, targetType, targetId);
+        const result = await API.shareBlueprint(baseType, blueprintId, 'building', targetType, targetId);
         Notifications.showSuccess(`Blueprint successfully shared with ${result.sharedCount} recipients.`);
         const menu = document.getElementById('share-context-menu');
         if (menu) menu.remove();
@@ -1028,15 +994,11 @@ window.executeShareBlueprint = async function(baseType, blueprintId, type, targe
     }
 };
 
-window.deleteVariant = async function(baseType, blueprintId, type) {
+window.deleteVariant = async function(baseType, blueprintId) {
     if (!(await showConfirm('Delete Blueprint', `Are you sure you want to delete this blueprint? Any planets using it will revert to the standard model.`))) return;
     
     try {
-        const endpoint = type === 'building' 
-            ? `/api/game/blueprints/${baseType}/${blueprintId}`
-            : `/api/game/research/ship-blueprint/${baseType}/${blueprintId}`;
-            
-        const response = await fetch(endpoint, { method: 'DELETE' });
+        const response = await fetch(`/api/game/blueprints/${baseType}/${blueprintId}`, { method: 'DELETE' });
         const result = await response.json();
         
         if (!result.success) {

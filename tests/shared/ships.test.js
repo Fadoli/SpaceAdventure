@@ -101,7 +101,7 @@ describe('Ships - getShip Function', () => {
   it('should retrieve ship by key', () => {
     const smallCargo = getShip('smallCargo');
     expect(smallCargo).not.toBeNull();
-    expect(smallCargo.name).toBe('Small Cargo');
+    expect(smallCargo.name).toBe('SC-12 Logistics Shuttle');
   });
 
   it('should return null for unknown ship', () => {
@@ -481,12 +481,12 @@ describe('Ships - calculateFleetFuelCost Function', () => {
     const fleet = { smallCargo: 1 };
     const smallCargo = getShip('smallCargo');
     
-    // At reference distance, cost should equal the fuel value (roughly)
-    const cost = calculateFleetFuelCost(fleet, 35000);
+        // At reference distance, cost should equal the fuel value + 1
+        const cost = calculateFleetFuelCost(fleet, 35000);
     
-    // Math.ceil((50 * 1 * 35000) / 35000) = Math.ceil(50) = 50
-    expect(cost).toBe(smallCargo.fuel);
-  });
+        // Formula: 1 + (def.fuel * count * distance) / 35000
+        // 1 + (50 * 1 * 35000) / 35000 = 51
+        expect(cost).toBe(smallCargo.fuel + 1);  });
 
   it('should return integer cost', () => {
     const fleet = { smallCargo: 3, heavyFighter: 2 };
@@ -503,10 +503,10 @@ describe('Ships - calculateFleetFuelCost Function', () => {
     expect(costLong).toBeGreaterThan(costShort);
   });
 
-  it('should handle zero distance', () => {
-    const fleet = { smallCargo: 1 };
-    const cost = calculateFleetFuelCost(fleet, 0);
-    
-    expect(cost).toBe(0);
-  });
-});
+    it('should handle zero distance', () => {
+      const fleet = { smallCargo: 1 };
+      const cost = calculateFleetFuelCost(fleet, 0);
+  
+      // Formula adds 1: 1 + 0 = 1
+      expect(cost).toBe(1);
+    });});

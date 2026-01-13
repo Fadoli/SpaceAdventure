@@ -83,9 +83,7 @@ export async function getPlayerByUserId(userId) {
     if (!player.practicalResearch) player.practicalResearch = {};
     if (!player.practicalResearchQueue) player.practicalResearchQueue = [];
     if (!player.customBuildingVariants) player.customBuildingVariants = {};
-    if (!player.customShipVariants) player.customShipVariants = {};
     if (!player.buildingBlueprints) player.buildingBlueprints = {};
-    if (!player.shipBlueprints) player.shipBlueprints = {};
     if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
     if (player.allianceId === undefined) player.allianceId = null;
     if (player.allianceRole === undefined) player.allianceRole = null;
@@ -150,7 +148,6 @@ export async function createPlayer(userId, username) {
     practicalResearch: {},
     practicalResearchQueue: [],
     customBuildingVariants: {},
-    customShipVariants: {},
     fleets: [],
     relations: {},
     statistics: { totalResourcesSpent: 0 }

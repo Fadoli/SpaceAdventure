@@ -33,10 +33,7 @@ import {
   buildDefenses, 
   cancelProduction, 
   processCompletedProduction, 
-  getShipyardDetails, 
-  createShipBlueprint, 
-  deleteShipBlueprint,
-  renameShipBlueprint
+  getShipyardDetails
 } from './game/shipyard.js';
 import { sendFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
@@ -52,12 +49,10 @@ import {
   cancelPracticalResearch,
   resetPracticalResearch,
   selectCustomBuildingVariant,
-  selectCustomShipVariant,
   getResearchProgress,
   getTheoreticalResearchLevels,
   getPracticalResearchProgress,
   getActiveCustomVariants,
-  getActiveShipCustomVariants,
   getAvailablePracticalResearchForPlayer,
   getResearchHistory
 } from './game/researchLogic.js';
@@ -1356,8 +1351,7 @@ async function handleRequest(req) {
         }
 
         const blueprints = {
-          ...(player.buildingBlueprints || {}),
-          ...(player.shipBlueprints || {})
+          ...(player.buildingBlueprints || {})
         };
 
         return successResponse(req, {
@@ -1634,83 +1628,6 @@ async function handleRequest(req) {
       }
     }
 
-    // POST /api/game/research/ship-blueprint - Create a new ship blueprint
-    if (path === '/api/game/research/ship-blueprint' && method === 'POST') {
-      const user = await requireAuth(req);
-      if (!user) return errorResponse(req, 'Not authenticated', 401);
-
-      const body = await req.json();
-      const { baseType, focusLevels, name } = body;
-
-      try {
-        const blueprint = await createShipBlueprint(user.id, baseType, focusLevels, name);
-        return successResponse(req, blueprint);
-      } catch (error) {
-        return errorResponse(req, error.message, 400);
-      }
-    }
-
-    // DELETE /api/game/research/ship-blueprint/:baseType/:blueprintId - Delete ship blueprint
-    if (path.match(/^\/api\/game\/research\/ship-blueprint\/[^/]+\/[^/]+$/) && method === 'DELETE') {
-      const user = await requireAuth(req);
-      if (!user) return errorResponse(req, 'Not authenticated', 401);
-
-      const parts = path.split('/');
-      const baseType = parts[5];
-      const blueprintId = parts[6];
-
-      try {
-        const result = await deleteShipBlueprint(user.id, baseType, blueprintId);
-        return successResponse(req, result);
-      } catch (error) {
-        return errorResponse(req, error.message, 400);
-      }
-    }
-
-    // PATCH /api/game/research/ship-blueprint/:baseType/:blueprintId - Rename ship blueprint
-    if (path.match(/^\/api\/game\/research\/ship-blueprint\/[^/]+\/[^/]+$/) && method === 'PATCH') {
-      const user = await requireAuth(req);
-      if (!user) return errorResponse(req, 'Not authenticated', 401);
-
-      const parts = path.split('/');
-      const baseType = parts[5];
-      const blueprintId = parts[6];
-      const body = await req.json();
-      const { name } = body;
-
-      try {
-        const result = await renameShipBlueprint(user.id, baseType, blueprintId, name);
-        return successResponse(req, result);
-      } catch (error) {
-        return errorResponse(req, error.message, 400);
-      }
-    }
-
-    // POST /api/game/research/ship-variant - Set custom ship variant
-    if (path === '/api/game/research/ship-variant' && method === 'POST') {
-      const user = await requireAuth(req);
-      if (!user) {
-        return errorResponse(req, 'Not authenticated', 401);
-      }
-
-      const player = await getPlayerByUserId(user.id);
-      if (!player) {
-        return errorResponse(req, 'Player not found', 404);
-      }
-
-      const body = await req.json();
-      const { baseType, focusLevels } = body;
-
-      try {
-        const variant = selectCustomShipVariant(player, baseType, focusLevels);
-        await updatePlayer(user.id, player);
-
-        return successResponse(req, variant);
-      } catch (error) {
-        return errorResponse(req, error.message, 400);
-      }
-    }
-
     // GET /api/game/planet/:planetId/research/variants - Get active custom variants
     if (path.match(/^\/api\/game\/planet\/[^/]+\/research\/variants$/) && method === 'GET') {
       const user = await requireAuth(req);
@@ -1725,11 +1642,9 @@ async function handleRequest(req) {
 
       try {
         const buildingBlueprints = player.buildingBlueprints || {};
-        const shipBlueprints = player.shipBlueprints || {};
 
         return successResponse(req, {
-          building: buildingBlueprints,
-          ships: shipBlueprints
+          building: buildingBlueprints
         });
       } catch (error) {
         return errorResponse(req, error.message, 400);
