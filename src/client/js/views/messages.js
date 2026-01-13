@@ -129,7 +129,7 @@ function renderMessagesList(container, messages) {
                         </div>
                     </div>
                     <div id="msg-body-${msg.id}" class="msg-entry-body" style="display: none;" onclick="event.stopPropagation()">
-                        <div class="msg-content-text">${msg.body}</div>
+                        <div class="msg-content-text">${linkifyCoords(msg.body)}</div>
                         ${renderMessageData(msg)}
                     </div>
                 </div>
@@ -142,6 +142,17 @@ function renderMessagesList(container, messages) {
     `;
 
     container.innerHTML = html;
+}
+
+/**
+ * Replace [G:S:P] coordinates with clickable galaxy links
+ */
+function linkifyCoords(text) {
+    if (!text) return '';
+    // Match [G:S:P] or G:S:P where G,S,P are numbers
+    return text.replace(/\[?(\d+):(\d+):(\d+)\]?/g, (match, g, s, p) => {
+        return `<a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${g}, ${s}, ${p})">[${g}:${s}:${p}]</a>`;
+    });
 }
 
 /**
@@ -159,9 +170,7 @@ function renderMessageData(msg) {
                 <div class="msg-technical-data">
                     <div class="data-row">
                         <span class="data-label">ESTABLISHED COORDINATES:</span>
-                        <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${c[0]}, ${c[1]}, ${c[2]})">
-                            [${c.join(':')}]
-                        </a>
+                        <span class="data-val">${linkifyCoords(`[${c.join(':')}]`)}</span>
                     </div>
                 </div>`;
         case 'expedition':
@@ -174,9 +183,7 @@ function renderMessageData(msg) {
                 <div class="msg-technical-data">
                     <div class="data-row">
                         <span class="data-label">SECTOR LOCATION:</span>
-                        <a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${ec[0]}, ${ec[1]}, ${ec[2]})">
-                            DEEP SPACE [${ec.join(':')}]
-                        </a>
+                        <span class="data-val">DEEP SPACE ${linkifyCoords(`[${ec.join(':')}]`)}</span>
                     </div>
                     ${resHtml}
                 </div>`;
@@ -202,7 +209,7 @@ function renderCombatReport(data) {
     const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') : 
                        (data.winner === 'defender' ? (data.isAttacker ? 'loser' : 'winner') : 'draw');
     
-    const coords = data.targetCoords ? data.targetCoords.join(':') : 'UNKNOWN SECTOR';
+    const coordsStr = data.targetCoords ? `[${data.targetCoords.join(':')}]` : 'UNKNOWN SECTOR';
     
     let html = `
         <div class="technical-report combat ${winnerClass}">
@@ -211,7 +218,7 @@ function renderCombatReport(data) {
                 <span class="report-result ${winnerClass}">RESULT: ${data.winner.toUpperCase()} VICTORIOUS</span>
             </div>
             
-            <div class="report-meta">SECTOR: [${coords}]</div>
+            <div class="report-meta">SECTOR: ${linkifyCoords(coordsStr)}</div>
     `;
 
     // Loot section
@@ -294,7 +301,7 @@ function renderEspionageData(data) {
         <div class="technical-report espionage">
             <div class="report-header">
                 <span class="report-title">INTELLIGENCE SCAN REPORT</span>
-                <span class="report-meta">COORD: [${c.join(':')}]</span>
+                <span class="report-meta">COORD: ${linkifyCoords(`[${c.join(':')}]`)}</span>
             </div>
             
             <div class="report-block">

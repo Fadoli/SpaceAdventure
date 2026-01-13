@@ -66,18 +66,18 @@ describe('Fleet Management', () => {
 
   describe('calculateDistance', () => {
     it('should calculate distance within same system (planet diff)', () => {
-      // 1000 + 5 * diff
-      expect(calculateDistance([1, 1, 1], [1, 1, 5])).toBe(1000 + 5 * 4);
+      // 200 + 20 * diff
+      expect(calculateDistance([1, 1, 1], [1, 1, 5])).toBe(200 + 20 * 4);
     });
 
     it('should calculate distance within same galaxy (system diff)', () => {
-      // 2700 + 95 * diff
-      expect(calculateDistance([1, 1, 1], [1, 5, 1])).toBe(2700 + 95 * 4);
+      // 1000 + 30 * diff
+      expect(calculateDistance([1, 1, 1], [1, 5, 1])).toBe(1000 + 30 * 4);
     });
 
     it('should calculate distance between galaxies', () => {
-      // 20000 * diff
-      expect(calculateDistance([1, 1, 1], [2, 1, 1])).toBe(20000 * 1);
+      // 5000 * diff
+      expect(calculateDistance([1, 1, 1], [2, 1, 1])).toBe(5000 * 1);
     });
 
     it('should return 5 for same coordinates', () => {
@@ -127,11 +127,12 @@ describe('Fleet Management', () => {
   describe('processFleets', () => {
     it('should process fleet return', async () => {
       const now = Date.now();
+      // For returning fleet, coordinates are swapped: target is Home
       const fleet = {
         id: 'f1',
         ownerId: 'user1',
-        originCoords: [1, 1, 1],
-        targetCoords: [1, 1, 2],
+        originCoords: [1, 1, 2], // Market/Target
+        targetCoords: [1, 1, 1], // Home
         missionType: MISSION_TYPES.ATTACK,
         ships: { lightFighter: 5 },
         resources: { metal: 100 },

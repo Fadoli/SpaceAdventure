@@ -165,6 +165,12 @@ export async function processFleets(player, allPlayers) {
         fleet.waiting = false;
         fleet.startTime = now;
         fleet.arrivalTime = now + (travelTime * 1000);
+        
+        // Swap coords so target becomes home
+        const origin = [...fleet.originCoords];
+        fleet.originCoords = [...fleet.targetCoords];
+        fleet.targetCoords = origin;
+
         updated = true;
       } else if (fleet.returning) {
         // Fleet returned home
@@ -213,10 +219,11 @@ export async function processFleets(player, allPlayers) {
 
 async function handleFleetReturn(player, fleet) {
   // Find origin planet (or nearest owned if destroyed - simplified: always find origin)
+  // When returning, targetCoords is the home planet because coordinates were swapped
   const planet = player.planets.find(p => 
-    p.coordinates[0] === fleet.originCoords[0] && 
-    p.coordinates[1] === fleet.originCoords[1] && 
-    p.coordinates[2] === fleet.originCoords[2]
+    p.coordinates[0] === fleet.targetCoords[0] && 
+    p.coordinates[1] === fleet.targetCoords[1] && 
+    p.coordinates[2] === fleet.targetCoords[2]
   );
 
   if (planet) {

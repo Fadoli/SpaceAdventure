@@ -229,6 +229,7 @@ window.updateMissionCalculations = function() {
     const shipsToSend = {};
     const resourcesToTransport = {};
     let totalCrew = 0;
+    let totalShips = 0;
     let totalCargoCapacity = 0;
     let totalTransported = 0;
 
@@ -238,6 +239,7 @@ window.updateMissionCalculations = function() {
         if (qty > 0) {
             const key = input.dataset.ship;
             shipsToSend[key] = qty;
+            totalShips += qty;
             const def = SHIPS[key];
             if (def) {
                 totalCrew += (def.populationRequired || 0) * qty;
@@ -338,7 +340,7 @@ window.updateMissionCalculations = function() {
     // Update launch button state
     const launchBtn = document.querySelector('.modal-footer .btn-primary');
     if (launchBtn) {
-        let disabled = totalTransported > totalCargoCapacity || totalCrew === 0;
+        let disabled = totalTransported > totalCargoCapacity || totalShips === 0;
         if (isMarket) {
             const sellInputs = Array.from(document.querySelectorAll('.sell-qty-input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
             const buyInputs = Array.from(document.querySelectorAll('.buy-qty-input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
