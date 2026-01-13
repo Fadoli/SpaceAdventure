@@ -258,41 +258,6 @@ async function tryBuildDefenses(player, planet, defenseKey, count = 1) {
 }
 
 /**
- * Helper to ensure basic resource production and energy
- */
-async function handleResourceBase(player, planet) {
-  if (planet.buildQueue && planet.buildQueue.length > 0) return false;
-
-  const buildings = planet.buildings || {};
-  const metalLevel = buildings[BUILDINGS.METAL_MINE] || 0;
-  const crystalLevel = buildings[BUILDINGS.CRYSTAL_MINE] || 0;
-  const solarLevel = buildings[BUILDINGS.SOLAR_PLANT] || 0;
-  const waterLevel = buildings[BUILDINGS.WATER_EXTRACTOR] || 0;
-  const farmLevel = buildings[BUILDINGS.FARM] || 0;
-
-  // 1. Critical Energy Check: If efficiency is low, MUST build solar
-  const energyEfficiency = planet.energyEfficiency || 100;
-  if (energyEfficiency < 100 || (planet.production?.energy || 0) < 5) {
-    if (await tryBuild(player, planet, BUILDINGS.SOLAR_PLANT)) return true;
-  }
-
-  // 2. Critical Metal Check: If metal is way behind others
-  if (metalLevel < 3 || metalLevel < crystalLevel) {
-    if (await tryBuild(player, planet, BUILDINGS.METAL_MINE)) return true;
-  }
-
-  // 3. Basic Life Support (Water/Food)
-  if (waterLevel < 2) {
-    if (await tryBuild(player, planet, BUILDINGS.WATER_EXTRACTOR)) return true;
-  }
-  if (farmLevel < 2) {
-    if (await tryBuild(player, planet, BUILDINGS.FARM)) return true;
-  }
-
-  return false;
-}
-
-/**
  * AI Research Handling
  */
 async function handleResearch(player) {
@@ -465,6 +430,103 @@ async function handleStorageNeed(player, planet) {
 }
 
 /**
+ * Helper to check and execute dynamic build order based on planet state
+ */
+async function handleBuildOrder(player, planet) {
+  if (planet.buildQueue && planet.buildQueue.length > 0) return false;
+
+  const b = planet.buildings || {};
+  const res = planet.resources || {};
+  const prod = planet.production || {};
+  const cons = planet.consumption || {};
+
+  // 1. EMERGENCY ENERGY (High Priority)
+  // If efficiency is low or net energy is very low, prioritize energy.
+  const energyEfficiency = planet.energyEfficiency || 100;
+  if (energyEfficiency < 100 || (prod.energy || 0) < 2) {
+    if (await tryBuild(player, planet, BUILDINGS.SOLAR_PLANT)) return true;
+    // If we can't afford solar, we might need a Fusion Reactor if available
+    const hasFusion = (b[BUILDINGS.FUSION_REACTOR] || 0) > 0 || (player.research.energyTech || 0) >= 3;
+    if (hasFusion) {
+      if (await tryBuild(player, planet, BUILDINGS.FUSION_REACTOR)) return true;
+    }
+    return true; // Wait for energy resources
+  }
+
+  // 2. LIFE SUPPORT (High Priority)
+  // Check net production. If near zero or negative, upgrade immediately.
+  const netWater = (prod.water || 0) - (cons.water || 0);
+  const netFood = (prod.food || 0) - (cons.food || 0);
+  
+  if (netWater < 5) {
+    if (await tryBuild(player, planet, BUILDINGS.WATER_EXTRACTOR)) return true;
+    return true; // Wait for water
+  }
+  if (netFood < 5) {
+    if (await tryBuild(player, planet, BUILDINGS.FARM)) return true;
+    return true; // Wait for food
+  }
+
+  // 3. HOUSING (Medium Priority)
+  // If population is near capacity, upgrade housing.
+  const maxPop = planet.maxPopulation || 100;
+  const currentPop = res.population || 0;
+  if (currentPop > maxPop * 0.85) {
+    if (await tryBuild(player, planet, BUILDINGS.HOUSING)) return true;
+    // Don't stall here if we can't afford housing yet, but it's important.
+  }
+
+  // 4. RESOURCE BALANCE & SCALING (Normal Priority)
+  const metalLvl = b[BUILDINGS.METAL_MINE] || 0;
+  const crystalLvl = b[BUILDINGS.CRYSTAL_MINE] || 0;
+  const deutLvl = b[BUILDINGS.DEUTERIUM_SYNTHESIZER] || 0;
+
+  // Early metal push
+  if (metalLvl < 5 && metalLvl <= crystalLvl) {
+    if (await tryBuild(player, planet, BUILDINGS.METAL_MINE)) return true;
+  }
+
+  // Crystal should stay around 70-80% of metal
+  if (crystalLvl < metalLvl * 0.75) {
+    if (await tryBuild(player, planet, BUILDINGS.CRYSTAL_MINE)) return true;
+  }
+
+  // Deut should be around 50% of metal once established
+  if (metalLvl >= 10 && deutLvl < metalLvl * 0.5) {
+    if (await tryBuild(player, planet, BUILDINGS.DEUTERIUM_SYNTHESIZER)) return true;
+  }
+
+  // 5. INFRASTRUCTURE CATCH-UP (Normal Priority)
+  // Robotics, Lab, Shipyard should scale with the colony size.
+  if (metalLvl >= 6) {
+    const roboticsLvl = b[BUILDINGS.ROBOTICS_FACTORY] || 0;
+    const labLvl = b[BUILDINGS.RESEARCH_LAB] || 0;
+    const shipyardLvl = b[BUILDINGS.SHIPYARD] || 0;
+
+    // Robotics Factory (Speeds up construction)
+    if (roboticsLvl < metalLvl * 0.4 && roboticsLvl < 10) {
+      if (await tryBuild(player, planet, BUILDINGS.ROBOTICS_FACTORY)) return true;
+    }
+
+    // Research Lab (Needed for tech)
+    if (labLvl < metalLvl * 0.3 && labLvl < 12) {
+      if (await tryBuild(player, planet, BUILDINGS.RESEARCH_LAB)) return true;
+    }
+
+    // Shipyard (Needed for defense and expansion)
+    if (shipyardLvl < metalLvl * 0.3 && shipyardLvl < 12) {
+      if (await tryBuild(player, planet, BUILDINGS.SHIPYARD)) return true;
+    }
+  }
+
+  // 6. DEFAULT PROGRESSION
+  // If nothing else is urgent, push Metal Mine.
+  if (await tryBuild(player, planet, BUILDINGS.METAL_MINE)) return true;
+
+  return false;
+}
+
+/**
  * Balanced strategy: build resources with a specific ratio
  */
 async function handleBalancedStrategy(player) {
@@ -473,20 +535,19 @@ async function handleBalancedStrategy(player) {
   for (const planet of player.planets) {
     if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
     
-    // Check storage
+    // Check storage (Critical)
     if (await handleStorageNeed(player, planet)) {
       changed = true;
-      // Storage is critical, but we might be able to build on other planets
       continue;
     }
 
-    // Ensure basic base first
-    if (await handleResourceBase(player, planet)) {
+    // Follow early build order for homeworld/early colonies
+    if (await handleBuildOrder(player, planet)) {
       changed = true;
-      // If we started a critical resource building, we might still want to queue more if queue allows
-      if (planet.buildQueue && planet.buildQueue.length >= 5) continue;
+      continue;
     }
 
+    // Mid-game Ratio Logic
     const buildings = planet.buildings || {};
     const metalLvl = buildings[BUILDINGS.METAL_MINE] || 0;
     const crystalLvl = buildings[BUILDINGS.CRYSTAL_MINE] || 0;
@@ -524,7 +585,7 @@ async function handleBalancedStrategy(player) {
     for (const p of facilitiesPriorities) {
       if (planet.buildQueue && planet.buildQueue.length >= 5) break;
       const lvl = buildings[p] || 0;
-      // Facilities should stay around 70% of mine levels for faster expansion
+      // Facilities should stay around 70% of mine levels
       if (lvl < metalLvl * 0.7) {
         if (await tryBuild(player, planet, p)) {
           changed = true;
@@ -551,9 +612,10 @@ async function handleAggressiveStrategy(player) {
       continue;
     }
 
-    // MUST have resource base
-    if (await handleResourceBase(player, planet)) {
+    // Follow early build order
+    if (await handleBuildOrder(player, planet)) {
       changed = true;
+      continue;
     }
 
     const buildings = planet.buildings || {};
@@ -603,9 +665,10 @@ async function handleDefensiveStrategy(player) {
       continue;
     }
 
-    // MUST have resource base
-    if (await handleResourceBase(player, planet)) {
+    // Follow early build order
+    if (await handleBuildOrder(player, planet)) {
       changed = true;
+      continue;
     }
 
     const buildings = planet.buildings || {};
@@ -764,6 +827,12 @@ async function handleRaiderStrategy(player) {
 
     // Check storage
     if (await handleStorageNeed(player, planet)) {
+      changed = true;
+      continue;
+    }
+
+    // Follow early build order
+    if (await handleBuildOrder(player, planet)) {
       changed = true;
       continue;
     }
