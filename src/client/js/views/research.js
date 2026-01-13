@@ -247,8 +247,9 @@ function renderTheoreticalResearch() {
     if (queue.length > 0) {
         html += `
       <div class="research-queue-section">
+        <div class="card-corner-top"></div>
         <div class="queue-header" onclick="window.toggleResearchQueueVisibility()">
-          <h3>🔬 Research Queue (${queue.length}/${maxQueue})</h3>
+          <h3>🔬 TECHNOLOGICAL DEVELOPMENT LOG (${queue.length}/${maxQueue})</h3>
           <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
         </div>
         <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
@@ -265,13 +266,13 @@ function renderTheoreticalResearch() {
         <div class="queue-item ${isActive ? 'active' : ''}">
           <div class="queue-item-row">
             <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
-            <span class="q-name" title="${tech.name}">${tech.icon} ${tech.name}</span>
-            <span class="q-level">Lvl ${queueItem.level}</span>
+            <span class="q-name" title="${tech.name}">${tech.name}</span>
+            <span class="q-level">LVL ${queueItem.level}</span>
             <div class="progress-bar-mini">
               <div class="progress-fill" id="research-theory-progress-${queueItem.id}" style="width: ${isActive ? percent : 0}%"></div>
             </div>
             <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
-            <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Cancel">✕</button>
+            <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Abort Research">✕</button>
           </div>
         </div>`;
         }
@@ -406,8 +407,9 @@ async function renderPracticalResearch() {
         if (queue.length > 0) {
             html += `
         <div class="research-queue-section">
+          <div class="card-corner-top"></div>
           <div class="queue-header" onclick="window.toggleResearchQueueVisibility()">
-            <h3>🔬 Active Experiments (${queue.length}/${maxQueue})</h3>
+            <h3>🔬 EXPERIMENTAL LOG (${queue.length}/${maxQueue})</h3>
             <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
           </div>
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
@@ -421,11 +423,11 @@ async function renderPracticalResearch() {
           <div class="queue-item ${isActive ? 'active' : ''}">
             <div class="queue-item-row">
               <span class="q-pos">${queue.indexOf(q) + 1}</span>
-              <span class="q-name">${r.icon} ${r.name}</span>
-              <span class="q-level">Strength: ${(q.strength * 100).toFixed(0)}%</span>
+              <span class="q-name">${r.name}</span>
+              <span class="q-level">STRENGTH: ${(q.strength * 100).toFixed(0)}%</span>
               <div class="progress-bar-mini"><div class="progress-fill" id="research-practical-progress-${q.id}" style="width: ${isActive ? percent : 0}%"></div></div>
               <span class="q-time-mini timer" data-finish="${q.endTime}" data-start="${q.startTime}" data-id="${q.id}"></span>
-              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${q.id}')">✕</button>
+              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${q.id}')" title="Abort Experiment">✕</button>
             </div>
           </div>`;
             }

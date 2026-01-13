@@ -388,12 +388,13 @@ function renderBuildQueue(shipyardData) {
     const isCollapsed = collapsedSections['queue'] || false;
     
     if (allQueue.length === 0) {
-        return '<div class="shipyard-section"><p>No items in build queue</p></div>';
+        return '<div class="shipyard-section"><p style="padding: 15px; opacity: 0.5; font-family: \'Share Tech Mono\', monospace;">NO ACTIVE PRODUCTION ORDERS</p></div>';
     }
     
     let html = '<div class="shipyard-section">';
+    html += '<div class="card-corner-top"></div>';
     html += `<div class="queue-header" onclick="window.toggleCategory('queue')">
-        <h3>📋 Build Queue</h3>
+        <h3>📋 PRODUCTION LOG</h3>
         <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
     </div>`;
     
@@ -425,7 +426,7 @@ function renderBuildQueue(shipyardData) {
             html += `
                 <div class="queue-item ${isActive ? 'active' : ''}">
                     <div class="queue-item-row">
-                        <span class="q-pos">${item.queuePosition}.</span>
+                        <span class="q-pos">${item.queuePosition}</span>
                         <span class="q-name">${itemDetails}</span>
                         <div class="progress-bar-mini">
                             <div class="progress-fill" id="build-progress-${item.queuePosition}" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>
@@ -434,7 +435,7 @@ function renderBuildQueue(shipyardData) {
                               data-finish="${item.finishTime}" 
                               data-start="${item.startTime}" 
                               data-queue-pos="${item.queuePosition}">${isActive ? formatCountdown(timeRemaining) : 'Waiting'}</span>
-                        <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}')">✕</button>
+                        <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}')" title="Terminate Order">✕</button>
                     </div>
                 </div>
             `;

@@ -425,11 +425,12 @@ function updateQueueView(queue, maxQueueSize, buildings) {
     if (queue.length > 0) {
         const queueSummary = `
             <div class="build-queue-summary">
+                <div class="card-corner-top"></div>
                 <div class="queue-header" onclick="window.toggleQueueVisibility()">
-                    <h3>🔨 Queue (${queue.length}/${maxQueueSize})</h3>
+                    <h3>🔨 CONSTRUCTION LOG (${queue.length}/${maxQueueSize})</h3>
                     <span class="toggle-icon">${queueVisible ? '🔼' : '🔽'}</span>
                 </div>
-                <div class="queue-items" style="${queueVisible ? 'display: flex;' : 'display: none;'}">
+                <div class="queue-items" style="${queueVisible ? '' : 'display: none;'}">
                     ${queue.map((item, index) => {
                         const isActive = index === 0;
                         const elapsed = Date.now() - item.startTime;
@@ -439,14 +440,14 @@ function updateQueueView(queue, maxQueueSize, buildings) {
                         return `
                             <div class="queue-item ${isActive ? 'active' : ''}">
                                 <div class="queue-item-row">
-                                    <span class="q-pos">${item.queuePosition}.</span>
-                                    <span class="q-name" title="${buildings[item.building]?.name || item.building}">${buildings[item.building]?.icon || ''} ${buildings[item.building]?.name || item.building}</span>
-                                    <span class="q-level">Lvl ${item.level}</span>
+                                    <span class="q-pos">${item.queuePosition}</span>
+                                    <span class="q-name" title="${buildings[item.building]?.name || item.building}">${buildings[item.building]?.name || item.building}</span>
+                                    <span class="q-level">LVL ${item.level}</span>
                                     <div class="progress-bar-mini">
                                         <div class="progress-fill" id="build-progress-${item.queuePosition}" style="width: ${isActive ? percent : 0}%"></div>
                                     </div>
                                     <span class="q-time-mini timer" data-finish="${item.finishTime}" data-start="${item.startTime}" data-queue-pos="${item.queuePosition}"></span>
-                                    <button class="btn-cancel-small" onclick="window.cancelBuilding(${item.queuePosition})" title="Cancel">✕</button>
+                                    <button class="btn-cancel-small" onclick="window.cancelBuilding(${item.queuePosition})" title="Abort Project">✕</button>
                                 </div>
                             </div>
                         `;
