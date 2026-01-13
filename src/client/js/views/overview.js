@@ -93,7 +93,7 @@ function initializeOverviewStructure(container, planet, allPlanets) {
                 <div class="planet-image-large" id="ov-planet-visual">🌍</div>
                 <div class="planet-name-container">
                     <span id="ov-planet-name">-</span>
-                    <button class="btn-icon-small" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
+                    <button class="btn-rename" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
                 </div>
             </div>
             
