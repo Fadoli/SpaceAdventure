@@ -97,6 +97,13 @@
     font-weight: 700;
 }
 
+.ranking-alliance-tag {
+    color: var(--accent-yellow);
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    margin-right: 4px;
+}
+
 .score-col { 
     font-family: 'Share Tech Mono', monospace;
     font-weight: bold; 

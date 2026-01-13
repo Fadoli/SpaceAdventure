@@ -782,7 +782,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                 <div class="player-info ${planet.playerType !== 'market' ? 'clickable' : ''}" 
                      onclick="${planet.playerType !== 'market' ? `window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')` : ''}">
                     ${playerIcon}
-                    <span>${planet.player}</span>
+                    <span>${planet.allianceTag ? `<span class="galaxy-alliance-tag">[${planet.allianceTag}] </span>` : ''}${planet.player}</span>
                     ${(relation !== 'none' && planet.playerType !== 'market') ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
                 </div>
             </td>

@@ -202,6 +202,13 @@
     color: var(--accent-blue);
 }
 
+.galaxy-alliance-tag {
+    color: var(--accent-yellow);
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    margin-right: 2px;
+}
+
 /* Status Badge */
 .status-badge {
     font-family: 'Orbitron', sans-serif;

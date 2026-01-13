@@ -34,6 +34,11 @@ export async function createAlliance(userId, name, tag) {
   
   if (!player) throw new Error('Player not found');
   if (player.allianceId) throw new Error('Player already in an alliance');
+
+  // Validation
+  if (!name || name.length < 3 || name.length > 30) throw new Error('Alliance name must be 3-30 characters');
+  if (!tag || tag.length < 3 || tag.length > 8) throw new Error('Alliance tag must be 3-8 characters');
+  if (!/^[a-zA-Z0-9]+$/.test(tag)) throw new Error('Alliance tag must be alphanumeric only');
   
   // Check if name or tag taken
   for (const id in alliances) {

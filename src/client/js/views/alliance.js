@@ -170,7 +170,7 @@ window.createAllianceUI = async function() {
     const name = await showPrompt('Found Alliance', 'Enter alliance name:');
     if (!name) return;
     
-    const tag = await showPrompt('Alliance Tag', 'Enter 3-4 character tag:');
+    const tag = await showPrompt('Alliance Tag', 'Enter 3-8 character tag:');
     if (!tag) return;
 
     try {

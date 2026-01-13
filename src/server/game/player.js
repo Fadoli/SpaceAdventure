@@ -288,17 +288,28 @@ export async function getPlayerRankIndex(userId) {
 
 /**
  * Get player rankings based on total resources spent
+ * @param {number} offset - Pagination offset
+ * @param {number} limit - Pagination limit
+ * @param {Object} alliances - Map of allianceId to alliance data (to include tags)
  */
-export async function getRankings(offset = 0, limit = 100) {
+export async function getRankings(offset = 0, limit = 100, alliances = {}) {
   const players = await getPlayers();
   
-  const rankings = players.map(p => ({
-    userId: p.userId,
-    username: p.username,
-    totalSpent: p.statistics?.totalResourcesSpent || 0,
-    planets: p.planets.length,
-    homeworldCoords: p.planets[0]?.coordinates || [1, 1, 1]
-  }));
+  const rankings = players.map(p => {
+    let allianceTag = null;
+    if (p.allianceId && alliances[p.allianceId]) {
+      allianceTag = alliances[p.allianceId].tag;
+    }
+
+    return {
+      userId: p.userId,
+      username: p.username,
+      totalSpent: p.statistics?.totalResourcesSpent || 0,
+      planets: p.planets.length,
+      homeworldCoords: p.planets[0]?.coordinates || [1, 1, 1],
+      allianceTag
+    };
+  });
   
   // Sort by total spent descending
   rankings.sort((a, b) => b.totalSpent - a.totalSpent);

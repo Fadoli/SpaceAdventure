@@ -1159,6 +1159,7 @@ async function handleRequest(req) {
       // Get all players to scan for planets in this system
       const allPlayers = await getPlayers();
       const galaxyData = await getGalaxyData();
+      const alliances = await getAlliances();
       const planetsInSystem = [];
       
       for (const player of allPlayers) {
@@ -1168,6 +1169,11 @@ async function handleRequest(req) {
             const coordKey = `${pGalaxy}:${pSystem}:${pPosition}`;
             const debris = galaxyData.debrisFields?.[coordKey] || null;
 
+            let allianceTag = null;
+            if (player.allianceId && alliances[player.allianceId]) {
+              allianceTag = alliances[player.allianceId].tag;
+            }
+
             planetsInSystem.push({
               position: pPosition,
               player: player.username,
@@ -1176,7 +1182,8 @@ async function handleRequest(req) {
               planetName: planet.name,
               activity: planet.lastActivity ? getActivityString(planet.lastActivity) : 'Unknown',
               moon: planet.moon || false,
-              debris
+              debris,
+              allianceTag
             });
           }
         }
@@ -1316,7 +1323,8 @@ async function handleRequest(req) {
       const limit = parseInt(url.searchParams.get('limit') || '100', 10);
 
       try {
-        const rankings = await getRankings(offset, limit);
+        const alliances = await getAlliances();
+        const rankings = await getRankings(offset, limit, alliances);
         return successResponse(req, rankings);
       } catch (error) {
         return errorResponse(req, error.message, 500);

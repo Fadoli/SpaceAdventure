@@ -60,10 +60,12 @@ function renderRankingTable(container, rankings, totalPlayers, offset, limit) {
         const coords = player.homeworldCoords || [1, 1, 1];
         const coordsStr = `[${coords.join(':')}]`;
         
+        const allianceTagHtml = player.allianceTag ? `<span class="ranking-alliance-tag">[${player.allianceTag}] </span>` : '';
+
         html += `
             <tr class="${isCurrentPlayer ? 'current-player-row' : ''}">
                 <td class="rank-col">${player.rank}</td>
-                <td class="player-col">${player.username}</td>
+                <td class="player-col">${allianceTagHtml}${player.username}</td>
                 <td class="coords-col">
                     <a href="#" class="galaxy-link" onclick="event.preventDefault(); window.navigateToCoords(${coords[0]}, ${coords[1]}, ${coords[2]})">
                         ${coordsStr}
