@@ -1183,7 +1183,8 @@ async function handleRequest(req) {
               activity: planet.lastActivity ? getActivityString(planet.lastActivity) : 'Unknown',
               moon: planet.moon || false,
               debris,
-              allianceTag
+              allianceTag,
+              allianceId: player.allianceId
             });
           }
         }

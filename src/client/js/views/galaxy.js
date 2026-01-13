@@ -740,7 +740,13 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
     const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : (planet.playerType === 'market' ? 'market-planet-row' : 'ai-planet-row');
     
     // Check relations
-    const relation = currentGameState?.relations?.[planet.playerId] || 'none';
+    let relation = currentGameState?.relations?.[planet.playerId] || 'none';
+    
+    // Automatically treat alliance members as friends
+    if (relation === 'none' && currentGameState?.allianceId && planet.allianceId === currentGameState.allianceId) {
+        relation = 'friend';
+    }
+
     const relationClass = (relation !== 'none' && !isPlayerPlanet && planet.playerType !== 'market') ? `relation-${relation}` : '';
 
     // Check if this is the currently active planet
