@@ -1,5 +1,5 @@
 import { API } from '../api.js';
-import { formatNumber } from '../utils.js';
+import { formatNumber, parseNumberShorthand } from '../utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
@@ -84,7 +84,7 @@ async function openMissionModal(missionType, targetCoords) {
                     <span class="ship-name">${shipName}</span>
                     <span class="ship-available">Avail: ${formatNumber(count)}</span>
                     <div class="ship-input">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" value="${initialValue}">
+                        <input type="text" pattern="[0-9kmKMB tqTQ.]*" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" value="${initialValue}">
                         <button class="btn-max" onclick="this.previousElementSibling.value=${count}; window.updateMissionCalculations();">MAX</button>
                     </div>
                 </div>
@@ -92,6 +92,15 @@ async function openMissionModal(missionType, targetCoords) {
         }
     }
     html += '</div></div>';
+
+    // --- Cargo Capacity Status (Universal) ---
+    if (missionType !== MISSION_TYPES.ESPIONAGE) {
+        html += `
+            <div class="mission-section cargo-summary-section" style="margin-top: 10px; padding: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 4px;">
+                <div id="cargo-status" style="font-weight: bold; color: var(--accent-blue); font-family: 'Share Tech Mono', monospace;">CARGO CAPACITY: 0 / 0</div>
+            </div>
+        `;
+    }
 
     // --- Market Trade Section ---
     if (missionType === MISSION_TYPES.MARKET_TRADE) {
@@ -121,7 +130,7 @@ async function openMissionModal(missionType, targetCoords) {
                                 ${['metal', 'crystal', 'deuterium'].map(res => `
                                     <div class="res-input-group" style="display: flex; align-items: center; gap: 5px;">
                                         <span style="font-size: 0.8rem; width: 20px;">${{metal:'⚙️',crystal:'💎',deuterium:'🛢️'}[res]}</span>
-                                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input sell-qty-input" data-res="${res}" placeholder="0" style="flex: 1; height: 28px;">
+                                        <input type="text" pattern="[0-9kmKMB tqTQ.]*" class="exp-qty-input sell-qty-input" data-res="${res}" placeholder="0" style="flex: 1; height: 28px;">
                                     </div>
                                 `).join('')}
                             </div>
@@ -132,7 +141,7 @@ async function openMissionModal(missionType, targetCoords) {
                                 ${['metal', 'crystal', 'deuterium'].map(res => `
                                     <div class="res-input-group" style="display: flex; align-items: center; gap: 5px;">
                                         <span style="font-size: 0.8rem; width: 20px;">${{metal:'⚙️',crystal:'💎',deuterium:'🛢️'}[res]}</span>
-                                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input buy-qty-input" data-res="${res}" placeholder="0" style="flex: 1; height: 28px;">
+                                        <input type="text" pattern="[0-9kmKMB tqTQ.]*" class="exp-qty-input buy-qty-input" data-res="${res}" placeholder="0" style="flex: 1; height: 28px;">
                                     </div>
                                 `).join('')}
                             </div>
@@ -151,7 +160,6 @@ async function openMissionModal(missionType, targetCoords) {
     if (missionType === MISSION_TYPES.TRANSPORT || missionType === MISSION_TYPES.DEPLOY) {
         html += '<div class="mission-section" style="margin-top: 15px;">';
         html += '<h4>📦 Select Resources</h4>';
-        html += '<div id="cargo-status" style="margin-bottom: 8px; font-weight: bold; color: var(--accent-blue);">CARGO CAPACITY: 0 / 0</div>';
         html += '<div class="mission-resources-list dense-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">';
         
         const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
@@ -166,7 +174,7 @@ async function openMissionModal(missionType, targetCoords) {
                         <span class="res-avail">${formatNumber(amount)}</span>
                     </div>
                     <div class="res-input-group">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="exp-qty-input res-qty-input" data-res="${res}" value="0">
+                        <input type="text" pattern="[0-9kmKMB tqTQ.]*" class="exp-qty-input res-qty-input" data-res="${res}" value="0">
                         <button class="btn-max" onclick="window.maxResource('${res}', ${amount})">M</button>
                     </div>
                 </div>
@@ -235,7 +243,7 @@ window.updateMissionCalculations = function() {
 
     // Get ships
     document.querySelectorAll('.ship-qty-input').forEach(input => {
-        const qty = parseInt(input.value) || 0;
+        const qty = parseNumberShorthand(input.value);
         if (qty > 0) {
             const key = input.dataset.ship;
             shipsToSend[key] = qty;
@@ -257,7 +265,7 @@ window.updateMissionCalculations = function() {
         let totalBuyWeight = 0;
 
         document.querySelectorAll('.sell-qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
+            const qty = parseNumberShorthand(input.value);
             if (qty > 0) {
                 totalSellValue += qty * (rates[input.dataset.res] || 1);
                 totalSellWeight += qty;
@@ -265,7 +273,7 @@ window.updateMissionCalculations = function() {
         });
 
         document.querySelectorAll('.buy-qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
+            const qty = parseNumberShorthand(input.value);
             if (qty > 0) {
                 totalBuyValue += qty * (rates[input.dataset.res] || 1);
                 totalBuyWeight += qty;
@@ -286,7 +294,7 @@ window.updateMissionCalculations = function() {
     } else {
         // Get resources (Normal Transport)
         document.querySelectorAll('.res-qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
+            const qty = parseNumberShorthand(input.value);
             if (qty > 0) {
                 resourcesToTransport[input.dataset.res] = qty;
                 totalTransported += qty;
@@ -342,15 +350,15 @@ window.updateMissionCalculations = function() {
     if (launchBtn) {
         let disabled = totalTransported > totalCargoCapacity || totalShips === 0;
         if (isMarket) {
-            const sellInputs = Array.from(document.querySelectorAll('.sell-qty-input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
-            const buyInputs = Array.from(document.querySelectorAll('.buy-qty-input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+            const sellInputs = Array.from(document.querySelectorAll('.sell-qty-input')).reduce((s, i) => s + parseNumberShorthand(i.value), 0);
+            const buyInputs = Array.from(document.querySelectorAll('.buy-qty-input')).reduce((s, i) => s + parseNumberShorthand(i.value), 0);
             
             // Need some trade to occur, and balance must be non-negative (can't buy more than sell)
             const rates = { metal: 1, crystal: 1.5, deuterium: 3 };
             let totalSellValue = 0;
             let totalBuyValue = 0;
-            document.querySelectorAll('.sell-qty-input').forEach(i => totalSellValue += (parseInt(i.value) || 0) * (rates[i.dataset.res]));
-            document.querySelectorAll('.buy-qty-input').forEach(i => totalBuyValue += (parseInt(i.value) || 0) * (rates[i.dataset.res]));
+            document.querySelectorAll('.sell-qty-input').forEach(i => totalSellValue += parseNumberShorthand(i.value) * (rates[i.dataset.res]));
+            document.querySelectorAll('.buy-qty-input').forEach(i => totalBuyValue += parseNumberShorthand(i.value) * (rates[i.dataset.res]));
             
             disabled = disabled || (sellInputs === 0 && buyInputs === 0) || (totalSellValue < totalBuyValue);
         }
@@ -365,11 +373,11 @@ window.maxResource = function(res, maxAmount) {
         // We need to check remaining cargo capacity
         const currentTotal = Array.from(inputs)
             .filter(i => i.dataset.res !== res)
-            .reduce((sum, i) => sum + (parseInt(i.value) || 0), 0);
+            .reduce((sum, i) => sum + parseNumberShorthand(i.value), 0);
         
         const currentShips = {};
         document.querySelectorAll('.ship-qty-input').forEach(i => {
-            const qty = parseInt(i.value) || 0;
+            const qty = parseNumberShorthand(i.value);
             if (qty > 0) currentShips[i.dataset.ship] = qty;
         });
         
@@ -393,7 +401,7 @@ window.submitMission = async function(missionType, targetCoords) {
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
 
     document.querySelectorAll('.ship-qty-input').forEach(input => {
-        const qty = parseInt(input.value) || 0;
+        const qty = parseNumberShorthand(input.value);
         if (qty > 0) {
             shipsToSend[input.dataset.ship] = qty;
             totalShips += qty;
@@ -407,16 +415,16 @@ window.submitMission = async function(missionType, targetCoords) {
 
     if (isMarket) {
         document.querySelectorAll('.sell-qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
+            const qty = parseNumberShorthand(input.value);
             if (qty > 0) tradeData.sell[input.dataset.res] = qty;
         });
         document.querySelectorAll('.buy-qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
+            const qty = parseNumberShorthand(input.value);
             if (qty > 0) tradeData.buy[input.dataset.res] = qty;
         });
     } else {
         document.querySelectorAll('.res-qty-input').forEach(input => {
-            const qty = parseInt(input.value) || 0;
+            const qty = parseNumberShorthand(input.value);
             if (qty > 0) {
                 resourcesToSend[input.dataset.res] = qty;
             }

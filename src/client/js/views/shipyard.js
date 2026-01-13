@@ -1,6 +1,6 @@
 // Shipyard view logic
 import { API } from '../api.js';
-import { formatNumber, formatCountdown, formatDuration } from '../utils.js';
+import { formatNumber, formatCountdown, formatDuration, parseNumberShorthand } from '../utils.js';
 import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { isEmpty } from '../../../shared/utils.js';
@@ -238,15 +238,13 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked, blueprin
             </div>
             <div class="building-actions">
                 ${isLocked ? `
-                    <div class="locked-message" style="width: 100%; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent-red); padding: 10px;">
+                    <div class="locked-message">
                         LOCKED: SHIPYARD LVL ${shipyardLevel}
                     </div>
                 ` : `
-                    <div class="action-group" style="width: 100%; height: 38px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" min="1" max="100" data-id="${identifier}" 
-                               style="flex: 0 0 100px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; text-align: center; height: 100%;">
+                    <div class="action-group">
+                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${identifier}" placeholder="QTY" data-id="${identifier}">
                         <button class="btn upgrade-btn" 
-                                style="flex: 1; padding: 0 !important; font-size: 0.75rem !important; height: 100%; border: none !important; border-radius: 0 !important; background: rgba(56, 189, 248, 0.08) !important;"
                                 id="btn-${identifier}"
                                 ${!canBuild ? 'disabled' : ''} 
                                 onclick="window.buildShip('${identifier}', '${name}')">
@@ -353,15 +351,13 @@ function renderDefensesList(planet, shipyardData) {
                     </div>
                     <div class="building-actions">
                         ${isLocked ? `
-                            <div class="locked-message" style="width: 100%; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent-red); padding: 10px;">
+                            <div class="locked-message">
                                 LOCKED: SHIPYARD LVL ${minLevel}
                             </div>
                         ` : `
-                            <div class="action-group" style="width: 100%; height: 38px; border-top: 1px solid rgba(255,255,255,0.1);">
-                                <input type="text" inputmode="numeric" pattern="[0-9]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" min="1" max="100" data-id="${defenseKey}"
-                                       style="flex: 0 0 100px; background: rgba(0,0,0,0.3); border: none; border-right: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; text-align: center; height: 100%;">
+                            <div class="action-group">
+                                <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" data-id="${defenseKey}">
                                 <button class="btn upgrade-btn" 
-                                        style="flex: 1; padding: 0 !important; font-size: 0.75rem !important; height: 100%; border: none !important; border-radius: 0 !important; background: rgba(56, 189, 248, 0.08) !important;"
                                         id="btn-${defenseKey}"
                                         ${!canBuild ? 'disabled' : ''} 
                                         onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
@@ -459,13 +455,13 @@ function attachShipyardListeners(planet, shipyardData) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
         const input = document.getElementById(`qty-${shipKey}`);
-        const qty = parseInt(input.value) || 0;
+        const qty = parseNumberShorthand(input.value);
         
         if (qty <= 0) return;
 
         try {
             const response = await API.buildShips(planetId, { [shipKey]: qty });
-            Notifications.showSuccess(`${qty}x ${shipName} added to build queue`);
+            Notifications.showSuccess(`${formatNumber(qty)}x ${shipName} added to build queue`);
             input.value = ''; // Clear field
             
             // Refresh shipyard view
@@ -480,13 +476,13 @@ function attachShipyardListeners(planet, shipyardData) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
         const input = document.getElementById(`qty-${defenseKey}`);
-        const qty = parseInt(input.value) || 0;
+        const qty = parseNumberShorthand(input.value);
         
         if (qty <= 0) return;
 
         try {
             const response = await API.buildDefenses(planetId, { [defenseKey]: qty });
-            Notifications.showSuccess(`${qty}x ${defenseName} added to build queue`);
+            Notifications.showSuccess(`${formatNumber(qty)}x ${defenseName} added to build queue`);
             input.value = ''; // Clear field
             
             // Refresh shipyard view
@@ -527,7 +523,7 @@ function attachShipyardListeners(planet, shipyardData) {
     const inputs = document.querySelectorAll('.ship-quantity, .defense-quantity');
     inputs.forEach(input => {
         input.addEventListener('input', (e) => {
-            const qty = parseInt(e.target.value) || 1;
+            const qty = parseNumberShorthand(e.target.value) || 1;
             const id = e.target.dataset.id;
             const isShip = e.target.classList.contains('ship-quantity');
             updateProductionInfo(isShip ? 'ship' : 'defense', id, qty, planet);

@@ -126,6 +126,8 @@ export function formatNumber(num) {
     const sign = num < 0 ? '-' : '';
     const absNum = Math.abs(num);
     
+    if (absNum >= 1e15) return sign + (absNum / 1e15).toFixed(2) + 'Q';
+    if (absNum >= 1e12) return sign + (absNum / 1e12).toFixed(2) + 'T';
     if (absNum >= 1e9) return sign + (absNum / 1e9).toFixed(2) + 'B';
     if (absNum >= 1e6) return sign + (absNum / 1e6).toFixed(2) + 'M';
     if (absNum >= 1e3) return sign + (absNum / 1e3).toFixed(2) + 'K';
@@ -175,6 +177,31 @@ export function formatDate(timestamp) {
 export function formatTime(timestamp) {
     if (!timestamp) return '-';
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+/**
+ * Parse shorthand number strings (e.g. 100k, 1.5m)
+ */
+export function parseNumberShorthand(str) {
+    if (typeof str === 'number') return str;
+    if (!str) return 0;
+    
+    const cleanStr = str.toString().trim().toLowerCase();
+    const match = cleanStr.match(/^([\d.]+)([kmb tq]?)$/);
+    
+    if (!match) return parseFloat(cleanStr) || 0;
+    
+    const value = parseFloat(match[1]);
+    const multiplier = match[2].trim();
+    
+    switch (multiplier) {
+        case 'k': return value * 1e3;
+        case 'm': return value * 1e6;
+        case 'b': return value * 1e9;
+        case 't': return value * 1e12;
+        case 'q': return value * 1e15;
+        default: return value;
+    }
 }
 
 /**
