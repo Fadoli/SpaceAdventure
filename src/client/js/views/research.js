@@ -66,9 +66,11 @@ async function loadResearchData() {
 
         const currentHash = calculateResearchStateHash(newResearchData);
         
-        const activeTab = document.querySelector('.research-tabs .tab-btn.active');
-        const tabId = activeTab ? activeTab.dataset.tab : 'theoretical';
-        const container = document.querySelector(`#${tabId}-tab .research-content`);
+        // Get active tab from URL or default to theoretical
+        const urlParams = new URLSearchParams(window.location.search);
+        const subTab = urlParams.get('subtab') || 'theoretical';
+        
+        const container = document.querySelector(`#${subTab}-tab .research-content`);
         const isContainerEmpty = !container || container.innerHTML.trim() === '';
 
         const stateChanged = currentHash !== lastResearchStateHash;
@@ -77,12 +79,7 @@ async function loadResearchData() {
         lastResearchStateHash = currentHash;
 
         if (stateChanged || isContainerEmpty) {
-            // Only re-render full content if research levels or queue changed
-            if (activeTab) {
-                switchTab(activeTab.dataset.tab);
-            } else {
-                renderTheoreticalResearch();
-            }
+            switchTab(subTab, false); // false = don't update URL since we just read it
         } else {
             // Just update button states and cost colors without re-rendering everything
             updateCurrentTabStatus();
@@ -101,19 +98,27 @@ function renderResearchView() {
     if (!container) return;
 
     if (!container.querySelector('.research-container')) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeSubTab = urlParams.get('subtab') || 'theoretical';
+
         container.innerHTML = '';
         const content = document.createElement('div');
         content.className = 'research-container';
         content.innerHTML = `
-            <h2>Research System</h2>
-            <div class="research-tabs">
-              <button class="tab-btn active" data-tab="theoretical">Theoretical Research</button>
-              <button class="tab-btn" data-tab="practical">Practical Customization</button>
-              <button class="tab-btn" data-tab="variants">Custom Variants</button>
+            <div class="view-header-technical">
+                <h2>RESEARCH COMMAND</h2>
+                <div class="header-line"></div>
             </div>
-            <div id="theoretical-tab" class="research-tab active"><div class="research-content"></div></div>
-            <div id="practical-tab" class="research-tab"><div class="research-content"></div></div>
-            <div id="variants-tab" class="research-tab"><div class="research-content"></div></div>
+            <div class="research-tabs-container">
+                <div class="research-tabs">
+                  <button class="tab-btn ${activeSubTab === 'theoretical' ? 'active' : ''}" data-tab="theoretical">THEORETICAL</button>
+                  <button class="tab-btn ${activeSubTab === 'practical' ? 'active' : ''}" data-tab="practical">PRACTICAL</button>
+                  <button class="tab-btn ${activeSubTab === 'variants' ? 'active' : ''}" data-tab="variants">BLUEPRINTS</button>
+                </div>
+            </div>
+            <div id="theoretical-tab" class="research-tab ${activeSubTab === 'theoretical' ? 'active' : ''}"><div class="research-content"></div></div>
+            <div id="practical-tab" class="research-tab ${activeSubTab === 'practical' ? 'active' : ''}"><div class="research-content"></div></div>
+            <div id="variants-tab" class="research-tab ${activeSubTab === 'variants' ? 'active' : ''}"><div class="research-content"></div></div>
         `;
         container.appendChild(content);
 
@@ -123,17 +128,24 @@ function renderResearchView() {
             });
         });
 
-        renderTheoreticalResearch();
+        switchTab(activeSubTab, false);
     }
 }
 
-function switchTab(tab) {
+function switchTab(tab, updateUrl = true) {
     document.querySelectorAll('.research-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
     const tabElement = document.getElementById(`${tab}-tab`);
     if (tabElement) tabElement.classList.add('active');
     document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+
+    // Update URL query parameter
+    if (updateUrl) {
+        const url = new URL(window.location);
+        url.searchParams.set('subtab', tab);
+        window.history.replaceState({}, '', url);
+    }
 
     switch (tab) {
         case 'theoretical': renderTheoreticalResearch(); break;

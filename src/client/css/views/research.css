@@ -5,30 +5,82 @@
     margin: 0 auto;
 }
 
-/* 1. Ultra-Compact Tabs */
-.research-tabs {
-    display: inline-flex;
-    gap: 6px;
+.view-header-technical {
+    display: flex;
+    align-items: center;
+    gap: 15px;
     margin-bottom: 25px;
-    background: rgba(18, 24, 43, 0.9);
-    padding: 6px;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
+}
+
+.view-header-technical h2 {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--accent-blue);
+    letter-spacing: 3px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.header-line {
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, rgba(0, 242, 255, 0.3), transparent);
+}
+
+.research-tabs-container {
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 2px;
+}
+
+.research-tabs {
+    display: flex;
+    gap: 2px;
+    background: transparent;
+    padding: 0;
+    border: none;
 }
 
 .research-tabs .tab-btn {
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid transparent;
+    padding: 10px 25px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: none;
     color: var(--text-secondary);
-    border-radius: 2px;
+    border-radius: 2px 2px 0 0;
     font-family: 'Orbitron', sans-serif;
-    font-weight: 600;
+    font-weight: 800;
     text-transform: uppercase;
-    font-size: 0.85rem; /* Increased */
-    letter-spacing: 1px;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    margin-right: 2px;
+}
+
+.research-tabs .tab-btn:hover {
+    background: rgba(0, 242, 255, 0.05);
+    color: #fff;
+    border-color: rgba(0, 242, 255, 0.2);
+}
+
+.research-tabs .tab-btn.active {
+    background: linear-gradient(to bottom, rgba(0, 242, 255, 0.1), transparent);
+    color: var(--accent-blue);
+    border-color: rgba(0, 242, 255, 0.3);
+    box-shadow: inset 0 2px 0 var(--accent-blue);
+}
+
+.research-tabs .tab-btn.active::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--bg-primary);
+    z-index: 10;
 }
 
 /* Tab Visibility Logic */
