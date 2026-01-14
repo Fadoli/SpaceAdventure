@@ -140,3 +140,71 @@
     font-size: 0.8rem;
     letter-spacing: 2px;
 }
+/* Attack Planner Styling */
+
+.planner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.plan-card.gathering { border-color: rgba(56, 189, 248, 0.3); }
+.plan-card.launched { border-color: rgba(244, 63, 94, 0.3); opacity: 0.8; }
+
+.status-badge-technical {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.status-badge-technical.status-active {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.status-badge-technical.status-launched {
+    color: var(--accent-red);
+    border-color: var(--accent-red);
+}
+
+.pooled-ships-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.mini-ship-tag {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.mini-ship-tag .ship-qty {
+    color: var(--accent-blue);
+    font-weight: bold;
+}
+
+.mini-ship-tag .ship-name {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.plan-qty-input {
+    width: 60px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    text-align: center;
+}

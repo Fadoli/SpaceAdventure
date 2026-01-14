@@ -88,7 +88,9 @@ export const MISSION_TYPES = {
   ESPIONAGE: 'espionage',
   HARVEST: 'harvest',
   EXPEDITION: 'expedition',
-  MARKET_TRADE: 'market'
+  MARKET_TRADE: 'market',
+  GROUP_ATTACK: 'group_attack',
+  STATION: 'station'
 };
 
 export const MARKET_CONFIG = {

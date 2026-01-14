@@ -34,6 +34,9 @@ export async function updateAllianceView() {
             if (currentSubView === 'overview') {
                 if (needsFullRender) renderAllianceDashboard(container, alliance, gameState);
                 stopMessagePolling();
+            } else if (currentSubView === 'planner') {
+                if (needsFullRender) renderAlliancePlanner(container, alliance, gameState);
+                stopMessagePolling();
             } else {
                 if (needsFullRender) {
                     await renderAllianceCommunications(container, alliance, gameState);
@@ -83,13 +86,11 @@ function renderAllianceDashboard(container, alliance, player) {
     let html = `
         <div class="messages-header-control">
             <div class="msg-title-area">
-                <h2>ALLIANCE COMMAND: [${alliance.tag}] ${alliance.name.toUpperCase()}</h2>
-                <span class="msg-stats-tag">${alliance.members.length} OPERATIVES ACTIVE</span>
-            </div>
             <div class="msg-filter-bar">
                 <div class="filter-group">
                     <button class="msg-filter-btn ${currentSubView === 'overview' ? 'active' : ''}" onclick="window.switchAllianceSubView('overview')">OVERVIEW</button>
                     <button class="msg-filter-btn ${currentSubView === 'communications' ? 'active' : ''}" onclick="window.switchAllianceSubView('communications')">COMMUNICATIONS</button>
+                    <button class="msg-filter-btn ${currentSubView === 'planner' ? 'active' : ''}" onclick="window.switchAllianceSubView('planner')">ATTACK PLANNER</button>
                 </div>
                 <button class="v-action-btn delete" onclick="window.leaveAllianceUI()">LEAVE ALLIANCE</button>
             </div>
@@ -169,6 +170,7 @@ async function renderAllianceCommunications(container, alliance, player) {
                 <div class="filter-group">
                     <button class="msg-filter-btn ${currentSubView === 'overview' ? 'active' : ''}" onclick="window.switchAllianceSubView('overview')">OVERVIEW</button>
                     <button class="msg-filter-btn ${currentSubView === 'communications' ? 'active' : ''}" onclick="window.switchAllianceSubView('communications')">COMMUNICATIONS</button>
+                    <button class="msg-filter-btn ${currentSubView === 'planner' ? 'active' : ''}" onclick="window.switchAllianceSubView('planner')">ATTACK PLANNER</button>
                 </div>
                 <button class="v-action-btn delete" onclick="window.leaveAllianceUI()">LEAVE ALLIANCE</button>
             </div>
@@ -373,6 +375,250 @@ window.leaveAllianceUI = async function() {
     try {
         await API.leaveAlliance();
         Notifications.showSuccess('Affiliations terminated.');
+        updateAllianceView();
+    } catch (error) {
+        Notifications.showError(error.message);
+    }
+};
+
+/**
+ * Render the Attack Planner subview
+ */
+function renderAlliancePlanner(container, alliance, player) {
+    const plans = alliance.plannedAttacks || [];
+    
+    let html = `
+        <div class="messages-header-control">
+            <div class="msg-title-area">
+                <h2>TACTICAL OPERATIONS CENTER</h2>
+                <span class="msg-stats-tag">${plans.length} OPERATIONS PLANNED</span>
+            </div>
+            <div class="msg-filter-bar">
+                <div class="filter-group">
+                    <button class="msg-filter-btn ${currentSubView === 'overview' ? 'active' : ''}" onclick="window.switchAllianceSubView('overview')">OVERVIEW</button>
+                    <button class="msg-filter-btn ${currentSubView === 'communications' ? 'active' : ''}" onclick="window.switchAllianceSubView('communications')">COMMUNICATIONS</button>
+                    <button class="msg-filter-btn ${currentSubView === 'planner' ? 'active' : ''}" onclick="window.switchAllianceSubView('planner')">ATTACK PLANNER</button>
+                </div>
+                <button class="v-action-btn" style="border-color: var(--accent-blue); color: var(--accent-blue);" onclick="window.createNewAttackPlanUI()">INITIATE NEW PLAN</button>
+            </div>
+        </div>
+
+        <div class="planner-grid">
+    `;
+
+    if (plans.length === 0) {
+        html += `<div class="empty-log-message">> NO RECENT OFFENSIVE OPERATIONS PLANNED</div>`;
+    } else {
+        // Sort: gathering first, then launched, then newest
+        const sortedPlans = [...plans].sort((a, b) => {
+            if (a.status === 'gathering' && b.status !== 'gathering') return -1;
+            if (a.status !== 'gathering' && b.status === 'gathering') return 1;
+            return b.createdAt - a.createdAt;
+        });
+
+        sortedPlans.forEach(plan => {
+            const isHost = plan.hostId === player.userId;
+            const statusClass = plan.status === 'gathering' ? 'status-active' : (plan.status === 'launched' ? 'status-launched' : '');
+            
+            html += `
+                <div class="research-card plan-card ${plan.status}">
+                    <div class="card-corner-top"></div>
+                    <div class="card-header">
+                        <div class="header-main">
+                            <div class="title-row">
+                                <span class="name">OP: [${plan.targetCoords.join(':')}]</span>
+                                <span class="status-badge-technical ${statusClass}">${plan.status.toUpperCase()}</span>
+                            </div>
+                            <div class="blueprint-row">
+                                <span class="eff-multiplier">COMMANDER: ${plan.hostUsername.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="diagnostic-section">
+                            <div class="section-tag">Rally Point</div>
+                            <div class="bt-readout">
+                                <div class="bt-row"><span class="bt-label">HOST COORDINATES</span><span class="bt-value archived">[${plan.hostCoords.join(':')}]</span></div>
+                                <div class="bt-row"><span class="bt-label">PARTICIPANTS</span><span class="bt-value">${plan.participants.length}</span></div>
+                            </div>
+                        </div>
+
+                        <div class="diagnostic-section">
+                            <div class="section-tag">Task Force Composition</div>
+                            <div class="pooled-ships-summary">
+                                ${renderPlanParticipantSummary(plan)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="building-actions">
+                        <div class="action-group">
+                            ${plan.status === 'gathering' ? `
+                                <button class="btn upgrade-btn" onclick="window.joinAttackPlanUI('${plan.id}')">
+                                    REINFORCE OPERATION
+                                </button>
+                                ${isHost ? `
+                                    <button class="btn design-btn" onclick="window.launchAttackPlanUI('${plan.id}')" title="Initiate Full Coalition Strike">
+                                        🚀 LAUNCH
+                                    </button>
+                                ` : ''}
+                            ` : `
+                                <button class="btn upgrade-btn" disabled>
+                                    OPERATION ${plan.status.toUpperCase()}
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function renderPlanParticipantSummary(plan) {
+    // Collect all ships being sent/gathered
+    const totals = {};
+    plan.participants.forEach(p => {
+        if (p.fleets) {
+            p.fleets.forEach(f => {
+                for (const k in f.ships) totals[k] = (totals[k] || 0) + f.ships[k];
+            });
+        }
+    });
+
+    if (isEmpty(totals)) return '<div style="font-size: 0.7rem; opacity: 0.5;">NO ASSETS CURRENTLY POOLED</div>';
+
+    return Object.entries(totals).map(([key, val]) => `
+        <div class="mini-ship-tag">
+            <span class="ship-qty">${formatNumber(val)}</span>
+            <span class="ship-name">${key.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
+        </div>
+    `).join('');
+}
+
+window.createNewAttackPlanUI = async function() {
+    const coordsStr = await showPrompt('Set Objective', 'Enter target coordinates (G:S:P):');
+    if (!coordsStr) return;
+
+    const coords = coordsStr.split(':').map(Number);
+    if (coords.length !== 3 || coords.some(isNaN)) {
+        Notifications.showError('Invalid coordinate format. Use G:S:P');
+        return;
+    }
+
+    try {
+        const planetId = window.getCurrentPlanetId();
+        await API.request('/game/alliance/plan/create', {
+            method: 'POST',
+            body: JSON.stringify({ hostPlanetId: planetId, targetCoords: coords })
+        });
+        Notifications.showSuccess('Operation objective established.');
+        updateAllianceView();
+    } catch (error) {
+        Notifications.showError(error.message);
+    }
+};
+
+window.joinAttackPlanUI = async function(planId) {
+    const planet = window.getCurrentPlanet();
+    if (!planet) return;
+
+    // Show simplified ship selection
+    const ships = {};
+    let hasShips = false;
+    
+    // We'll reuse the unified mission modal logic if possible, 
+    // but for now let's just use a prompt or simplified logic.
+    // Actually, let's open a custom modal for "reinforcing".
+    
+    const modal = document.getElementById('details-modal');
+    const modalTitle = document.getElementById('details-modal-title');
+    const modalBody = document.getElementById('details-modal-body');
+
+    modalTitle.innerHTML = `🛡️ REINFORCE OPERATION`;
+    
+    let html = '<div class="expedition-ship-selection"><div class="mission-section"><h4>🚢 DEPLOY ASSETS TO RALLY POINT</h4><div class="expedition-ships-list">';
+    
+    for (const [shipKey, count] of Object.entries(planet.ships)) {
+        if (count > 0) {
+            const shipName = shipKey.replace(/([A-Z])/g, ' $1').toUpperCase();
+            html += `
+                <div class="expedition-ship-item dense">
+                    <span class="ship-name">${shipName}</span>
+                    <span class="ship-available">Avail: ${formatNumber(count)}</span>
+                    <div class="ship-input">
+                        <input type="text" pattern="[0-9]*" class="plan-qty-input" data-ship="${shipKey}" value="0">
+                        <button class="btn-max" onclick="this.previousElementSibling.value=${count}">MAX</button>
+                    </div>
+                </div>
+            `;
+            hasShips = true;
+        }
+    }
+
+    if (!hasShips) {
+        Notifications.showError('No available strike craft on current planet.');
+        return;
+    }
+
+    html += `</div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="window.closeDetailsModal()">ABORT</button><button class="btn btn-primary" onclick="window.submitJoinAttackPlan('${planId}')">DISPATCH REINFORCEMENTS</button></div></div>`;
+    
+    modalBody.innerHTML = html;
+    modal.style.display = 'flex';
+};
+
+window.submitJoinAttackPlan = async function(planId) {
+    const ships = {};
+    let total = 0;
+    document.querySelectorAll('.plan-qty-input').forEach(input => {
+        const val = parseInt(input.value) || 0;
+        if (val > 0) {
+            ships[input.dataset.ship] = val;
+            total += val;
+        }
+    });
+
+    if (total === 0) {
+        Notifications.showError('No assets selected for deployment.');
+        return;
+    }
+
+    try {
+        const planetId = window.getCurrentPlanetId();
+        await API.request('/game/alliance/plan/join', {
+            method: 'POST',
+            body: JSON.stringify({ planId, originPlanetId: planetId, ships })
+        });
+        Notifications.showSuccess('Reinforcements dispatched to rally point.');
+        window.closeDetailsModal();
+        updateAllianceView();
+    } catch (error) {
+        Notifications.showError(error.message);
+    }
+};
+
+window.launchAttackPlanUI = async function(planId) {
+    const confirmed = await showConfirm('Initiate Strike', 'Initiate full coalition strike? All assets currently at rally point will be launched.');
+    if (!confirmed) return;
+
+    try {
+        const planet = window.getCurrentPlanet();
+        // Host must also contribute some ships (can be 0 if only allies, but let's assume they want to pick)
+        // For simplicity, we launch ALL military ships the host currently has on that planet
+        const hostShips = {};
+        for (const k in planet.ships) {
+            if (['lightFighter', 'heavyFighter', 'cruiser', 'battleship', 'destroyer', 'bomber'].includes(k)) {
+                hostShips[k] = planet.ships[k];
+            }
+        }
+
+        await API.request('/game/alliance/plan/launch', {
+            method: 'POST',
+            body: JSON.stringify({ planId, hostShips })
+        });
+        Notifications.showSuccess('COALITION STRIKE INITIATED. ALL ASSETS EN ROUTE TO OBJECTIVE.');
         updateAllianceView();
     } catch (error) {
         Notifications.showError(error.message);

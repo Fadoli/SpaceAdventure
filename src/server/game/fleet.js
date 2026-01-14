@@ -6,7 +6,7 @@ import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js
 import { getPlayerByUserId, updatePlayer, getPlayers } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
-import { simulateCombat } from './combatEngine.js';
+import { simulateCombat, simulateGroupCombat } from './combatEngine.js';
 import { getGalaxyData, updateDebrisField } from './galaxyData.js';
 import { wsManager } from './wsManager.js';
 
@@ -155,6 +155,12 @@ export async function processFleets(player, allPlayers) {
     if (fleet.processedAt === now) continue;
 
     if (now >= fleet.arrivalTime) {
+      // Skip if this fleet was already processed by a "lead" fleet in a group combat this tick
+      if (fleet.processedAtWS) {
+        delete fleet.processedAtWS;
+        continue;
+      }
+
       fleet.processedAt = now; // Mark as processed in this tick
       
       if (fleet.waiting) {
@@ -234,6 +240,59 @@ export async function processFleets(player, allPlayers) {
 }
 
 async function handleFleetReturn(player, fleet) {
+  // 1. Handle Pooled Fleets (ACS Group Attack)
+  if (fleet.isPooled && fleet.originalParticipants) {
+    const totalArrivedShips = {};
+    fleet.originalParticipants.forEach(p => {
+      for (const k in p.ships) totalArrivedShips[k] = (totalArrivedShips[k] || 0) + p.ships[k];
+    });
+
+    // Calculate survival ratio per ship type
+    const survivalRatios = {};
+    for (const k in totalArrivedShips) {
+      survivalRatios[k] = totalArrivedShips[k] > 0 ? (fleet.ships[k] || 0) / totalArrivedShips[k] : 0;
+    }
+
+    // Distribute survivors and loot back to each participant
+    for (const participant of fleet.originalParticipants) {
+      const pPlayer = await getPlayerByUserId(participant.userId);
+      if (!pPlayer) continue;
+
+      // Find original origin planet or homeworld
+      const pPlanet = pPlayer.planets.find(p => p.coordinates.every((c, i) => c === fleet.targetCoords[i])) || pPlayer.planets[0];
+      
+      // Calculate my survivors
+      for (const k in participant.ships) {
+        const count = Math.floor(participant.ships[k] * survivalRatios[k]);
+        pPlanet.ships[k] = (pPlanet.ships[k] || 0) + count;
+      }
+
+      // Distribute loot proportionally to initial contribution value
+      // (Simplified: just give them their share of what the fleet is carrying)
+      const participantInitialValue = Object.entries(participant.ships).reduce((sum, [k, v]) => {
+        const def = SHIP_DEFINITIONS[k];
+        return sum + (def ? (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * v : 0);
+      }, 0);
+      const totalInitialValue = Object.entries(totalArrivedShips).reduce((sum, [k, v]) => {
+        const def = SHIP_DEFINITIONS[k];
+        return sum + (def ? (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * v : 0);
+      }, 0);
+
+      if (totalInitialValue > 0) {
+        const shareRatio = participantInitialValue / totalInitialValue;
+        for (const res in fleet.resources) {
+          const share = Math.floor(fleet.resources[res] * shareRatio);
+          pPlanet.resources[res] = (pPlanet.resources[res] || 0) + share;
+        }
+      }
+
+      await updatePlayer(participant.userId, pPlayer);
+      wsManager.sendToUser(participant.userId, 'RESOURCES_UPDATED', { planetId: pPlanet.id });
+    }
+    return;
+  }
+
+  // 2. Normal Fleet Return (Standard)
   // Find origin planet (or nearest owned if destroyed - simplified: always find origin)
   // When returning, targetCoords is the home planet because coordinates were swapped
   const planet = player.planets.find(p => 
@@ -251,9 +310,6 @@ async function handleFleetReturn(player, fleet) {
     for (const res in fleet.resources) {
       planet.resources[res] += fleet.resources[res];
     }
-    // Notify client of resource change
-    wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planet.id });
-    
     // Return surviving crew to population
     if (fleet.costs && fleet.costs.crew) {
       const currentCrew = calculateFleetCrew(fleet.ships);
@@ -336,17 +392,36 @@ async function executeHarvest(player, fleet) {
   });
 }
 
-async function executeAttack(attackerPlayer, fleet, allPlayers) {
-  // 1. Find target planet
+async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
+  // 1. Find all fleets arriving at the same target at roughly the same time (ACS)
+  // Window: 1 second
+  const TIME_WINDOW = 1000;
+  const targetCoordsStr = leadFleet.targetCoords.join(':');
+  
+  const alliedFleets = [];
+  const defendingFleets = [];
+
+  for (const p of allPlayers) {
+    if (!p.fleets) continue;
+    for (const f of p.fleets) {
+      if (f.targetCoords.join(':') === targetCoordsStr && Math.abs(f.arrivalTime - leadFleet.arrivalTime) <= TIME_WINDOW && !f.returning && !f.processedAtWS) {
+        if (f.missionType === MISSION_TYPES.ATTACK || f.missionType === MISSION_TYPES.GROUP_ATTACK) {
+          alliedFleets.push({ player: p, fleet: f });
+          f.processedAtWS = true; // Mark so we don't process them again in the same tick loop
+        } else if (f.missionType === MISSION_TYPES.STATION) {
+          defendingFleets.push({ player: p, fleet: f });
+          f.processedAtWS = true;
+        }
+      }
+    }
+  }
+
+  // Find target planet and owner
   let targetPlanet = null;
   let targetPlayer = null;
 
   for (const p of allPlayers) {
-    const planet = p.planets.find(pl => 
-      pl.coordinates[0] === fleet.targetCoords[0] &&
-      pl.coordinates[1] === fleet.targetCoords[1] &&
-      pl.coordinates[2] === fleet.targetCoords[2]
-    );
+    const planet = p.planets.find(pl => pl.coordinates.join(':') === targetCoordsStr);
     if (planet) {
       targetPlanet = planet;
       targetPlayer = p;
@@ -355,42 +430,67 @@ async function executeAttack(attackerPlayer, fleet, allPlayers) {
   }
 
   if (!targetPlanet) {
-    await addMessage(attackerPlayer.userId, {
-      from: 'Fleet Command',
-      subject: `Attack Mission Failed: [${fleet.targetCoords.join(':')}]`,
-      body: `Your fleet reached [${fleet.targetCoords.join(':')}] but found no planet to attack. They are returning home.`,
-      type: 'attack'
-    });
+    for (const af of alliedFleets) {
+      await addMessage(af.player.userId, {
+        from: 'Fleet Command',
+        subject: `Attack Mission Failed: [${targetCoordsStr}]`,
+        body: `Our fleet reached [${targetCoordsStr}] but found no planet to attack. They are returning home.`,
+        type: 'attack'
+      });
+    }
     return;
   }
 
-  // 2. Prepare Combat Data
-  const attacker = {
-    ships: fleet.ships,
-    research: attackerPlayer.research || {}
-  };
+  // 2. Prepare Combat Data for all participants
+  const attackers = alliedFleets.map(af => ({
+    id: af.player.userId,
+    username: af.player.username,
+    ships: af.fleet.ships,
+    research: af.player.research || {}
+  }));
 
-  const defender = {
-    ships: targetPlanet.ships || {},
-    defenses: targetPlanet.defenses || {},
-    research: targetPlayer.research || {}
-  };
+  const defenders = [
+    {
+      id: targetPlayer.userId,
+      username: targetPlayer.username,
+      ships: targetPlanet.ships || {},
+      defenses: targetPlanet.defenses || {},
+      research: targetPlayer.research || {}
+    },
+    ...defendingFleets.map(df => ({
+      id: df.player.userId,
+      username: df.player.username,
+      ships: df.fleet.ships,
+      research: df.player.research || {}
+    }))
+  ];
 
-  // 3. Simulate Combat
-  const combatReport = simulateCombat(attacker, defender);
+  // 3. Simulate Group Combat
+  const combatReport = simulateGroupCombat(attackers, defenders);
 
-  // 4. Apply Losses to Defender Planet
-  targetPlanet.ships = combatReport.survivingDefenderShips;
-  targetPlanet.defenses = combatReport.survivingDefenderDefenses;
+  // 4. Apply Losses
+  // Update Target Planet
+  const targetReportDef = combatReport.defenders.find(d => d.id === targetPlayer.userId);
+  targetPlanet.ships = targetReportDef.survivingShips;
+  targetPlanet.defenses = targetReportDef.survivingDefenses;
 
-  // 5. Update Attacker Fleet
-  fleet.ships = combatReport.survivingAttackerShips;
+  // Update Attacking Fleets
+  alliedFleets.forEach(af => {
+    const reportAtk = combatReport.attackers.find(a => a.id === af.player.userId);
+    af.fleet.ships = reportAtk.survivingShips;
+  });
 
-  // 6. Handle Looting if attacker is not wiped out and target had resources
-  let loot = { metal: 0, crystal: 0, deuterium: 0, water: 0, food: 0 };
-  if (!isEmpty(fleet.ships)) {
-    const cargoCapacity = calculateCargoCapacity(fleet.ships);
-    // Attacker can take up to 50% of each resource, limited by total cargo capacity
+  // Update Stationary Defending Fleets
+  defendingFleets.forEach(df => {
+    const reportDef = combatReport.defenders.find(d => d.id === df.player.userId);
+    df.fleet.ships = reportDef.survivingShips;
+  });
+
+  // 5. Handle Looting (Only for attackers)
+  let totalLoot = { metal: 0, crystal: 0, deuterium: 0, water: 0, food: 0 };
+  const totalCargoCapacity = alliedFleets.reduce((sum, af) => sum + calculateCargoCapacity(af.fleet.ships), 0);
+  
+  if (totalCargoCapacity > 0 && combatReport.winner === 'attacker') {
     const availableLoot = {};
     for (const res in targetPlanet.resources) {
       if (['metal', 'crystal', 'deuterium', 'water', 'food'].includes(res)) {
@@ -398,54 +498,66 @@ async function executeAttack(attackerPlayer, fleet, allPlayers) {
       }
     }
 
-    // Fill cargo proportionally
     const totalAvailableLoot = Object.values(availableLoot).reduce((a, b) => a + b, 0);
     if (totalAvailableLoot > 0) {
-      const ratio = Math.min(1, cargoCapacity / totalAvailableLoot);
+      const ratio = Math.min(1, totalCargoCapacity / totalAvailableLoot);
       for (const res in availableLoot) {
         const amount = Math.floor(availableLoot[res] * ratio);
-        loot[res] = amount;
+        totalLoot[res] = amount;
         targetPlanet.resources[res] -= amount;
-        fleet.resources[res] = (fleet.resources[res] || 0) + amount;
+        
+        // Distribute loot proportionally to remaining cargo capacity
+        alliedFleets.forEach(af => {
+          const cap = calculateCargoCapacity(af.fleet.ships);
+          const share = Math.floor(amount * (cap / totalCargoCapacity));
+          af.fleet.resources[res] = (af.fleet.resources[res] || 0) + share;
+        });
       }
-      // Notify defender of resource loss
       wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
     }
   }
 
-  // 6.5. Update Debris Field in Galaxy
+  // 6. Update Debris Field
   if (combatReport.debris.metal > 0 || combatReport.debris.crystal > 0) {
     const galaxy = await getGalaxyData();
-    const coordKey = fleet.targetCoords.join(':');
-    const existingDebris = galaxy.debrisFields?.[coordKey] || { metal: 0, crystal: 0 };
-    
-    await updateDebrisField(fleet.targetCoords, {
+    const existingDebris = galaxy.debrisFields?.[targetCoordsStr] || { metal: 0, crystal: 0 };
+    await updateDebrisField(leadFleet.targetCoords, {
       metal: existingDebris.metal + combatReport.debris.metal,
       crystal: existingDebris.crystal + combatReport.debris.crystal
     });
   }
 
-  // 7. Send Messages
+  // 7. Send Messages to all participants
   const reportId = generateId();
-  const summary = `Winner: ${combatReport.winner.toUpperCase()} | Loot: M:${formatNumber(loot.metal)} C:${formatNumber(loot.crystal)} D:${formatNumber(loot.deuterium)}`;
+  const summary = `Winner: ${combatReport.winner.toUpperCase()} | Loot: M:${formatNumber(totalLoot.metal)} C:${formatNumber(totalLoot.crystal)}`;
 
-  // To Attacker
-  await addMessage(attackerPlayer.userId, {
-    from: 'Combat Command',
-    subject: `Combat Report: [${fleet.targetCoords.join(':')}]`,
-    body: `Our fleet engaged the enemy at [${fleet.targetCoords.join(':')}]. ${summary}`,
-    type: 'attack',
-    data: { ...combatReport, loot, reportId, isAttacker: true, targetCoords: fleet.targetCoords }
-  });
-
-  // To Defender
-  if (targetPlayer.userId !== attackerPlayer.userId) {
-    await addMessage(targetPlayer.userId, {
-      from: 'Planetary Defense',
-      subject: `URGENT: Planet Under Attack! [${fleet.targetCoords.join(':')}]`,
-      body: `An enemy fleet from ${attackerPlayer.username} attacked your planet! ${summary}`,
+  // To Attackers
+  for (const af of alliedFleets) {
+    const myLoot = {
+      metal: af.fleet.resources.metal || 0,
+      crystal: af.fleet.resources.crystal || 0,
+      deuterium: af.fleet.resources.deuterium || 0,
+      water: af.fleet.resources.water || 0,
+      food: af.fleet.resources.food || 0
+    };
+    await addMessage(af.player.userId, {
+      from: 'Combat Command',
+      subject: `ACS Combat Report: [${targetCoordsStr}]`,
+      body: `Our coalition engaged the enemy at [${targetCoordsStr}]. ${summary}`,
       type: 'attack',
-      data: { ...combatReport, loot, reportId, isAttacker: false, targetCoords: fleet.targetCoords, attackerName: attackerPlayer.username }
+      data: { ...combatReport, loot: myLoot, reportId, isAttacker: true, targetCoords: leadFleet.targetCoords }
+    });
+  }
+
+  // To Defenders
+  const defendersAll = [{ player: targetPlayer, isOwner: true }, ...defendingFleets.map(df => ({ player: df.player, isOwner: false }))];
+  for (const def of defendersAll) {
+    await addMessage(def.player.userId, {
+      from: 'Planetary Defense',
+      subject: `ACS Defense Report: [${targetCoordsStr}]`,
+      body: `A coalition of attackers engaged our forces at [${targetCoordsStr}]. ${summary}`,
+      type: 'attack',
+      data: { ...combatReport, reportId, isAttacker: false, targetCoords: leadFleet.targetCoords }
     });
   }
 }

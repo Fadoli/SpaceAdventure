@@ -6,22 +6,32 @@ import { isEmpty } from '../../shared/utils.js';
 import { CONFIG } from '../../shared/constants.js';
 
 /**
- * Execute a combat simulation between an attacker and a defender
+ * Execute a combat simulation between multiple attackers and multiple defenders
  * Optimized for large scale battles using statistical stacks.
+ * 
+ * @param {Array} attackers - Array of { ships, research, id, username }
+ * @param {Array} defenders - Array of { ships, defenses, research, id, username }
  */
-export function simulateCombat(attacker, defender) {
+export function simulateGroupCombat(attackers, defenders) {
   const report = {
     rounds: [],
     winner: null,
-    attackerLosses: {},
-    defenderLosses: {},
+    attackers: attackers.map(a => ({ id: a.id, username: a.username, initialShips: { ...a.ships }, losses: {}, survivingShips: {} })),
+    defenders: defenders.map(d => ({ id: d.id, username: d.username, initialShips: { ...d.ships }, initialDefenses: { ...d.defenses }, losses: { ships: {}, defenses: {} }, survivingShips: {}, survivingDefenses: {} })),
     debris: { metal: 0, crystal: 0 },
     lootedResources: { metal: 0, crystal: 0, deuterium: 0, water: 0, food: 0 }
   };
 
   // 1. Prepare unit stacks
-  let attackerGroups = prepareGroups(attacker.ships || {}, attacker.research || {});
-  let defenderGroups = prepareGroups(defender.ships || {}, defender.research || {}, defender.defenses || {});
+  let attackerGroups = [];
+  attackers.forEach(attacker => {
+    attackerGroups.push(...prepareGroups(attacker.ships || {}, attacker.research || {}, {}, attacker.id));
+  });
+
+  let defenderGroups = [];
+  defenders.forEach(defender => {
+    defenderGroups.push(...prepareGroups(defender.ships || {}, defender.research || {}, defender.defenses || {}, defender.id));
+  });
 
   const initialAttackerValue = calculateGroupsValue(attackerGroups);
   const initialDefenderValue = calculateGroupsValue(defenderGroups);
@@ -75,38 +85,50 @@ export function simulateCombat(attacker, defender) {
     report.winner = 'draw';
   }
 
-  // 4. Calculate Losses and Debris
-  report.attackerLosses = calculateGroupLosses(attacker.ships || {}, attackerGroups);
-  
-  // RAW defender losses (before repair)
-  const rawDefenderShipLosses = calculateGroupLosses(defender.ships || {}, defenderGroups.filter(g => g.isShip));
-  const rawDefenderDefLosses = calculateGroupLosses(defender.defenses || {}, defenderGroups.filter(g => !g.isShip));
-
-  // Apply Defense Repair
-  const repairedDefenses = {};
+  // 4. Calculate Losses per participant and Debris
   const repairChance = CONFIG.DEFENSE_REPAIR_CHANCE || 0.7;
-  for (const defKey in rawDefenderDefLosses) {
-    const lostCount = rawDefenderDefLosses[defKey];
-    const repairedCount = Math.floor(lostCount * repairChance);
-    if (repairedCount > 0) {
-      repairedDefenses[defKey] = repairedCount;
+
+  // Process Attackers
+  report.attackers.forEach(a => {
+    const participantGroups = attackerGroups.filter(g => g.participantId === a.id);
+    a.survivingShips = consolidateGroups(participantGroups);
+    a.losses = calculateGroupLosses(a.initialShips, participantGroups);
+  });
+
+  // Process Defenders
+  report.defenders.forEach(d => {
+    const participantShipGroups = defenderGroups.filter(g => g.participantId === d.id && g.isShip);
+    const participantDefGroups = defenderGroups.filter(g => g.participantId === d.id && !g.isShip);
+    
+    const rawShipLosses = calculateGroupLosses(d.initialShips, participantShipGroups);
+    const rawDefLosses = calculateGroupLosses(d.initialDefenses, participantDefGroups);
+
+    // Defense Repair
+    const repairedDefenses = {};
+    for (const defKey in rawDefLosses) {
+      const repairedCount = Math.floor(rawDefLosses[defKey] * repairChance);
+      if (repairedCount > 0) repairedDefenses[defKey] = repairedCount;
     }
-  }
 
-  // Defender losses for the report are the ones NOT repaired
-  report.defenderLosses = {
-    ships: rawDefenderShipLosses,
-    defenses: {}
-  };
-  for (const defKey in rawDefenderDefLosses) {
-    const lost = rawDefenderDefLosses[defKey] - (repairedDefenses[defKey] || 0);
-    if (lost > 0) report.defenderLosses.defenses[defKey] = lost;
-  }
+    d.survivingShips = consolidateGroups(participantShipGroups);
+    d.survivingDefenses = consolidateGroups(participantDefGroups);
+    // Add repaired defenses back to surviving
+    for (const defKey in repairedDefenses) {
+      d.survivingDefenses[defKey] = (d.survivingDefenses[defKey] || 0) + repairedDefenses[defKey];
+    }
 
-  // Calculate Debris
+    d.losses = {
+      ships: rawShipLosses,
+      defenses: {}
+    };
+    for (const defKey in rawDefLosses) {
+      const lost = rawDefLosses[defKey] - (repairedDefenses[defKey] || 0);
+      if (lost > 0) d.losses.defenses[defKey] = lost;
+    }
+  });
+
+  // Calculate Debris (Consolidated)
   const debris = { metal: 0, crystal: 0 };
-
-  // Helper to sum debris from losses
   const addDebris = (losses, definitions, ratio) => {
     for (const key in losses) {
       const def = definitions[key];
@@ -117,26 +139,43 @@ export function simulateCombat(attacker, defender) {
     }
   };
 
-  // Ship debris percentage from config
-  addDebris(report.attackerLosses, SHIPS, CONFIG.DEBRIS_PERCENTAGE);
-  addDebris(report.defenderLosses.ships, SHIPS, CONFIG.DEBRIS_PERCENTAGE);
-
-  // Defense debris percentage from config
-  addDebris(report.defenderLosses.defenses, DEFENSES, CONFIG.DEFENSE_TO_DEBRIS_CHANCE);
+  report.attackers.forEach(a => addDebris(a.losses, SHIPS, CONFIG.DEBRIS_PERCENTAGE));
+  report.defenders.forEach(d => {
+    addDebris(d.losses.ships, SHIPS, CONFIG.DEBRIS_PERCENTAGE);
+    addDebris(d.losses.defenses, DEFENSES, CONFIG.DEFENSE_TO_DEBRIS_CHANCE);
+  });
 
   report.debris = debris;
 
-  // 5. Consolidate survivors (including repaired defenses)
-  report.survivingAttackerShips = consolidateGroups(attackerGroups);
-  report.survivingDefenderShips = consolidateGroups(defenderGroups.filter(g => g.isShip));
-  
-  const survivingDefenses = consolidateGroups(defenderGroups.filter(g => !g.isShip));
-  for (const defKey in repairedDefenses) {
-    survivingDefenses[defKey] = (survivingDefenses[defKey] || 0) + repairedDefenses[defKey];
-  }
-  report.survivingDefenderDefenses = survivingDefenses;
+  // 5. Consolidated summaries for backward compatibility
+  report.attackerLosses = {};
+  report.defenderLosses = { ships: {}, defenses: {} };
+  report.survivingAttackerShips = {};
+  report.survivingDefenderShips = {};
+  report.survivingDefenderDefenses = {};
+
+  report.attackers.forEach(a => {
+    for (const k in a.losses) report.attackerLosses[k] = (report.attackerLosses[k] || 0) + a.losses[k];
+    for (const k in a.survivingShips) report.survivingAttackerShips[k] = (report.survivingAttackerShips[k] || 0) + a.survivingShips[k];
+  });
+  report.defenders.forEach(d => {
+    for (const k in d.losses.ships) report.defenderLosses.ships[k] = (report.defenderLosses.ships[k] || 0) + d.losses.ships[k];
+    for (const k in d.losses.defenses) report.defenderLosses.defenses[k] = (report.defenderLosses.defenses[k] || 0) + d.losses.defenses[k];
+    for (const k in d.survivingShips) report.survivingDefenderShips[k] = (report.survivingDefenderShips[k] || 0) + d.survivingShips[k];
+    for (const k in d.survivingDefenses) report.survivingDefenderDefenses[k] = (report.survivingDefenderDefenses[k] || 0) + d.survivingDefenses[k];
+  });
 
   return report;
+}
+
+/**
+ * Legacy wrapper for single vs single combat
+ */
+export function simulateCombat(attacker, defender) {
+  return simulateGroupCombat(
+    [{ ...attacker, id: attacker.id || 'attacker', username: attacker.username || 'Attacker' }],
+    [{ ...defender, id: defender.id || 'defender', username: defender.username || 'Defender' }]
+  );
 }
 
 function calculateLossValue(losses, definitions) {
@@ -151,7 +190,7 @@ function calculateLossValue(losses, definitions) {
   return value;
 }
 
-function prepareGroups(ships, research, defenses = {}) {
+function prepareGroups(ships, research, defenses = {}, participantId = null) {
   const groups = [];
   
   const attackBonus = 1 + (research.weaponsTech || 0) * (THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1);
@@ -166,6 +205,7 @@ function prepareGroups(ships, research, defenses = {}) {
     
     groups.push({
       key: shipKey,
+      participantId,
       isShip: true,
       count: count,
       initialCount: count,
@@ -185,6 +225,7 @@ function prepareGroups(ships, research, defenses = {}) {
     
     groups.push({
       key: defKey,
+      participantId,
       isShip: false,
       count: count,
       initialCount: count,

@@ -528,6 +528,29 @@ window.openMarketTrade = function(position) {
     openMissionModal(MISSION_TYPES.MARKET_TRADE, coords);
 };
 
+window.planAttackFromGalaxy = async function(position) {
+    const coords = [window.currentGalaxy, window.currentSystem, position];
+    const planetId = window.getCurrentPlanetId();
+    
+    if (!currentGameState?.allianceId) {
+        Notifications.showError('You must be in an alliance to plan a coalition strike.');
+        return;
+    }
+
+    const confirmed = await showConfirm('Plan Attack', `Establish coalition strike objective at ${coords.join(':')}? \n\nThis will create a tactical plan in your alliance operations center.`);
+    if (!confirmed) return;
+
+    try {
+        await API.request('/game/alliance/plan/create', {
+            method: 'POST',
+            body: JSON.stringify({ hostPlanetId: planetId, targetCoords: coords })
+        });
+        Notifications.showSuccess('Operation objective established. Coordination link active in Alliance tab.');
+    } catch (error) {
+        Notifications.showError(`Planning failed: ${error.message}`);
+    }
+};
+
 // Galaxy Navigation Functions
 window.navigateGalaxy = function(delta) {
     let val = (currentGalaxy || 1) + delta;
@@ -809,6 +832,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                         <button class="action-btn info-btn" onclick="window.spyOnPlanetFromGalaxy(${position})" title="Spy">🕵️</button>
                         <button class="action-btn transport-btn" onclick="window.transportToPlanetFromGalaxy(${position})" title="Transport Resources">🚚</button>
                         <button class="action-btn attack-btn" onclick="window.attackPlanetFromGalaxy(${position})" title="Attack">⚔️</button>
+                        ${currentGameState?.allianceId ? `<button class="action-btn plan-btn" onclick="window.planAttackFromGalaxy(${position})" title="Plan Coalition Strike" style="background: var(--accent-blue); color: white;">🎯</button>` : ''}
                     `)}
                     ${planet.debris ? `<button class="action-btn harvest-btn" onclick="window.harvestDebrisFromGalaxy(${position})" title="Recycle Debris">♻️</button>` : ''}
                 </div>

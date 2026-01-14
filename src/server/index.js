@@ -1793,6 +1793,62 @@ async function handleRequest(req) {
       }
     }
 
+    // --- Attack Planner Routes ---
+
+    // POST /api/game/alliance/plan/create
+    if (path === '/api/game/alliance/plan/create' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.allianceId) return errorResponse(req, 'Not in an alliance', 403);
+
+      const { hostPlanetId, targetCoords } = await req.json();
+      try {
+        const { createPlannedAttack } = await import('./game/alliance.js');
+        const plan = await createPlannedAttack(user.id, player.allianceId, hostPlanetId, targetCoords);
+        return successResponse(req, plan);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/alliance/plan/join
+    if (path === '/api/game/alliance/plan/join' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.allianceId) return errorResponse(req, 'Not in an alliance', 403);
+
+      const { planId, originPlanetId, ships } = await req.json();
+      try {
+        const { joinPlannedAttack } = await import('./game/alliance.js');
+        const plan = await joinPlannedAttack(user.id, player.allianceId, planId, originPlanetId, ships);
+        return successResponse(req, plan);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/alliance/plan/launch
+    if (path === '/api/game/alliance/plan/launch' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.allianceId) return errorResponse(req, 'Not in an alliance', 403);
+
+      const { planId, hostShips } = await req.json();
+      try {
+        const { launchPlannedAttack } = await import('./game/alliance.js');
+        const plan = await launchPlannedAttack(user.id, player.allianceId, planId, hostShips);
+        return successResponse(req, plan);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
     // GET /api/game/alliances
     if (path === '/api/game/alliances' && method === 'GET') {
       const user = await requireAuth(req);
