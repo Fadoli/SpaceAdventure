@@ -818,16 +818,16 @@ async function executeExpedition(player, fleet) {
     subject = 'Expedition: New Ships Found';
     
     // Find a ship type that is roughly affordable with the reward scale
-    const affordableShips = Object.keys(SHIP_TYPES).filter(k => {
-      const s = SHIP_TYPES[k];
-      const cost = s.baseCost.metal + s.baseCost.crystal + s.baseCost.deuterium;
+    const affordableShips = Object.keys(SHIP_DEFINITIONS).filter(k => {
+      const s = SHIP_DEFINITIONS[k];
+      const cost = (s.baseCost.metal || 0) + (s.baseCost.crystal || 0) + (s.baseCost.deuterium || 0);
       return cost < rewardScale;
     });
 
     if (affordableShips.length > 0) {
       const foundShipKey = affordableShips[Math.floor(Math.random() * affordableShips.length)];
-      const shipDef = SHIP_TYPES[foundShipKey];
-      const shipCost = shipDef.baseCost.metal + shipDef.baseCost.crystal + shipDef.baseCost.deuterium;
+      const shipDef = SHIP_DEFINITIONS[foundShipKey];
+      const shipCost = (shipDef.baseCost.metal || 0) + (shipDef.baseCost.crystal || 0) + (shipDef.baseCost.deuterium || 0);
       const foundCount = Math.max(1, Math.floor(rewardScale / shipCost * (0.2 + Math.random() * 0.5)));
       
       fleet.ships[foundShipKey] = (fleet.ships[foundShipKey] || 0) + foundCount;
