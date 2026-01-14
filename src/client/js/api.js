@@ -106,8 +106,8 @@ export const API = {
         });
     },
 
-    async getRankings(offset = 0, limit = 100) {
-        return await this.request(`/game/rankings?offset=${offset}&limit=${limit}`);
+    async getRankings(offset = 0, limit = 100, category = 'total') {
+        return await this.request(`/game/rankings?offset=${offset}&limit=${limit}&category=${category}`);
     },
 
     async getMyRank() {

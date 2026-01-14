@@ -1302,13 +1302,14 @@ async function handleRequest(req) {
     // RESEARCH ROUTES
     // ============================================
 
-    // GET /api/game/my-rank - Get current player's rank index
-    if (path === '/api/game/my-rank' && method === 'GET') {
+    // GET /api/game/rank-index - Get current player's rank index
+    if (path === '/api/game/rank-index' && method === 'GET') {
       const user = await requireAuth(req);
       if (!user) return errorResponse(req, 'Not authenticated', 401);
 
       try {
-        const index = await getPlayerRankIndex(user.id);
+        const category = url.searchParams.get('category') || 'total';
+        const index = await getPlayerRankIndex(user.id, category);
         return successResponse(req, { index });
       } catch (error) {
         return errorResponse(req, error.message, 500);
@@ -1322,10 +1323,11 @@ async function handleRequest(req) {
 
       const offset = parseInt(url.searchParams.get('offset') || '0', 10);
       const limit = parseInt(url.searchParams.get('limit') || '100', 10);
+      const category = url.searchParams.get('category') || 'total';
 
       try {
         const alliances = await getAlliances();
-        const rankings = await getRankings(offset, limit, alliances);
+        const rankings = await getRankings(offset, limit, alliances, category);
         return successResponse(req, rankings);
       } catch (error) {
         return errorResponse(req, error.message, 500);

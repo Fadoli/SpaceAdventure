@@ -229,7 +229,7 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   planet.resources.deuterium -= cost.deuterium;
   
   // Track spending for ranking
-  trackSpentResources(player, cost);
+  trackSpentResources(player, cost, 'economy');
   
   // Add to build queue
   if (!planet.buildQueue) {

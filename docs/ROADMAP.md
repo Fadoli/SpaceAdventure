@@ -161,7 +161,7 @@
 - [ ] More ship types
 - [ ] Advanced defenses
 - [ ] Achievement system
-- [ ] Ranking leaderboards
+- [x] Ranking leaderboards (Total, Economy, Research, Military)
 
 #### Long Term (Months 6+)
 - [ ] Mobile app

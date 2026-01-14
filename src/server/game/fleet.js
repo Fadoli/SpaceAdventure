@@ -117,7 +117,7 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     deuterium: fuelCost,
     food: survivalNeeds.food,
     water: survivalNeeds.water
-  });
+  }, 'misc');
 
   // Add to player's active fleets
   if (!player.fleets) player.fleets = [];

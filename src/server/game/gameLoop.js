@@ -1,5 +1,5 @@
 // Game tick system - processes game state periodically
-import { getPlayers, savePlayers } from './player.js';
+import { getPlayers, savePlayers, takeRankingSnapshot, recomputePlayerScores } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
@@ -9,10 +9,15 @@ import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
 import { getAllAiPlayers } from './aiManager.js';
 import { processAiPlayer } from './aiLogic.js';
+import { readJsonFile } from '../storage/storage.js';
 
 let gameLoopInterval = null;
 let lastSaveTime = 0;
+let lastRankingSnapshotTime = 0;
+let lastRecomputeTime = 0;
 const SAVE_INTERVAL = 30000; // Save every 30 seconds
+const RANKING_SNAPSHOT_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+const RECOMPUTE_INTERVAL = 60 * 60 * 1000; // 1 hour
 
 /**
  * Start the game loop
@@ -24,6 +29,13 @@ export function startGameLoop() {
   }
   
   console.log('Starting game loop...');
+  
+  // Initialize ranking snapshot timer from history file
+  readJsonFile('rankings_history.json').then(data => {
+    if (data && data.snapshots && data.snapshots.length > 0) {
+      lastRankingSnapshotTime = data.snapshots[data.snapshots.length - 1].timestamp;
+    }
+  }).catch(() => {});
   
   gameLoopInterval = setInterval(async () => {
     await gameTick();
@@ -189,6 +201,23 @@ async function gameTick() {
     if (updated && (now - lastSaveTime) >= SAVE_INTERVAL) {
       await savePlayers(players);
       lastSaveTime = now;
+    }
+
+    // Handle periodic ranking snapshots (every 6 hours)
+    if (now - lastRankingSnapshotTime >= RANKING_SNAPSHOT_INTERVAL) {
+      await takeRankingSnapshot();
+      lastRankingSnapshotTime = now;
+    }
+
+    // Handle hourly score recomputation
+    if (now - lastRecomputeTime >= RECOMPUTE_INTERVAL) {
+      console.log('[GameLoop] Hourly score recomputation starting...');
+      for (const player of players) {
+        await recomputePlayerScores(player);
+      }
+      await savePlayers(players);
+      console.log('[GameLoop] Hourly score recomputation complete.');
+      lastRecomputeTime = now;
     }
   } catch (error) {
     console.error('Error in game tick:', error);

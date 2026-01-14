@@ -1,10 +1,15 @@
 // Player game state management
 import { generateId } from '../../shared/utils.js';
 import { STARTING_RESOURCES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
-import { SHIPS } from '../../shared/ships.js';
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { updatePlanetProduction, ensurePlanetState } from './buildings.js';
 import { registerPlayer, getGalaxyData } from './galaxyData.js';
+import { SHIPS } from '../../shared/ships.js';
+import { BUILDINGS } from '../../shared/buildings.js';
+import { THEORETICAL_RESEARCH } from '../../shared/research.js';
+import { DEFENSES } from '../../shared/defenses.js';
+import { SCALING } from '../../shared/constants.js';
+import { calculateBuildingCost, calculateTheoreticalResearchCost } from '../../shared/formulas.js';
 
 const playersCache = new Map();
 
@@ -255,35 +260,199 @@ export async function getFriends(userId) {
 }
 
 /**
- * Track spent resources for ranking
+ * Recompute a player's scores based on current assets (1 point per 1000 resources)
  */
-export function trackSpentResources(player, cost) {
-  if (!player.statistics) player.statistics = { totalResourcesSpent: 0 };
+export async function recomputePlayerScores(player) {
+  if (!player.statistics) {
+    player.statistics = { 
+      totalResourcesSpent: 0,
+      economySpent: 0,
+      researchSpent: 0,
+      fleetSpent: 0,
+      miscSpent: 0
+    };
+  }
+
+  let economyScore = 0;
+  let researchScore = 0;
+  let fleetScore = 0;
+
+  // 1. Recompute Economy (Buildings)
+  for (const planet of player.planets) {
+    for (const bType in planet.buildings) {
+      const level = planet.buildings[bType];
+      if (level <= 0) continue;
+      const def = BUILDINGS[bType];
+      if (!def) continue;
+
+      // Sum cost of all levels from 1 up to current level
+      for (let l = 1; l <= level; l++) {
+        const cost = calculateBuildingCost(def.baseCost, l - 1, 0, def.costScaling);
+        economyScore += (cost.metal + cost.crystal + cost.deuterium);
+      }
+    }
+  }
+
+  // 2. Recompute Research
+  for (const techKey in player.research) {
+    const level = player.research[techKey];
+    if (level <= 0) continue;
+    const def = THEORETICAL_RESEARCH[techKey];
+    if (!def) continue;
+
+    for (let l = 1; l <= level; l++) {
+      const cost = calculateTheoreticalResearchCost(def.baseCost, l - 1);
+      researchScore += (cost.metal + cost.crystal + cost.deuterium);
+    }
+  }
+
+  // 3. Recompute Fleet (Ships and Defenses)
+  for (const planet of player.planets) {
+    // Ships
+    for (const shipKey in planet.ships) {
+      const count = planet.ships[shipKey];
+      if (count <= 0) continue;
+      const def = SHIPS[shipKey];
+      if (!def) continue;
+      fleetScore += (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * count;
+    }
+    // Defenses
+    for (const defKey in planet.defenses) {
+      const count = planet.defenses[defKey];
+      if (count <= 0) continue;
+      const def = DEFENSES[defKey];
+      if (!def) continue;
+      fleetScore += (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * count;
+    }
+  }
+
+  // Add fleet currently in flight
+  if (player.fleets) {
+    for (const fleet of player.fleets) {
+      for (const shipKey in fleet.ships) {
+        const count = fleet.ships[shipKey];
+        if (count <= 0) continue;
+        const def = SHIPS[shipKey];
+        if (!def) continue;
+        fleetScore += (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * count;
+      }
+    }
+  }
+
+  // Update statistics (storing raw resource value, rankings convert to points if needed, 
+  // but current rankings show these raw values as 'Score')
+  player.statistics.economySpent = economyScore;
+  player.statistics.researchSpent = researchScore;
+  player.statistics.fleetSpent = fleetScore;
+  player.statistics.totalResourcesSpent = economyScore + researchScore + fleetScore + (player.statistics.miscSpent || 0);
+
+  return player.statistics;
+}
+
+/**
+ * Track spent resources for ranking with categories (Now only for transient 'misc' like fuel/food)
+ */
+export function trackSpentResources(player, cost, category = 'misc') {
+  if (!player.statistics) {
+    player.statistics = { 
+      totalResourcesSpent: 0,
+      economySpent: 0,
+      researchSpent: 0,
+      fleetSpent: 0,
+      miscSpent: 0
+    };
+  }
   
+  // Only track 'misc' (fuel, survival) since others are recomputed hourly
+  if (category !== 'misc') return;
+
   const metal = cost.metal || 0;
   const crystal = cost.crystal || 0;
   const deuterium = cost.deuterium || 0;
   const food = cost.food || 0;
   const water = cost.water || 0;
   
-  player.statistics.totalResourcesSpent += (metal + crystal + deuterium + food + water);
+  const total = (metal + crystal + deuterium + food + water);
+  player.statistics.miscSpent = (player.statistics.miscSpent || 0) + total;
+  player.statistics.totalResourcesSpent = (player.statistics.totalResourcesSpent || 0) + total;
 }
 
 /**
  * Get a specific player's rank index
  */
-export async function getPlayerRankIndex(userId) {
+export async function getPlayerRankIndex(userId, category = 'total') {
   const players = await getPlayers();
   
-  const rankings = players.map(p => ({
-    userId: p.userId,
-    totalSpent: p.statistics?.totalResourcesSpent || 0
-  }));
+  const rankings = players.map(p => {
+    let score = 0;
+    if (category === 'economy') score = p.statistics?.economySpent || 0;
+    else if (category === 'research') score = p.statistics?.researchSpent || 0;
+    else if (category === 'fleet') score = p.statistics?.fleetSpent || 0;
+    else score = p.statistics?.totalResourcesSpent || 0;
+
+    return {
+      userId: p.userId,
+      score
+    };
+  });
   
-  // Sort by total spent descending
-  rankings.sort((a, b) => b.totalSpent - a.totalSpent);
+  // Sort by score descending
+  rankings.sort((a, b) => b.score - a.score);
   
   return rankings.findIndex(r => r.userId === userId);
+}
+
+/**
+ * Take a snapshot of all rankings for historical comparison
+ */
+export async function takeRankingSnapshot() {
+  const categories = ['total', 'economy', 'research', 'fleet'];
+  const players = await getPlayers();
+  
+  // Recompute all scores before snapshot to ensure accuracy
+  for (const player of players) {
+    await recomputePlayerScores(player);
+  }
+
+  const snapshot = {
+    timestamp: Date.now(),
+    rankings: {}
+  };
+
+  for (const cat of categories) {
+    const rankings = players.map(p => {
+      let score = 0;
+      if (cat === 'economy') score = p.statistics?.economySpent || 0;
+      else if (cat === 'research') score = p.statistics?.researchSpent || 0;
+      else if (cat === 'fleet') score = p.statistics?.fleetSpent || 0;
+      else score = p.statistics?.totalResourcesSpent || 0;
+
+      return { userId: p.userId, score };
+    });
+
+    // Sort to determine rank position
+    rankings.sort((a, b) => b.score - a.score);
+    
+    snapshot.rankings[cat] = rankings.map((r, index) => ({
+      userId: r.userId,
+      score: r.score,
+      rank: index + 1
+    }));
+  }
+
+  // Load history
+  let historyData = await readJsonFile('rankings_history.json') || { snapshots: [] };
+  
+  // Add new snapshot
+  historyData.snapshots.push(snapshot);
+
+  // Keep only the last 5 snapshots (0h, 6h, 12h, 18h, 24h)
+  if (historyData.snapshots.length > 5) {
+    historyData.snapshots.shift();
+  }
+
+  await writeJsonFile('rankings_history.json', historyData);
+  return snapshot;
 }
 
 /**
@@ -291,36 +460,69 @@ export async function getPlayerRankIndex(userId) {
  * @param {number} offset - Pagination offset
  * @param {number} limit - Pagination limit
  * @param {Object} alliances - Map of allianceId to alliance data (to include tags)
+ * @param {string} category - Ranking category (total, economy, research, fleet)
  */
-export async function getRankings(offset = 0, limit = 100, alliances = {}) {
+export async function getRankings(offset = 0, limit = 100, alliances = {}, category = 'total') {
   const players = await getPlayers();
   
+  // Load ranking history for 24h change calculation
+  const historyData = await readJsonFile('rankings_history.json');
+  const oldSnapshot = historyData?.snapshots?.[0]; // Oldest snapshot (approx 24h ago if full)
+
   const rankings = players.map(p => {
     let allianceTag = null;
     if (p.allianceId && alliances[p.allianceId]) {
       allianceTag = alliances[p.allianceId].tag;
     }
 
+    let score = 0;
+    if (category === 'economy') score = p.statistics?.economySpent || 0;
+    else if (category === 'research') score = p.statistics?.researchSpent || 0;
+    else if (category === 'fleet') score = p.statistics?.fleetSpent || 0;
+    else score = p.statistics?.totalResourcesSpent || 0;
+
+    let scoreChange = 0;
+    if (oldSnapshot && oldSnapshot.rankings[category]) {
+      const oldEntry = oldSnapshot.rankings[category].find(r => r.userId === p.userId);
+      if (oldEntry) {
+        scoreChange = score - oldEntry.score;
+      }
+    }
+
     return {
       userId: p.userId,
       username: p.username,
-      totalSpent: p.statistics?.totalResourcesSpent || 0,
+      score: score,
+      scoreChange: scoreChange,
       planets: p.planets.length,
       homeworldCoords: p.planets[0]?.coordinates || [1, 1, 1],
       allianceTag
     };
   });
   
-  // Sort by total spent descending
-  rankings.sort((a, b) => b.totalSpent - a.totalSpent);
+  // Sort by score descending
+  rankings.sort((a, b) => b.score - a.score);
   
   const totalPlayers = rankings.length;
   
-  // Add rank position to all (needed for pagination)
-  const rankedAll = rankings.map((r, index) => ({
-    rank: index + 1,
-    ...r
-  }));
+  // Add rank position and rank change
+  const rankedAll = rankings.map((r, index) => {
+    const currentRank = index + 1;
+    let rankChange = 0;
+    
+    if (oldSnapshot && oldSnapshot.rankings[category]) {
+      const oldEntry = oldSnapshot.rankings[category].find(oe => oe.userId === r.userId);
+      if (oldEntry) {
+        rankChange = oldEntry.rank - currentRank; // Positive means rank improved (e.g. 5 -> 3 = +2)
+      }
+    }
+
+    return {
+      rank: currentRank,
+      rankChange: rankChange,
+      ...r
+    };
+  });
 
   // Limit to the requested range
   const slicedRankings = rankedAll.slice(offset, offset + limit);
@@ -329,12 +531,14 @@ export async function getRankings(offset = 0, limit = 100, alliances = {}) {
     rankings: slicedRankings,
     totalPlayers,
     offset,
-    limit
+    limit,
+    category,
+    lastSnapshotTime: oldSnapshot?.timestamp || null
   };
 }
 
 /**
- * Recompute all planets on startup
+ * Recompute all planets and scores on startup
  */
 export async function recomputeAllPlanetsOnStartup() {
   try {
@@ -346,9 +550,12 @@ export async function recomputeAllPlanetsOnStartup() {
         await updatePlanetProduction(planet, player);
         recomputedCount++;
       }
+      // Recompute scores to ensure rankings are correct after a restart
+      await recomputePlayerScores(player);
+      
       await updatePlayer(player.userId, player);
     }
-    console.log(`[Startup] Recomputed ${recomputedCount} planets`);
+    console.log(`[Startup] Recomputed ${recomputedCount} planets and all player scores.`);
   } catch (error) {
     console.error('[Startup] Error:', error.message);
   }
