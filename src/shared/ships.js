@@ -127,12 +127,12 @@ export const SHIPS = {
 
   // Military Ships - Fighters
   lightFighter: {
-    name: 'Swift-Strike Interceptor',
+    name: 'Swift-Strike Fighter',
     icon: '🛩️',
     type: 'military',
     driveType: 'combustion',
     description: 'Fast, cheap attack ship with low hull strength.',
-    detailedDescription: 'The Swift-Strike Interceptor is the fundamental unit of any space-faring military.\n\nBy prioritizing speed and firepower over armor, it provides a highly mobile and cost-effective solution for escorting cargo fleets or overwhelming slower targets through superior numbers.\n\nWhile a single fighter is easily dispatched, a coordinated swarm can bypass the tracking systems of much larger capital ships.',
+    detailedDescription: 'The Swift-Strike Fighter is the fundamental unit of any space-faring military.\n\nBy prioritizing speed and firepower over armor, it provides a highly mobile and cost-effective solution for escorting cargo fleets or overwhelming slower targets through superior numbers.\n\nWhile a single fighter is easily dispatched, a coordinated swarm can bypass the tracking systems of much larger capital ships.',
     baseCost: {
       metal: 3000,
       crystal: 1000,
@@ -151,12 +151,12 @@ export const SHIPS = {
   },
 
   heavyFighter: {
-    name: 'Aegis-Class Vanguard',
+    name: 'Aegis-Class Fighter',
     icon: '🛡️',
     type: 'military',
     driveType: 'impulse',
     description: 'Stronger fighter with better armor and shield.',
-    detailedDescription: 'Representing a significant advancement in small-craft design, the Aegis-Class Vanguard incorporates localized shielding and multi-layered alloy plating.\n\nIts impulse drive provides better sub-light maneuverability and high-speed acceleration compared to its lighter counterpart.\n\nDesigned to survive long-duration engagements, the Aegis-Class is the preferred choice for front-line combat and aggressive reconnaissance.',
+    detailedDescription: 'Representing a significant advancement in small-craft design, the Aegis-Class Fighter incorporates localized shielding and multi-layered alloy plating.\n\nIts impulse drive provides better sub-light maneuverability and high-speed acceleration compared to its lighter counterpart.\n\nDesigned to survive long-duration engagements, the Aegis-Class is the preferred choice for front-line combat and aggressive reconnaissance.',
     baseCost: {
       metal: 6000,
       crystal: 4000,
