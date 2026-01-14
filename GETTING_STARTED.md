@@ -3,11 +3,13 @@
 ## Installation
 
 1. **Install Bun** (if not already installed):
+
    ```bash
    curl -fsSL https://bun.sh/install | bash
    ```
 
 2. **Install Dependencies**:
+
    ```bash
    bun install
    ```
@@ -15,18 +17,22 @@
 ## Running the Application
 
 ### Development Mode
+
 Start the server with auto-reload:
+
 ```bash
 bun run dev
 ```
 
 ### Production Mode
+
 Start the server without auto-reload:
+
 ```bash
 bun start
 ```
 
-The application will be available at: **http://localhost:3000**
+The application will be available at: **<http://localhost:3000>**
 
 ## First Steps
 
@@ -85,11 +91,13 @@ SpaceAdventure/
 ## Development
 
 ### Running Tests
+
 ```bash
 bun test
 ```
 
 ### Code Structure
+
 - **Server**: Pure JavaScript with Bun runtime
 - **Authentication**: bcrypt with 12 salt rounds
 - **Storage**: JSON files in `data/` directory
@@ -99,6 +107,7 @@ bun test
 
 **Port already in use?**
 Change the port by setting the PORT environment variable:
+
 ```bash
 PORT=3001 bun run dev
 ```
