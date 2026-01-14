@@ -226,5 +226,23 @@ export const API = {
             method: 'POST',
             body: JSON.stringify({ baseType, blueprintId, type, targetType, targetId })
         });
+    },
+
+    async getAllianceMessages() {
+        return await this.request('/game/alliance/messages');
+    },
+
+    async sendAllianceMessage(content) {
+        return await this.request('/game/alliance/messages', {
+            method: 'POST',
+            body: JSON.stringify({ content })
+        });
+    },
+
+    async shareReportToAlliance(messageId) {
+        return await this.request('/game/alliance/share-report', {
+            method: 'POST',
+            body: JSON.stringify({ messageId })
+        });
     }
 };

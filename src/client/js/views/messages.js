@@ -131,6 +131,12 @@ function renderMessagesList(container, messages) {
                     <div id="msg-body-${msg.id}" class="msg-entry-body" style="display: none;" onclick="event.stopPropagation()">
                         <div class="msg-content-text">${linkifyCoords(msg.body)}</div>
                         ${renderMessageData(msg)}
+                        
+                        ${(msg.type === 'attack' || msg.type === 'espionage') ? `
+                            <div class="msg-actions-footer" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end;">
+                                <button class="btn btn-primary btn-small" onclick="window.shareMessageToAllianceUI('${msg.id}')">📡 SHARE TO ALLIANCE</button>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -143,6 +149,24 @@ function renderMessagesList(container, messages) {
 
     container.innerHTML = html;
 }
+
+window.shareMessageToAllianceUI = async function(messageId) {
+    const state = window.getGameState();
+    if (!state?.allianceId) {
+        Notifications.showError('You must be in an alliance to share reports.');
+        return;
+    }
+
+    const confirmed = await showConfirm('Share Report', 'Broadcast this report to your alliance comm-link?');
+    if (!confirmed) return;
+
+    try {
+        await API.shareReportToAlliance(messageId);
+        Notifications.showSuccess('Report transmitted to alliance channel.');
+    } catch (error) {
+        Notifications.showError('Transmission failed: ' + error.message);
+    }
+};
 
 /**
  * Replace [G:S:P] coordinates with clickable galaxy links
@@ -204,7 +228,7 @@ function renderMessageData(msg) {
     }
 }
 
-function renderCombatReport(data) {
+export function renderCombatReport(data) {
     if (!data) return '';
     const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') : 
                        (data.winner === 'defender' ? (data.isAttacker ? 'loser' : 'winner') : 'draw');
@@ -295,7 +319,7 @@ function renderCombatReport(data) {
     return html;
 }
 
-function renderEspionageData(data) {
+export function renderEspionageData(data) {
     const c = data.coords || [1, 1, 1];
     let html = `
         <div class="technical-report espionage">

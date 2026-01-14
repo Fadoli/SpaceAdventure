@@ -39,7 +39,7 @@ import { sendFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
-import { getAlliances, getAllianceById, createAlliance, joinAlliance, leaveAlliance, shareBlueprint } from './game/alliance.js';
+import { getAlliances, getAllianceById, createAlliance, joinAlliance, leaveAlliance, shareBlueprint, getAllianceMessages, sendAllianceMessage, shareAllianceReport } from './game/alliance.js';
 import { 
   startTheoreticalResearch, 
   completeTheoreticalResearch, 
@@ -1724,6 +1724,62 @@ async function handleRequest(req) {
         
         await updatePlayer(user.id, player);
         return successResponse(req, { success: true });
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // GET /api/game/alliance/messages
+    if (path === '/api/game/alliance/messages' && method === 'GET') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.allianceId) {
+        return errorResponse(req, 'Not in an alliance', 403);
+      }
+
+      try {
+        const messages = await getAllianceMessages(player.allianceId);
+        return successResponse(req, messages);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/alliance/messages
+    if (path === '/api/game/alliance/messages' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.allianceId) {
+        return errorResponse(req, 'Not in an alliance', 403);
+      }
+
+      const { content } = await req.json();
+      try {
+        const message = await sendAllianceMessage(user.id, player.allianceId, content);
+        return successResponse(req, message);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/alliance/share-report
+    if (path === '/api/game/alliance/share-report' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.allianceId) {
+        return errorResponse(req, 'Not in an alliance', 403);
+      }
+
+      const { messageId } = await req.json();
+      try {
+        const result = await shareAllianceReport(user.id, player.allianceId, messageId);
+        return successResponse(req, result);
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }

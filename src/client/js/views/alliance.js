@@ -3,6 +3,13 @@ import { API } from '../api.js';
 import { formatDate, formatNumber } from '../utils.js';
 import { Notifications } from '../notifications.js';
 import { showConfirm, showPrompt } from './modals.js';
+import { renderCombatReport, renderEspionageData } from './messages.js';
+
+let currentSubView = 'overview';
+let messageRefreshInterval = null;
+
+let lastSubView = null;
+let lastAllianceId = null;
 
 /**
  * Update alliance view
@@ -14,16 +21,56 @@ export async function updateAllianceView() {
     try {
         const gameState = await API.getGameState();
         
+        // 1. Check if we need a full structural re-render
+        // If the container has no meaningful content, force a full render
+        const isContainerEmpty = container.children.length === 0 || container.querySelector('.empty-log-message');
+        const needsFullRender = gameState.allianceId !== lastAllianceId || currentSubView !== lastSubView || isContainerEmpty;
+        
+        lastAllianceId = gameState.allianceId;
+        lastSubView = currentSubView;
+
         if (gameState.allianceId) {
             const alliance = await API.getAlliance(gameState.allianceId);
-            renderAllianceDashboard(container, alliance, gameState);
+            if (currentSubView === 'overview') {
+                if (needsFullRender) renderAllianceDashboard(container, alliance, gameState);
+                stopMessagePolling();
+            } else {
+                if (needsFullRender) {
+                    await renderAllianceCommunications(container, alliance, gameState);
+                }
+                startMessagePolling();
+                // Messages update independently via their own hash-check
+                await refreshAllianceMessages();
+            }
         } else {
-            const alliances = await API.getAlliances();
-            renderAllianceSearch(container, alliances);
+            stopMessagePolling();
+            if (needsFullRender) {
+                const alliances = await API.getAlliances();
+                renderAllianceSearch(container, alliances);
+            }
         }
     } catch (error) {
         console.error('Failed to load alliance data:', error);
         container.innerHTML = `<div class="empty-log-message">> DATA LINK FAILURE: ${error.message}</div>`;
+        // Reset trackers on error so next retry can force render
+        lastAllianceId = null;
+        lastSubView = null;
+    }
+}
+
+function startMessagePolling() {
+    if (messageRefreshInterval) return;
+    messageRefreshInterval = setInterval(async () => {
+        if (currentSubView === 'communications') {
+            await refreshAllianceMessages();
+        }
+    }, 5000);
+}
+
+function stopMessagePolling() {
+    if (messageRefreshInterval) {
+        clearInterval(messageRefreshInterval);
+        messageRefreshInterval = null;
     }
 }
 
@@ -41,8 +88,8 @@ function renderAllianceDashboard(container, alliance, player) {
             </div>
             <div class="msg-filter-bar">
                 <div class="filter-group">
-                    <button class="msg-filter-btn active">OVERVIEW</button>
-                    <button class="msg-filter-btn" onclick="Notifications.showInfo('Communication channel coming soon!')">COMMUNICATIONS</button>
+                    <button class="msg-filter-btn ${currentSubView === 'overview' ? 'active' : ''}" onclick="window.switchAllianceSubView('overview')">OVERVIEW</button>
+                    <button class="msg-filter-btn ${currentSubView === 'communications' ? 'active' : ''}" onclick="window.switchAllianceSubView('communications')">COMMUNICATIONS</button>
                 </div>
                 <button class="v-action-btn delete" onclick="window.leaveAllianceUI()">LEAVE ALLIANCE</button>
             </div>
@@ -107,6 +154,130 @@ function renderAllianceDashboard(container, alliance, player) {
 
     container.innerHTML = html;
 }
+
+/**
+ * Render communications view (Alliance Chat)
+ */
+async function renderAllianceCommunications(container, alliance, player) {
+    let html = `
+        <div class="messages-header-control">
+            <div class="msg-title-area">
+                <h2>ENCRYPTED COMM-LINK: ${alliance.name.toUpperCase()}</h2>
+                <span class="msg-stats-tag">SECURE CONNECTION ESTABLISHED</span>
+            </div>
+            <div class="msg-filter-bar">
+                <div class="filter-group">
+                    <button class="msg-filter-btn ${currentSubView === 'overview' ? 'active' : ''}" onclick="window.switchAllianceSubView('overview')">OVERVIEW</button>
+                    <button class="msg-filter-btn ${currentSubView === 'communications' ? 'active' : ''}" onclick="window.switchAllianceSubView('communications')">COMMUNICATIONS</button>
+                </div>
+                <button class="v-action-btn delete" onclick="window.leaveAllianceUI()">LEAVE ALLIANCE</button>
+            </div>
+        </div>
+
+        <div class="alliance-comm-container card-base">
+            <div class="card-corner-top"></div>
+            <div id="alliance-chat-history" class="alliance-chat-history">
+                <div class="chat-loading">Initializing secure link...</div>
+            </div>
+            <div class="alliance-chat-input-area">
+                <input type="text" id="alliance-chat-input" placeholder="ENTER ENCRYPTED MESSAGE..." autocomplete="off">
+                <button class="btn btn-primary" onclick="window.sendAllianceMessageUI()">SEND</button>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+    
+    // Add enter key listener
+    const input = document.getElementById('alliance-chat-input');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') window.sendAllianceMessageUI();
+        });
+    }
+
+    await refreshAllianceMessages();
+}
+
+let lastMessagesHash = null;
+
+async function refreshAllianceMessages() {
+    const historyEl = document.getElementById('alliance-chat-history');
+    if (!historyEl) return;
+
+    try {
+        const messages = await API.getAllianceMessages();
+        
+        // 1. Check if anything actually changed
+        const currentHash = JSON.stringify(messages.map(m => m.id));
+        if (currentHash === lastMessagesHash) return;
+        lastMessagesHash = currentHash;
+
+        if (messages.length === 0) {
+            historyEl.innerHTML = '<div class="empty-chat">> NO RECENT COMMUNICATIONS DETECTED</div>';
+            return;
+        }
+
+        const isAtBottom = historyEl.scrollHeight - historyEl.scrollTop <= historyEl.clientHeight + 100;
+
+        historyEl.innerHTML = messages.map(msg => {
+            const isMe = msg.userId === window.currentUser?.userId;
+            const isSystem = msg.userId === 'SYSTEM';
+            const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            let contentHtml = `<span class="msg-content">${msg.content}</span>`;
+            
+            // Render shared reports if present
+            if (msg.reportData) {
+                contentHtml = `
+                    <div class="shared-report-container">
+                        <span class="msg-content" style="display: block; margin-bottom: 8px; color: var(--accent-blue);">${msg.content}</span>
+                        <div class="shared-report-mini card-base">
+                            ${msg.reportData.type === 'attack' ? renderCombatReport(msg.reportData.data) : renderEspionageData(msg.reportData.data)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="chat-msg ${isMe ? 'msg-me' : ''} ${isSystem ? 'msg-system' : ''}">
+                    <span class="msg-meta">[${time}] <span class="msg-user">${msg.username.toUpperCase()}</span>:</span>
+                    ${contentHtml}
+                </div>
+            `;
+        }).join('');
+
+        if (isAtBottom) {
+            historyEl.scrollTop = historyEl.scrollHeight;
+        }
+    } catch (error) {
+        console.error('Failed to fetch alliance messages:', error);
+    }
+}
+
+window.switchAllianceSubView = function(sub) {
+    currentSubView = sub;
+    updateAllianceView();
+};
+
+window.sendAllianceMessageUI = async function() {
+    const input = document.getElementById('alliance-chat-input');
+    if (!input || !input.value.trim()) return;
+
+    const content = input.value.trim();
+    input.value = '';
+    input.disabled = true;
+
+    try {
+        await API.sendAllianceMessage(content);
+        await refreshAllianceMessages();
+    } catch (error) {
+        Notifications.showError('Failed to send message: ' + error.message);
+    } finally {
+        input.disabled = false;
+        input.focus();
+    }
+};
 
 /**
  * Render search/create for non-members

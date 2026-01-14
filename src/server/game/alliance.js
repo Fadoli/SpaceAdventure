@@ -3,6 +3,7 @@ import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { generateId } from '../../shared/utils.js';
 import { ALLIANCE_ROLES } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
+import { getPlayerMessages } from './messages.js';
 
 let alliancesCache = null;
 
@@ -214,4 +215,103 @@ export async function shareBlueprint(userId, baseType, blueprintId, type, target
   }
 
   return { sharedCount };
+}
+
+/**
+ * Get messages for an alliance
+ */
+export async function getAllianceMessages(allianceId) {
+  const data = await readJsonFile(`alliances/${allianceId}/messages.json`);
+  return data?.messages || [];
+}
+
+/**
+ * Send a message to the alliance
+ */
+export async function sendAllianceMessage(userId, allianceId, content) {
+  const player = await getPlayerByUserId(userId);
+  if (!player || player.allianceId !== allianceId) {
+    throw new Error('Not authorized to send messages to this alliance');
+  }
+
+  if (!content || content.trim().length === 0) {
+    throw new Error('Message content cannot be empty');
+  }
+
+  const filename = `alliances/${allianceId}/messages.json`;
+  const data = await readJsonFile(filename) || { messages: [] };
+  if (!data.messages) data.messages = [];
+
+  const newMessage = {
+    id: generateId(),
+    userId,
+    username: player.username,
+    content: content.trim(),
+    timestamp: Date.now()
+  };
+
+  // Keep only last 50 messages for performance
+  data.messages.push(newMessage);
+  if (data.messages.length > 50) {
+    data.messages.shift();
+  }
+
+  await writeJsonFile(filename, data);
+  return newMessage;
+}
+
+/**
+ * Share a report (message) to the alliance
+ */
+export async function shareAllianceReport(userId, allianceId, messageId) {
+  const player = await getPlayerByUserId(userId);
+  if (!player || player.allianceId !== allianceId) {
+    throw new Error('Not authorized');
+  }
+
+  // Find the message in player's inbox
+  const messages = await getPlayerMessages(userId);
+  const message = messages.find(m => m.id === messageId);
+
+  if (!message) {
+    throw new Error('Report not found');
+  }
+
+  if (!['attack', 'espionage'].includes(message.type)) {
+    throw new Error('Only combat and espionage reports can be shared');
+  }
+
+  // Format special shared message
+  let content = '';
+  if (message.type === 'attack') {
+    const winner = message.data?.winner?.toUpperCase() || 'UNKNOWN';
+    const coords = message.data?.targetCoords?.join(':') || '---';
+    content = `[SHARED COMBAT REPORT] Result: ${winner} at [${coords}]`;
+  } else {
+    const power = message.data?.power || '0';
+    const coords = message.data?.coords?.join(':') || '---';
+    content = `[SHARED ESPIONAGE REPORT] Scan Power: ${power} at [${coords}]`;
+  }
+
+  const filename = `alliances/${allianceId}/messages.json`;
+  const data = await readJsonFile(filename) || { messages: [] };
+  
+  const newMessage = {
+    id: generateId(),
+    userId: 'SYSTEM',
+    username: `INTELLIGENCE (${player.username})`,
+    content: content,
+    timestamp: Date.now(),
+    reportData: {
+      type: message.type,
+      data: message.data,
+      originalSubject: message.subject
+    }
+  };
+
+  data.messages.push(newMessage);
+  if (data.messages.length > 50) data.messages.shift();
+
+  await writeJsonFile(filename, data);
+  return newMessage;
 }

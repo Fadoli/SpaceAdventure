@@ -31,3 +31,112 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* 3. Communications / Chat System */
+.alliance-comm-container {
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.alliance-chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-blue) transparent;
+}
+
+.chat-msg {
+    line-height: 1.4;
+    padding: 4px 8px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid transparent;
+}
+
+.chat-msg.msg-me {
+    background: rgba(0, 242, 255, 0.05);
+    border-left-color: var(--accent-blue);
+}
+
+.chat-msg.msg-system {
+    background: rgba(255, 157, 0, 0.03);
+    border-left-color: var(--accent-yellow);
+}
+
+.msg-meta {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-right: 8px;
+}
+
+.msg-user {
+    color: var(--accent-yellow);
+    font-weight: bold;
+}
+
+.msg-me .msg-user {
+    color: var(--accent-blue);
+}
+
+.msg-content {
+    color: #fff;
+    word-break: break-word;
+}
+
+.shared-report-mini {
+    transform: scale(0.95);
+    transform-origin: left top;
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    max-width: 90%;
+}
+
+.shared-report-mini .technical-report {
+    padding: 10px;
+}
+
+.alliance-chat-input-area {
+    padding: 15px;
+    display: flex;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#alliance-chat-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 0 15px;
+    height: 40px;
+    font-family: 'Share Tech Mono', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#alliance-chat-input:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
+}
+
+.alliance-chat-input-area .btn {
+    width: 100px;
+    height: 40px;
+}
+
+.empty-chat, .chat-loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+}
