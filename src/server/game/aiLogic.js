@@ -764,26 +764,15 @@ async function handleMissions(player) {
 }
 
 /**
- * AI Espionage Logic: Spy on other players to assert danger
+ * AI Espionage Logic: Spy on other players, prioritizing nearby systems (Optimized)
  */
 async function handleAiEspionage(player) {
-  if (Math.random() > 0.3) return false; // 30% chance to check for spying opportunity
+  if (Math.random() > 0.4) return false;
 
-  const allPlayers = await getPlayers();
-  const otherPlayers = allPlayers.filter(p => p.userId !== player.userId);
-  if (otherPlayers.length === 0) return false;
-
-  // Find a planet with espionage probes
-  let originPlanet = null;
-  for (const planet of player.planets) {
-    if ((planet.ships?.espionageProbe || 0) > 0) {
-      originPlanet = planet;
-      break;
-    }
-  }
+  // 1. Find a planet with espionage probes
+  const originPlanet = player.planets.find(p => (p.ships?.espionageProbe || 0) > 0);
 
   if (!originPlanet) {
-    // Try to build some probes if we have shipyard
     const shipyardPlanet = player.planets.find(p => (p.buildings.shipyard || 0) >= 1);
     if (shipyardPlanet && Math.random() < 0.2) {
       await tryBuildShips(player, shipyardPlanet, 'espionageProbe', 2);
@@ -791,22 +780,57 @@ async function handleAiEspionage(player) {
     return false;
   }
 
-  // Pick a random player and one of their planets
-  const targetPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
-  const targetPlanet = targetPlayer.planets[Math.floor(Math.random() * targetPlayer.planets.length)];
+  // 2. Select a target coordinate using a weighted proximity strategy
+  // 70% chance same system, 20% same galaxy, 10% random
+  const [g, s] = originPlanet.coordinates;
+  let targetCoords;
+  const roll = Math.random();
 
-  if (!targetPlanet) return false;
+  if (roll < 0.7) {
+    // Local: Same system, random position
+    targetCoords = [g, s, Math.floor(Math.random() * 15) + 1];
+  } else if (roll < 0.9) {
+    // Regional: Same galaxy, nearby system (+/- 10)
+    const targetS = Math.max(1, Math.min(499, s + Math.floor(Math.random() * 21) - 10));
+    targetCoords = [g, targetS, Math.floor(Math.random() * 15) + 1];
+  } else {
+    // Inter-galactic: Random
+    targetCoords = [
+      Math.floor(Math.random() * 10) + 1,
+      Math.floor(Math.random() * 499) + 1,
+      Math.floor(Math.random() * 15) + 1
+    ];
+  }
 
-  // Don't spy if we already have a mission to that player's planet
+  // Don't spy on self
+  const isSelf = player.planets.some(p => p.coordinates.every((c, i) => c === targetCoords[i]));
+  if (isSelf) return false;
+
+  // 3. Check if target is occupied (Efficient lookup)
+  const allPlayers = await getPlayers();
+  let targetPlayer = null;
+  let targetPlanet = null;
+
+  for (const p of allPlayers) {
+    targetPlanet = p.planets.find(pl => pl.coordinates.every((c, i) => c === targetCoords[i]));
+    if (targetPlanet) {
+      targetPlayer = p;
+      break;
+    }
+  }
+
+  if (!targetPlanet || targetPlayer.userId === player.userId) return false;
+
+  // 4. Mission Check
   const alreadySpying = player.fleets?.some(f => 
     f.missionType === MISSION_TYPES.ESPIONAGE && 
-    f.targetCoords.every((c, i) => c === targetPlanet.coordinates[i])
+    f.targetCoords.every((c, i) => c === targetCoords[i])
   );
   if (alreadySpying) return false;
 
   try {
-    await sendFleet(player.userId, originPlanet.id, targetPlanet.coordinates, MISSION_TYPES.ESPIONAGE, { espionageProbe: 1 });
-    console.log(`[AI] ${player.username} launched intelligence scan on ${targetPlayer.username} at ${targetPlanet.coordinates.join(':')}`);
+    await sendFleet(player.userId, originPlanet.id, targetCoords, MISSION_TYPES.ESPIONAGE, { espionageProbe: 1 });
+    console.log(`[AI] ${player.username} launched intelligence scan on ${targetPlayer.username} at ${targetCoords.join(':')}`);
     return true;
   } catch (e) {
     return false;
