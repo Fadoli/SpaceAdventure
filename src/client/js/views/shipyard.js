@@ -59,10 +59,60 @@ function calculateShipyardStateHash(shipyardData, planet, subView) {
 let lastContentHash = null;
 
 /**
+ * Update affordance colors and button states without re-rendering
+ */
+function updateShipyardAffordance(planet) {
+    if (!currentShipyardData) return;
+    
+    const isDefenses = document.getElementById('defenses-view')?.classList.contains('active');
+    const available = isDefenses ? currentShipyardData.availableDefenses : currentShipyardData.availableShips;
+    
+    for (const key in available) {
+        const item = available[key];
+        const cost = isDefenses ? calculateDefenseCost(key, 1) : calculateShipCostForDef(item, 1);
+        
+        const canAfford = planet.resources.metal >= cost.metal &&
+                         planet.resources.crystal >= cost.crystal &&
+                         planet.resources.deuterium >= cost.deuterium;
+        
+        const costEl = document.getElementById(`cost-${key}`);
+        const btn = document.getElementById(`btn-${key}`);
+        
+        if (costEl) {
+            const metalItem = costEl.querySelector('.cost-item:nth-child(1)');
+            const crystalItem = costEl.querySelector('.cost-item:nth-child(2)');
+            const deutItem = costEl.querySelector('.cost-item:nth-child(3)');
+            
+            if (metalItem) metalItem.className = `cost-item ${planet.resources.metal < cost.metal ? 'text-danger' : ''}`;
+            if (crystalItem) crystalItem.className = `cost-item ${planet.resources.crystal < cost.crystal ? 'text-danger' : ''}`;
+            if (deutItem) deutItem.className = `cost-item ${planet.resources.deuterium < cost.deuterium ? 'text-danger' : ''}`;
+        }
+        
+        if (btn) {
+            btn.disabled = !canAfford;
+            if (canAfford) btn.classList.add('btn-success');
+            else btn.classList.remove('btn-success');
+        }
+    }
+}
+
+/**
  * Update shipyard view with planet data
  */
-export async function updateShipyardView(planet, subView = 'ships') {
+export async function updateShipyardView(planet, subView = 'ships', force = false) {
     try {
+        const currentStructuralHash = calculateStructuralHash({
+            shipyardLevel: planet.buildings?.shipyard || 0,
+            roboticsLevel: planet.buildings?.roboticsFactory || 0,
+            naniteLevel: planet.buildings?.naniteFactory || 0
+        }, planet, subView);
+
+        if (!force && currentShipyardData && currentStructuralHash === lastStructuralHash) {
+            // Only update dynamic state (affordance colors) if nothing structurally changed
+            updateShipyardAffordance(planet);
+            return;
+        }
+
         const shipyardData = await API.getShipyardDetails(planet.id);
         currentShipyardData = shipyardData;
 
@@ -452,10 +502,6 @@ function attachShipyardListeners(planet, shipyardData) {
             const response = await API.buildShips(planetId, { [shipKey]: qty });
             Notifications.showSuccess(`${formatNumber(qty)}x ${shipName} added to build queue`);
             input.value = ''; // Clear field
-            
-            // Refresh shipyard view
-            const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
-            updateShipyardView(activePlanet, 'ships');
         } catch (error) {
             Notifications.showError(`Failed to build ship: ${error.message}`);
         }
@@ -473,10 +519,6 @@ function attachShipyardListeners(planet, shipyardData) {
             const response = await API.buildDefenses(planetId, { [defenseKey]: qty });
             Notifications.showSuccess(`${formatNumber(qty)}x ${defenseName} added to build queue`);
             input.value = ''; // Clear field
-            
-            // Refresh shipyard view
-            const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
-            updateShipyardView(activePlanet, 'defenses');
         } catch (error) {
             Notifications.showError(`Failed to build defense: ${error.message}`);
         }
@@ -491,11 +533,6 @@ function attachShipyardListeners(planet, shipyardData) {
 
         try {
             const response = await API.cancelShipyardProduction(planetId, queueId);
-            
-            // Refresh shipyard view
-            const activePlanet = (await API.getGameState()).planets.find(p => p.id === planetId);
-            const currentSubView = document.getElementById('defenses-view')?.classList.contains('active') ? 'defenses' : 'ships';
-            updateShipyardView(activePlanet, currentSubView);
         } catch (error) {
             Notifications.showError(`Failed to cancel build: ${error.message}`);
         }

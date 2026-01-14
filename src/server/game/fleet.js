@@ -3,11 +3,12 @@ import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity, SHIPS as SHIP_DEFINITIONS } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
-import { getPlayerByUserId, updatePlayer } from './player.js';
+import { getPlayerByUserId, updatePlayer, getPlayers } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
 import { simulateCombat } from './combatEngine.js';
 import { getGalaxyData, updateDebrisField } from './galaxyData.js';
+import { wsManager } from './wsManager.js';
 
 /**
  * Start a new mission
@@ -112,9 +113,27 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     originPlanet.ships[shipKey] -= ships[shipKey];
   }
 
+  // Notify client of resource change
+  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId: originPlanetId });
+
   // Add to player's active fleets
   if (!player.fleets) player.fleets = [];
   player.fleets.push(fleet);
+
+  // Notify target player if applicable (e.g., incoming attack or transport)
+  if (missionType !== MISSION_TYPES.EXPEDITION && missionType !== MISSION_TYPES.COLONIZE) {
+    const allPlayers = await getPlayers();
+    let targetPlayerId = null;
+    for (const p of allPlayers) {
+      if (p.planets.some(pl => pl.coordinates.every((c, i) => c === targetCoords[i]))) {
+        targetPlayerId = p.userId;
+        break;
+      }
+    }
+    if (targetPlayerId && targetPlayerId !== userId) {
+      wsManager.sendToUser(targetPlayerId, 'INCOMING_FLEET', { missionType, arrivalTime: fleet.arrivalTime });
+    }
+  }
 
   await updatePlayer(userId, player);
   return fleet;
@@ -170,12 +189,14 @@ export async function processFleets(player, allPlayers) {
         await handleFleetReturn(player, fleet);
         player.fleets.splice(i, 1);
         updated = true;
+        wsManager.sendToUser(player.userId, 'FLEET_RETURNED', { userId: player.userId, fleetId: fleet.id });
       } else {
         // Fleet arrived at target
         const missionCompleted = await handleFleetArrival(player, fleet, allPlayers);
         if (missionCompleted) {
           // Some missions complete immediately (like colonize success)
           player.fleets.splice(i, 1);
+          wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
         } else {
           // Other missions reverse and return (spy, attack, transport)
           // For expedition, it stays for a while
@@ -184,24 +205,26 @@ export async function processFleets(player, allPlayers) {
             fleet.startTime = now;
             const stayTime = (fleet.stayTime || 1) * 60 * 60 * 1000; // Use stored hours or default to 1h
             fleet.arrivalTime = now + stayTime;
-                        } else {
-                          const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
-                          let slowestSpeed = Infinity;
-                          for (const shipKey in fleet.ships) {
-                            const speed = calculateShipSpeed(shipKey, player.research);
-                            if (speed < slowestSpeed) slowestSpeed = speed;
-                          }
-                          const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier());
-                          
-                          fleet.returning = true;
-                          fleet.startTime = now;
-                          fleet.arrivalTime = now + (travelTime * 1000);
-                          
-                          // Swap coords
-                          const origin = [...fleet.originCoords];
-                          fleet.originCoords = [...fleet.targetCoords];
-                          fleet.targetCoords = origin;
-                        }        }
+          } else {
+            const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
+            let slowestSpeed = Infinity;
+            for (const shipKey in fleet.ships) {
+              const speed = calculateShipSpeed(shipKey, player.research);
+              if (speed < slowestSpeed) slowestSpeed = speed;
+            }
+            const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier());
+            
+            fleet.returning = true;
+            fleet.startTime = now;
+            fleet.arrivalTime = now + (travelTime * 1000);
+            
+            // Swap coords
+            const origin = [...fleet.originCoords];
+            fleet.originCoords = [...fleet.targetCoords];
+            fleet.targetCoords = origin;
+          }
+          wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: false });
+        }
         updated = true;
       }
     }
@@ -228,6 +251,9 @@ async function handleFleetReturn(player, fleet) {
     for (const res in fleet.resources) {
       planet.resources[res] += fleet.resources[res];
     }
+    // Notify client of resource change
+    wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planet.id });
+    
     // Return surviving crew to population
     if (fleet.costs && fleet.costs.crew) {
       const currentCrew = calculateFleetCrew(fleet.ships);
@@ -296,6 +322,10 @@ async function executeHarvest(player, fleet) {
   // Load resources onto fleet
   fleet.resources.metal = (fleet.resources.metal || 0) + metalHarvested;
   fleet.resources.crystal = (fleet.resources.crystal || 0) + crystalHarvested;
+
+  // Notify client of resource change (fleet resources changed, will be added to planet on return)
+  // No direct planet change yet, but we send it to trigger any listeners if needed
+  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', {}); 
 
   await addMessage(player.userId, {
     from: 'Recycling Service',
@@ -378,6 +408,8 @@ async function executeAttack(attackerPlayer, fleet, allPlayers) {
         targetPlanet.resources[res] -= amount;
         fleet.resources[res] = (fleet.resources[res] || 0) + amount;
       }
+      // Notify defender of resource loss
+      wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
     }
   }
 
@@ -435,6 +467,9 @@ async function executeDeployment(player, fleet, allPlayers) {
         targetPlanet.resources[res] = Math.min(targetPlanet.resources[res], targetPlanet.storage[res]);
       }
     }
+
+    // Notify player of resource change
+    wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
 
     // Deliver ships (they STAY here)
     for (const shipKey in fleet.ships) {
@@ -496,6 +531,9 @@ async function executeTransport(player, fleet, allPlayers) {
         targetPlanet.resources[res] = Math.min(targetPlanet.resources[res], targetPlanet.storage[res]);
       }
     }
+
+    // Notify target player of resource change
+    wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
 
     // Clear resources from fleet
     const deliveredResources = { ...fleet.resources };
@@ -731,6 +769,9 @@ async function executeColonization(player, fleet, allPlayers) {
   };
 
   player.planets.push(newPlanet);
+  // Notify client of new planet and changed resources
+  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planetId });
+
   // Colony ship is consumed
   fleet.ships.colonyShip--;
   
@@ -889,6 +930,9 @@ async function executeMarketTrade(player, fleet) {
     fleet.resources[res] = fleet.buyResources[res] || 0;
   });
   
+  // Notify client of resource change
+  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', {});
+
   await addMessage(player.userId, {
     from: 'Galactic Market Hub',
     subject: `TRADE CONFIRMED: [${fleet.originCoords.join(':')}]`,

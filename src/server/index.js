@@ -69,6 +69,8 @@ import { isEmpty } from '../shared/utils.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 import { gzipSync, deflateSync } from 'zlib';
 
+import { wsManager } from './game/wsManager.js';
+
 // Load configuration
 await loadConfig();
 
@@ -1115,6 +1117,10 @@ async function handleRequest(req) {
         // Save player
         await updatePlayer(user.id, player);
         
+        // Notify client of changes
+        wsManager.sendToUser(user.id, 'RESOURCES_UPDATED', { planetId });
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'shipyard' });
+
         return successResponse(req, result);
       } catch (error) {
         return errorResponse(req, error.message, 400);
@@ -1902,7 +1908,27 @@ async function handleRequest(req) {
 // Create server
 const server = Bun.serve({
   port: PORT,
-  fetch: handleRequest,
+  async fetch(req) {
+    // 1. Handle WebSocket upgrade requests
+    const upgraded = await wsManager.handleUpgrade(req, server);
+    if (upgraded !== null) return upgraded; // Returns Response (error) or undefined (success)
+    
+    // 2. Handle normal HTTP requests
+    return handleRequest(req);
+  },
+  websocket: {
+    open(ws) {
+      const { userId } = ws.data;
+      wsManager.addConnection(userId, ws);
+    },
+    message(ws, message) {
+      // Handle incoming messages if needed
+    },
+    close(ws) {
+      const { userId } = ws.data;
+      wsManager.removeConnection(userId, ws);
+    }
+  }
 });
 
 console.log(`🚀 Space Adventure server running on http://localhost:${PORT}`);

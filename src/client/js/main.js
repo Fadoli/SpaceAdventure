@@ -22,6 +22,7 @@ import { updateFleetMovements } from './views/fleetMovements.js';
 import { Notifications } from './notifications.js';
 import { showConfirm } from './views/modals.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
+import { gameSocket } from './socket.js';
 
 // State
 let currentUser = null;
@@ -109,6 +110,40 @@ async function init() {
 
 async function showGameScreen() {
     document.getElementById('game-screen').classList.add('active');
+    
+    // Connect to real-time event socket
+    gameSocket.connect();
+    
+    // Refresh game state when important events happen on server
+    let wsRefreshTimeout = null;
+    gameSocket.addHandler((type, data) => {
+        const criticalEvents = [
+            'BUILDING_COMPLETE', 
+            'RESEARCH_COMPLETE', 
+            'PRODUCTION_COMPLETE', 
+            'FLEET_ARRIVED', 
+            'FLEET_RETURNED',
+            'VARIANT_SWITCH_COMPLETE',
+            'RESOURCES_UPDATED',
+            'QUEUE_UPDATED',
+            'INCOMING_FLEET',
+            'NEW_MESSAGE'
+        ];
+        
+        if (criticalEvents.includes(type)) {
+            if (type === 'NEW_MESSAGE') {
+                updateUnreadCount();
+                if (currentView === 'messages') updateMessagesView();
+            } else {
+                // Debounce refresh to avoid 3x fetches on single action
+                if (wsRefreshTimeout) clearTimeout(wsRefreshTimeout);
+                wsRefreshTimeout = setTimeout(() => {
+                    console.log(`[WS] Debounced refresh triggered by ${type}`);
+                    loadGameState(true); // true = force view re-fetch
+                }, 100);
+            }
+        }
+    });
     
     // Load game state first
     await loadGameState();
@@ -227,44 +262,36 @@ function switchView(view, updateHistory = true) {
 
 // Game State Management
 let lastFetchTime = 0;
-let nextEarliestCompletion = 0;
+let isFetchingState = false;
+let pendingFetch = null;
 
-function findNextCompletion(state) {
-    if (!state) return 0;
-    let times = [];
-
-    // Research
-    if (state.researchQueue?.length > 0) times.push(state.researchQueue[0].endTime);
-    if (state.practicalResearchQueue?.length > 0) times.push(state.practicalResearchQueue[0].endTime);
-
-    // Planets
-    if (state.planets) {
-        state.planets.forEach(p => {
-            if (p.buildQueue?.length > 0) times.push(p.buildQueue[0].finishTime);
-            if (p.shipQueue?.length > 0) times.push(p.shipQueue[0].finishTime);
-            if (p.defenseQueue?.length > 0) times.push(p.defenseQueue[0].finishTime);
-        });
+async function loadGameState(forceFetch = false) {
+    // If already fetching, queue a follow-up if forceFetch is requested
+    if (isFetchingState) {
+        if (forceFetch) pendingFetch = true;
+        return;
     }
 
-    // Filter out past times and find minimum
-    const futureTimes = times.filter(t => t > Date.now());
-    return futureTimes.length > 0 ? Math.min(...futureTimes) : 0;
-}
-
-async function loadGameState() {
+    isFetchingState = true;
     try {
         gameState = await API.getGameState();
-        nextEarliestCompletion = findNextCompletion(gameState);
         setGameState(gameState);
-        updateUI();
+        updateUI(forceFetch);
     } catch (error) {
         console.error('Failed to load game state:', error);
+    } finally {
+        isFetchingState = false;
+        // If another fetch was requested while we were busy, do it now
+        if (pendingFetch) {
+            pendingFetch = false;
+            loadGameState(true);
+        }
     }
 }
 
 window.loadGameState = loadGameState;
 
-function updateUI() {
+function updateUI(forceFetch = false) {
     if (!gameState || !currentUser) return;
     
     // Update fleet movements
@@ -310,11 +337,11 @@ function updateUI() {
         if (planetCoordsHeader) planetCoordsHeader.textContent = `[${planet.coordinates.join(':')}]`;
         
         // Update current view
-        updateCurrentView();
+        updateCurrentView(forceFetch);
     }
 }
 
-function updateCurrentView() {
+function updateCurrentView(forceFetch = false) {
     let planet = null;
     if (currentPlanetId) {
         planet = gameState.planets.find(p => p.id === currentPlanetId);
@@ -330,17 +357,17 @@ function updateCurrentView() {
             updateOverview(planet, gameState.planets);
             break;
         case 'buildings':
-            updateBuildingsView(planet, loadGameState);
+            updateBuildingsView(planet, loadGameState, forceFetch);
             break;
         case 'research':
             // Update research buildings without full re-render
-            updateResearchView(gameState, currentPlanetId);
+            updateResearchView(gameState, currentPlanetId, forceFetch);
             break;
         case 'shipyard':
-            updateShipyardView(planet);
+            updateShipyardView(planet, 'ships', forceFetch);
             break;
         case 'defenses':
-            updateShipyardView(planet, 'defenses');
+            updateShipyardView(planet, 'defenses', forceFetch);
             break;
         case 'fleet':
             updateFleetView(gameState);
@@ -350,7 +377,7 @@ function updateCurrentView() {
             // Only render when user explicitly switches to this view
             break;
         case 'messages':
-            updateMessagesView();
+            // Don't auto-update messages view, handled by WebSocket or safety sync
             break;
         case 'alliance':
             updateAllianceView();
@@ -388,19 +415,14 @@ function startResourceUpdate() {
         const now = Date.now();
         let shouldFetch = false;
 
-        // 1. Default 10s fetch
-        if (now >= lastFetchTime + 10000) {
+        // Safety sync every 60 seconds instead of 10s
+        if (now >= lastFetchTime + 60000) {
             shouldFetch = true;
         } 
-        // 2. Fetch 1s after an event is supposed to end
-        else if (nextEarliestCompletion > 0 && now >= nextEarliestCompletion + 1000) {
-            shouldFetch = true;
-        }
 
         if (shouldFetch) {
-            await loadGameState();
+            await loadGameState(true); // force re-fetch sub-details
             lastFetchTime = Date.now();
-            nextEarliestCompletion = findNextCompletion(gameState);
         } else if (gameState) {
             // Local resource interpolation (happens every second)
             gameState.planets.forEach(planet => {
@@ -465,12 +487,6 @@ function startResourceUpdate() {
         // Always update timers and movements for smooth UI
         updateTimers();
         updateFleetMovements(gameState);
-        
-        // Update messages count every 5 seconds (of ticks)
-        tickCount++;
-        if (tickCount % 5 === 0) {
-            updateUnreadCount();
-        }
     }, 1000); // Check every 1 second
 }
 
@@ -492,13 +508,13 @@ window.selectPlanet = function(planetId) {
 };
 
 window.upgradeBuilding = async function(buildingKey) {
-    await buildingUpgrade(buildingKey, loadGameState);
+    await buildingUpgrade(buildingKey);
 };
 
 window.switchBuildingVariant = async function(buildingKey, toCustom) {
     // switchBuildingVariant is imported from views/buildings.js
     const buildingsView = await import('./views/buildings.js');
-    await buildingsView.switchBuildingVariant(buildingKey, toCustom, loadGameState);
+    await buildingsView.switchBuildingVariant(buildingKey, toCustom);
 };
 
 window.selectCustomVariant = async function(buildingKey, focusLevels) {
@@ -509,7 +525,6 @@ window.selectCustomVariant = async function(buildingKey, focusLevels) {
         const buildingsView = await import('./views/buildings.js');
         await API.selectCustomVariant(planetId, buildingKey, focusLevels);
         await buildingsView.closeCustomVariantModal();
-        await loadGameState();
     } catch (error) {
         Notifications.showError('Error: ' + error.message);
     }
@@ -521,7 +536,7 @@ window.closeCustomVariantModal = async function() {
 };
 
 window.cancelBuilding = async function(queuePosition = 1) {
-    await buildingCancel(queuePosition, loadGameState);
+    await buildingCancel(queuePosition);
 };
 
 window.showBuildingDetails = function(buildingKey) {

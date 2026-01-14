@@ -23,6 +23,7 @@ import {
 } from '../../shared/formulas.js';
 import { CONFIG, BUILDING_SPEED_MULTIPLIER, SCALING } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
+import { wsManager } from './wsManager.js';
 import { 
   getBuildQueueSize, 
   getResourceProductionMultiplier,
@@ -228,6 +229,9 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   planet.resources.crystal -= cost.crystal;
   planet.resources.deuterium -= cost.deuterium;
   
+  // Notify client of resource change
+  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId });
+
   // Add to build queue
   if (!planet.buildQueue) {
     planet.buildQueue = [];
@@ -246,15 +250,20 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
     finishTime = startTime + (buildTime * 1000);
   }
   
-  planet.buildQueue.push({
+  const item = {
     building: buildingType,
     level: nextLevel,
     startTime: startTime,
     finishTime: finishTime,
     cost: cost,
     queuePosition: planet.buildQueue.length + 1
-  });
+  };
+
+  planet.buildQueue.push(item);
   
+  // Notify client of queue change
+  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
+
   // Update player
   await updatePlayer(userId, player);
   
@@ -303,6 +312,9 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
   planet.resources.crystal += refund.crystal;
   planet.resources.deuterium += refund.deuterium;
   
+  // Notify client of resource change
+  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId });
+
   // Remove from queue
   planet.buildQueue.splice(queueIndex, 1);
   
@@ -341,6 +353,9 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
     item.queuePosition = index + 1;
   });
   
+  // Notify client of queue change
+  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
+
   await updatePlayer(userId, player);
   
   return { refund };
@@ -1039,6 +1054,9 @@ export async function queueVariantSwitch(userId, planetId, buildingType, toCusto
   planet.resources.crystal += switchCost.crystal;
   planet.resources.deuterium += switchCost.deuterium;
   
+  // Notify client of resource change
+  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId });
+
   // Initialize variant switch queue if needed
   if (!planet.variantSwitchQueue) {
     planet.variantSwitchQueue = [];

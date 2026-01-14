@@ -10,6 +10,7 @@ import { CONFIG } from '../../shared/constants.js';
 import { getAllAiPlayers } from './aiManager.js';
 import { processAiPlayer } from './aiLogic.js';
 import { readJsonFile } from '../storage/storage.js';
+import { wsManager } from './wsManager.js';
 
 let gameLoopInterval = null;
 let lastSaveTime = 0;
@@ -161,12 +162,14 @@ async function gameTick() {
       const buildingsUpdated = await processCompletedBuildings(player);
       if (buildingsUpdated) {
         updated = true;
+        wsManager.sendToUser(player.userId, 'BUILDING_COMPLETE', { userId: player.userId });
       }
       
       // Process completed variant switches
       const variantSwitchesUpdated = await processCompletedVariantSwitches(player);
       if (variantSwitchesUpdated) {
         updated = true;
+        wsManager.sendToUser(player.userId, 'VARIANT_SWITCH_COMPLETE', { userId: player.userId });
       }
       
       // Process completed ship and defense production
@@ -174,6 +177,7 @@ async function gameTick() {
         const productionUpdated = processCompletedProduction(planet);
         if (productionUpdated) {
           updated = true;
+          wsManager.sendToUser(player.userId, 'PRODUCTION_COMPLETE', { userId: player.userId, planetId: planet.id });
         }
       }
       
@@ -181,6 +185,7 @@ async function gameTick() {
       const researchUpdated = await processCompletedResearch(player);
       if (researchUpdated) {
         updated = true;
+        wsManager.sendToUser(player.userId, 'RESEARCH_COMPLETE', { userId: player.userId });
       }
 
       // Process fleets

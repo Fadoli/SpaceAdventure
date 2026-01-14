@@ -58,13 +58,22 @@ export async function initializeResearch(planet) {
 /**
  * Load research data from server
  */
-async function loadResearchData() {
+async function loadResearchData(force = false) {
     try {
+        const currentHash = JSON.stringify({
+            planetId: getCurrentPlanetId(),
+            labLevel: currentPlanetBuildings?.researchLab || 0,
+            research: researchData?.theoretical // Basic check for tech levels
+        });
+
+        if (!force && researchData && currentHash === lastResearchStateHash) {
+            updateCurrentTabStatus();
+            return;
+        }
+
         const response = await fetch('/api/game/research');
         const result = await response.json();
         const newResearchData = result.data || result;
-
-        const currentHash = calculateResearchStateHash(newResearchData);
         
         // Get active tab from URL or default to theoretical
         const urlParams = new URLSearchParams(window.location.search);
@@ -73,12 +82,10 @@ async function loadResearchData() {
         const container = document.querySelector(`#${subTab}-tab .research-content`);
         const isContainerEmpty = !container || container.innerHTML.trim() === '';
 
-        const stateChanged = currentHash !== lastResearchStateHash;
-        
         researchData = newResearchData;
         lastResearchStateHash = currentHash;
 
-        if (stateChanged || isContainerEmpty) {
+        if (force || isContainerEmpty) {
             switchTab(subTab, false); // false = don't update URL since we just read it
         } else {
             // Just update button states and cost colors without re-rendering everything
@@ -86,7 +93,7 @@ async function loadResearchData() {
         }
     } catch (error) {
         console.error('Failed to load research data:', error);
-        researchData = { progress: { theoretical: [], practical: [] }, theoretical: {}, practical: {} };
+        if (!researchData) researchData = { progress: { theoretical: [], practical: [] }, theoretical: {}, practical: {} };
     }
 }
 
@@ -1178,10 +1185,10 @@ window.showResearchHistory = async function (baseType) {
     }
 };
 
-export function updateResearchView(player, planetId = null) {
+export function updateResearchView(player, planetId = null, forceFetch = false) {
     const target = planetId || getCurrentPlanetId() || (player?.planets?.[0]?.id);
     if (target) { const p = player.planets.find(pl => pl.id === target); if (p) currentPlanetBuildings = p.buildings; }
-    loadResearchData();
+    loadResearchData(forceFetch);
 }
 
 export function updateResearchTimers() { updateResearchQueueTimers(); }

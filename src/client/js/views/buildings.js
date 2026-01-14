@@ -14,6 +14,7 @@ import { getCurrentPlanetId } from '../main.js';
 let currentGameState = null;
 let lastBuildingStateHash = null;
 let lastQueueStateHash = null;
+let cachedBuildingDetails = null;
 
 /**
  * Set the current game state (called from main)
@@ -46,47 +47,43 @@ export function setGameState(gameState) {
 /**
  * Update buildings view with planet data
  */
-export async function updateBuildingsView(planet, onStateChange) {
+export async function updateBuildingsView(planet, onStateChange, forceFetch = false) {
     const buildingsGrid = document.getElementById('buildings-grid');
-    
-    // Fetch building details from server (all calculations done server-side)
-    let buildingDetails;
-    try {
-        buildingDetails = await API.getBuildingDetails(planet.id);
-    } catch (error) {
-        console.error('Failed to load building details:', error);
-        buildingsGrid.innerHTML = '<p class="error">Failed to load building information</p>';
-        return;
-    }
-    
-    const { buildings, queue, maxQueueSize } = buildingDetails;
-    
-    // Check if structural building state has changed (levels or allocations)
-    const buildingsSummary = {};
-    for (const key in buildings) {
-        buildingsSummary[key] = { 
-            currentLevel: buildings[key].currentLevel,
-            requirementsMet: buildings[key].requirementsMet,
-            hasCustomVariant: buildings[key].hasCustomVariant,
-            currentVariant: buildings[key].currentVariant
-        };
-    }
+    if (!buildingsGrid) return;
 
-    const structuralState = {
-        buildings: buildingsSummary,
-        buildingAllocations: planet.buildingAllocations,
-        actualAllocations: planet.actualAllocations
-    };
+    // Check structural hash before fetching
+    // (levels or variant assignments)
+    const currentStructuralHash = JSON.stringify({
+        planetId: planet.id,
+        buildings: planet.buildings,
+        activeVariants: planet.activeVariants,
+        queueCount: planet.buildQueue?.length || 0
+    });
+
+    const needsFetch = forceFetch || !cachedBuildingDetails || currentStructuralHash !== lastBuildingStateHash;
     
-    const currentStructuralHash = JSON.stringify(structuralState);
+    // Fetch building details from server only if needed
+    if (needsFetch) {
+        try {
+            // console.log(`[Buildings] Fetching details for ${planet.name} (force=${forceFetch})`);
+            cachedBuildingDetails = await API.getBuildingDetails(planet.id);
+            lastBuildingStateHash = currentStructuralHash;
+        } catch (error) {
+            console.error('Failed to load building details:', error);
+            if (!cachedBuildingDetails) {
+                buildingsGrid.innerHTML = '<p class="error">Failed to load building information</p>';
+                return;
+            }
+        }
+    }
     
-    if (currentStructuralHash !== lastBuildingStateHash) {
-        // Structural change (level up, allocation change, variant change)
-        // Full re-render of building cards
+    const { buildings, queue, maxQueueSize } = cachedBuildingDetails;
+    
+    // Re-render only if hash changed or container is empty
+    if (needsFetch || buildingsGrid.innerHTML.trim() === '') {
         renderBuildingCards(buildings, planet, queue, maxQueueSize);
-        lastBuildingStateHash = currentStructuralHash;
     } else {
-        // No structural change, just update costs, affordance, and timers
+        // Just update dynamic elements (resources, affordance, etc)
         updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize);
     }
     

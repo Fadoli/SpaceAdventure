@@ -1,5 +1,6 @@
 import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { generateId } from '../../shared/utils.js';
+import { wsManager } from './wsManager.js';
 
 /**
  * Get the filename for a user's messages
@@ -41,6 +42,10 @@ export async function addMessage(userId, messageData) {
   }
   
   await writeJsonFile(filename, { messages });
+
+  // Notify client of new message
+  wsManager.sendToUser(userId, 'NEW_MESSAGE', { count: messages.filter(m => !m.read).length });
+
   return newMessage;
 }
 
