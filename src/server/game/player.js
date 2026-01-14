@@ -344,37 +344,9 @@ export async function recomputePlayerScores(player) {
   player.statistics.economySpent = economyScore;
   player.statistics.researchSpent = researchScore;
   player.statistics.fleetSpent = fleetScore;
-  player.statistics.totalResourcesSpent = economyScore + researchScore + fleetScore + (player.statistics.miscSpent || 0);
+  player.statistics.totalResourcesSpent = economyScore + researchScore + fleetScore;
 
   return player.statistics;
-}
-
-/**
- * Track spent resources for ranking with categories (Now only for transient 'misc' like fuel/food)
- */
-export function trackSpentResources(player, cost, category = 'misc') {
-  if (!player.statistics) {
-    player.statistics = { 
-      totalResourcesSpent: 0,
-      economySpent: 0,
-      researchSpent: 0,
-      fleetSpent: 0,
-      miscSpent: 0
-    };
-  }
-  
-  // Only track 'misc' (fuel, survival) since others are recomputed hourly
-  if (category !== 'misc') return;
-
-  const metal = cost.metal || 0;
-  const crystal = cost.crystal || 0;
-  const deuterium = cost.deuterium || 0;
-  const food = cost.food || 0;
-  const water = cost.water || 0;
-  
-  const total = (metal + crystal + deuterium + food + water);
-  player.statistics.miscSpent = (player.statistics.miscSpent || 0) + total;
-  player.statistics.totalResourcesSpent = (player.statistics.totalResourcesSpent || 0) + total;
 }
 
 /**

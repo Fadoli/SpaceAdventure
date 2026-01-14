@@ -36,7 +36,7 @@ import {
   getResearchQueueSize,
   getConfig
 } from '../config.js';
-import { updatePlayer, getPlayerByUserId, trackSpentResources } from './player.js';
+import { updatePlayer, getPlayerByUserId } from './player.js';
 
 /**
  * Start theoretical research
@@ -87,9 +87,6 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   for (const resource in cost) {
     planet.resources[resource] -= cost[resource];
   }
-  
-  // Track spending for ranking
-  trackSpentResources(player, cost, 'research');
   
   // Calculate research time
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
@@ -218,9 +215,6 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   }
   
   for (const resource in cost) planet.resources[resource] -= cost[resource];
-  
-  // Track spending for ranking
-  trackSpentResources(player, cost, 'research');
   
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();

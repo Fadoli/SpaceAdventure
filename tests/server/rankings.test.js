@@ -16,7 +16,7 @@ mock.module('../../src/server/game/galaxyData.js', () => ({
   }
 }));
 
-import { createPlayer, trackSpentResources, getRankings, takeRankingSnapshot, recomputePlayerScores } from '../../src/server/game/player.js';
+import { createPlayer, getRankings, takeRankingSnapshot, recomputePlayerScores } from '../../src/server/game/player.js';
 
 describe('Rankings System', () => {
   beforeEach(() => {

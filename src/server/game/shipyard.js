@@ -5,7 +5,6 @@ import { getDefense, calculateDefenseCost, calculateDefenseBuildTime } from '../
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
 import { calculateBaseTime } from '../../shared/time.js';
-import { trackSpentResources } from './player.js';
 import { BUILDINGS } from '../../shared/buildings.js';
 
 /**
@@ -71,9 +70,6 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   planet.resources.metal -= totalCost.metal;
   planet.resources.crystal -= totalCost.crystal;
   planet.resources.deuterium -= totalCost.deuterium;
-
-  // Track spending for ranking
-  if (player) trackSpentResources(player, totalCost, 'fleet');
 
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
@@ -147,9 +143,6 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   planet.resources.metal -= totalCost.metal;
   planet.resources.crystal -= totalCost.crystal;
   planet.resources.deuterium -= totalCost.deuterium;
-
-  // Track spending for ranking
-  if (player) trackSpentResources(player, totalCost, 'fleet');
 
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
