@@ -757,10 +757,11 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
  * Render a table row for an occupied planet
  */
 function renderOGameTableRow(planet, position, isPlayerPlanet) {
+    const isGhost = planet.playerType === 'ghost';
     const moonBadge = planet.moon ? '<span class="moon-badge">🌙</span>' : '';
-    const playerIcon = planet.playerType === 'player' ? '👨‍💼' : (planet.playerType === 'market' ? '🏛️' : '🤖');
-    const rowClass = isPlayerPlanet ? 'my-planet-row' : (planet.playerType === 'market' ? 'market-row' : '');
-    const planetTypeClass = planet.playerType === 'player' ? 'player-planet-row' : (planet.playerType === 'market' ? 'market-planet-row' : 'ai-planet-row');
+    const playerIcon = isGhost ? '👻' : (planet.playerType === 'player' ? '👨‍💼' : (planet.playerType === 'market' ? '🏛️' : '🤖'));
+    const rowClass = isPlayerPlanet ? 'my-planet-row' : (planet.playerType === 'market' ? 'market-row' : (isGhost ? 'ghost-row' : ''));
+    const planetTypeClass = isGhost ? 'ghost-planet-row' : (planet.playerType === 'player' ? 'player-planet-row' : (planet.playerType === 'market' ? 'market-planet-row' : 'ai-planet-row'));
     
     // Check relations
     let relation = currentGameState?.relations?.[planet.playerId] || 'none';
@@ -770,7 +771,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
         relation = 'friend';
     }
 
-    const relationClass = (relation !== 'none' && !isPlayerPlanet && planet.playerType !== 'market') ? `relation-${relation}` : '';
+    const relationClass = (relation !== 'none' && !isPlayerPlanet && planet.playerType !== 'market' && !isGhost) ? `relation-${relation}` : '';
 
     // Check if this is the currently active planet
     const currentPlanet = window.getCurrentPlanet();
@@ -793,31 +794,40 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
         `;
     }
 
+    const statusLabel = isPlayerPlanet ? (isCurrentPlanet ? '🏠 Current' : '🏠 Own') : 
+                       (planet.playerType === 'market' ? '⚖️ Market' : 
+                       (isGhost ? '👻 Echo' : '👾 Other'));
+    
+    const statusClass = isPlayerPlanet ? 'status-own' : 
+                       (planet.playerType === 'market' ? 'status-market' : 
+                       (isGhost ? 'status-ghost' : 'status-other'));
+
+    const ghostTierInfo = isGhost ? `<span class="ghost-tier-tag" title="Threat Level ${planet.tier}">T${planet.tier}</span>` : '';
+
     return `
         <tr class="planet-row ${rowClass} ${planetTypeClass} ${relationClass}">
             <td class="pos-col"><strong>${position}</strong></td>
             <td class="planet-col">
                 <div class="planet-name-cell">
-                    <div class="planet-icon-mini">${planet.playerType === 'market' ? '⚖️' : '🌍'}</div>
+                    <div class="planet-icon-mini">${planet.playerType === 'market' ? '⚖️' : (isGhost ? '☄️' : '🌍')}</div>
                     <div class="planet-details">
-                        <div class="planet-name">${planet.planetName}</div>
+                        <div class="planet-name">${planet.planetName} ${ghostTierInfo}</div>
                         <div class="planet-activity">Last: ${planet.activity}</div>
                     </div>
                     ${moonBadge}
                 </div>
             </td>
-            <td class="debris-col">${debrisHtml}</td>
             <td class="player-col">
-                <div class="player-info ${planet.playerType !== 'market' ? 'clickable' : ''}" 
-                     onclick="${planet.playerType !== 'market' ? `window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')` : ''}">
+                <div class="player-info ${planet.playerType !== 'market' && !isGhost ? 'clickable' : ''}" 
+                     onclick="${planet.playerType !== 'market' && !isGhost ? `window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')` : ''}">
                     ${playerIcon}
                     <span>${planet.allianceTag ? `<span class="galaxy-alliance-tag">[${planet.allianceTag}] </span>` : ''}${planet.player}</span>
-                    ${(relation !== 'none' && planet.playerType !== 'market') ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
+                    ${(relation !== 'none' && planet.playerType !== 'market' && !isGhost) ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
                 </div>
             </td>
             <td class="status-col">
-                <span class="status-badge ${isPlayerPlanet ? 'status-own' : (planet.playerType === 'market' ? 'status-market' : 'status-other')}">
-                    ${isPlayerPlanet ? (isCurrentPlanet ? '🏠 Current' : '🏠 Own') : (planet.playerType === 'market' ? '⚖️ Market' : '👾 Other')}
+                <span class="status-badge ${statusClass}">
+                    ${statusLabel}
                 </span>
             </td>
             <td class="action-col">

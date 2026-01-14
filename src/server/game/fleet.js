@@ -38,7 +38,10 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
   }
 
   // Market trade check: cargo must fit either what we send or what we expect to bring back
-  const buyWeight = buyResources ? Object.values(buyResources).reduce((a, b) => a + b, 0) : 0;
+  let buyWeight = 0;
+  if (buyResources) {
+    for (const k in buyResources) buyWeight += buyResources[k];
+  }
   const maxWeight = Math.max(totalResources, buyWeight);
 
   if (maxWeight > cargoCapacity) {
@@ -269,14 +272,17 @@ async function handleFleetReturn(player, fleet) {
 
       // Distribute loot proportionally to initial contribution value
       // (Simplified: just give them their share of what the fleet is carrying)
-      const participantInitialValue = Object.entries(participant.ships).reduce((sum, [k, v]) => {
+      let participantInitialValue = 0;
+      for (const k in participant.ships) {
         const def = SHIP_DEFINITIONS[k];
-        return sum + (def ? (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * v : 0);
-      }, 0);
-      const totalInitialValue = Object.entries(totalArrivedShips).reduce((sum, [k, v]) => {
+        if (def) participantInitialValue += (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * participant.ships[k];
+      }
+
+      let totalInitialValue = 0;
+      for (const k in totalArrivedShips) {
         const def = SHIP_DEFINITIONS[k];
-        return sum + (def ? (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * v : 0);
-      }, 0);
+        if (def) totalInitialValue += (def.baseCost.metal + def.baseCost.crystal + def.baseCost.deuterium) * totalArrivedShips[k];
+      }
 
       if (totalInitialValue > 0) {
         const shareRatio = participantInitialValue / totalInitialValue;
@@ -419,6 +425,7 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
   // Find target planet and owner
   let targetPlanet = null;
   let targetPlayer = null;
+  let isGhost = false;
 
   for (const p of allPlayers) {
     const planet = p.planets.find(pl => pl.coordinates.join(':') === targetCoordsStr);
@@ -426,6 +433,16 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
       targetPlanet = planet;
       targetPlayer = p;
       break;
+    }
+  }
+
+  // Check for ghost planet if no player planet found
+  if (!targetPlanet) {
+    const galaxy = await getGalaxyData();
+    if (galaxy.ghostPlanets?.[targetCoordsStr]) {
+      targetPlanet = galaxy.ghostPlanets[targetCoordsStr];
+      targetPlayer = { userId: 'GHOST', username: 'Ancient Remnants', research: { weaponsTech: targetPlanet.tier, shieldingTech: targetPlanet.tier, armorTech: targetPlanet.tier } };
+      isGhost = true;
     }
   }
 
@@ -498,7 +515,9 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
       }
     }
 
-    const totalAvailableLoot = Object.values(availableLoot).reduce((a, b) => a + b, 0);
+    let totalAvailableLoot = 0;
+    for (const k in availableLoot) totalAvailableLoot += availableLoot[k];
+
     if (totalAvailableLoot > 0) {
       const ratio = Math.min(1, totalCargoCapacity / totalAvailableLoot);
       for (const res in availableLoot) {
@@ -559,6 +578,23 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
       type: 'attack',
       data: { ...combatReport, reportId, isAttacker: false, targetCoords: leadFleet.targetCoords }
     });
+  }
+
+  // If ghost planet was attacked, update or remove it
+  if (isGhost) {
+    let totalRemainingResources = 0;
+    for (const k in targetPlanet.resources) totalRemainingResources += targetPlanet.resources[k];
+
+    let totalRemainingUnits = 0;
+    for (const k in targetPlanet.ships) totalRemainingUnits += targetPlanet.ships[k];
+    for (const k in targetPlanet.defenses) totalRemainingUnits += targetPlanet.defenses[k];
+    
+    if (totalRemainingUnits === 0 && totalRemainingResources < 1000) {
+      // Completely wiped and looted
+      await updateGhostPlanet(leadFleet.targetCoords, null);
+    } else {
+      await updateGhostPlanet(leadFleet.targetCoords, targetPlanet);
+    }
   }
 }
 

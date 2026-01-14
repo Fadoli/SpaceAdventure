@@ -152,7 +152,14 @@ export async function launchPlannedAttack(userId, allianceId, planId, hostShips)
     }
   }
 
-  if (Object.values(pooledShips).every(v => v === 0)) throw new Error('No ships gathered for attack');
+  let hasShips = false;
+  for (const k in pooledShips) {
+    if (pooledShips[k] > 0) {
+      hasShips = true;
+      break;
+    }
+  }
+  if (!hasShips) throw new Error('No ships gathered for attack');
 
   // 2. Launch the pooled fleet
   // We use a special flag or mission type to indicate this is a group attack

@@ -382,7 +382,17 @@ export function resetPracticalResearch(player, baseType) {
   const tree = player.practicalResearch[baseType];
   const breakthroughsToBank = tree.currentBreakthroughs || 0;
 
-  if (breakthroughsToBank === 0 && (!tree.experience || Object.values(tree.experience).every(v => v === 0))) {
+  let hasExperience = false;
+  if (tree.experience) {
+    for (const k in tree.experience) {
+      if (tree.experience[k] > 0) {
+        hasExperience = true;
+        break;
+      }
+    }
+  }
+
+  if (breakthroughsToBank === 0 && !hasExperience) {
     throw new Error('No progress to reset');
   }
 
@@ -418,7 +428,13 @@ export function selectCustomBuildingVariant(player, planetId, baseType, focusLev
   if (!planet.buildings[baseType] || planet.buildings[baseType] === 0) throw new Error(`Building not available`);
   
   const practical = getPracticalResearch();
-  let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'building');
+  let researchConfig = null;
+  for (const k in practical) {
+    if (practical[k].baseType === baseType && practical[k].type === 'building') {
+      researchConfig = practical[k];
+      break;
+    }
+  }
   if (!researchConfig) throw new Error(`No practical research available for ${baseType}`);
   
   // Validate focus levels

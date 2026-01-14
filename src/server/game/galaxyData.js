@@ -13,9 +13,31 @@ export async function getGalaxyData() {
   const data = await readJsonFile(GALAXY_FILE);
   galaxyCache = data || {
     debrisFields: {}, // Format: "G:S:P": { metal: 100, crystal: 50 }
-    playerRegistry: {} // Format: userId: { username: "name", homeworld: [G,S,P] }
+    playerRegistry: {}, // Format: userId: { username: "name", homeworld: [G,S,P] }
+    ghostPlanets: {} // Format: "G:S:P": { ships, defenses, resources, createdAt }
   };
+  if (!galaxyCache.ghostPlanets) galaxyCache.ghostPlanets = {};
   return galaxyCache;
+}
+
+/**
+ * Update a ghost planet (spawn or remove)
+ */
+export async function updateGhostPlanet(coords, data) {
+  const galaxy = await getGalaxyData();
+  const key = coords.join(':');
+  
+  if (!data) {
+    delete galaxy.ghostPlanets[key];
+  } else {
+    galaxy.ghostPlanets[key] = {
+      ...data,
+      coords: [...coords],
+      updatedAt: Date.now()
+    };
+  }
+  
+  await saveGalaxyData(galaxy);
 }
 
 /**

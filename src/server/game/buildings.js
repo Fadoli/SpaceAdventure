@@ -1306,7 +1306,13 @@ export async function createBuildingBlueprint(userId, baseType, focusLevels, nam
   }
 
   const practical = getPracticalResearch();
-  let researchConfig = Object.values(practical).find(r => r.baseType === baseType && r.type === 'building');
+  let researchConfig = null;
+  for (const k in practical) {
+    if (practical[k].baseType === baseType && practical[k].type === 'building') {
+      researchConfig = practical[k];
+      break;
+    }
+  }
   if (!researchConfig) throw new Error('No practical research available for ' + baseType);
 
   // Validate focus levels

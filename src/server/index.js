@@ -1225,6 +1225,33 @@ async function handleRequest(req) {
           }
         }
       }
+
+      // Check for ghost planets in empty slots
+      for (const coordKey in (galaxyData.ghostPlanets || {})) {
+        const [dg, ds, dp] = coordKey.split(':').map(Number);
+        if (dg === galaxy && ds === system) {
+          // Verify slot is empty (no player planet)
+          if (!planetsInSystem.find(p => p.position === dp && p.playerType !== 'none')) {
+            const ghost = galaxyData.ghostPlanets[coordKey];
+            // If there was a 'none' entry with debris, merge it or replace it
+            const existingIdx = planetsInSystem.findIndex(p => p.position === dp);
+            const ghostEntry = {
+              position: dp,
+              player: ghost.player,
+              playerId: 'GHOST',
+              playerType: 'ghost',
+              planetName: ghost.name,
+              activity: 'STATIC',
+              moon: false,
+              debris: ghost.debris || (existingIdx !== -1 ? planetsInSystem[existingIdx].debris : null),
+              tier: ghost.tier
+            };
+
+            if (existingIdx !== -1) planetsInSystem[existingIdx] = ghostEntry;
+            else planetsInSystem.push(ghostEntry);
+          }
+        }
+      }
       
       // Sort by position
       planetsInSystem.sort((a, b) => a.position - b.position);

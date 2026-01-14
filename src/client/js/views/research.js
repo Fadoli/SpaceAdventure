@@ -434,7 +434,13 @@ async function renderPracticalResearch() {
           <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
       `;
             for (const q of queue) {
-                let r = Object.values(practical).find(p => p.baseType === q.baseType);
+                let r = null;
+                for (const pk in practical) {
+                    if (practical[pk].baseType === q.baseType) {
+                        r = practical[pk];
+                        break;
+                    }
+                }
                 if (!r) continue;
                 const isActive = queue.indexOf(q) === 0;
                 const percent = Math.min(100, Math.max(0, ((Date.now() - q.startTime) / (q.endTime - q.startTime)) * 100));
@@ -737,7 +743,10 @@ async function renderCustomVariants() {
         const { building } = (await response.json()).data;
         let html = '<div class="variants-container">';
         
-        const buildingTypes = Object.keys(building).filter(type => building[type].length > 0);
+        const buildingTypes = [];
+        for (const type in building) {
+            if (building[type].length > 0) buildingTypes.push(type);
+        }
         if (buildingTypes.length > 0) { 
             html += '<div class="variants-section"><h3>Buildings</h3><div class="variant-grid">'; 
             for (const baseType of buildingTypes) {
@@ -894,7 +903,10 @@ window.shareVariant = async function(baseType, blueprintId, event) {
 
     // Find all players tagged as 'friend'
     const relations = state?.relations || {};
-    const friends = Object.entries(relations).filter(([_, rel]) => rel === 'friend');
+    const friends = [];
+    for (const relId in relations) {
+        if (relations[relId] === 'friend') friends.push([relId, relations[relId]]);
+    }
 
     if (friends.length > 0) {
         if (hasAlliance) {
@@ -1162,10 +1174,13 @@ window.showResearchHistory = async function (baseType) {
         const headers = ['Result', 'XP Gain', 'Allocation', 'Date'];
         const rows = history.map(run => {
             const date = new Date(run.timestamp).toLocaleTimeString();
-            const allocationStr = Object.entries(run.allocation)
-                .filter(([_, v]) => v > 0)
-                .map(([k, v]) => `${k.charAt(0).toUpperCase()}: ${(v * 100).toFixed(0)}%`)
-                .join(', ');
+            const allocationParts = [];
+            for (const ak in run.allocation) {
+                if (run.allocation[ak] > 0) {
+                    allocationParts.push(`${ak.charAt(0).toUpperCase()}: ${(run.allocation[ak] * 100).toFixed(0)}%`);
+                }
+            }
+            const allocationStr = allocationParts.join(', ');
             
             return [
                 `<span style="color: ${run.type === 'breakthrough' ? 'var(--accent-green)' : (run.type === 'failure' ? 'var(--accent-red)' : 'white')}">${run.type.toUpperCase()}</span>`,

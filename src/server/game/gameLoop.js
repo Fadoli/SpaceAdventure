@@ -9,6 +9,7 @@ import { getResourceProductionMultiplier } from '../config.js';
 import { CONFIG } from '../../shared/constants.js';
 import { getAllAiPlayers } from './aiManager.js';
 import { processAiPlayer } from './aiLogic.js';
+import { spawnGhostPlanets, cleanupGhostPlanets } from './events.js';
 import { readJsonFile } from '../storage/storage.js';
 import { wsManager } from './wsManager.js';
 
@@ -16,9 +17,14 @@ let gameLoopInterval = null;
 let lastSaveTime = 0;
 let lastRankingSnapshotTime = 0;
 let lastRecomputeTime = 0;
+let lastGhostSpawnTime = 0;
+let lastGhostCleanupTime = 0;
+
 const SAVE_INTERVAL = 30000; // Save every 30 seconds
 const RANKING_SNAPSHOT_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 const RECOMPUTE_INTERVAL = 60 * 60 * 1000; // 1 hour
+const GHOST_SPAWN_INTERVAL = 10 * 60 * 1000; // 10 minutes
+const GHOST_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 
 /**
  * Start the game loop
@@ -223,6 +229,18 @@ async function gameTick() {
       await savePlayers(players);
       console.log('[GameLoop] Hourly score recomputation complete.');
       lastRecomputeTime = now;
+    }
+
+    // Handle PvE Spawning (Ghost Planets)
+    if (now - lastGhostSpawnTime >= GHOST_SPAWN_INTERVAL) {
+      await spawnGhostPlanets();
+      lastGhostSpawnTime = now;
+    }
+
+    // Handle PvE Cleanup
+    if (now - lastGhostCleanupTime >= GHOST_CLEANUP_INTERVAL) {
+      await cleanupGhostPlanets();
+      lastGhostCleanupTime = now;
     }
   } catch (error) {
     console.error('Error in game tick:', error);

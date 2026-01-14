@@ -259,8 +259,15 @@ export function updateOverview(planet, allPlanets = []) {
     const foodEl = document.getElementById('ov-bonus-food');
     if (foodEl) foodEl.innerHTML = formatBonus(foodBonus);
     
-    const shipCount = Object.values(ships || {}).reduce((a, b) => a + b, 0);
-    const defenseCount = Object.values(defenses || {}).reduce((a, b) => a + b, 0);
+    // Simplified stats
+    let shipCount = 0;
+    if (ships) {
+        for (const k in ships) shipCount += ships[k];
+    }
+    let defenseCount = 0;
+    if (defenses) {
+        for (const k in defenses) defenseCount += defenses[k];
+    }
     safeSetText('ov-military-summary', `${formatNumber(shipCount)} Fleet Units / ${formatNumber(defenseCount)} Tactical Defenses`);
 
     // Update resources
