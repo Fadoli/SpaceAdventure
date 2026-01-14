@@ -227,8 +227,8 @@ describe('calculateTravelTime', () => {
     const distance = 1000;
     const speed = 10000;
     const result = calculateTravelTime(distance, speed);
-    // Formula: (10 + (3500 * sqrt(10 * distance / speed)))
-    const expected = Math.floor(10 + (3500 * Math.sqrt((10 * distance) / speed)));
+    // Formula: (10 + (3500 * (distance^0.7 / sqrt(speed))))
+    const expected = Math.floor(10 + (3500 * (Math.pow(distance, 0.7) / Math.sqrt(speed))));
     expect(result).toBe(expected);
   });
 

@@ -121,9 +121,9 @@ export function calculateFuelConsumption(distance, ships, definitions) {
  * Calculate fleet travel time
  */
 export function calculateTravelTime(distance, speed, configMultiplier = 1.0) {
-  // OGame-like formula: (10 + (3500 * sqrt(10 * distance / speed))) / globalSpeed
-  // distance is in standard units, speed is slowest ship speed
-  const time = (10 + (3500 * Math.sqrt((10 * distance) / speed))) / configMultiplier;
+  // Power-Law Hybrid formula: (10 + (3500 * (distance^0.7 / sqrt(speed)))) / globalSpeed
+  // This provides a middle ground between sqrt (too flat) and linear (too steep).
+  const time = (10 + (3500 * (Math.pow(distance, 0.7) / Math.sqrt(speed)))) / configMultiplier;
   return Math.max(1, Math.floor(time));
 }
 
