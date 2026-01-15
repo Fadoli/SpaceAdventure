@@ -38,7 +38,15 @@ async function openMissionModal(missionType, targetCoords) {
     }
 
     // Check if planet has any ships
-    const hasShips = Object.values(planet.ships || {}).some(count => count > 0);
+    let hasShips = false;
+    if (planet.ships) {
+        for (const k in planet.ships) {
+            if (planet.ships[k] > 0) {
+                hasShips = true;
+                break;
+            }
+        }
+    }
     if (!hasShips) {
         Notifications.showError('No ships available on this planet');
         return;
@@ -61,7 +69,8 @@ async function openMissionModal(missionType, targetCoords) {
     html += '<h4>🚢 Select Ships</h4>';
     html += '<div class="expedition-ships-list">';
     
-    for (const [shipKey, count] of Object.entries(planet.ships)) {
+    for (const shipKey in planet.ships) {
+        const count = planet.ships[shipKey];
         if (count > 0) {
             // FILTER: If spying, ONLY show espionage probes
             if (missionType === MISSION_TYPES.ESPIONAGE && shipKey !== 'espionageProbe') {

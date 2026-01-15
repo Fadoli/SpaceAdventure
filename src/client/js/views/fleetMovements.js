@@ -210,7 +210,15 @@ function renderFleetRow(fleet) {
     // Resource summary for the row
     let resSummary = '';
     if (fleet.resources && !isEmpty(fleet.resources)) {
-        const entries = Object.entries(fleet.resources).filter(([_, v]) => v > 0);
+        const resourceParts = [];
+        if (fleet.resources) {
+            for (const rk in fleet.resources) {
+                if (fleet.resources[rk] > 0) {
+                    resourceParts.push(`${formatNumber(fleet.resources[rk])} ${rk.toUpperCase()}`);
+                }
+            }
+        }
+        const resourceText = resourceParts.length > 0 ? ` [Cargo: ${resourceParts.join(', ')}]` : '';
         if (entries.length > 0) {
             resSummary = entries.map(([type, amount]) => {
                 const icon = { metal: '⚙️', crystal: '💎', deuterium: '🛢️', water: '💦', food: '🍞' }[type] || '';

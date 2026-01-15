@@ -490,12 +490,17 @@ function renderPlanParticipantSummary(plan) {
 
     if (isEmpty(totals)) return '<div style="font-size: 0.7rem; opacity: 0.5;">NO ASSETS CURRENTLY POOLED</div>';
 
-    return Object.entries(totals).map(([key, val]) => `
-        <div class="mini-ship-tag">
-            <span class="ship-qty">${formatNumber(val)}</span>
-            <span class="ship-name">${key.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
-        </div>
-    `).join('');
+    const summaryParts = [];
+    for (const key in totals) {
+        summaryParts.push(`
+            <div class="mini-ship-tag">
+                <span class="ship-qty">${formatNumber(totals[key])}</span>
+                <span class="ship-name">${key.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
+            </div>
+        `);
+    }
+
+    return summaryParts.join('');
 }
 
 window.createNewAttackPlanUI = async function() {
@@ -541,7 +546,8 @@ window.joinAttackPlanUI = async function(planId) {
     
     let html = '<div class="expedition-ship-selection"><div class="mission-section"><h4>🚢 DEPLOY ASSETS TO RALLY POINT</h4><div class="expedition-ships-list">';
     
-    for (const [shipKey, count] of Object.entries(planet.ships)) {
+    for (const shipKey in planet.ships) {
+        const count = planet.ships[shipKey];
         if (count > 0) {
             const shipName = shipKey.replace(/([A-Z])/g, ' $1').toUpperCase();
             html += `

@@ -275,28 +275,32 @@ export function renderCombatReport(data) {
     `;
 
     // Losses
+    const attackerLossesParts = [];
+    if (data.attackerLosses) {
+        for (const k in data.attackerLosses) {
+            attackerLossesParts.push(`<div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${data.attackerLosses[k]}</span></div>`);
+        }
+    }
+
+    const defenderLossesParts = [];
+    const defLosses = data.defenderLosses || {};
+    const allDefLosses = { ...(defLosses.ships || {}), ...(defLosses.defenses || {}) };
+    for (const k in allDefLosses) {
+        defenderLossesParts.push(`<div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${allDefLosses[k]}</span></div>`);
+    }
+
     html += `
         <div class="report-block losses-readout">
             <div class="loss-col">
                 <div class="v-readout-header">ATTACKER LOSSES</div>
                 <div class="bt-readout">
-                    ${isEmpty(data.attackerLosses) ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : 
-                        Object.entries(data.attackerLosses).map(([k, v]) => `
-                            <div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${v}</span></div>
-                        `).join('')}
+                    ${attackerLossesParts.length === 0 ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : attackerLossesParts.join('')}
                 </div>
             </div>
             <div class="loss-col">
                 <div class="v-readout-header">DEFENDER LOSSES</div>
                 <div class="bt-readout">
-                    ${(() => {
-                        const defLosses = data.defenderLosses || {};
-                        const allDefLosses = { ...(defLosses.ships || {}), ...(defLosses.defenses || {}) };
-                        return isEmpty(allDefLosses) ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : 
-                            Object.entries(allDefLosses).map(([k, v]) => `
-                                <div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${v}</span></div>
-                            `).join('');
-                    })()}
+                    ${defenderLossesParts.length === 0 ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : defenderLossesParts.join('')}
                 </div>
             </div>
         </div>
@@ -364,9 +368,16 @@ export function renderEspionageData(data) {
     ];
 
     sections.forEach(section => {
-        if (section.data && Object.keys(section.data).length > 0) {
-            const entries = Object.entries(section.data).filter(([_, v]) => (typeof v === 'object' ? v.level : v) > 0);
-            if (entries.length > 0) {
+        const entries = [];
+        if (section.data) {
+            for (const k in section.data) {
+                const v = section.data[k];
+                const level = (typeof v === 'object' ? v.level : v);
+                if (level > 0) entries.push([k, level]);
+            }
+        }
+
+        if (entries.length > 0) {
                 html += `
                     <div class="report-block">
                         <div class="v-readout-header">${section.label}</div>
