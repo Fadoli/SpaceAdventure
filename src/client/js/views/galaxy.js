@@ -661,7 +661,9 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
     // Map of position -> planet data
     const planetMap = new Map();
     galaxyData.planets.forEach(p => {
-        planetMap.set(p.position, p);
+        if (p.playerType !== 'none') {
+            planetMap.set(p.position, p);
+        }
     });
     
     // Positions of current player's planets
@@ -717,7 +719,7 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
             html += renderOGameTableRow(planet, position, isPlayerPlanet);
         } else {
             // Find debris field for this empty slot if any
-            const debris = galaxyData.planets.find(p => p.position === position && !p.player)?.debris || null;
+            const debris = galaxyData.planets.find(p => p.position === position && (p.playerType === 'none' || !p.player))?.debris || null;
             html += renderOGameEmptyRow(position, debris);
         }
     }
@@ -826,6 +828,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                     ${moonBadge}
                 </div>
             </td>
+            <td class="debris-col">${debrisHtml}</td>
             <td class="player-col">
                 <div class="player-info ${planet.playerType !== 'market' && !isGhost ? 'clickable' : ''}" 
                      onclick="${planet.playerType !== 'market' && !isGhost ? `window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')` : ''}">

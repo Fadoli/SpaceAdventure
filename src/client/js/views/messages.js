@@ -5,6 +5,7 @@ import { Notifications } from '../notifications.js';
 
 let lastMessagesHash = null;
 let currentFilter = 'all';
+const espionageRegistry = new Map();
 
 /**
  * Update messages view
@@ -133,7 +134,8 @@ function renderMessagesList(container, messages) {
                         ${renderMessageData(msg)}
                         
                         ${(msg.type === 'attack' || msg.type === 'espionage') ? `
-                            <div class="msg-actions-footer" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end;">
+                            <div class="msg-actions-footer" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; gap: 10px;">
+                                ${msg.type === 'espionage' ? `<button class="btn btn-primary btn-small" onclick="window.openBattleSimulator('${msg.id}')">⚔️ BATTLE SIMULATOR</button>` : ''}
                                 <button class="btn btn-primary btn-small" onclick="window.shareMessageToAllianceUI('${msg.id}')">📡 SHARE TO ALLIANCE</button>
                             </div>
                         ` : ''}
@@ -187,7 +189,7 @@ function renderMessageData(msg) {
 
     switch (msg.type) {
         case 'espionage':
-            return renderEspionageData(msg.data);
+            return renderEspionageData(msg.data, msg.id);
         case 'colonization':
             const c = msg.data.coords || [1, 1, 1];
             return `
@@ -323,12 +325,18 @@ export function renderCombatReport(data) {
     return html;
 }
 
-export function renderEspionageData(data) {
+export function renderEspionageData(data, msgId = null) {
+    if (msgId && data) {
+        espionageRegistry.set(msgId, data);
+    }
+
     const c = data.coords || [1, 1, 1];
     let html = `
         <div class="technical-report espionage">
             <div class="report-header">
-                <span class="report-title">INTELLIGENCE SCAN REPORT ${data.isGhost ? '<span style="color: var(--accent-yellow);">(GHOST)</span>' : ''}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span class="report-title">INTELLIGENCE SCAN REPORT ${data.isGhost ? '<span style="color: var(--accent-yellow);">(GHOST)</span>' : ''}</span>
+                </div>
                 <span class="report-meta">COORD: ${linkifyCoords(`[${c.join(':')}]`)}</span>
             </div>
             
@@ -424,18 +432,215 @@ window.toggleMessageBody = async function(id) {
             
             // Update the badge
             updateUnreadCount();
-            
-            // Update the hash so the next auto-refresh doesn't think it changed
-            if (lastMessagesHash) {
-                // This is a bit hacky but prevents the next background update from overwriting
-                // our local change before the server data matches.
-                // Alternatively, we could just wait for the next refresh.
-            }
         } catch (error) {
-            console.error('Failed to mark read:', error);
+            console.error('Failed to mark as read:', error);
         }
     }
 };
+
+window.openBattleSimulator = async function(msgId) {
+    const scanData = espionageRegistry.get(msgId);
+    if (!scanData) {
+        Notifications.showError('Espionage data not found');
+        return;
+    }
+
+    const currentPlanet = window.getCurrentPlanet();
+    const gameState = window.getGameState();
+    
+    if (!currentPlanet) {
+        Notifications.showError('No active planet selected');
+        return;
+    }
+
+    const modal = document.getElementById('details-modal');
+    const modalTitle = document.getElementById('details-modal-title');
+    const modalBody = document.getElementById('details-modal-body');
+
+    modalTitle.innerHTML = `⚔️ BATTLE SIMULATOR - [${scanData.coords.join(':')}]`;
+    modal.style.display = 'block';
+
+    let html = `
+        <div class="simulator-container" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="simulator-header" style="background: rgba(56, 189, 248, 0.1); padding: 10px; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 4px;">
+                <p style="margin: 0; font-size: 0.8rem; color: var(--accent-blue); font-weight: bold;">TARGET: ${scanData.targetPlayer.toUpperCase()} ${scanData.isGhost ? '(GHOST)' : ''}</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.7rem; color: var(--text-secondary); font-family: 'Share Tech Mono', monospace;">DEFENDER TECHS: W:${scanData.defenderTechLevel} / S:${scanData.defenderTechLevel} / A:${scanData.defenderTechLevel}</p>
+            </div>
+
+            <div class="simulator-columns" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Attacker Side (You) -->
+                <div class="sim-attacker-side">
+                    <h4 style="color: var(--accent-blue); margin-bottom: 10px; font-family: 'Orbitron', sans-serif; font-size: 0.8rem;">YOUR EXPEDITIONARY FORCE</h4>
+                    <div class="ship-selector-list" style="max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05);">
+    `;
+
+    // List available ships from current planet
+    const shipKeys = ['lightFighter', 'heavyFighter', 'cruiser', 'battleship', 'destroyer', 'bomber', 'dreadnought', 'carrier', 'smallCargo', 'largeCargo', 'recycler', 'espionageProbe'];
+    
+    shipKeys.forEach(ship => {
+        const count = currentPlanet.ships?.[ship] || 0;
+        const name = ship.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+        
+        if (count > 0 || ['lightFighter', 'cruiser', 'battleship'].includes(ship)) {
+            html += `
+                <div class="sim-ship-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.7rem; font-weight: bold; color: #eee;">${name}</div>
+                        <div style="font-size: 0.6rem; color: var(--text-secondary);">AVAIL: ${formatNumber(count)}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" class="sim-attacker-ship" data-ship="${ship}" value="0" min="0" max="${count * 100}" style="width: 70px; background: #05080f; border: 1px solid #1e293b; color: var(--accent-blue); padding: 3px 5px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;">
+                        <button class="btn-max" onclick="this.previousElementSibling.value=${count}" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); color: var(--accent-blue); font-size: 0.6rem; padding: 2px 4px; cursor: pointer;">MAX</button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    html += `
+                    </div>
+                </div>
+
+                <!-- Defender Side (Scanned) -->
+                <div class="sim-defender-side">
+                    <h4 style="color: var(--accent-yellow); margin-bottom: 10px; font-family: 'Orbitron', sans-serif; font-size: 0.8rem;">THREAT ASSESSMENT</h4>
+                    <div class="defender-unit-preview" style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; font-family: 'Share Tech Mono', monospace;">
+    `;
+
+    // Show scanned ships
+    if (scanData.ships && !isEmpty(scanData.ships)) {
+        html += '<p style="color: var(--accent-blue); font-weight: bold; margin: 0 0 8px 0; font-family: \'Orbitron\', sans-serif; font-size: 0.65rem;">SCANNED FLEET:</p>';
+        for (const [k, v] of Object.entries(scanData.ships)) {
+            html += `<div style="display: flex; justify-content: space-between; margin-bottom: 3px; border-bottom: 1px dotted rgba(255,255,255,0.05);"><span>${k.toUpperCase()}</span><span style="color: #fff;">${formatNumber(v)}</span></div>`;
+        }
+    } else {
+        html += '<p style="font-style: italic; opacity: 0.5; margin-bottom: 15px;">No ship signatures detected</p>';
+    }
+
+    // Show scanned defenses
+    if (scanData.defenses && !isEmpty(scanData.defenses)) {
+        html += '<p style="color: var(--accent-yellow); font-weight: bold; margin: 15px 0 8px 0; font-family: \'Orbitron\', sans-serif; font-size: 0.65rem;">PLANETARY DEFENSES:</p>';
+        for (const [k, v] of Object.entries(scanData.defenses)) {
+            html += `<div style="display: flex; justify-content: space-between; margin-bottom: 3px; border-bottom: 1px dotted rgba(255,255,255,0.05);"><span>${k.toUpperCase()}</span><span style="color: #fff;">${formatNumber(v)}</span></div>`;
+        }
+    } else {
+        html += '<p style="font-style: italic; opacity: 0.5; margin-top: 15px;">No defensive structures detected</p>';
+    }
+
+    html += `
+                    </div>
+                    <div id="sim-result-area" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); border-radius: 2px; min-height: 150px; position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); animation: scan-line 2s infinite;"></div>
+                        <p style="text-align: center; color: var(--text-secondary); margin-top: 45px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;">[ AWAITING INPUT VECTORS ]</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="simulator-footer" style="display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="window.closeDetailsModal()">ABORT</button>
+                <button class="btn btn-primary" id="run-sim-btn" style="background: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);">ENGAGE SIMULATION</button>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes scan-line {
+                0% { top: -2px; }
+                100% { top: 100%; }
+            }
+        </style>
+    `;
+
+    modalBody.innerHTML = html;
+
+    // Attach event listener
+    document.getElementById('run-sim-btn').addEventListener('click', () => window.runCombatSimulation(msgId));
+};
+
+window.runCombatSimulation = async function(msgId) {
+    const scanData = espionageRegistry.get(msgId);
+    const resultArea = document.getElementById('sim-result-area');
+    const attackerShipsEls = document.querySelectorAll('.sim-attacker-ship');
+    
+    resultArea.innerHTML = `
+        <div style="text-align: center; margin-top: 40px;">
+            <div class="scanner-pulse" style="margin: 0 auto 15px auto;"></div>
+            <p style="font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--accent-blue);">CALCULATING COMBAT PROBABILITIES...</p>
+        </div>
+    `;
+
+    const attackerShips = {};
+    attackerShipsEls.forEach(el => {
+        const val = parseInt(el.value) || 0;
+        if (val > 0) attackerShips[el.dataset.ship] = val;
+    });
+
+    if (isEmpty(attackerShips)) {
+        resultArea.innerHTML = '<p style="text-align: center; color: var(--accent-red); margin-top: 45px; font-family: \'Share Tech Mono\', monospace;">ERROR: NO ATTACK VECTORS DEFINED.</p>';
+        return;
+    }
+
+    const gameState = window.getGameState();
+    const attackerResearch = gameState.research || {};
+
+    try {
+        const report = await API.simulateCombat({
+            ships: attackerShips,
+            research: attackerResearch,
+            username: window.currentUser.username
+        }, {
+            ships: scanData.ships || {},
+            defenses: scanData.defenses || {},
+            research: {
+                weaponsTech: scanData.defenderTechLevel,
+                shieldingTech: scanData.defenderTechLevel,
+                armorTech: scanData.defenderTechLevel
+            },
+            username: scanData.targetPlayer
+        });
+
+        // Render result in the result area
+        const winnerColor = report.winner === 'attacker' ? 'var(--accent-green)' : (report.winner === 'defender' ? 'var(--accent-red)' : 'var(--accent-yellow)');
+        
+        let resultHtml = `
+            <div style="font-family: 'Share Tech Mono', monospace; animation: fadeIn 0.5s ease-out;">
+                <h4 style="color: ${winnerColor}; margin-bottom: 15px; text-align: center; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; font-size: 0.9rem; text-shadow: 0 0 10px ${winnerColor}44;">
+                    PROJECTION: ${report.winner.toUpperCase()} VICTORIOUS
+                </h4>
+                <div style="font-size: 0.7rem; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 2px;">
+                    <div>
+                        <p style="color: var(--accent-blue); margin: 0 0 8px 0; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 2px;">EST. YOUR LOSSES:</p>
+                        ${renderLossesMini(report.attackerLosses)}
+                    </div>
+                    <div>
+                        <p style="color: var(--accent-yellow); margin: 0 0 8px 0; border-bottom: 1px solid rgba(251, 191, 36, 0.2); padding-bottom: 2px;">EST. TARGET LOSSES:</p>
+                        ${renderLossesMini({ ...report.defenderLosses.ships, ...report.defenderLosses.defenses })}
+                    </div>
+                </div>
+                <div style="margin-top: 15px; font-size: 0.7rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
+                    <span>RECOVERABLE DEBRIS:</span>
+                    <span style="color: var(--accent-blue); font-weight: bold;">${formatNumber(report.debris.metal)} M / ${formatNumber(report.debris.crystal)} C</span>
+                </div>
+                <div style="margin-top: 5px; font-size: 0.65rem; color: #64748b; text-align: right; font-style: italic;">
+                    * Statistical projection based on current intel.
+                </div>
+            </div>
+        `;
+        resultArea.innerHTML = resultHtml;
+
+    } catch (error) {
+        resultArea.innerHTML = `<p style="text-align: center; color: var(--accent-red); margin-top: 45px; font-family: 'Share Tech Mono', monospace;">ANALYSIS FAILED: ${error.message.toUpperCase()}</p>`;
+    }
+};
+
+function renderLossesMini(losses) {
+    if (!losses || isEmpty(losses)) return '<p style="font-size: 0.65rem; opacity: 0.3; margin: 0;">NO LOSSES PROJECTED</p>';
+    let html = '<div style="display: flex; flex-direction: column; gap: 2px;">';
+    for (const [k, v] of Object.entries(losses)) {
+        html += `<div style="font-size: 0.65rem; display: flex; justify-content: space-between; color: #eee;"><span>${k.toUpperCase()}</span><span style="color: var(--accent-red);">${formatNumber(v)}</span></div>`;
+    }
+    html += '</div>';
+    return html;
+}
 
 function isUnread(el) {
     return el && el.classList.contains('unread');

@@ -8,6 +8,7 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation, getFriends } from './game/player.js';
+import { simulateCombat } from './game/combatEngine.js';
 import { getGalaxyData, updateGhostPlanet } from './game/galaxyData.js';
 import { spawnGhostPlanets, cleanupGhostPlanets } from './game/events.js';
 import { 
@@ -1230,10 +1231,15 @@ async function handleRequest(req) {
         const [dg, ds, dp] = coordKey.split(':').map(Number);
         if (dg === galaxy && ds === system) {
           // If this slot doesn't have a planet already, we still need to show the debris
+          // The frontend expects these to be in the planets array even if they aren't "real" planets
           if (!planetsInSystem.find(p => p.position === dp)) {
             planetsInSystem.push({
               position: dp,
               playerType: 'none',
+              planetName: 'EMPTY SPACE',
+              player: '-',
+              activity: '-',
+              moon: false,
               debris: galaxyData.debrisFields[coordKey]
             });
           }
@@ -1433,32 +1439,43 @@ async function handleRequest(req) {
       }
 
       try {
-        const progress = getResearchProgress(player);
-        const theoreticalLevels = getTheoreticalResearchLevels(player);
+        const theoretical = getTheoreticalResearchLevels(player);
         const practical = getPracticalResearchProgress(player);
-
-        // Include metadata from shared research definitions
-        const theoreticalMetadata = getTheoreticalResearch();
-        const theoretical = {};
-        for (const key in theoreticalMetadata) {
-          theoretical[key] = {
-            level: theoreticalLevels[key] || 0,
-            detailedDescription: theoreticalMetadata[key].detailedDescription
-          };
-        }
-
-        const blueprints = {
-          ...(player.buildingBlueprints || {})
-        };
-
+        const progress = getResearchProgress(player);
+        const history = await getResearchHistory(player.userId);
+        const activeVariants = getActiveCustomVariants(player);
+        const blueprints = player.buildingBlueprints || {};
+        
         return successResponse(req, {
-          progress,
           theoretical,
           practical,
+          progress,
+          history,
+          activeVariants,
           blueprints
         });
       } catch (error) {
-        return errorResponse(req, error.message, 400);
+        return errorResponse(req, error.message, 500);
+      }
+    }
+
+    // POST /api/game/simulate - Run a combat simulation
+    if (path === '/api/game/simulate' && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const body = await req.json();
+      const { attacker, defender } = body;
+
+      if (!attacker || !defender) {
+        return errorResponse(req, 'Missing combatants data', 400);
+      }
+
+      try {
+        const report = simulateCombat(attacker, defender);
+        return successResponse(req, report);
+      } catch (error) {
+        return errorResponse(req, error.message, 500);
       }
     }
 

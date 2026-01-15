@@ -244,5 +244,12 @@ export const API = {
             method: 'POST',
             body: JSON.stringify({ messageId })
         });
+    },
+
+    async simulateCombat(attacker, defender) {
+        return await this.request('/game/simulate', {
+            method: 'POST',
+            body: JSON.stringify({ attacker, defender })
+        });
     }
 };

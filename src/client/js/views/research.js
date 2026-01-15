@@ -60,21 +60,17 @@ export async function initializeResearch(planet) {
  */
 async function loadResearchData(force = false) {
     try {
-        const currentHash = JSON.stringify({
-            planetId: getCurrentPlanetId(),
-            labLevel: currentPlanetBuildings?.researchLab || 0,
-            research: researchData?.theoretical // Basic check for tech levels
-        });
+        const response = await fetch('/api/game/research');
+        const result = await response.json();
+        const newResearchData = result.data || result;
+        
+        const currentHash = calculateResearchStateHash(newResearchData);
 
         if (!force && researchData && currentHash === lastResearchStateHash) {
             updateCurrentTabStatus();
             return;
         }
 
-        const response = await fetch('/api/game/research');
-        const result = await response.json();
-        const newResearchData = result.data || result;
-        
         // Get active tab from URL or default to theoretical
         const urlParams = new URLSearchParams(window.location.search);
         const subTab = urlParams.get('subtab') || 'theoretical';
@@ -539,7 +535,7 @@ async function renderPracticalResearch() {
                   ${['output', 'automation', 'energy', 'cost'].map(f => {
                       const level = levels[f];
                       const nextXp = Math.pow(level + 1, 2) * 100;
-                      const currentXp = exp[f];
+                      const currentXp = exp[f] || 0;
                       const prevXp = Math.pow(level, 2) * 100;
                       const progress = Math.min(100, ((currentXp - prevXp) / (nextXp - prevXp)) * 100);
                       
@@ -696,10 +692,9 @@ window.updateAllocationSliders = function () {
         let tree = researchData?.practical?.[window.currentResearch.baseType];
         let totalFocusLevel = 0;
         if (tree) {
-            const exp = tree.experience || tree; // Handle new or old format
+            const exp = tree.experience || {}; 
             for (const f in exp) {
-                const val = exp[f];
-                totalFocusLevel += val > 500 ? Math.floor(Math.sqrt(val / 100)) : val;
+                totalFocusLevel += Math.floor(Math.sqrt((exp[f] || 0) / 100));
             }
         }
         
