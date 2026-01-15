@@ -301,6 +301,20 @@ function updateUI(forceFetch = false) {
     const playerNameEl = document.getElementById('player-name');
     if (playerNameEl) {
         playerNameEl.textContent = currentUser.username;
+
+        // Admin badge
+        if ((currentUser.username === 'fadoli' || currentUser.role === 'admin') && !document.getElementById('admin-badge')) {
+            const badge = document.createElement('a');
+            badge.id = 'admin-badge';
+            badge.href = '/src/client/admin.html';
+            badge.className = 'admin-access-badge';
+            badge.innerHTML = '🛠️';
+            badge.title = 'Admin Dashboard';
+            badge.style.marginLeft = '8px';
+            badge.style.textDecoration = 'none';
+            badge.style.filter = 'drop-shadow(0 0 5px var(--accent-blue))';
+            playerNameEl.after(badge);
+        }
     }
     
     // Get current planet by ID, or default to first planet

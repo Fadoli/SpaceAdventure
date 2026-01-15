@@ -123,7 +123,7 @@ export function calculateFuelConsumption(distance, ships, definitions) {
 export function calculateTravelTime(distance, speed, configMultiplier = 1.0) {
   // Power-Law Hybrid formula: (10 + (3500 * (distance^0.7 / sqrt(speed)))) / globalSpeed
   // This provides a middle ground between sqrt (too flat) and linear (too steep).
-  const time = (10 + (3500 * (Math.pow(distance, 0.7) / Math.sqrt(speed)))) / configMultiplier;
+  const time = (5 + (1500 * (Math.pow(distance, 0.7) / Math.sqrt(speed)))) / configMultiplier;
   return Math.max(1, Math.floor(time));
 }
 

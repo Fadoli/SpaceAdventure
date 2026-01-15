@@ -126,6 +126,7 @@ export async function registerUser(username, password, email = null) {
     username,
     passwordHash,
     email,
+    role: 'member',
     createdAt: Date.now(),
     lastLogin: Date.now()
   };
@@ -170,6 +171,7 @@ export async function authenticateUser(username, password) {
   return {
     id: user.id,
     username: user.username,
+    role: user.role || 'member',
     lastLogin: user.lastLogin
   };
 }

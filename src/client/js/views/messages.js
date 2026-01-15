@@ -328,7 +328,7 @@ export function renderEspionageData(data) {
     let html = `
         <div class="technical-report espionage">
             <div class="report-header">
-                <span class="report-title">INTELLIGENCE SCAN REPORT</span>
+                <span class="report-title">INTELLIGENCE SCAN REPORT ${data.isGhost ? '<span style="color: var(--accent-yellow);">(GHOST)</span>' : ''}</span>
                 <span class="report-meta">COORD: ${linkifyCoords(`[${c.join(':')}]`)}</span>
             </div>
             
@@ -378,20 +378,19 @@ export function renderEspionageData(data) {
         }
 
         if (entries.length > 0) {
-                html += `
-                    <div class="report-block">
-                        <div class="v-readout-header">${section.label}</div>
-                        <div class="bt-readout">
-                            ${entries.map(([k, v]) => `
-                                <div class="bt-row">
-                                    <span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
-                                    <span class="bt-value archived">${typeof v === 'object' ? v.level : v}</span>
-                                </div>
-                            `).join('')}
-                        </div>
+            html += `
+                <div class="report-block">
+                    <div class="v-readout-header">${section.label}</div>
+                    <div class="bt-readout">
+                        ${entries.map(([k, v]) => `
+                            <div class="bt-row">
+                                <span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
+                                <span class="bt-value archived">${typeof v === 'object' ? v.level : v}</span>
+                            </div>
+                        `).join('')}
                     </div>
-                `;
-            }
+                </div>
+            `;
         }
     });
 

@@ -811,7 +811,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                        (planet.playerType === 'market' ? 'status-market' : 
                        (isGhost ? 'status-ghost' : 'status-other'));
 
-    const ghostTierInfo = isGhost ? `<span class="ghost-tier-tag" title="Threat Level ${planet.tier}">T${planet.tier}</span>` : '';
+    const ghostTierInfo = isGhost ? `<span class="ghost-tier-tag tier-${planet.tier}" title="Threat Level ${planet.tier}">T${planet.tier}</span>` : '';
 
     return `
         <tr class="planet-row ${rowClass} ${planetTypeClass} ${relationClass}">

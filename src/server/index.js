@@ -8,7 +8,8 @@ import {
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
 import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation, getFriends } from './game/player.js';
-import { getGalaxyData } from './game/galaxyData.js';
+import { getGalaxyData, updateGhostPlanet } from './game/galaxyData.js';
+import { spawnGhostPlanets, cleanupGhostPlanets } from './game/events.js';
 import { 
   upgradeBuilding, 
   cancelBuilding, 
@@ -143,6 +144,19 @@ async function requireAuth(req) {
   
   const user = await getUserFromSession(sessionToken);
   return user;
+}
+
+/**
+ * Check if user is an admin
+ */
+async function requireAdmin(req) {
+  const user = await requireAuth(req);
+  if (!user) return null;
+  // Temporary admin check: username 'fadoli' is admin
+  if (user.username === 'fadoli' || user.role === 'admin') {
+    return user;
+  }
+  return null;
 }
 
 // API Response helper
@@ -1329,6 +1343,45 @@ async function handleRequest(req) {
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }
+    }
+
+    // ============================================
+    // ADMIN ROUTES
+    // ============================================
+
+    // GET /api/admin/ghosts - List all ghost planets
+    if (path === '/api/admin/ghosts' && method === 'GET') {
+      const admin = await requireAdmin(req);
+      if (!admin) return errorResponse(req, 'Unauthorized', 403);
+
+      const galaxy = await getGalaxyData();
+      return successResponse(req, {
+        ghosts: galaxy.ghostPlanets || {},
+        count: Object.keys(galaxy.ghostPlanets || {}).length
+      });
+    }
+
+    // POST /api/admin/ghosts/spawn - Force spawn ghosts
+    if (path === '/api/admin/ghosts/spawn' && method === 'POST') {
+      const admin = await requireAdmin(req);
+      if (!admin) return errorResponse(req, 'Unauthorized', 403);
+
+      await spawnGhostPlanets();
+      return successResponse(req, { message: 'Spawn cycle executed' });
+    }
+
+    // DELETE /api/admin/ghosts/clear - Clear all ghosts
+    if (path === '/api/admin/ghosts/clear' && method === 'DELETE') {
+      const admin = await requireAdmin(req);
+      if (!admin) return errorResponse(req, 'Unauthorized', 403);
+
+      const galaxy = await getGalaxyData();
+      const keys = Object.keys(galaxy.ghostPlanets || {});
+      for (const key of keys) {
+        const coords = key.split(':').map(Number);
+        await updateGhostPlanet(coords, null);
+      }
+      return successResponse(req, { message: `Cleared ${keys.length} ghost planets` });
     }
 
     // ============================================
