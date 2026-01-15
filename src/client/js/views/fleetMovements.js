@@ -220,7 +220,7 @@ function renderFleetRow(fleet) {
             const stayMs = fleet.missionType === 'expedition' ? (fleet.stayTime || 1) * 3600 * 1000 : 0;
             finalArrivalTime = fleet.arrivalTime + stayMs + travelDuration;
         }
-        returnTimeHtml = `<span class="return-eta" title="Estimated Return Time">RETR: ${formatTime(finalArrivalTime)}</span>`;
+        returnTimeHtml = `<span class="return-eta" title="Estimated Return Time"> | ${formatTime(finalArrivalTime)}</span>`;
     }
 
     // Resource summary for the row
