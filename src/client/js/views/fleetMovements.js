@@ -207,6 +207,22 @@ function renderFleetRow(fleet) {
     const startTime = formatTime(fleet.startTime);
     const arrivalTime = formatTime(fleet.arrivalTime);
     
+    // Return time logic
+    let returnTimeHtml = '';
+    if (!isReturning && !isHostile && fleet.missionType !== 'deploy') {
+        const travelDuration = (fleet.arrivalTime - fleet.startTime);
+        let finalArrivalTime;
+        if (fleet.waiting) {
+            // Already at target, arrivalTime is when stay ends
+            finalArrivalTime = fleet.arrivalTime + travelDuration;
+        } else {
+            // Traveling to target
+            const stayMs = fleet.missionType === 'expedition' ? (fleet.stayTime || 1) * 3600 * 1000 : 0;
+            finalArrivalTime = fleet.arrivalTime + stayMs + travelDuration;
+        }
+        returnTimeHtml = `<span class="return-eta" title="Estimated Return Time">RETR: ${formatTime(finalArrivalTime)}</span>`;
+    }
+
     // Resource summary for the row
     let resSummary = '';
     if (fleet.resources && !isEmpty(fleet.resources)) {
@@ -283,6 +299,7 @@ function renderFleetRow(fleet) {
             
             <div class="fleet-info-cell time-cell">
                 <span class="time-range">${startTime} -> ${arrivalTime}</span>
+                ${returnTimeHtml}
             </div>
             
             <div class="fleet-info-cell timer-cell">
