@@ -61,7 +61,7 @@ import {
 import { startGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
 import { getTheoreticalResearch, getResearchBonus } from '../shared/research.js';
-import { SHIPS, calculateShipSpeed } from '../shared/ships.js';
+import { SHIPS, calculateShipSpeed, getEffectiveDriveType } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
 import { MISSION_TYPES } from '../shared/constants.js';
 import { calculateBaseTime } from '../shared/time.js';
@@ -995,7 +995,7 @@ async function handleRequest(req) {
           name: ship.name,
           icon: ship.icon,
           type: ship.type,
-          driveType: ship.driveType,
+          driveType: getEffectiveDriveType(shipKey, player.research),
           description: ship.description,
           detailedDescription: ship.detailedDescription,
           attack: ship.attack,

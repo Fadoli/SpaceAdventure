@@ -261,6 +261,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                         <div class="stat-item"><span class="stat-label">SHIELD</span><span class="stat-val">${ship.shield}</span></div>
                         <div class="stat-item"><span class="stat-label">HULL</span><span class="stat-val">${ship.hull}</span></div>
                         <div class="stat-item"><span class="stat-label">SPEED</span><span class="stat-val">${formatNumber(ship.speed || 0)}</span></div>
+                        <div class="stat-item"><span class="stat-label">DRIVE</span><span class="stat-val">${(ship.driveType || 'Unknown').toUpperCase()}</span></div>
                     </div>
                 </div>
                 
@@ -693,6 +694,7 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
                 { label: 'Shield Strength', value: ship.shield, icon: '🛡️' },
                 { label: 'Hull Integrity', value: ship.hull, icon: '❤️' },
                 { label: 'Engine Speed', value: formatNumber(ship.speed), icon: '🚀' },
+                { label: 'Drive Type', value: (ship.driveType || 'Unknown').toUpperCase(), icon: '⚙️' },
                 { label: 'Cargo Capacity', value: formatNumber(ship.cargoCapacity), icon: '📦' },
                 { label: 'Fuel Consumption', value: ship.fuel, icon: '🛢️' },
                 { label: 'Crew Required', value: ship.populationRequired, icon: '👥' }

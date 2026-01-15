@@ -29,7 +29,10 @@ export const SHIPS = {
     populationRequired: 2,
     rapidFire: {
       espionageProbe: 5
-    }
+    },
+    engineSwaps: [
+      { techKey: 'impulseDrive', requiredLevel: 5, driveType: 'impulse', speed: 10000 }
+    ]
   },
 
   largeCargo: {
@@ -101,7 +104,11 @@ export const SHIPS = {
     populationRequired: 15,
     rapidFire: {
       espionageProbe: 5
-    }
+    },
+    engineSwaps: [
+      { techKey: 'impulseDrive', requiredLevel: 17, driveType: 'impulse', speed: 4000 },
+      { techKey: 'hyperspaceDrive', requiredLevel: 15, driveType: 'hyperspace', speed: 6000 }
+    ]
   },
 
   espionageProbe: {
@@ -226,7 +233,10 @@ export const SHIPS = {
       laserCannon: 20,
       particleBeam: 10,
       ionCannon: 10
-    }
+    },
+    engineSwaps: [
+      { techKey: 'hyperspaceDrive', requiredLevel: 8, driveType: 'hyperspace', speed: 5000 }
+    ]
   },
 
   // Heavy Ships
@@ -407,14 +417,48 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
 }
 
 /**
+ * Get the effective drive type for a ship based on research
+ */
+export function getEffectiveDriveType(shipKey, playerResearch = {}) {
+  const ship = getShip(shipKey);
+  if (!ship) return null;
+
+  let driveType = ship.driveType;
+
+  if (ship.engineSwaps) {
+    for (const swap of ship.engineSwaps) {
+      const techLevel = typeof playerResearch[swap.techKey] === 'object' ? (playerResearch[swap.techKey].level ?? 0) : (playerResearch[swap.techKey] ?? 0);
+      if (techLevel >= swap.requiredLevel) {
+        driveType = swap.driveType;
+      }
+    }
+  }
+
+  return driveType;
+}
+
+/**
  * Calculate effective speed for a ship type based on research
  */
 export function calculateShipSpeed(shipKey, playerResearch = {}) {
   const ship = getShip(shipKey);
   if (!ship) return 0;
 
+  const driveType = getEffectiveDriveType(shipKey, playerResearch);
+  let baseSpeed = ship.speed;
+
+  // If engine was swapped, use the new base speed
+  if (ship.engineSwaps) {
+    for (const swap of ship.engineSwaps) {
+      const techLevel = typeof playerResearch[swap.techKey] === 'object' ? (playerResearch[swap.techKey].level ?? 0) : (playerResearch[swap.techKey] ?? 0);
+      if (techLevel >= swap.requiredLevel) {
+        baseSpeed = swap.speed;
+      }
+    }
+  }
+
   let bonusKey = '';
-  switch (ship.driveType) {
+  switch (driveType) {
     case 'combustion':
       bonusKey = 'shipCombustionSpeed';
       break;
@@ -425,11 +469,11 @@ export function calculateShipSpeed(shipKey, playerResearch = {}) {
       bonusKey = 'shipHyperSpeed';
       break;
     default:
-      return ship.speed;
+      return baseSpeed;
   }
 
   const speedBonus = getResearchBonus(playerResearch, bonusKey);
-  return Math.floor(ship.speed * (1 + speedBonus));
+  return Math.floor(baseSpeed * (1 + speedBonus));
 }
 
 /**
