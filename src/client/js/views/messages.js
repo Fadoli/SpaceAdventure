@@ -232,7 +232,7 @@ function renderMessageData(msg) {
 
 export function renderCombatReport(data) {
     if (!data) return '';
-    const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') : 
+    const winnerClass = data.winner === 'attacker' ? (data.isAttacker ? 'winner' : 'loser') :
                        (data.winner === 'defender' ? (data.isAttacker ? 'loser' : 'winner') : 'draw');
     
     const coordsStr = data.targetCoords ? `[${data.targetCoords.join(':')}]` : 'UNKNOWN SECTOR';
@@ -335,7 +335,7 @@ export function renderEspionageData(data, msgId = null) {
         <div class="technical-report espionage">
             <div class="report-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span class="report-title">INTELLIGENCE SCAN REPORT ${data.isGhost ? '<span style="color: var(--accent-yellow);">(GHOST)</span>' : ''}</span>
+                    <span class="report-title">INTELLIGENCE SCAN REPORT ${data.isGhost ? '<span style="color: var(--accent-yellow);"> (GHOST)</span>' : ''}</span>
                 </div>
                 <span class="report-meta">COORD: ${linkifyCoords(`[${c.join(':')}]`)}</span>
             </div>
@@ -446,8 +446,6 @@ window.openBattleSimulator = async function(msgId) {
     }
 
     const currentPlanet = window.getCurrentPlanet();
-    const gameState = window.getGameState();
-    
     if (!currentPlanet) {
         Notifications.showError('No active planet selected');
         return;
@@ -458,7 +456,11 @@ window.openBattleSimulator = async function(msgId) {
     const modalBody = document.getElementById('details-modal-body');
 
     modalTitle.innerHTML = `⚔️ BATTLE SIMULATOR - [${scanData.coords.join(':')}]`;
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+
+    // Remove any existing footer to prevent duplicates when reusing the modal
+    const existingFooter = modal.querySelector('.modal-footer');
+    if (existingFooter) existingFooter.remove();
 
     let html = `
         <div class="simulator-container" style="display: flex; flex-direction: column; gap: 20px;">
@@ -535,22 +537,18 @@ window.openBattleSimulator = async function(msgId) {
                     </div>
                 </div>
             </div>
-
-            <div class="simulator-footer" style="display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 10px;">
-                <button class="btn btn-secondary" onclick="window.closeDetailsModal()">ABORT</button>
-                <button class="btn btn-primary" id="run-sim-btn" style="background: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);">ENGAGE SIMULATION</button>
-            </div>
         </div>
-        
-        <style>
-            @keyframes scan-line {
-                0% { top: -2px; }
-                100% { top: 100%; }
-            }
-        </style>
     `;
 
     modalBody.innerHTML = html;
+
+    // Add footer outside the simulator container to use standard modal-footer styling
+    modalBody.insertAdjacentHTML('afterend', `
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="window.closeDetailsModal()">ABORT</button>
+            <button class="btn btn-primary" id="run-sim-btn">ENGAGE SIMULATION</button>
+        </div>
+    `);
 
     // Attach event listener
     document.getElementById('run-sim-btn').addEventListener('click', () => window.runCombatSimulation(msgId));

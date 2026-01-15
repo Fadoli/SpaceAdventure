@@ -28,6 +28,10 @@ export function renderDetailsModal(data) {
     // Set Title
     modalTitle.innerHTML = data.title;
 
+    // Clean up any existing footer from previous uses
+    const existingFooter = modal.querySelector('.modal-footer');
+    if (existingFooter) existingFooter.remove();
+
     // Build Content
     let html = `<div class="details-description">${data.detailedDescription || data.description}</div>`;
 
@@ -128,6 +132,9 @@ export function closeDetailsModal() {
     const modal = document.getElementById('details-modal');
     if (modal) {
         modal.style.display = 'none';
+        // Clean up any dynamic footer
+        const existingFooter = modal.querySelector('.modal-footer');
+        if (existingFooter) existingFooter.remove();
     }
 }
 

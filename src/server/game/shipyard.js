@@ -233,9 +233,10 @@ export function cancelProduction(planet, queueId, type = 'ships') {
  */
 export function processCompletedProduction(planet) {
   const now = Date.now();
+  let anyCompleted = false;
 
   // Process ship queue
-  if (planet.shipQueue && planet.shipQueue.length > 0) {
+  while (planet.shipQueue && planet.shipQueue.length > 0) {
     const firstShip = planet.shipQueue[0];
     if (firstShip.finishTime <= now) {
       // Add ships to planet
@@ -258,14 +259,14 @@ export function processCompletedProduction(planet) {
 
       // Update activity timestamp when ships complete
       planet.lastActivity = Date.now();
-
-      // Recursively process next items
-      return processCompletedProduction(planet);
+      anyCompleted = true;
+    } else {
+      break;
     }
   }
 
   // Process defense queue
-  if (planet.defenseQueue && planet.defenseQueue.length > 0) {
+  while (planet.defenseQueue && planet.defenseQueue.length > 0) {
     const firstDefense = planet.defenseQueue[0];
     if (firstDefense.finishTime <= now) {
       // Add defenses to planet
@@ -288,11 +289,13 @@ export function processCompletedProduction(planet) {
 
       // Update activity timestamp when defenses complete
       planet.lastActivity = Date.now();
-
-      // Recursively process next items
-      return processCompletedProduction(planet);
+      anyCompleted = true;
+    } else {
+      break;
     }
   }
+
+  return anyCompleted;
 }
 
 /**

@@ -121,6 +121,7 @@ async function showGameScreen() {
             'BUILDING_COMPLETE', 
             'RESEARCH_COMPLETE', 
             'PRODUCTION_COMPLETE', 
+            'SHIPYARD_QUEUE_COMPLETE',
             'FLEET_ARRIVED', 
             'FLEET_RETURNED',
             'VARIANT_SWITCH_COMPLETE',
@@ -135,6 +136,10 @@ async function showGameScreen() {
                 updateUnreadCount();
                 if (currentView === 'messages') updateMessagesView();
             } else {
+                if (type === 'SHIPYARD_QUEUE_COMPLETE') {
+                    Notifications.showSuccess(`Shipyard production on ${data.planetName || 'planet'} complete!`);
+                }
+
                 // Debounce refresh to avoid 3x fetches on single action
                 if (wsRefreshTimeout) clearTimeout(wsRefreshTimeout);
                 wsRefreshTimeout = setTimeout(() => {

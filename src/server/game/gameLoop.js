@@ -184,6 +184,18 @@ async function gameTick() {
         if (productionUpdated) {
           updated = true;
           wsManager.sendToUser(player.userId, 'PRODUCTION_COMPLETE', { userId: player.userId, planetId: planet.id });
+          
+          // If queue is now completely empty, send a specific completion event
+          const hasShipsInQueue = planet.shipQueue && planet.shipQueue.length > 0;
+          const hasDefensesInQueue = planet.defenseQueue && planet.defenseQueue.length > 0;
+          
+          if (!hasShipsInQueue && !hasDefensesInQueue) {
+            wsManager.sendToUser(player.userId, 'SHIPYARD_QUEUE_COMPLETE', { 
+              userId: player.userId, 
+              planetId: planet.id,
+              planetName: planet.name
+            });
+          }
         }
       }
       
