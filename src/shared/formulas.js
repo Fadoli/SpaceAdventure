@@ -135,11 +135,10 @@ export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, 
   const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.2;
   const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.2;
   const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.15;
-  const hullBonus = THEORETICAL_RESEARCH.advancedMaterials.bonuses.unitHullBonus || 0.05;
 
   const weaponsMultiplier = 1 + (weaponsTech * attackBonus);
   const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
-  const armorMultiplier = 1 + (armorTech * armorBonus) + (hullBonusTech * hullBonus);
+  const armorMultiplier = 1 + (armorTech * armorBonus);
   
   return {
     attack: Math.floor(ships * weaponsMultiplier * 100),

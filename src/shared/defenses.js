@@ -207,11 +207,10 @@ export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech =
   const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1;
   const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1;
   const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1;
-  const hullBonus = THEORETICAL_RESEARCH.advancedMaterials.bonuses.unitHullBonus || 0.05;
 
   const attackMultiplier = 1 + (weaponsTech * attackBonus);
   const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
-  const armorMultiplier = 1 + (armorTech * armorBonus) + (hullBonusTech * hullBonus);
+  const armorMultiplier = 1 + (armorTech * armorBonus);
 
   for (const defenseKey in defenses) {
     const count = defenses[defenseKey];
