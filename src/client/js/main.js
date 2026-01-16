@@ -505,6 +505,7 @@ function startResourceUpdate() {
 
         // Always update timers and movements for smooth UI
         updateTimers();
+        updateResearchTimers();
         updateFleetMovements(gameState);
     }, 1000); // Check every 1 second
 }

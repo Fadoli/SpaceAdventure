@@ -26,8 +26,12 @@ let researchQueueVisible = true;
  */
 window.toggleResearchQueueVisibility = function () {
     researchQueueVisible = !researchQueueVisible;
-    lastResearchStateHash = null; // Force re-render
-    loadResearchData();
+    
+    // Re-render current tab to apply visibility change
+    const activeTab = document.querySelector('.research-tabs .tab-btn.active');
+    if (activeTab) {
+        switchTab(activeTab.dataset.tab, false);
+    }
 };
 
 /**
@@ -75,18 +79,10 @@ async function loadResearchData(force = false) {
         const urlParams = new URLSearchParams(window.location.search);
         const subTab = urlParams.get('subtab') || 'theoretical';
         
-        const container = document.querySelector(`#${subTab}-tab .research-content`);
-        const isContainerEmpty = !container || container.innerHTML.trim() === '';
-
         researchData = newResearchData;
         lastResearchStateHash = currentHash;
 
-        if (force || isContainerEmpty) {
-            switchTab(subTab, false); // false = don't update URL since we just read it
-        } else {
-            // Just update button states and cost colors without re-rendering everything
-            updateCurrentTabStatus();
-        }
+        switchTab(subTab, false);
     } catch (error) {
         console.error('Failed to load research data:', error);
         if (!researchData) researchData = { progress: { theoretical: [], practical: [] }, theoretical: {}, practical: {} };
@@ -1198,7 +1194,12 @@ window.showResearchHistory = async function (baseType) {
 export function updateResearchView(player, planetId = null, forceFetch = false) {
     const target = planetId || getCurrentPlanetId() || (player?.planets?.[0]?.id);
     if (target) { const p = player.planets.find(pl => pl.id === target); if (p) currentPlanetBuildings = p.buildings; }
-    loadResearchData(forceFetch);
+    
+    if (forceFetch || !researchData) {
+        loadResearchData(forceFetch);
+    } else {
+        updateCurrentTabStatus();
+    }
 }
 
 export function updateResearchTimers() { updateResearchQueueTimers(); }
