@@ -3,6 +3,7 @@ import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity, SHIPS as SHIP_DEFINITIONS } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance, calculateMaxPlanets } from '../../shared/formulas.js';
+import { getResearchBonus } from '../../shared/research.js';
 import { getPlayerByUserId, updatePlayer, getPlayers } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';

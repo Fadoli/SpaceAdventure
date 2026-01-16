@@ -747,8 +747,8 @@ export function updatePlanetProduction(planet, player = null) {
   const housingDef = BUILDINGS.housing;
   
   // Get bonuses from research
-  const housingBaseBonus = getResearchBonus(player.research, 'housingBaseBonus');
-  const housingScalingBonus = getResearchBonus(player.research, 'housingScalingBonus');
+  const housingBaseBonus = getResearchBonus(player?.research, 'housingBaseBonus');
+  const housingScalingBonus = getResearchBonus(player?.research, 'housingScalingBonus');
   
   // Base slots increase with research: Base 500 + bonuses (e.g. Astro)
   const baseCapacity = (housingDef.housingCapacity || 500) + housingBaseBonus;

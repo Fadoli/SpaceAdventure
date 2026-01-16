@@ -175,6 +175,7 @@ describe('Fleet Management', () => {
     });
 
     it('should process colonization success', async () => {
+      mockPlayer.research.astrophysics = 1;
       const now = Date.now();
       const fleet = {
         id: 'f3',

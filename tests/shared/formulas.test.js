@@ -223,15 +223,14 @@ describe('calculateFuelConsumption', () => {
 
 // ============ Travel Time Tests ============
 describe('calculateTravelTime', () => {
-  it('should calculate travel time in seconds', () => {
-    const distance = 1000;
-    const speed = 10000;
-    const result = calculateTravelTime(distance, speed);
-    // Formula: (10 + (3500 * (distance^0.7 / sqrt(speed))))
-    const expected = Math.floor(10 + (3500 * (Math.pow(distance, 0.7) / Math.sqrt(speed))));
-    expect(result).toBe(expected);
-  });
-
+      it('should calculate travel time in seconds', () => {
+        const distance = 1000;
+        const speed = 10000;
+        const result = calculateTravelTime(distance, speed);
+        // Formula: (5 + (1500 * (distance^0.7 / sqrt(speed))))
+        const expected = Math.floor(5 + (1500 * (Math.pow(distance, 0.7) / Math.sqrt(speed))));
+        expect(result).toBe(expected);
+      });
   it('should increase with distance', () => {
     const result1 = calculateTravelTime(1000, 10000);
     const result2 = calculateTravelTime(2000, 10000);

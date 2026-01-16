@@ -57,6 +57,15 @@ describe('Fleet Missions', () => {
   beforeEach(async () => {
     storage = {};
     mockAttacker.fleets = [];
+    // Reset planets to initial state (1 planet)
+    mockAttacker.planets = [
+      {
+        id: 'ap1',
+        coordinates: [1, 1, 1],
+        ships: {},
+        resources: { metal: 10000, crystal: 10000, deuterium: 10000, food: 10000, water: 10000, population: 1000 }
+      }
+    ];
     mockDefender.planets[0].ships = { lightFighter: 10 };
     mockDefender.planets[0].defenses = {};
     
@@ -322,6 +331,7 @@ describe('Fleet Missions', () => {
   });
 
   it('should colonize an empty position', async () => {
+    mockAttacker.research.astrophysics = 1;
     const now = Date.now();
     // Attacker sends colony ship to empty [1, 1, 10]
     const fleet = {
@@ -344,7 +354,7 @@ describe('Fleet Missions', () => {
     
     // Verify new planet
     expect(mockAttacker.fleets.length).toBe(0); // Fleet removed
-    expect(mockAttacker.planets.length).toBe(3); // ap1, ap2, and new colony
+    expect(mockAttacker.planets.length).toBe(2); // ap1 and new colony
     
     const colony = mockAttacker.planets.find(p => p.coordinates[2] === 10);
     expect(colony).toBeDefined();
