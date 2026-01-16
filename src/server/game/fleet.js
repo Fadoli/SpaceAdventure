@@ -1138,6 +1138,17 @@ async function executeExpedition(player, fleet) {
         
         // Apply losses to player fleet
         fleet.ships = combatReport.survivingAttackerShips;
+
+        // Update Debris Field at Position 16
+        if (combatReport.debris.metal > 0 || combatReport.debris.crystal > 0) {
+            const targetCoordsStr = fleet.targetCoords.join(':');
+            const galaxyData = await getGalaxyData();
+            const existingDebris = galaxyData.debrisFields?.[targetCoordsStr] || { metal: 0, crystal: 0 };
+            await updateDebrisField(fleet.targetCoords, {
+                metal: existingDebris.metal + combatReport.debris.metal,
+                crystal: existingDebris.crystal + combatReport.debris.crystal
+            });
+        }
         
         if (isEmpty(fleet.ships)) {
             body = `Your fleet was intercepted by a massive Xeno-fleet. After a desperate struggle, the last transmission from your commander was cut short. The entire fleet has been lost.`;

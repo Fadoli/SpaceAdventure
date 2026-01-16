@@ -725,7 +725,8 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
     }
 
     // Add Position 16 for Expedition
-    html += renderExpeditionRow(16);
+    const expeditionDebris = galaxyData.planets.find(p => p.position === 16)?.debris || null;
+    html += renderExpeditionRow(16, expeditionDebris);
     
     html += `
                     </tbody>
@@ -1053,15 +1054,33 @@ window.quickHarvestDebris = async function(position, harvestersNeeded) {
 /**
  * Render a table row for deep space (expedition)
  */
-function renderExpeditionRow(position) {
+function renderExpeditionRow(position, debris = null) {
+    let debrisHtml = '-';
+    if (debris) {
+        const { metal, crystal } = debris;
+        debrisHtml = `
+            <div class="debris-scanner-tag" 
+                 title="METAL: ${formatNumber(metal)} | CRYSTAL: ${formatNumber(crystal)}\nLEFT CLICK FOR RECOVERY OPTIONS"
+                 onclick="window.openDebrisMenu(event, ${position}, ${metal}, ${crystal})">
+                <span class="scanner-pulse"></span>
+                <span class="debris-val">${formatNumber(metal + crystal)}</span>
+            </div>
+        `;
+    }
+
     return `
         <tr class="expedition-row" style="background: rgba(74, 144, 226, 0.1);">
             <td class="pos-col"><strong>${position}</strong></td>
-            <td class="planet-col" colspan="4" style="text-align: center; color: var(--accent-blue); font-weight: bold; letter-spacing: 2px;">
+            <td class="planet-col" style="text-align: center; color: var(--accent-blue); font-weight: bold; letter-spacing: 2px;">
                 🌌 DEEP SPACE
             </td>
+            <td class="debris-col">${debrisHtml}</td>
+            <td class="player-col empty-cell" colspan="2">-</td>
             <td class="action-col">
-                <button class="action-btn expedition-btn" onclick="window.sendExpeditionFromGalaxy()" title="Launch Expedition" style="background: var(--accent-blue); color: white;">🚀</button>
+                <div class="action-buttons">
+                    <button class="action-btn expedition-btn" onclick="window.sendExpeditionFromGalaxy()" title="Launch Expedition" style="background: var(--accent-blue); color: white;">🚀</button>
+                    ${debris ? `<button class="action-btn harvest-btn" onclick="window.harvestDebrisFromGalaxy(${position})" title="Recycle Debris">♻️</button>` : ''}
+                </div>
             </td>
         </tr>
     `;
