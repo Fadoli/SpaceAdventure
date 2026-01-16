@@ -1043,15 +1043,22 @@ async function executeExpedition(player, fleet) {
         resultType = 'disaster';
         subject = 'Expedition: Disaster!';
 
-        // Choose a random ship type that is present in the fleet
         const shipTypesPresent = Object.keys(fleet.ships).filter(k => fleet.ships[k] > 0);
         if (shipTypesPresent.length > 0) {
-            const randomShipKey = shipTypesPresent[Math.floor(Math.random() * shipTypesPresent.length)];
-            // Lose 10-50% of that ship type
+            // Apply a random loss percentage (10-50%) to ALL ship types in the fleet
             const lossPercent = 0.1 + (Math.random() * 0.4);
-            const lostCount = Math.ceil(fleet.ships[randomShipKey] * lossPercent);
-            fleet.ships[randomShipKey] -= lostCount;
-            body = `Your fleet entered a gravity well of a dark star. You lost ${lostCount} ${randomShipKey.replace(/([A-Z])/g, ' $1').trim()}.`;
+            const lostShipNames = [];
+            
+            for (const shipKey of shipTypesPresent) {
+                const lostCount = Math.ceil(fleet.ships[shipKey] * lossPercent);
+                if (lostCount > 0) {
+                    fleet.ships[shipKey] -= lostCount;
+                    const shipName = SHIP_DEFINITIONS[shipKey]?.name || shipKey.replace(/([A-Z])/g, ' $1').trim();
+                    lostShipNames.push(`${formatNumber(lostCount)}x ${shipName}`);
+                }
+            }
+            
+            body = `Your fleet entered a gravity well of a dark star. Structural integrity failed across multiple vessels. You lost: ${lostShipNames.join(', ')}.`;
         } else {
             body = `Your fleet narrowly escaped a black hole. No ships were lost.`;
         }
