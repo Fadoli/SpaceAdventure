@@ -222,10 +222,18 @@ function setupGameListeners() {
     // Submenu Navigation
     document.querySelectorAll('.nav-sub-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const subtab = e.target.dataset.subtab;
-            if (currentView === 'research') {
-                const { switchTab } = await import('./views/research.js');
-                switchTab(subtab);
+            if (e.target.dataset.subtab) {
+                const subtab = e.target.dataset.subtab;
+                if (currentView === 'research') {
+                    const { switchTab } = await import('./views/research.js');
+                    switchTab(subtab);
+                }
+            } else if (e.target.dataset.subview) {
+                const subview = e.target.dataset.subview;
+                if (currentView === 'overview') {
+                    const { switchOverviewMode } = await import('./views/overview.js');
+                    switchOverviewMode(subview);
+                }
             }
         });
     });
@@ -249,6 +257,11 @@ function switchView(view, updateHistory = true) {
     if (viewEl) viewEl.classList.add('active');
 
     // Handle Submenus
+    const overviewSubmenu = document.getElementById('overview-submenu');
+    if (overviewSubmenu) {
+        overviewSubmenu.style.display = view === 'overview' ? 'flex' : 'none';
+    }
+
     const researchSubmenu = document.getElementById('research-submenu');
     if (researchSubmenu) {
         researchSubmenu.style.display = view === 'research' ? 'flex' : 'none';

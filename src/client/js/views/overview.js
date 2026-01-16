@@ -7,6 +7,33 @@ import { calculatePopulationChange, calculatePositionMultiplier } from '../../..
 import { getGameState, getCurrentPlanetId } from '../main.js';
 
 let lastOverviewPlanetId = null;
+let currentOverviewMode = 'planet'; // 'planet' or 'empire'
+
+/**
+ * Switch between planet overview and empire overview
+ */
+export function switchOverviewMode(mode) {
+    currentOverviewMode = mode;
+    
+    // Sync sidebar sub-buttons
+    document.querySelectorAll('#overview-submenu .nav-sub-btn').forEach(btn => {
+        if (btn.dataset.subview === mode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const container = document.getElementById('overview-view');
+    if (container) {
+        // Force a re-render
+        const gameState = getGameState();
+        const planet = getCurrentPlanet();
+        if (planet && gameState) {
+            updateOverview(planet, gameState.planets);
+        }
+    }
+}
 
 // Global handler for planet selection
 window.changePlanet = function(select) {
@@ -84,127 +111,129 @@ function initializeOverviewStructure(container, planet, allPlanets) {
     }
 
     container.innerHTML = `
-        <div class="overview-header">
-            <h2>System Intel: ${planet.name}</h2>
-            ${selectorHtml}
-        </div>
+        <div id="planet-overview-content" style="display: ${currentOverviewMode === 'planet' ? 'block' : 'none'};">
+            <div class="overview-header">
+                <h2>System Intel: ${planet.name}</h2>
+                ${selectorHtml}
+            </div>
 
-        <div class="planet-main-info">
-            <div class="planet-visual-section">
-                <div class="planet-image-large" id="ov-planet-visual">🌍</div>
-                <div class="planet-name-container">
-                    <span id="ov-planet-name">-</span>
-                    <button class="btn-rename" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
+            <div class="planet-main-info">
+                <div class="planet-visual-section">
+                    <div class="planet-image-large" id="ov-planet-visual">🌍</div>
+                    <div class="planet-name-container">
+                        <span id="ov-planet-name">-</span>
+                        <button class="btn-rename" onclick="window.renamePlanetUI('${planet.id}', document.getElementById('ov-planet-name').textContent)" title="Rename Planet">✏️</button>
+                    </div>
+                </div>
+                
+                <div class="planet-stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Imperial Coordinates</div>
+                        <div class="stat-value" id="ov-planet-coords">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Imperial Standing</div>
+                        <div class="stat-value">
+                            <button class="btn btn-primary btn-small" onclick="window.viewMyRank()" style="font-size: 0.7rem; width: 100%;">View Rank</button>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Orbital Garrison</div>
+                        <div class="stat-value" id="ov-military-summary">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Strategic Intel: Deuterium</div>
+                        <div class="stat-value" id="ov-bonus-deut">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Strategic Intel: Water</div>
+                        <div class="stat-value" id="ov-bonus-water">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Strategic Intel: Food</div>
+                        <div class="stat-value" id="ov-bonus-food">-</div>
+                    </div>
                 </div>
             </div>
             
-            <div class="planet-stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Imperial Coordinates</div>
-                    <div class="stat-value" id="ov-planet-coords">-</div>
+            <div class="production-report">
+                <div class="section-header-technical">
+                    <h3>PLANETARY LOGISTICS & SUSTAINMENT</h3>
+                    <div class="header-line"></div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Imperial Standing</div>
-                    <div class="stat-value">
-                        <button class="btn btn-primary btn-small" onclick="window.viewMyRank()" style="font-size: 0.7rem; width: 100%;">View Rank</button>
+                <div class="production-grid">
+                    <div class="production-item metal">
+                        <div class="prod-header">
+                            <span class="prod-label">METAL</span>
+                            <span class="prod-value" id="ov-res-metal">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-metal" style="width: 0%"></div></div>
+                        <div id="ov-prod-metal" class="prod-net">-</div>
+                    </div>
+                    <div class="production-item crystal">
+                        <div class="prod-header">
+                            <span class="prod-label">CRYSTAL</span>
+                            <span class="prod-value" id="ov-res-crystal">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-crystal" style="width: 0%"></div></div>
+                        <div id="ov-prod-crystal" class="prod-net">-</div>
+                    </div>
+                    <div class="production-item deuterium">
+                        <div class="prod-header">
+                            <span class="prod-label">DEUTERIUM</span>
+                            <span class="prod-value" id="ov-res-deuterium">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-deuterium" style="width: 0%"></div></div>
+                        <div id="ov-prod-deuterium" class="prod-net">-</div>
+                    </div>
+                    <div class="production-item energy">
+                        <div class="prod-header">
+                            <span class="prod-label">ENERGY</span>
+                            <span class="prod-value" id="ov-energy-net">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-energy" style="width: 0%"></div></div>
+                        <div id="ov-energy-details" class="prod-net">
+                            <span id="ov-energy-prod" class="text-success"></span><span class="sep">/</span><span id="ov-energy-cons" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="production-item water">
+                        <div class="prod-header">
+                            <span class="prod-label">WATER</span>
+                            <span class="prod-value" id="ov-res-water">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-water" style="width: 0%"></div></div>
+                        <div id="ov-prod-water" class="prod-net">-</div>
+                    </div>
+                    <div class="production-item food">
+                        <div class="prod-header">
+                            <span class="prod-label">FOOD</span>
+                            <span class="prod-value" id="ov-res-food">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-food" style="width: 0%"></div></div>
+                        <div id="ov-prod-food" class="prod-net">-</div>
+                    </div>
+                    <div class="production-item population">
+                        <div class="prod-header">
+                            <span class="prod-label">POPULATION</span>
+                            <span class="prod-value" id="ov-pop-val">-</span>
+                        </div>
+                        <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-population" style="width: 0%"></div></div>
+                        <div id="ov-pop-prod" class="prod-net">-</div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Orbital Garrison</div>
-                    <div class="stat-value" id="ov-military-summary">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Strategic Intel: Deuterium</div>
-                    <div class="stat-value" id="ov-bonus-deut">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Strategic Intel: Water</div>
-                    <div class="stat-value" id="ov-bonus-water">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Strategic Intel: Food</div>
-                    <div class="stat-value" id="ov-bonus-food">-</div>
-                </div>
+                <div id="ov-efficiency-warning-container"></div>
             </div>
-        </div>
-        
-        <div class="production-report">
-            <div class="section-header-technical">
-                <h3>PLANETARY LOGISTICS & SUSTAINMENT</h3>
-                <div class="header-line"></div>
-            </div>
-            <div class="production-grid">
-                <div class="production-item metal">
-                    <div class="prod-header">
-                        <span class="prod-label">METAL</span>
-                        <span class="prod-value" id="ov-res-metal">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-metal" style="width: 0%"></div></div>
-                    <div id="ov-prod-metal" class="prod-net">-</div>
-                </div>
-                <div class="production-item crystal">
-                    <div class="prod-header">
-                        <span class="prod-label">CRYSTAL</span>
-                        <span class="prod-value" id="ov-res-crystal">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-crystal" style="width: 0%"></div></div>
-                    <div id="ov-prod-crystal" class="prod-net">-</div>
-                </div>
-                <div class="production-item deuterium">
-                    <div class="prod-header">
-                        <span class="prod-label">DEUTERIUM</span>
-                        <span class="prod-value" id="ov-res-deuterium">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-deuterium" style="width: 0%"></div></div>
-                    <div id="ov-prod-deuterium" class="prod-net">-</div>
-                </div>
-                <div class="production-item energy">
-                    <div class="prod-header">
-                        <span class="prod-label">ENERGY</span>
-                        <span class="prod-value" id="ov-energy-net">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-energy" style="width: 0%"></div></div>
-                    <div id="ov-energy-details" class="prod-net">
-                        <span id="ov-energy-prod" class="text-success"></span><span class="sep">/</span><span id="ov-energy-cons" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="production-item water">
-                    <div class="prod-header">
-                        <span class="prod-label">WATER</span>
-                        <span class="prod-value" id="ov-res-water">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-water" style="width: 0%"></div></div>
-                    <div id="ov-prod-water" class="prod-net">-</div>
-                </div>
-                <div class="production-item food">
-                    <div class="prod-header">
-                        <span class="prod-label">FOOD</span>
-                        <span class="prod-value" id="ov-res-food">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-food" style="width: 0%"></div></div>
-                    <div id="ov-prod-food" class="prod-net">-</div>
-                </div>
-                <div class="production-item population">
-                    <div class="prod-header">
-                        <span class="prod-label">POPULATION</span>
-                        <span class="prod-value" id="ov-pop-val">-</span>
-                    </div>
-                    <div class="storage-bar-container"><div class="storage-bar-fill" id="ov-bar-population" style="width: 0%"></div></div>
-                    <div id="ov-pop-prod" class="prod-net">-</div>
-                </div>
-            </div>
-            <div id="ov-efficiency-warning-container"></div>
-        </div>
 
-        <div class="overview-card queue-card card-base" style="margin-top: 20px;">
-            <h3>🔨 Active Command Queues</h3>
-            <div class="queue-summary-list" id="ov-queue-list">
-                <p class="empty-text">No active construction or production</p>
+            <div class="overview-card queue-card card-base" style="margin-top: 20px;">
+                <h3>🔨 Active Command Queues</h3>
+                <div class="queue-summary-list" id="ov-queue-list">
+                    <p class="empty-text">No active construction or production</p>
+                </div>
             </div>
         </div>
 
-        <div class="empire-summary-section" style="margin-top: 30px;">
-            <div class="section-header-technical">
+        <div id="empire-overview-content" style="display: ${currentOverviewMode === 'empire' ? 'block' : 'none'};">
+            <div class="view-header-technical">
                 <h3>EMPIRE COMMAND CENTER</h3>
                 <div class="header-line"></div>
             </div>
@@ -307,18 +336,9 @@ function calculateTemperature(position) {
 }
 
 /**
- * Update overview view with planet data
+ * Update the detailed statistics for a single planet
  */
-export function updateOverview(planet, allPlanets = []) {
-    const container = document.getElementById('overview-view');
-    if (!container) return;
-
-    // Initialize structure if planet changed or container is empty
-    if (lastOverviewPlanetId !== planet.id || !container.querySelector('.planet-main-info')) {
-        initializeOverviewStructure(container, planet, allPlanets);
-        lastOverviewPlanetId = planet.id;
-    }
-
+function updatePlanetOverviewDetails(planet) {
     const { resources, storage, production, consumption, energyConsumption, energyEfficiency, populationEfficiency, coordinates, ships, defenses } = planet;
     const [galaxy, system, position] = coordinates;
     
@@ -484,19 +504,46 @@ export function updateOverview(planet, allPlanets = []) {
         }
     }
 
-    // Update Empire Table
-    const empireContainer = document.getElementById('empire-summary-table-container');
-    if (empireContainer) {
-        const gameState = getGameState();
-        if (gameState) {
-            empireContainer.innerHTML = renderEmpireTable(gameState);
-        }
-    }
-
     const visualEl = document.getElementById('ov-planet-visual');
     if (visualEl) {
         visualEl.style.filter = `hue-rotate(${position * 20}deg)`;
     }
+}
+
+/**
+ * Update overview view with planet data
+ */
+export function updateOverview(planet, allPlanets = []) {
+    const container = document.getElementById('overview-view');
+    if (!container) return;
+
+    // Initialize structure if planet changed or container is empty
+    if (lastOverviewPlanetId !== planet.id || !container.querySelector('#planet-overview-content')) {
+        initializeOverviewStructure(container, planet, allPlanets);
+        lastOverviewPlanetId = planet.id;
+    }
+
+    // Toggle visibility based on mode
+    const planetContent = document.getElementById('planet-overview-content');
+    const empireContent = document.getElementById('empire-overview-content');
+    
+    if (planetContent) planetContent.style.display = currentOverviewMode === 'planet' ? 'block' : 'none';
+    if (empireContent) empireContent.style.display = currentOverviewMode === 'empire' ? 'block' : 'none';
+
+    if (currentOverviewMode === 'planet') {
+        updatePlanetOverviewDetails(planet);
+    } else {
+        // Update Empire Table
+        const empireContainer = document.getElementById('empire-summary-table-container');
+        if (empireContainer) {
+            const gameState = getGameState();
+            if (gameState) {
+                empireContainer.innerHTML = renderEmpireTable(gameState);
+            }
+        }
+    }
+
+    const visualEl = document.getElementById('ov-planet-visual');
 }
 
 /**

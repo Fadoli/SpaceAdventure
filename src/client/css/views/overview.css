@@ -348,3 +348,147 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
+
+/* Empire Summary Styles (Integrated) */
+.empire-summary-section {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.empire-table-wrapper {
+    background: #0c121d;
+    border: 1px solid #1e293b;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    margin-top: 15px;
+}
+
+.empire-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+}
+
+.empire-stats-table th {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px;
+    text-align: left;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent-blue);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.empire-planet-row {
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.empire-planet-row:hover {
+    background: rgba(56, 189, 248, 0.05);
+}
+
+.empire-planet-row.current {
+    background: rgba(56, 189, 248, 0.08);
+    box-shadow: inset 4px 0 0 var(--accent-blue);
+}
+
+.empire-planet-row td {
+    padding: 12px 15px;
+    vertical-align: middle;
+}
+
+.planet-identity {
+    display: flex;
+    flex-direction: column;
+}
+
+.p-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.p-coords {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent-blue);
+}
+
+.res-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    min-width: 280px;
+}
+
+.res-item {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.energy-info-mini, .pop-info-mini {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.energy-info-mini span, .pop-info-mini span {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.energy-info-mini small, .pop-info-mini small {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.queues-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.q-mini-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.q-name {
+    font-family: 'Share Tech Mono', monospace;
+    color: #eee;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.q-timer {
+    margin-left: auto;
+    color: var(--accent-yellow);
+    font-weight: bold;
+}
+
+.empty-q {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    opacity: 0.3;
+    letter-spacing: 1px;
+}
