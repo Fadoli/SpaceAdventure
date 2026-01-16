@@ -353,10 +353,70 @@ export const SHIPS = {
 };
 
 /**
+ * Alien Ship Definitions
+ * These are used for expedition encounters and specialized events.
+ */
+export const ALIEN_SHIPS = {
+  alienScout: {
+    name: 'Xeno-Scout',
+    icon: '🛸',
+    type: 'alien',
+    description: 'Highly agile alien reconnaissance vessel.',
+    attack: 40,
+    shield: 20,
+    hull: 300,
+    rapidFire: {
+      espionageProbe: 10
+    }
+  },
+  alienCorvette: {
+    name: 'Xeno-Corvette',
+    icon: '👾',
+    type: 'alien',
+    description: 'Standard alien escort ship with organic hull plating.',
+    attack: 180,
+    shield: 50,
+    hull: 1200,
+    rapidFire: {
+      lightFighter: 3,
+      smallCargo: 2
+    }
+  },
+  alienFrigate: {
+    name: 'Xeno-Frigate',
+    icon: '🐙',
+    type: 'alien',
+    description: 'Medium alien combatant utilizing plasma-based weaponry.',
+    attack: 600,
+    shield: 250,
+    hull: 4500,
+    rapidFire: {
+      heavyFighter: 4,
+      cruiser: 2
+    }
+  },
+  alienFlagship: {
+    name: 'Ancient Xeno-Flagship',
+    icon: '🔱',
+    type: 'alien',
+    description: 'Enormous alien capital ship of unknown origin.',
+    attack: 8000,
+    shield: 5000,
+    hull: 80000,
+    rapidFire: {
+      battleship: 3,
+      destroyer: 2,
+      lightFighter: 20,
+      heavyFighter: 15
+    }
+  }
+};
+
+/**
  * Get ship data by key
  */
 export function getShip(shipKey) {
-  return SHIPS[shipKey];
+  return SHIPS[shipKey] || ALIEN_SHIPS[shipKey];
 }
 
 /**

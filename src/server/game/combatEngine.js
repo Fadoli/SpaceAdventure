@@ -1,5 +1,5 @@
 // Combat Engine - Optimized Stack-Based Statistical Simulation
-import { SHIPS } from '../../shared/ships.js';
+import { SHIPS, getShip } from '../../shared/ships.js';
 import { DEFENSES } from '../../shared/defenses.js';
 import { getResearchBonus } from '../../shared/research.js';
 import { isEmpty } from '../../shared/utils.js';
@@ -131,7 +131,7 @@ export function simulateGroupCombat(attackers, defenders) {
   const debris = { metal: 0, crystal: 0 };
   const addDebris = (losses, definitions, ratio) => {
     for (const key in losses) {
-      const def = definitions[key];
+      const def = getShip(key) || definitions[key];
       if (def && def.baseCost) {
         debris.metal += Math.floor((def.baseCost.metal || 0) * losses[key] * ratio);
         debris.crystal += Math.floor((def.baseCost.crystal || 0) * losses[key] * ratio);
@@ -182,7 +182,7 @@ function calculateLossValue(losses, definitions) {
   let value = 0;
   for (const key in losses) {
     const count = losses[key];
-    const def = definitions[key];
+    const def = getShip(key) || definitions[key];
     if (def && def.baseCost) {
       value += (def.baseCost.metal + def.baseCost.crystal) * count;
     }
@@ -200,7 +200,7 @@ function prepareGroups(ships, research, defenses = {}, participantId = null) {
   for (const shipKey in ships) {
     const count = ships[shipKey];
     if (count <= 0) continue;
-    const def = SHIPS[shipKey];
+    const def = getShip(shipKey);
     if (!def) continue;
     
     groups.push({
@@ -212,7 +212,7 @@ function prepareGroups(ships, research, defenses = {}, participantId = null) {
       attack: def.attack * attackBonus,
       shield: def.shield * shieldBonus,
       hull: def.hull * hullBonus,
-      baseCost: def.baseCost,
+      baseCost: def.baseCost || { metal: 0, crystal: 0, deuterium: 0 },
       rapidFire: def.rapidFire || {}
     });
   }

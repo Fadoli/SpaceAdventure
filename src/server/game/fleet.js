@@ -1,7 +1,15 @@
 // Fleet and Mission management logic
 import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
-import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity, SHIPS as SHIP_DEFINITIONS } from '../../shared/ships.js';
+import { 
+    calculateShipSpeed, 
+    calculateFleetFuelCost, 
+    calculateFleetCrew, 
+    calculateFleetSurvivalNeeds, 
+    calculateCargoCapacity, 
+    SHIPS as SHIP_DEFINITIONS,
+    ALIEN_SHIPS
+} from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance, calculateMaxPlanets } from '../../shared/formulas.js';
 import { getResearchBonus } from '../../shared/research.js';
 import { getPlayerByUserId, updatePlayer, getPlayers } from './player.js';
@@ -1061,7 +1069,7 @@ async function executeExpedition(player, fleet) {
         fleet.resources.deuterium = (fleet.resources.deuterium || 0) + deuteriumFound;
 
         body = `Your explorers found an abandoned mining colony. You collected ${formatNumber(metalFound)} Metal, ${formatNumber(crystalFound)} Crystal, and ${formatNumber(deuteriumFound)} Deuterium.`;
-    } else if (roll < 0.6) {
+    } else if (roll < 0.55) {
         // Found ships - Scales with fleet value
         resultType = 'ships';
         subject = 'Expedition: New Ships Found';
@@ -1084,7 +1092,73 @@ async function executeExpedition(player, fleet) {
         } else {
             body = `Your explorers found some tech debris, but were unable to recover any functional ships.`;
         }
-    } else if (roll < 0.7) {
+    } else if (roll < 0.65) {
+        // Hostile Alien Encounter (Combat)
+        resultType = 'combat';
+        subject = 'Expedition: Xeno-Fleet Contact!';
+        
+        // Generate Alien Fleet based on player fleet value
+        const alienFleet = {};
+        const alienStrength = fleetValue * (0.3 + Math.random() * 0.5); // 30-80% of player strength
+        
+        const alienTypes = Object.keys(ALIEN_SHIPS);
+        let remainingStrength = alienStrength;
+        
+        // Simple generation: start from biggest ships
+        for (let i = alienTypes.length - 1; i >= 0; i--) {
+            const type = alienTypes[i];
+            const def = ALIEN_SHIPS[type];
+            // Estimate value for scaling (similar to player ships)
+            const estValue = (def.attack * 10) + (def.shield * 20) + (def.hull / 2);
+            
+            if (remainingStrength > estValue) {
+                const count = Math.floor(remainingStrength / estValue * (0.4 + Math.random() * 0.4));
+                if (count > 0) {
+                    alienFleet[type] = count;
+                    remainingStrength -= count * estValue;
+                }
+            }
+        }
+        
+        // Ensure at least some scouts if empty
+        if (isEmpty(alienFleet)) alienFleet.alienScout = 5;
+
+        const attackerData = { 
+            ships: { ...fleet.ships }, 
+            research: player.research || {},
+            username: player.username 
+        };
+        const defenderData = { 
+            ships: alienFleet, 
+            research: { weaponsTech: 5, shieldingTech: 5, armorTech: 5 }, // Aliens have decent tech
+            username: 'Unknown Xeno-Fleet'
+        };
+
+        const combatReport = simulateCombat(attackerData, defenderData);
+        
+        // Apply losses to player fleet
+        fleet.ships = combatReport.survivingAttackerShips;
+        
+        if (isEmpty(fleet.ships)) {
+            body = `Your fleet was intercepted by a massive Xeno-fleet. After a desperate struggle, the last transmission from your commander was cut short. The entire fleet has been lost.`;
+        } else {
+            const victory = combatReport.winner === 'attacker';
+            body = victory 
+                ? `Our fleet was attacked by hostile alien vessels! We managed to repel the attackers and continue our journey, though we suffered some losses.`
+                : `We encountered a superior alien force and were forced to retreat after a heavy engagement.`;
+        }
+        
+        // Store report for the message
+        const reportId = generateId();
+        await addMessage(player.userId, {
+            from: 'Fleet Command',
+            subject,
+            body,
+            type: 'attack',
+            data: { ...combatReport, reportId, isAttacker: true, targetCoords: fleet.targetCoords }
+        });
+        return; // Message already sent
+    } else if (roll < 0.75) {
         // Found credits/statistics (Lore only for now)
         resultType = 'info';
         body = `Your explorers discovered an ancient archive containing star charts of nearby systems. While no physical resources were found, the navigational data will be invaluable for future missions.`;

@@ -2,6 +2,7 @@ import { API } from '../api.js';
 import { formatDate, formatNumber, isEmpty } from '../utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
+import { SHIPS, ALIEN_SHIPS } from '../../../shared/ships.js';
 
 let lastMessagesHash = null;
 let currentFilter = 'all';
@@ -280,7 +281,9 @@ export function renderCombatReport(data) {
     const attackerLossesParts = [];
     if (data.attackerLosses) {
         for (const k in data.attackerLosses) {
-            attackerLossesParts.push(`<div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${data.attackerLosses[k]}</span></div>`);
+            const shipDef = SHIPS[k] || ALIEN_SHIPS[k];
+            const name = shipDef ? shipDef.name.toUpperCase() : k.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+            attackerLossesParts.push(`<div class="bt-row"><span class="bt-label">${name}</span><span class="bt-value unstable">-${data.attackerLosses[k]}</span></div>`);
         }
     }
 
@@ -288,7 +291,9 @@ export function renderCombatReport(data) {
     const defLosses = data.defenderLosses || {};
     const allDefLosses = { ...(defLosses.ships || {}), ...(defLosses.defenses || {}) };
     for (const k in allDefLosses) {
-        defenderLossesParts.push(`<div class="bt-row"><span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span><span class="bt-value unstable">-${allDefLosses[k]}</span></div>`);
+        const shipDef = SHIPS[k] || ALIEN_SHIPS[k];
+        const name = shipDef ? shipDef.name.toUpperCase() : k.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+        defenderLossesParts.push(`<div class="bt-row"><span class="bt-label">${name}</span><span class="bt-value unstable">-${allDefLosses[k]}</span></div>`);
     }
 
     html += `
@@ -390,12 +395,16 @@ export function renderEspionageData(data, msgId = null) {
                 <div class="report-block">
                     <div class="v-readout-header">${section.label}</div>
                     <div class="bt-readout">
-                        ${entries.map(([k, v]) => `
-                            <div class="bt-row">
-                                <span class="bt-label">${k.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}</span>
-                                <span class="bt-value archived">${typeof v === 'object' ? v.level : v}</span>
-                            </div>
-                        `).join('')}
+                        ${entries.map(([k, v]) => {
+                            const def = SHIPS[k] || ALIEN_SHIPS[k];
+                            const name = def ? def.name.toUpperCase() : k.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+                            return `
+                                <div class="bt-row">
+                                    <span class="bt-label">${name}</span>
+                                    <span class="bt-value archived">${typeof v === 'object' ? v.level : v}</span>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -634,7 +643,9 @@ function renderLossesMini(losses) {
     if (!losses || isEmpty(losses)) return '<p style="font-size: 0.65rem; opacity: 0.3; margin: 0;">NO LOSSES PROJECTED</p>';
     let html = '<div style="display: flex; flex-direction: column; gap: 2px;">';
     for (const [k, v] of Object.entries(losses)) {
-        html += `<div style="font-size: 0.65rem; display: flex; justify-content: space-between; color: #eee;"><span>${k.toUpperCase()}</span><span style="color: var(--accent-red);">${formatNumber(v)}</span></div>`;
+        const shipDef = SHIPS[k] || ALIEN_SHIPS[k];
+        const name = shipDef ? shipDef.name.toUpperCase() : k.toUpperCase();
+        html += `<div style="font-size: 0.65rem; display: flex; justify-content: space-between; color: #eee;"><span>${name}</span><span style="color: var(--accent-red);">${formatNumber(v)}</span></div>`;
     }
     html += '</div>';
     return html;
