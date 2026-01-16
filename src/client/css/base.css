@@ -170,7 +170,6 @@ body::before {
     padding: 0 20px;
     background: rgba(12, 18, 29, 0.95);
     backdrop-filter: blur(10px);
-    border: none; /* Removed border */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
@@ -347,77 +346,68 @@ body::before {
     .resource { font-size: 0.85rem; }
 }
 
-.game-nav {
-    position: fixed;
-    top: 40px;
-    left: 0;
-    width: 100%;
-    z-index: 900;
+/* Main Layout Structure */
+.main-layout-container {
     display: flex;
-    gap: 2px;
-    padding: 0;
-    background: var(--bg-primary);
-    border: none;
-    overflow-x: auto; /* Support for horizontal scrolling on small screens */
-    scrollbar-width: none; /* Hide scrollbar Firefox */
+    min-height: calc(100vh - 40px); /* Full height minus header */
+    margin-top: 40px;
 }
 
-.game-nav::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome/Safari */
+.game-nav {
+    width: 180px;
+    flex-shrink: 0;
+    background: rgba(12, 18, 29, 0.98);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+    z-index: 900;
+    position: sticky;
+    top: 40px;
+    height: calc(100vh - 40px);
+    overflow-y: auto;
+}
 
 .nav-btn {
-    flex: 1;
-    min-width: 90px; /* Ensure buttons stay readable when scrolling */
-    padding: 0 5px;
-    height: 36px;
-    font-size: 0.7rem;
+    width: 100%;
+    padding: 12px 20px;
+    height: auto;
+    font-size: 0.75rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     background: transparent;
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
+    text-align: left;
+    position: relative;
     white-space: nowrap;
-    position: relative; /* For badge positioning */
 }
-.nav-btn:hover { background: rgba(56, 189, 248, 0.05); color: #fff; }
+
+.nav-btn:hover {
+    background: rgba(56, 189, 248, 0.05);
+    color: #fff;
+    padding-left: 25px;
+}
 
 .nav-btn.active {
-    background: linear-gradient(to bottom, rgba(56, 189, 248, 0.15), transparent);
+    background: linear-gradient(to right, rgba(56, 189, 248, 0.1), transparent);
     color: var(--accent-blue);
-    box-shadow: inset 0 -2px 0 var(--accent-blue);
-}
-
-.unread-badge {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    background: var(--accent-red);
-    color: #fff;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.6rem;
-    font-weight: bold;
-    padding: 1px 4px;
-    border-radius: 2px;
-    min-width: 16px;
-    text-align: center;
-    box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
-    pointer-events: none;
-    animation: badge-pulse 2s infinite ease-in-out;
-}
-
-@keyframes badge-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
+    box-shadow: inset 3px 0 0 var(--accent-blue);
+    padding-left: 25px;
 }
 
 /* Main Content Area */
 .game-content {
-    padding: 76px 20px 30px 20px; /* Header (40px) + Nav (36px) */
-    max-width: 1500px;
-    margin: 0 auto;
+    flex: 1;
+    padding: 25px;
+    min-width: 0; /* Prevent flex blowouts */
+    max-width: none;
+    margin: 0;
+    overflow-y: auto;
 }
 
 .view h2 {

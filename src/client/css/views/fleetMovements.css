@@ -3,13 +3,15 @@
 .fleet-movements-bar {
     background: rgba(12, 18, 29, 0.95);
     backdrop-filter: blur(12px);
-    border: none;
+    border-bottom: 1px solid var(--border-color);
     padding: 0;
     display: none;
-    width: 100%;
+    width: calc(100% + 50px);
+    margin-left: -25px;
+    margin-top: -25px;
+    margin-bottom: 25px;
     position: sticky;
-    top: 76px; /* Header (40) + Nav (36) */
-    left: 0;
+    top: -25px;
     z-index: 100;
     box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
 }

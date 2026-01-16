@@ -1,9 +1,10 @@
 // Overview view logic
 import { API } from '../api.js';
-import { formatNumber } from '../utils.js';
+import { formatNumber, formatDuration } from '../utils.js';
 import { showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { calculatePopulationChange, calculatePositionMultiplier } from '../../../shared/formulas.js';
+import { getGameState, getCurrentPlanetId } from '../main.js';
 
 let lastOverviewPlanetId = null;
 
@@ -201,6 +202,98 @@ function initializeOverviewStructure(container, planet, allPlanets) {
                 <p class="empty-text">No active construction or production</p>
             </div>
         </div>
+
+        <div class="empire-summary-section" style="margin-top: 30px;">
+            <div class="section-header-technical">
+                <h3>EMPIRE COMMAND CENTER</h3>
+                <div class="header-line"></div>
+            </div>
+            <div id="empire-summary-table-container">
+                <!-- Empire table will be rendered here -->
+            </div>
+        </div>
+    `;
+}
+
+function renderEmpireTable(gameState) {
+    let html = `
+        <div class="empire-table-wrapper">
+            <table class="empire-stats-table">
+                <thead>
+                    <tr>
+                        <th class="planet-col">Planet</th>
+                        <th class="res-col">Resources</th>
+                        <th class="energy-col">Energy</th>
+                        <th class="pop-col">Population</th>
+                        <th class="queue-col">Active Queues</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    gameState.planets.forEach(planet => {
+        const isCurrent = planet.id === getCurrentPlanetId();
+        html += renderEmpirePlanetRow(planet, isCurrent);
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    return html;
+}
+
+function renderEmpirePlanetRow(planet, isCurrent) {
+    const coords = `[${planet.coordinates.join(':')}]`;
+    const getResClass = (type) => (planet.resources[type] >= planet.storage[type] * 0.9) ? 'text-warning' : '';
+    const energyNet = planet.production.energy;
+    const energyClass = energyNet < 0 ? 'text-error' : 'text-success';
+
+    let queueHtml = '';
+    if (planet.buildQueue && planet.buildQueue.length > 0) {
+        const item = planet.buildQueue[0];
+        queueHtml += `<div class="q-mini-item build"><span class="q-icon">🏗️</span> <span class="q-name">${item.building}</span> <span class="q-timer timer" data-finish="${item.finishTime}">-</span></div>`;
+    }
+    const shipQueueCount = planet.shipQueue?.length || 0;
+    const defQueueCount = planet.defenseQueue?.length || 0;
+    if (shipQueueCount > 0 || defQueueCount > 0) {
+        const item = (planet.shipQueue?.[0] || planet.defenseQueue?.[0]);
+        queueHtml += `<div class="q-mini-item shipyard"><span class="q-icon">🚀</span> <span class="q-name">Shipyard</span> <span class="q-timer timer" data-finish="${item.finishTime}">-</span></div>`;
+    }
+    if (!queueHtml) queueHtml = '<span class="empty-q">IDLE</span>';
+
+    return `
+        <tr class="empire-planet-row ${isCurrent ? 'current' : ''}" onclick="window.selectPlanet('${planet.id}')">
+            <td class="planet-col">
+                <div class="planet-identity">
+                    <span class="p-name">${planet.name}</span>
+                    <span class="p-coords">${coords}</span>
+                </div>
+            </td>
+            <td class="res-col">
+                <div class="res-grid-mini">
+                    <div class="res-item ${getResClass('metal')}">⚙️ ${formatNumber(Math.floor(planet.resources.metal))}</div>
+                    <div class="res-item ${getResClass('crystal')}">💎 ${formatNumber(Math.floor(planet.resources.crystal))}</div>
+                    <div class="res-item ${getResClass('deuterium')}">🛢️ ${formatNumber(Math.floor(planet.resources.deuterium))}</div>
+                </div>
+            </td>
+            <td class="energy-col">
+                <div class="energy-info-mini">
+                    <span class="${energyClass}">${formatNumber(Math.floor(energyNet))}</span>
+                    <small>${planet.energyEfficiency}% EFF</small>
+                </div>
+            </td>
+            <td class="pop-col">
+                <div class="pop-info-mini">
+                    <span>${formatNumber(Math.floor(planet.resources.population))}</span>
+                    <small>/ ${formatNumber(planet.maxPopulation)}</small>
+                </div>
+            </td>
+            <td class="queue-col">
+                <div class="queues-summary">${queueHtml}</div>
+            </td>
+        </tr>
     `;
 }
 
@@ -388,6 +481,15 @@ export function updateOverview(planet, allPlanets = []) {
             queueList.innerHTML = activeQueues.join('');
         } else {
             queueList.innerHTML = '<p class="empty-text">No active construction or production</p>';
+        }
+    }
+
+    // Update Empire Table
+    const empireContainer = document.getElementById('empire-summary-table-container');
+    if (empireContainer) {
+        const gameState = getGameState();
+        if (gameState) {
+            empireContainer.innerHTML = renderEmpireTable(gameState);
         }
     }
 

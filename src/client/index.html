@@ -71,98 +71,100 @@
                 </div>
             </header>
             
-            <!-- Navigation -->
-            <nav class="game-nav">
-                <button class="nav-btn active" data-view="overview">Overview</button>
-                <button class="nav-btn" data-view="buildings">Buildings</button>
-                <button class="nav-btn" data-view="allocation">Allocation</button>
-                <button class="nav-btn" data-view="research">Research</button>
-                <button class="nav-btn" data-view="shipyard">Shipyard</button>
-                <button class="nav-btn" data-view="defenses">Defenses</button>
-                <button class="nav-btn" data-view="ranking">Ranking</button>
-                <button class="nav-btn" data-view="fleet">Fleet</button>
-                <button class="nav-btn" data-view="galaxy">Galaxy</button>
-                <button class="nav-btn" data-view="alliance">Alliance</button>
-                <button class="nav-btn" data-view="messages">Messages</button>
-            </nav>
-            
-            <!-- Global Fleet Movements -->
-            <div id="fleet-movements-bar" class="fleet-movements-bar"></div>
-            
-            <!-- Content Area -->
-            <main class="game-content">
-                <!-- Overview View -->
-                <div id="overview-view" class="view active">
-                    <!-- Content will be dynamically loaded by overview.js -->
-                </div>
+            <div class="main-layout-container">
+                <!-- Navigation (Sidebar) -->
+                <nav class="game-nav">
+                    <button class="nav-btn active" data-view="overview">Overview</button>
+                    <button class="nav-btn" data-view="buildings">Buildings</button>
+                    <button class="nav-btn" data-view="allocation">Allocation</button>
+                    <button class="nav-btn" data-view="research">Research</button>
+                    <button class="nav-btn" data-view="shipyard">Shipyard</button>
+                    <button class="nav-btn" data-view="defenses">Defenses</button>
+                    <button class="nav-btn" data-view="ranking">Ranking</button>
+                    <button class="nav-btn" data-view="fleet">Fleet</button>
+                    <button class="nav-btn" data-view="galaxy">Galaxy</button>
+                    <button class="nav-btn" data-view="alliance">Alliance</button>
+                    <button class="nav-btn" data-view="messages">Messages</button>
+                </nav>
                 
-                <!-- Buildings View -->
-                <div id="buildings-view" class="view">
-                    <h2>Buildings</h2>
-                    <div id="buildings-queue-container">
-                        <!-- Queue will be dynamically loaded -->
-                    </div>
-                    <div id="buildings-grid" class="buildings-grid">
-                        <!-- Buildings will be dynamically loaded -->
-                    </div>
-                </div>
-                
-                <!-- Allocation View -->
-                <div id="allocation-view" class="view">
-                    <!-- Allocation management will be dynamically loaded -->
-                </div>
-                
-                <!-- Research View -->
-                <div id="research-view" class="view">
-                    <h2>Research Lab</h2>
-                    <p>Research system coming soon...</p>
-                </div>
-                
-                <!-- Shipyard View -->
-                <div id="shipyard-view" class="view">
-                    <h2>Shipyard</h2>
-                    <p>Shipyard coming soon...</p>
-                </div>
-                
-                <!-- Defenses View -->
-                <div id="defenses-view" class="view">
-                    <h2>Defenses</h2>
-                    <p>Defenses coming soon...</p>
-                </div>
+                <!-- Content Area -->
+                <main class="game-content">
+                    <!-- Global Fleet Movements -->
+                    <div id="fleet-movements-bar" class="fleet-movements-bar"></div>
 
-                <!-- Ranking View -->
-                <div id="ranking-view" class="view">
-                    <h2>Hall of Fame</h2>
-                    <div id="ranking-container"></div>
-                </div>
-                
-                <!-- Fleet View -->
-                <div id="fleet-view" class="view">
-                    <h2>Fleet</h2>
-                    <p>Fleet management coming soon...</p>
-                </div>
-                
-                <!-- Galaxy View -->
-                <div id="galaxy-view" class="view">
-                    <div class="galaxy-container">
-                        <!-- Content loaded dynamically -->
+                    <!-- Overview View -->
+                    <div id="overview-view" class="view active">
+                        <!-- Content will be dynamically loaded by overview.js -->
                     </div>
-                </div>
+                    
+                    <!-- Buildings View -->
+                    <div id="buildings-view" class="view">
+                        <h2>Buildings</h2>
+                        <div id="buildings-queue-container">
+                            <!-- Queue will be dynamically loaded -->
+                        </div>
+                        <div id="buildings-grid" class="buildings-grid">
+                            <!-- Buildings will be dynamically loaded -->
+                        </div>
+                    </div>
+                    
+                    <!-- Allocation View -->
+                    <div id="allocation-view" class="view">
+                        <!-- Allocation management will be dynamically loaded -->
+                    </div>
+                    
+                    <!-- Research View -->
+                    <div id="research-view" class="view">
+                        <h2>Research Lab</h2>
+                        <p>Research system coming soon...</p>
+                    </div>
+                    
+                    <!-- Shipyard View -->
+                    <div id="shipyard-view" class="view">
+                        <h2>Shipyard</h2>
+                        <p>Shipyard coming soon...</p>
+                    </div>
+                    
+                    <!-- Defenses View -->
+                    <div id="defenses-view" class="view">
+                        <h2>Defenses</h2>
+                        <p>Defenses coming soon...</p>
+                    </div>
 
-                <!-- Alliance View -->
-                <div id="alliance-view" class="view">
-                    <div class="alliance-container">
-                        <!-- Content loaded dynamically -->
+                    <!-- Ranking View -->
+                    <div id="ranking-view" class="view">
+                        <h2>Hall of Fame</h2>
+                        <div id="ranking-container"></div>
                     </div>
-                </div>
-                
-                <!-- Messages View -->
-                <div id="messages-view" class="view">
-                    <div class="messages-container">
-                        <!-- Content loaded dynamically -->
+                    
+                    <!-- Fleet View -->
+                    <div id="fleet-view" class="view">
+                        <h2>Fleet</h2>
+                        <p>Fleet management coming soon...</p>
                     </div>
-                </div>
-            </main>
+                    
+                    <!-- Galaxy View -->
+                    <div id="galaxy-view" class="view">
+                        <div class="galaxy-container">
+                            <!-- Content loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Alliance View -->
+                    <div id="alliance-view" class="view">
+                        <div class="alliance-container">
+                            <!-- Content loaded dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Messages View -->
+                    <div id="messages-view" class="view">
+                        <div class="messages-container">
+                            <!-- Content loaded dynamically -->
+                        </div>
+                    </div>
+                </main>
+            </div>
         </div>
         
         <!-- Generic Details Modal -->
