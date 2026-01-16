@@ -85,8 +85,7 @@ export async function processAiPlayer(player) {
  * AI Colonization logic
  */
 async function handleColonization(player) {
-  const astroLevel = typeof player.research?.astrophysics === 'object' ? (player.research.astrophysics.level ?? 0) : (player.research?.astrophysics ?? 0);
-  const maxPlanets = calculateMaxPlanets(astroLevel);
+  const maxPlanets = calculateMaxPlanets(player.research);
   
   if (player.planets.length >= maxPlanets) return false;
 

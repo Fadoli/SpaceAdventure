@@ -20,6 +20,7 @@ import {
   calculateTheoreticalResearchTime,
   calculatePracticalResearchCost,
   calculatePracticalResearchTime,
+  calculateMaxPlanets,
   applyTheoreticalBonus,
   calculateFoodConsumption,
   calculateWaterConsumption
@@ -556,5 +557,27 @@ describe('applyTheoreticalBonus', () => {
     const result1 = applyTheoreticalBonus(baseValue, 5, 0.1);
     const result2 = applyTheoreticalBonus(baseValue, 5, 0.2);
     expect(result2).toBeGreaterThan(result1);
+  });
+});
+
+// ============ Max Planets Tests ============
+describe('calculateMaxPlanets', () => {
+  it('should return 1 for no research', () => {
+    expect(calculateMaxPlanets({})).toBe(1);
+    expect(calculateMaxPlanets()).toBe(1);
+  });
+
+  it('should increase with Astrophysics level', () => {
+    // Astrophysics provides +1 galaxy slot per level by default in THEORETICAL_RESEARCH
+    expect(calculateMaxPlanets({ astrophysics: 1 })).toBe(2);
+    expect(calculateMaxPlanets({ astrophysics: 5 })).toBe(6);
+  });
+
+  it('should handle complex research objects', () => {
+    const research = {
+      astrophysics: { level: 3 },
+      energyTech: 10
+    };
+    expect(calculateMaxPlanets(research)).toBe(4);
   });
 });

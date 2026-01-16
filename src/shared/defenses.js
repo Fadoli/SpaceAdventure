@@ -2,7 +2,7 @@
 
 import { BUILDING_SPEED_MULTIPLIER, CONFIG } from './constants.js';
 import { calculateBaseTime } from './time.js';
-import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
+import { getResearchBonus } from './research.js';
 
 export const DEFENSES = {
   rocketLauncher: {
@@ -203,14 +203,9 @@ export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech =
   let totalShield = 0;
   let totalHull = 0;
 
-  // Tech multipliers: data-driven from THEORETICAL_RESEARCH
-  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1;
-  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1;
-  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1;
-
-  const attackMultiplier = 1 + (weaponsTech * attackBonus);
-  const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
-  const armorMultiplier = 1 + (armorTech * armorBonus);
+  const attackMultiplier = 1 + getResearchBonus({ weaponsTech }, 'unitAttackPower');
+  const shieldMultiplier = 1 + getResearchBonus({ shieldingTech }, 'unitShieldStrength');
+  const armorMultiplier = 1 + getResearchBonus({ armorTech }, 'unitHullStrength');
 
   for (const defenseKey in defenses) {
     const count = defenses[defenseKey];

@@ -2,7 +2,7 @@
 
 import { BUILDING_SPEED_MULTIPLIER, CONFIG, SCALING } from './constants.js';
 import { calculateBaseTime } from './time.js';
-import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
+import { getResearchBonus } from './research.js';
 import { BUILDINGS } from './buildings.js';
 import { calculateFuelConsumption } from './formulas.js';
 
@@ -479,19 +479,14 @@ export function calculateShipSpeed(shipKey, playerResearch = {}) {
 /**
  * Calculate total combat stats for a fleet
  */
-export function calculateFleetStats(ships, weaponsTech = 0, shieldingTech = 0, armorTech = 0, hullBonusTech = 0) {
+export function calculateFleetStats(ships, research = {}) {
   let totalAttack = 0;
   let totalShield = 0;
   let totalHull = 0;
 
-  // Tech multipliers: data-driven from THEORETICAL_RESEARCH
-  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1;
-  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1;
-  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1;
-
-  const attackMultiplier = 1 + (weaponsTech * attackBonus);
-  const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
-  const armorMultiplier = 1 + (armorTech * armorBonus);
+  const attackMultiplier = 1 + getResearchBonus(research, 'unitAttackPower');
+  const shieldMultiplier = 1 + getResearchBonus(research, 'unitShieldStrength');
+  const armorMultiplier = 1 + getResearchBonus(research, 'unitHullStrength');
 
   for (const shipKey in ships) {
     const count = ships[shipKey];

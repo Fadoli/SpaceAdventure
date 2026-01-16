@@ -312,8 +312,8 @@ describe('Ships - calculateFleetStats Function', () => {
   it('should apply weapons technology multiplier', () => {
     const fleet = { lightFighter: 10 };
     
-    const statsNoTech = calculateFleetStats(fleet, 0, 0, 0);
-    const statsWithTech = calculateFleetStats(fleet, 5, 0, 0);
+    const statsNoTech = calculateFleetStats(fleet, {});
+    const statsWithTech = calculateFleetStats(fleet, { weaponsTech: 5 });
     
     // 5 levels = 1 + (5 * 0.2) = 2.0x
     expect(statsWithTech.attack).toBe(Math.floor(statsNoTech.attack * 2.0));
@@ -322,8 +322,8 @@ describe('Ships - calculateFleetStats Function', () => {
   it('should apply shield technology multiplier', () => {
     const fleet = { cruiser: 5 };
     
-    const statsNoTech = calculateFleetStats(fleet, 0, 0, 0);
-    const statsWithTech = calculateFleetStats(fleet, 0, 3, 0);
+    const statsNoTech = calculateFleetStats(fleet, {});
+    const statsWithTech = calculateFleetStats(fleet, { shieldingTech: 3 });
     
     // 3 levels = 1 + (3 * 0.2) = 1.6x
     expect(statsWithTech.shield).toBe(Math.floor(statsNoTech.shield * 1.6));
@@ -332,8 +332,8 @@ describe('Ships - calculateFleetStats Function', () => {
   it('should apply armor technology multiplier', () => {
     const fleet = { battleship: 2 };
     
-    const statsNoTech = calculateFleetStats(fleet, 0, 0, 0);
-    const statsWithTech = calculateFleetStats(fleet, 0, 0, 2);
+    const statsNoTech = calculateFleetStats(fleet, {});
+    const statsWithTech = calculateFleetStats(fleet, { armorTech: 2 });
     
     // 2 levels = 1 + (2 * 0.15) = 1.3x
     expect(statsWithTech.hull).toBe(Math.floor(statsNoTech.hull * 1.3));
@@ -345,7 +345,11 @@ describe('Ships - calculateFleetStats Function', () => {
       cruiser: 2
     };
     
-    const stats = calculateFleetStats(fleet, 5, 5, 5);
+    const stats = calculateFleetStats(fleet, {
+      weaponsTech: 5,
+      shieldingTech: 5,
+      armorTech: 5
+    });
     
     expect(stats.attack).toBeGreaterThan(0);
     expect(stats.shield).toBeGreaterThan(0);
@@ -367,7 +371,11 @@ describe('Ships - calculateFleetStats Function', () => {
 
   it('should return integer stats', () => {
     const fleet = { lightFighter: 7, cruiser: 3 };
-    const stats = calculateFleetStats(fleet, 2, 3, 1);
+    const stats = calculateFleetStats(fleet, {
+      weaponsTech: 2,
+      shieldingTech: 3,
+      armorTech: 1
+    });
     
     expect(Number.isInteger(stats.attack)).toBe(true);
     expect(Number.isInteger(stats.shield)).toBe(true);

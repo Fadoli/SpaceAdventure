@@ -2,7 +2,7 @@
 import { BUILDINGS } from './buildings.js';
 import { calculateBaseTime } from './time.js';
 import { BUILDING_SPEED_MULTIPLIER, SCALING, CONFIG } from './constants.js';
-import { getResearchBonus, THEORETICAL_RESEARCH } from './research.js';
+import { getResearchBonus } from './research.js';
 
 /**
  * Calculate building cost based on level
@@ -131,14 +131,9 @@ export function calculateTravelTime(distance, speed, configMultiplier = 1.0) {
  * Calculate combat power
  */
 export function calculateCombatPower(ships, weaponsTech = 0, shieldingTech = 0, armorTech = 0, hullBonusTech = 0) {
-  // Simplified combat calculation: data-driven
-  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.2;
-  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.2;
-  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.15;
-
-  const weaponsMultiplier = 1 + (weaponsTech * attackBonus);
-  const shieldMultiplier = 1 + (shieldingTech * shieldBonus);
-  const armorMultiplier = 1 + (armorTech * armorBonus);
+  const weaponsMultiplier = 1 + getResearchBonus({ weaponsTech }, 'unitAttackPower');
+  const shieldMultiplier = 1 + getResearchBonus({ shieldingTech }, 'unitShieldStrength');
+  const armorMultiplier = 1 + getResearchBonus({ armorTech }, 'unitHullStrength');
   
   return {
     attack: Math.floor(ships * weaponsMultiplier * 100),
@@ -286,12 +281,12 @@ export function getBuildingPopulationRequired(buildingType, level, buildingsObj 
 }
 
 /**
- * Calculate the maximum number of planets a player can have based on Astrophysics level
- * Formula: 1 (Homeworld) + (Astro Level * bonus)
+ * Calculate the maximum number of planets a player can have based on research levels
+ * Formula: 1 (Homeworld) + total bonuses from research
  */
-export function calculateMaxPlanets(astroLevel) {
-  const astroBonus = THEORETICAL_RESEARCH.astrophysics.bonuses.playerGalaxySlots || 1;
-  return 1 + (astroLevel * astroBonus);
+export function calculateMaxPlanets(research = {}) {
+  const astroBonus = getResearchBonus(research, 'playerGalaxySlots');
+  return 1 + astroBonus;
 }
 
 /**

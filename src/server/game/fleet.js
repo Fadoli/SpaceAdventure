@@ -67,8 +67,7 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     const travelTime = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier);
 
     if (missionType === MISSION_TYPES.COLONIZE) {
-        const astroLevel = typeof player.research?.astrophysics === 'object' ? (player.research.astrophysics.level ?? 0) : (player.research?.astrophysics ?? 0);
-        const maxPlanets = calculateMaxPlanets(astroLevel);
+        const maxPlanets = calculateMaxPlanets(player.research);
         
         // Count existing planets + colonization missions in flight
         const activeColonizations = (player.fleets || []).filter(f => f.missionType === MISSION_TYPES.COLONIZE && !f.returning).length;
@@ -928,8 +927,7 @@ async function executeEspionage(player, fleet, allPlayers) {
 
 async function executeColonization(player, fleet, allPlayers) {
     // Check max planets limit
-    const astroLevel = typeof player.research?.astrophysics === 'object' ? (player.research.astrophysics.level ?? 0) : (player.research?.astrophysics ?? 0);
-    const maxPlanets = calculateMaxPlanets(astroLevel);
+    const maxPlanets = calculateMaxPlanets(player.research);
     
     if (player.planets.length >= maxPlanets) {
         await addMessage(player.userId, {

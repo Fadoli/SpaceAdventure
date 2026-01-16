@@ -1,7 +1,7 @@
 // Combat Engine - Optimized Stack-Based Statistical Simulation
 import { SHIPS } from '../../shared/ships.js';
 import { DEFENSES } from '../../shared/defenses.js';
-import { THEORETICAL_RESEARCH } from '../../shared/research.js';
+import { getResearchBonus } from '../../shared/research.js';
 import { isEmpty } from '../../shared/utils.js';
 import { CONFIG } from '../../shared/constants.js';
 
@@ -193,13 +193,9 @@ function calculateLossValue(losses, definitions) {
 function prepareGroups(ships, research, defenses = {}, participantId = null) {
   const groups = [];
   
-  const weaponsTech = typeof research.weaponsTech === 'object' ? (research.weaponsTech.level ?? 0) : (research.weaponsTech ?? 0);
-  const shieldingTech = typeof research.shieldingTech === 'object' ? (research.shieldingTech.level ?? 0) : (research.shieldingTech ?? 0);
-  const armorTech = typeof research.armorTech === 'object' ? (research.armorTech.level ?? 0) : (research.armorTech ?? 0);
-
-  const attackBonus = 1 + weaponsTech * (THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1);
-  const shieldBonus = 1 + shieldingTech * (THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1);
-  const hullBonus = 1 + (armorTech * (THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1));
+  const attackBonus = 1 + getResearchBonus(research, 'unitAttackPower');
+  const shieldBonus = 1 + getResearchBonus(research, 'unitShieldStrength');
+  const hullBonus = 1 + getResearchBonus(research, 'unitHullStrength');
 
   for (const shipKey in ships) {
     const count = ships[shipKey];
