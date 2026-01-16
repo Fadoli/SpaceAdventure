@@ -2,7 +2,7 @@
 import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
 import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { calculateShipSpeed, calculateFleetFuelCost, calculateFleetCrew, calculateFleetSurvivalNeeds, calculateCargoCapacity, SHIPS as SHIP_DEFINITIONS } from '../../shared/ships.js';
-import { calculateTravelTime, calculateDistance } from '../../shared/formulas.js';
+import { calculateTravelTime, calculateDistance, calculateMaxPlanets } from '../../shared/formulas.js';
 import { getPlayerByUserId, updatePlayer, getPlayers } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
@@ -65,6 +65,18 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     const fleetSpeedMultiplier = getFleetSpeedMultiplier();
     const travelTime = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier);
 
+    if (missionType === MISSION_TYPES.COLONIZE) {
+        const astroLevel = typeof player.research?.astrophysics === 'object' ? (player.research.astrophysics.level ?? 0) : (player.research?.astrophysics ?? 0);
+        const maxPlanets = calculateMaxPlanets(astroLevel);
+        
+        // Count existing planets + colonization missions in flight
+        const activeColonizations = (player.fleets || []).filter(f => f.missionType === MISSION_TYPES.COLONIZE && !f.returning).length;
+        
+        if (player.planets.length + activeColonizations >= maxPlanets) {
+            throw new Error(`Colonial limit reached (${maxPlanets} planets). Research Astrophysics to expand.`);
+        }
+    }
+
     // Calculate mission costs
     const fuelCost = calculateFleetFuelCost(ships, distance);
     const crewCount = calculateFleetCrew(ships);
@@ -98,6 +110,7 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
         targetCoords: [...targetCoords],
         startTime: Date.now(),
         arrivalTime: Date.now() + (travelTime * 1000),
+        travelTime: travelTime,
         returning: false,
         stayTime: stayTime // Store requested stay duration
     };
@@ -913,6 +926,21 @@ async function executeEspionage(player, fleet, allPlayers) {
 }
 
 async function executeColonization(player, fleet, allPlayers) {
+    // Check max planets limit
+    const astroLevel = typeof player.research?.astrophysics === 'object' ? (player.research.astrophysics.level ?? 0) : (player.research?.astrophysics ?? 0);
+    const maxPlanets = calculateMaxPlanets(astroLevel);
+    
+    if (player.planets.length >= maxPlanets) {
+        await addMessage(player.userId, {
+            from: 'Colonial Command',
+            subject: 'Colonization Failed: Administrative Limit',
+            body: `Your empire has reached its current administrative limit of ${maxPlanets} planets. Research more Astrophysics to expand further.`,
+            type: 'colonization',
+            data: { target: fleet.targetCoords }
+        });
+        return false; // Fleet returns home
+    }
+
     // Check if position is occupied
     let occupied = false;
     for (const p of allPlayers) {
@@ -934,11 +962,19 @@ async function executeColonization(player, fleet, allPlayers) {
 
     // Create new planet
     const planetId = generateId();
+    
+    // Apply colonist capacity bonus: base 10 + (base 10 * bonus * level)
+    const colonistBonus = getResearchBonus(player.research, 'unitColonistCapacity');
+    const startingPopulation = Math.floor(10 * (1 + colonistBonus));
+
     const newPlanet = {
         id: planetId,
         name: 'Colony',
         coordinates: [...fleet.targetCoords],
-        resources: { metal: 500, crystal: 500, deuterium: 0, energy: 0, water: 1000, food: 1000, population: 10 },
+        resources: { 
+            metal: 500, crystal: 500, deuterium: 0, energy: 0, 
+            water: 1000, food: 1000, population: startingPopulation 
+        },
         buildings: { ...STARTING_BUILDINGS }, // Small subset usually but let's use starting for now
         production: { metal: 30, crystal: 15, deuterium: 0, energy: 0, water: 40, food: 30 },
         storage: { metal: 10000, crystal: 10000, deuterium: 10000, water: 10000, food: 10000 },

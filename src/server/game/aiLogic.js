@@ -8,7 +8,7 @@ import { sendFleet } from './fleet.js';
 import { updatePlayer, findAvailablePlanetSlot, renamePlanet, getPlayers } from './player.js';
 import { isEmpty } from '../../shared/utils.js';
 import { getResearchBonus, getTheoreticalResearch, getPracticalResearch } from '../../shared/research.js';
-import { calculateTheoreticalResearchCost, calculatePracticalResearchCost, calculateFocusLevel } from '../../shared/formulas.js';
+import { calculateTheoreticalResearchCost, calculatePracticalResearchCost, calculateFocusLevel, calculateMaxPlanets } from '../../shared/formulas.js';
 
 const PLANET_NAMES = [
   'Arrakis', 'Coruscant', 'Dagobah', 'Endor', 'Hoth', 'Kashyyyk', 'Naboo', 'Tatooine', 'Yavin',
@@ -85,7 +85,9 @@ export async function processAiPlayer(player) {
  * AI Colonization logic
  */
 async function handleColonization(player) {
-  const maxPlanets = CONFIG.MAX_PLANETS_PER_PLAYER || 9;
+  const astroLevel = typeof player.research?.astrophysics === 'object' ? (player.research.astrophysics.level ?? 0) : (player.research?.astrophysics ?? 0);
+  const maxPlanets = calculateMaxPlanets(astroLevel);
+  
   if (player.planets.length >= maxPlanets) return false;
 
   // 1. Check if we have a colony ship in flight
@@ -104,7 +106,7 @@ async function handleColonization(player) {
   if (originPlanet) {
     // Launch colonization mission
     try {
-      const targetCoords = await findAvailablePlanetSlot();
+      const targetCoords = await findAvailablePlanetSlot(player.planets);
       await sendFleet(player.userId, originPlanet.id, targetCoords, MISSION_TYPES.COLONIZE, { colonyShip: 1 });
       console.log(`[AI] ${player.username} launched colonization mission to ${targetCoords.join(':')}`);
       return true;

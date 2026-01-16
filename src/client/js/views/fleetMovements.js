@@ -210,15 +210,17 @@ function renderFleetRow(fleet) {
     // Return time logic
     let returnTimeHtml = '';
     if (!isReturning && !isHostile && fleet.missionType !== 'deploy') {
-        const travelDuration = (fleet.arrivalTime - fleet.startTime);
         let finalArrivalTime;
         if (fleet.waiting) {
-            // Already at target, arrivalTime is when stay ends
-            finalArrivalTime = fleet.arrivalTime + travelDuration;
+            // Already at target (Operating), arrivalTime is when stay ends
+            // Use server-provided travelTime if available, otherwise estimate from leg history
+            const returnTravelMs = (fleet.travelTime * 1000) || (fleet.arrivalTime - fleet.startTime);
+            finalArrivalTime = fleet.arrivalTime + returnTravelMs;
         } else {
-            // Traveling to target
+            // Traveling to target (En Route)
+            const travelDurationMs = (fleet.arrivalTime - fleet.startTime);
             const stayMs = fleet.missionType === 'expedition' ? (fleet.stayTime || 1) * 3600 * 1000 : 0;
-            finalArrivalTime = fleet.arrivalTime + stayMs + travelDuration;
+            finalArrivalTime = fleet.arrivalTime + stayMs + travelDurationMs;
         }
         returnTimeHtml = `<span class="return-eta" title="Estimated Return Time"> | ${formatTime(finalArrivalTime)}</span>`;
     }

@@ -195,7 +195,7 @@ function updateTheoreticalResearchButtons() {
         const queuedCount = queuedItems.length;
         const nextLevelToQueue = level + 1 + queuedCount;
         
-        const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
+        const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1, tech.costScaling);
         const requirementsMet = canResearchTheoretical(techKey, playerTech, currentPlanetBuildings);
         
         const canAffordMetal = currentPlanet.resources.metal >= nextLevelCost.metal;
@@ -313,7 +313,7 @@ function renderTheoreticalResearch() {
             const queuedCount = queue.filter(q => q.techKey === tech.key).length;
             const nextLevelToQueue = level + 1 + queuedCount;
             const nextLevelTime = calculateTheoreticalResearchTime(tech, nextLevelToQueue - 1, researchLabLevel, researchSpeedBonus, configMultiplier);
-            const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
+            const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1, tech.costScaling);
             
             const requirementsMet = canResearchTheoretical(tech.key, playerTech, currentPlanetBuildings);
             const isQueueFull = queue.length >= maxQueue;
@@ -1055,7 +1055,7 @@ window.showResearchDetails = function (techKey) {
 
     const rows = [];
     for (let i = lv; i < lv + 15; i++) {
-        const c = calculateTheoreticalResearchCost(res.baseCost, i);
+        const c = calculateTheoreticalResearchCost(res.baseCost, i, res.costScaling);
         const t = calculateTheoreticalResearchTime(res, i, researchLabLevel, researchSpeedBonus, configMultiplier);
         rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatDuration(t * 1000)]);
     }

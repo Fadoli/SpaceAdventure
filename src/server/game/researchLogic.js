@@ -64,7 +64,7 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   const nextLevelToQueue = currentCompletedLevel + 1 + queuedCount;
   
   // Calculate cost
-  const cost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1);
+  const cost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1, tech.costScaling);
   
   // Check resources
   for (const resource in cost) {

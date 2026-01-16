@@ -203,10 +203,10 @@ export function calculateDefenseStats(defenses, weaponsTech = 0, shieldingTech =
   let totalShield = 0;
   let totalHull = 0;
 
-  // Tech multipliers: data-driven
-  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.2;
-  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.2;
-  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.15;
+  // Tech multipliers: data-driven from THEORETICAL_RESEARCH
+  const attackBonus = THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1;
+  const shieldBonus = THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1;
+  const armorBonus = THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1;
   const hullBonus = THEORETICAL_RESEARCH.advancedMaterials.bonuses.unitHullBonus || 0.05;
 
   const attackMultiplier = 1 + (weaponsTech * attackBonus);

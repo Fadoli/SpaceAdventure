@@ -61,7 +61,11 @@ export const TECHNOLOGIES = {
   IMPULSE_DRIVE: 'impulseDrive',
   HYPERSPACE_DRIVE: 'hyperspaceDrive',
   ESPIONAGE_TECH: 'espionageTech',
-  ASTROPHYSICS: 'astrophysics'
+  ASTROPHYSICS: 'astrophysics',
+  ION_TECH: 'ionTech',
+  LASER_TECH: 'laserTech',
+  PLASMA_TECH: 'plasmaTech',
+  HOUSING_TECH: 'housingTech'
 };
 
 export const SHIPS = {
@@ -176,8 +180,8 @@ export const SCALING = {
   BUILDING_PRODUCTION: 1.1,
   BUILDING_STORAGE: 1.6,
   BUILDING_ENERGY: 1.1,
-  BUILDING_POPULATION: 1.12,
-  BUILDING_HOUSING: 1.2,
+  BUILDING_POPULATION: 1.12, // This is the population required for factories ...
+  BUILDING_HOUSING: 1.15, // Adjusted from 1.2 to 1.15 for balanced growth
   RESEARCH_COST: 1.5,
   RESEARCH_TIME: 1.5,
   MISSION_FOOD_COST_FACTOR: 1.0, // Reduced from 50 to match population x time

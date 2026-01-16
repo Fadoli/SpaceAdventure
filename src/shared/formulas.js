@@ -287,14 +287,24 @@ export function getBuildingPopulationRequired(buildingType, level, buildingsObj 
 }
 
 /**
+ * Calculate the maximum number of planets a player can have based on Astrophysics level
+ * Formula: 1 (Homeworld) + (Astro Level * bonus)
+ */
+export function calculateMaxPlanets(astroLevel) {
+  const astroBonus = THEORETICAL_RESEARCH.astrophysics.bonuses.playerGalaxySlots || 1;
+  return 1 + (astroLevel * astroBonus);
+}
+
+/**
  * Calculate theoretical research cost at a given level
  * Increases with each level (exponential growth)
  */
-export function calculateTheoreticalResearchCost(baseCost, level) {
+export function calculateTheoreticalResearchCost(baseCost, level, costScaling = null) {
+  const scaling = costScaling || SCALING.RESEARCH_COST || 2.0;
   return {
-    metal: Math.floor(baseCost.metal * Math.pow(SCALING.RESEARCH_COST, level)),
-    crystal: Math.floor(baseCost.crystal * Math.pow(SCALING.RESEARCH_COST, level)),
-    deuterium: Math.floor(baseCost.deuterium * Math.pow(SCALING.RESEARCH_COST, level))
+    metal: Math.floor(baseCost.metal * Math.pow(scaling, level)),
+    crystal: Math.floor(baseCost.crystal * Math.pow(scaling, level)),
+    deuterium: Math.floor(baseCost.deuterium * Math.pow(scaling, level))
   };
 }
 

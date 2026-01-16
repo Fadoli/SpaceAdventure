@@ -193,9 +193,14 @@ function calculateLossValue(losses, definitions) {
 function prepareGroups(ships, research, defenses = {}, participantId = null) {
   const groups = [];
   
-  const attackBonus = 1 + (research.weaponsTech || 0) * (THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1);
-  const shieldBonus = 1 + (research.shieldingTech || 0) * (THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1);
-  const hullBonus = 1 + (research.armorTech || 0) * (THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1);
+  const weaponsTech = typeof research.weaponsTech === 'object' ? (research.weaponsTech.level ?? 0) : (research.weaponsTech ?? 0);
+  const shieldingTech = typeof research.shieldingTech === 'object' ? (research.shieldingTech.level ?? 0) : (research.shieldingTech ?? 0);
+  const armorTech = typeof research.armorTech === 'object' ? (research.armorTech.level ?? 0) : (research.armorTech ?? 0);
+  const advancedMaterials = typeof research.advancedMaterials === 'object' ? (research.advancedMaterials.level ?? 0) : (research.advancedMaterials ?? 0);
+
+  const attackBonus = 1 + weaponsTech * (THEORETICAL_RESEARCH.weaponsTech.bonuses.unitAttackPower || 0.1);
+  const shieldBonus = 1 + shieldingTech * (THEORETICAL_RESEARCH.shieldingTech.bonuses.unitShieldStrength || 0.1);
+  const hullBonus = 1 + (armorTech * (THEORETICAL_RESEARCH.armorTech.bonuses.unitHullStrength || 0.1)) + (advancedMaterials * (THEORETICAL_RESEARCH.advancedMaterials.bonuses.unitHullBonus || 0.05));
 
   for (const shipKey in ships) {
     const count = ships[shipKey];

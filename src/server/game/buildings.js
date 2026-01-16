@@ -745,8 +745,18 @@ export function updatePlanetProduction(planet, player = null) {
   // Calculate max population from housing
   const housingLevel = planet.buildings.housing || 0;
   const housingDef = BUILDINGS.housing;
-  const housingRatio = housingDef.housingCapacity || CONFIG.POPULATION_HOUSING_RATIO;
-  planet.maxPopulation = housingRatio * housingLevel * Math.pow(SCALING.BUILDING_HOUSING, housingLevel);
+  
+  // Get bonuses from research
+  const housingBaseBonus = getResearchBonus(player.research, 'housingBaseBonus');
+  const housingScalingBonus = getResearchBonus(player.research, 'housingScalingBonus');
+  
+  // Base slots increase with research: Base 500 + bonuses (e.g. Astro)
+  const baseCapacity = (housingDef.housingCapacity || 500) + housingBaseBonus;
+  
+  // Scaling improves with research: Base 1.25 + bonuses (e.g. Astro)
+  const scalingFactor = (SCALING.BUILDING_HOUSING || 1.25) + housingScalingBonus;
+  
+  planet.maxPopulation = Math.floor(baseCapacity * housingLevel * Math.pow(scalingFactor, housingLevel));
   
   // Calculate total consumption (Buildings + Population)
   const currentPop = planet.resources.population || 0;

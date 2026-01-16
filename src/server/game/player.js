@@ -14,9 +14,10 @@ import { calculateBuildingCost, calculateTheoreticalResearchCost } from '../../s
 const playersCache = new Map();
 
 /**
- * Find a suitable available planet slot [G, S, P] for a new player.
+ * Find a suitable available planet slot [G, S, P] for a new player or expansion.
+ * @param {Array} nearPlanets - Optional array of existing planets to expand around
  */
-export async function findAvailablePlanetSlot() {
+export async function findAvailablePlanetSlot(nearPlanets = null) {
   const players = await getPlayers();
   const occupied = new Set();
   
@@ -28,6 +29,38 @@ export async function findAvailablePlanetSlot() {
     }
   });
 
+  // If we want to expand near existing colonies
+  if (nearPlanets && nearPlanets.length > 0) {
+    // 1. Try to find a slot in the same system as a random existing planet
+    const basePlanet = nearPlanets[Math.floor(Math.random() * nearPlanets.length)];
+    const [bg, bs] = basePlanet.coordinates;
+    
+    // Try systems in increasing distance
+    for (let dist = 0; dist <= 5; dist++) {
+      const systems = [];
+      if (dist === 0) systems.push(bs);
+      else {
+        if (bs - dist >= 1) systems.push(bs - dist);
+        if (bs + dist <= 499) systems.push(bs + dist);
+      }
+
+      for (const s of systems) {
+        const slots = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+        // Shuffle slots
+        for (let i = slots.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [slots[i], slots[j]] = [slots[j], slots[i]];
+        }
+
+        for (const p of slots) {
+          const coords = [bg, s, p];
+          if (!occupied.has(coords.join(':'))) return coords;
+        }
+      }
+    }
+  }
+
+  // Fallback to random global search
   const maxAttempts = 1000;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const g = Math.floor(Math.random() * 10) + 1;
