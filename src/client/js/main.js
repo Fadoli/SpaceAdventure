@@ -218,6 +218,17 @@ function setupGameListeners() {
             switchView(view);
         });
     });
+
+    // Submenu Navigation
+    document.querySelectorAll('.nav-sub-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const subtab = e.target.dataset.subtab;
+            if (currentView === 'research') {
+                const { switchTab } = await import('./views/research.js');
+                switchTab(subtab);
+            }
+        });
+    });
 }
 
 function switchView(view, updateHistory = true) {
@@ -236,6 +247,12 @@ function switchView(view, updateHistory = true) {
     
     if (navBtn) navBtn.classList.add('active');
     if (viewEl) viewEl.classList.add('active');
+
+    // Handle Submenus
+    const researchSubmenu = document.getElementById('research-submenu');
+    if (researchSubmenu) {
+        researchSubmenu.style.display = view === 'research' ? 'flex' : 'none';
+    }
     
     // Update view if needed
     if (gameState) {

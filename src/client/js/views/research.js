@@ -131,13 +131,22 @@ function renderResearchView() {
     }
 }
 
-function switchTab(tab, updateUrl = true) {
+export function switchTab(tab, updateUrl = true) {
     document.querySelectorAll('.research-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
     const tabElement = document.getElementById(`${tab}-tab`);
     if (tabElement) tabElement.classList.add('active');
     document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+
+    // Sync sidebar submenu
+    document.querySelectorAll('.nav-sub-btn').forEach(btn => {
+        if (btn.dataset.subtab === tab) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 
     // Update URL query parameter
     if (updateUrl) {
