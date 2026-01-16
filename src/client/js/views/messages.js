@@ -693,20 +693,22 @@ export async function updateUnreadCount() {
         const unreadCount = messages.filter(m => !m.read).length;
         
         const navBtn = document.querySelector('.nav-btn[data-view="messages"]');
-        if (navBtn) {
-            let badge = navBtn.querySelector('.unread-badge');
+        if (!navBtn) return;
+
+        let badge = navBtn.querySelector('.unread-badge');
+        
+        if (unreadCount > 0) {
             if (!badge) {
                 badge = document.createElement('span');
                 badge.className = 'unread-badge';
                 navBtn.appendChild(badge);
             }
-            
             badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-            if (unreadCount > 0) {
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+            badge.classList.remove('hidden');
+            badge.style.display = 'block'; // Ensure it's shown
+        } else if (badge) {
+            badge.classList.add('hidden');
+            badge.style.display = 'none'; // Ensure it's hidden
         }
     } catch (error) {
         // Silent fail for background updates

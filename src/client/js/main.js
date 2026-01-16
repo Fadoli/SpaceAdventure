@@ -293,6 +293,9 @@ function switchView(view, updateHistory = true) {
             updateCurrentView();
         }
     }
+
+    // Always update unread count on navigation
+    updateUnreadCount();
 }
 
 // Game State Management
