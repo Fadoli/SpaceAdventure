@@ -108,24 +108,11 @@ function renderResearchView() {
                 <h2>RESEARCH COMMAND</h2>
                 <div class="header-line"></div>
             </div>
-            <div class="research-tabs-container">
-                <div class="research-tabs">
-                  <button class="tab-btn ${activeSubTab === 'theoretical' ? 'active' : ''}" data-tab="theoretical">THEORETICAL</button>
-                  <button class="tab-btn ${activeSubTab === 'practical' ? 'active' : ''}" data-tab="practical">PRACTICAL</button>
-                  <button class="tab-btn ${activeSubTab === 'variants' ? 'active' : ''}" data-tab="variants">BLUEPRINTS</button>
-                </div>
-            </div>
             <div id="theoretical-tab" class="research-tab ${activeSubTab === 'theoretical' ? 'active' : ''}"><div class="research-content"></div></div>
             <div id="practical-tab" class="research-tab ${activeSubTab === 'practical' ? 'active' : ''}"><div class="research-content"></div></div>
             <div id="variants-tab" class="research-tab ${activeSubTab === 'variants' ? 'active' : ''}"><div class="research-content"></div></div>
         `;
         container.appendChild(content);
-
-        document.querySelectorAll('.research-tabs .tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                switchTab(e.target.dataset.tab);
-            });
-        });
 
         switchTab(activeSubTab, false);
     }
@@ -133,11 +120,9 @@ function renderResearchView() {
 
 export function switchTab(tab, updateUrl = true) {
     document.querySelectorAll('.research-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
     const tabElement = document.getElementById(`${tab}-tab`);
     if (tabElement) tabElement.classList.add('active');
-    document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
 
     // Sync sidebar submenu
     document.querySelectorAll('.nav-sub-btn').forEach(btn => {
@@ -166,12 +151,13 @@ export function switchTab(tab, updateUrl = true) {
  * Update current tab without re-rendering
  */
 function updateCurrentTabStatus() {
-    const activeTab = document.querySelector('.research-tabs .tab-btn.active');
-    if (!activeTab) return;
+    const activeSubBtn = document.querySelector('#research-submenu .nav-sub-btn.active');
+    if (!activeSubBtn) return;
     
-    if (activeTab.dataset.tab === 'theoretical') {
+    const subtab = activeSubBtn.dataset.subtab;
+    if (subtab === 'theoretical') {
         updateTheoreticalResearchButtons();
-    } else if (activeTab.dataset.tab === 'practical') {
+    } else if (subtab === 'practical') {
         // Practical research buttons are static until research level changes
     }
     
