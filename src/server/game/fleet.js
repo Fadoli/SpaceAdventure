@@ -1047,8 +1047,8 @@ async function executeExpedition(player, fleet) {
         const shipTypesPresent = Object.keys(fleet.ships).filter(k => fleet.ships[k] > 0);
         if (shipTypesPresent.length > 0) {
             const randomShipKey = shipTypesPresent[Math.floor(Math.random() * shipTypesPresent.length)];
-            // Lose 20-70% of that ship type
-            const lossPercent = 0.2 + (Math.random() * 0.5);
+            // Lose 10-50% of that ship type
+            const lossPercent = 0.1 + (Math.random() * 0.4);
             const lostCount = Math.ceil(fleet.ships[randomShipKey] * lossPercent);
             fleet.ships[randomShipKey] -= lostCount;
             body = `Your fleet entered a gravity well of a dark star. You lost ${lostCount} ${randomShipKey.replace(/([A-Z])/g, ' $1').trim()}.`;
