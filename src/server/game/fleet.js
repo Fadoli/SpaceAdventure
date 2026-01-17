@@ -399,14 +399,42 @@ async function executeHarvest(player, fleet) {
 
     // Calculate capacity
     const capacity = calculateCargoCapacity(fleet.ships);
+    const totalDebris = debris.metal + debris.crystal;
 
-    // Harvest Metal first, then Crystal
-    let metalHarvested = Math.min(debris.metal, capacity);
-    let crystalHarvested = Math.min(debris.crystal, capacity - metalHarvested);
+    let metalHarvested = 0;
+    let crystalHarvested = 0;
+
+    if (capacity >= totalDebris) {
+        // Can take everything
+        metalHarvested = debris.metal;
+        crystalHarvested = debris.crystal;
+    } else {
+        // Take proportional amounts
+        const ratio = capacity / totalDebris;
+        metalHarvested = Math.floor(debris.metal * ratio);
+        crystalHarvested = Math.floor(debris.crystal * ratio);
+        
+        // Handle rounding leftovers if there is still capacity
+        let currentHarvested = metalHarvested + crystalHarvested;
+        let remainingCapacity = capacity - currentHarvested;
+        
+        if (remainingCapacity > 0) {
+            // Give remaining to whichever has more left in field proportionately or just fill up
+            // To be simple and fair: add to metal if possible, then crystal
+            const extraMetal = Math.min(remainingCapacity, Math.ceil(debris.metal - metalHarvested));
+            metalHarvested += extraMetal;
+            remainingCapacity -= extraMetal;
+            
+            if (remainingCapacity > 0) {
+                const extraCrystal = Math.min(remainingCapacity, Math.ceil(debris.crystal - crystalHarvested));
+                crystalHarvested += extraCrystal;
+            }
+        }
+    }
 
     // Update debris field
-    debris.metal -= metalHarvested;
-    debris.crystal -= crystalHarvested;
+    debris.metal = Math.max(0, debris.metal - metalHarvested);
+    debris.crystal = Math.max(0, debris.crystal - crystalHarvested);
     await updateDebrisField(fleet.targetCoords, debris);
 
     // Load resources onto fleet
@@ -1256,11 +1284,25 @@ async function executeMarketTrade(player, fleet) {
     // Notify client of resource change
     wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', {});
 
+    // Verify coordinates exist for the report
+    const traderCoords = fleet.targetCoords ? `[${fleet.targetCoords.join(':')}]` : 'Deep Space Station';
+    
+    // Construct informative message body
+    const soldList = Object.entries(oldResources)
+        .filter(([_, qty]) => qty > 0)
+        .map(([res, qty]) => `${formatNumber(qty)} ${res.toUpperCase()}`)
+        .join(', ');
+        
+    const boughtList = Object.entries(fleet.buyResources)
+        .filter(([_, qty]) => qty > 0)
+        .map(([res, qty]) => `${formatNumber(qty)} ${res.toUpperCase()}`)
+        .join(', ');
+
     await addMessage(player.userId, {
         from: 'Galactic Market Hub',
-        subject: `TRADE CONFIRMED: [${fleet.originCoords.join(':')}]`,
-        body: `Exchange successful. Your fleet is returning with the requested commodities.`,
+        subject: `TRADE CONFIRMED: ${traderCoords}`,
+        body: `Exchange successful at ${traderCoords}.\n\nSold: ${soldList}\nBought: ${boughtList}\n\nYour fleet is returning with the requested commodities.`,
         type: 'market',
-        data: { sold: oldResources, bought: fleet.buyResources }
+        data: { sold: oldResources, bought: fleet.buyResources, target: fleet.targetCoords }
     });
 }
