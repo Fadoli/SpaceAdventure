@@ -9,7 +9,7 @@
     width: calc(100% + 50px);
     margin-left: -25px;
     margin-top: -25px;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
     position: sticky;
     top: -25px;
     z-index: 100;
@@ -23,8 +23,8 @@
 /* 1. Technical Header */
 .fleet-header {
     background: rgba(56, 189, 248, 0.03);
-    padding: 0 25px;
-    height: 32px;
+    padding: 0 10px;
+    height: 28px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -46,7 +46,7 @@
 .header-title {
     font-family: 'Orbitron', sans-serif;
     font-weight: 900;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     color: #fff;
     letter-spacing: 2px;
@@ -76,7 +76,7 @@
 
 /* 2. Structured Operation Rows */
 .fleet-list {
-    max-height: 300px;
+    max-height: 250px;
     overflow-y: auto;
 }
 
@@ -88,7 +88,7 @@
     display: grid;
     grid-template-columns: 1.8fr 1.5fr 1.5fr 2fr 100px;
     align-items: center;
-    padding: 8px 25px;
+    padding: 6px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     transition: all 0.2s;
 }

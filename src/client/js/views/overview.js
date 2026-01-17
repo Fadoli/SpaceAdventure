@@ -4,7 +4,7 @@ import { formatNumber, formatDuration } from '../utils.js';
 import { showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { calculatePopulationChange, calculatePositionMultiplier } from '../../../shared/formulas.js';
-import { getGameState, getCurrentPlanetId } from '../main.js';
+import { getGameState, getCurrentPlanetId, getCurrentPlanet } from '../main.js';
 
 let lastOverviewPlanetId = null;
 let currentOverviewMode = 'planet'; // 'planet' or 'empire'
@@ -245,85 +245,129 @@ function initializeOverviewStructure(container, planet, allPlanets) {
 }
 
 function renderEmpireTable(gameState) {
-    let html = `
-        <div class="empire-table-wrapper">
-            <table class="empire-stats-table">
-                <thead>
-                    <tr>
-                        <th class="planet-col">Planet</th>
-                        <th class="res-col">Resources</th>
-                        <th class="energy-col">Energy</th>
-                        <th class="pop-col">Population</th>
-                        <th class="queue-col">Active Queues</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
+    const container = document.getElementById('empire-summary-table-container');
+    if (!container) return;
 
+    // Determine if we need a full re-render (e.g. planet count changed)
+    const planetIds = gameState.planets.map(p => p.id).join(',');
+    if (container.dataset.planetIds !== planetIds || container.innerHTML.trim() === '') {
+        let html = `
+            <div class="empire-table-wrapper">
+                <table class="empire-stats-table">
+                    <thead>
+                        <tr>
+                            <th class="planet-col">Planet</th>
+                            <th class="res-col">Resources</th>
+                            <th class="energy-col">Energy</th>
+                            <th class="pop-col">Population</th>
+                            <th class="queue-col">Active Queues</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        gameState.planets.forEach(planet => {
+            const isCurrent = planet.id === getCurrentPlanetId();
+            html += renderEmpirePlanetRowSkeleton(planet, isCurrent);
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        container.innerHTML = html;
+        container.dataset.planetIds = planetIds;
+    }
+
+    // Granularly update every row
     gameState.planets.forEach(planet => {
-        const isCurrent = planet.id === getCurrentPlanetId();
-        html += renderEmpirePlanetRow(planet, isCurrent);
+        updateEmpirePlanetRowData(planet);
     });
-
-    html += `
-                </tbody>
-            </table>
-        </div>
-    `;
-    return html;
 }
 
-function renderEmpirePlanetRow(planet, isCurrent) {
-    const coords = `[${planet.coordinates.join(':')}]`;
-    const getResClass = (type) => (planet.resources[type] >= planet.storage[type] * 0.9) ? 'text-warning' : '';
-    const energyNet = planet.production.energy;
-    const energyClass = energyNet < 0 ? 'text-error' : 'text-success';
+function renderEmpirePlanetRowSkeleton(planet, isCurrent) {
+    return `<tr class="empire-planet-row ${isCurrent ? 'current' : ''}" id="empire-row-${planet.id}" onclick="window.selectPlanet('${planet.id}')">
+        <td class="planet-col">
+            <div class="planet-identity">
+                <span class="p-name">${planet.name}</span>
+                <span class="p-coords">[${planet.coordinates.join(':')}]</span>
+            </div>
+        </td>
+        <td class="res-col" id="empire-res-${planet.id}"></td>
+        <td class="energy-col" id="empire-energy-${planet.id}"></td>
+        <td class="pop-col" id="empire-pop-${planet.id}"></td>
+        <td class="queue-col" id="empire-queue-${planet.id}"></td>
+    </tr>`;
+}
 
-    let queueHtml = '';
-    if (planet.buildQueue && planet.buildQueue.length > 0) {
-        const item = planet.buildQueue[0];
-        queueHtml += `<div class="q-mini-item build"><span class="q-icon">🏗️</span> <span class="q-name">${item.building}</span> <span class="q-timer timer" data-finish="${item.finishTime}">-</span></div>`;
-    }
-    const shipQueueCount = planet.shipQueue?.length || 0;
-    const defQueueCount = planet.defenseQueue?.length || 0;
-    if (shipQueueCount > 0 || defQueueCount > 0) {
-        const item = (planet.shipQueue?.[0] || planet.defenseQueue?.[0]);
-        queueHtml += `<div class="q-mini-item shipyard"><span class="q-icon">🚀</span> <span class="q-name">Shipyard</span> <span class="q-timer timer" data-finish="${item.finishTime}">-</span></div>`;
-    }
-    if (!queueHtml) queueHtml = '<span class="empty-q">IDLE</span>';
+function updateEmpirePlanetRowData(planet) {
+    const row = document.getElementById(`empire-row-${planet.id}`);
+    if (!row) return;
 
-    return `
-        <tr class="empire-planet-row ${isCurrent ? 'current' : ''}" onclick="window.selectPlanet('${planet.id}')">
-            <td class="planet-col">
-                <div class="planet-identity">
-                    <span class="p-name">${planet.name}</span>
-                    <span class="p-coords">${coords}</span>
-                </div>
-            </td>
-            <td class="res-col">
-                <div class="res-grid-mini">
-                    <div class="res-item ${getResClass('metal')}">⚙️ ${formatNumber(Math.floor(planet.resources.metal))}</div>
-                    <div class="res-item ${getResClass('crystal')}">💎 ${formatNumber(Math.floor(planet.resources.crystal))}</div>
-                    <div class="res-item ${getResClass('deuterium')}">🛢️ ${formatNumber(Math.floor(planet.resources.deuterium))}</div>
-                </div>
-            </td>
-            <td class="energy-col">
-                <div class="energy-info-mini">
-                    <span class="${energyClass}">${formatNumber(Math.floor(energyNet))}</span>
-                    <small>${planet.energyEfficiency}% EFF</small>
-                </div>
-            </td>
-            <td class="pop-col">
-                <div class="pop-info-mini">
-                    <span>${formatNumber(Math.floor(planet.resources.population))}</span>
-                    <small>/ ${formatNumber(planet.maxPopulation)}</small>
-                </div>
-            </td>
-            <td class="queue-col">
-                <div class="queues-summary">${queueHtml}</div>
-            </td>
-        </tr>
-    `;
+    // Update active class
+    const isCurrent = planet.id === getCurrentPlanetId();
+    if (isCurrent && !row.classList.contains('current')) row.classList.add('current');
+    else if (!isCurrent && row.classList.contains('current')) row.classList.remove('current');
+
+    // Resources
+    const resEl = document.getElementById(`empire-res-${planet.id}`);
+    if (resEl) {
+        const getResClass = (type) => (planet.resources[type] >= planet.storage[type] * 0.9) ? 'text-warning' : '';
+        const resHtml = `
+            <div class="res-grid-mini">
+                <div class="res-item ${getResClass('metal')}">⚙️ ${formatNumber(Math.floor(planet.resources.metal))}</div>
+                <div class="res-item ${getResClass('crystal')}">💎 ${formatNumber(Math.floor(planet.resources.crystal))}</div>
+                <div class="res-item ${getResClass('deuterium')}">🛢️ ${formatNumber(Math.floor(planet.resources.deuterium))}</div>
+            </div>
+        `;
+        if (resEl.innerHTML !== resHtml) resEl.innerHTML = resHtml;
+    }
+
+    // Energy
+    const energyEl = document.getElementById(`empire-energy-${planet.id}`);
+    if (energyEl) {
+        const energyNet = Math.floor(planet.production.energy);
+        const energyClass = energyNet < 0 ? 'text-error' : 'text-success';
+        const energyHtml = `
+            <div class="energy-info-mini">
+                <span class="${energyClass}">${formatNumber(energyNet)}</span>
+                <small>${planet.energyEfficiency}% EFF</small>
+            </div>
+        `;
+        if (energyEl.innerHTML !== energyHtml) energyEl.innerHTML = energyHtml;
+    }
+
+    // Population
+    const popEl = document.getElementById(`empire-pop-${planet.id}`);
+    if (popEl) {
+        const popHtml = `
+            <div class="pop-info-mini">
+                <span>${formatNumber(Math.floor(planet.resources.population))}</span>
+                <small>/ ${formatNumber(planet.maxPopulation)}</small>
+            </div>
+        `;
+        if (popEl.innerHTML !== popHtml) popEl.innerHTML = popHtml;
+    }
+
+    // Queues
+    const queueEl = document.getElementById(`empire-queue-${planet.id}`);
+    if (queueEl) {
+        let queueHtml = '';
+        if (planet.buildQueue && planet.buildQueue.length > 0) {
+            const item = planet.buildQueue[0];
+            queueHtml += `<div class="q-mini-item build"><span class="q-icon">🏗️</span> <span class="q-name">${item.building}</span> <span class="q-timer timer" data-finish="${item.finishTime}">-</span></div>`;
+        }
+        const shipQueueCount = planet.shipQueue?.length || 0;
+        const defQueueCount = planet.defenseQueue?.length || 0;
+        if (shipQueueCount > 0 || defQueueCount > 0) {
+            const item = (planet.shipQueue?.[0] || planet.defenseQueue?.[0]);
+            queueHtml += `<div class="q-mini-item shipyard"><span class="q-icon">🚀</span> <span class="q-name">Shipyard</span> <span class="q-timer timer" data-finish="${item.finishTime}">-</span></div>`;
+        }
+        if (!queueHtml) queueHtml = '<span class="empty-q">IDLE</span>';
+        
+        if (queueEl.innerHTML !== queueHtml) queueEl.innerHTML = queueHtml;
+    }
 }
 
 /**
@@ -347,10 +391,16 @@ function updatePlanetOverviewDetails(planet) {
     const waterBonus = calculatePositionMultiplier(position, 'water');
     const foodBonus = calculatePositionMultiplier(position, 'food');
 
-    // Update simple text values
-    const safeSetText = (id, val) => {
+    // Helper for granular text updates
+    const updateText = (id, val) => {
         const el = document.getElementById(id);
-        if (el && el.textContent !== val) el.textContent = val;
+        if (el && el.textContent !== String(val)) el.textContent = val;
+    };
+
+    // Helper for granular HTML updates
+    const updateHtml = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && el.innerHTML !== val) el.innerHTML = val;
     };
 
     const formatBonus = (val) => {
@@ -360,45 +410,42 @@ function updatePlanetOverviewDetails(planet) {
         return `<span style="color: ${color}">${sign}${percent}%</span> <span style="font-size: 0.7rem; opacity: 0.6;">(${val.toFixed(1)}x)</span>`;
     };
 
-    safeSetText('ov-planet-name', planet.name);
-    safeSetText('ov-planet-coords', `[${coordinates.join(':')}]`);
+    updateText('ov-planet-name', planet.name);
+    updateText('ov-planet-coords', `[${coordinates.join(':')}]`);
     
-    const deutEl = document.getElementById('ov-bonus-deut');
-    if (deutEl) deutEl.innerHTML = formatBonus(deutBonus);
-    
-    const waterEl = document.getElementById('ov-bonus-water');
-    if (waterEl) waterEl.innerHTML = formatBonus(waterBonus);
-    
-    const foodEl = document.getElementById('ov-bonus-food');
-    if (foodEl) foodEl.innerHTML = formatBonus(foodBonus);
+    updateHtml('ov-bonus-deut', formatBonus(deutBonus));
+    updateHtml('ov-bonus-water', formatBonus(waterBonus));
+    updateHtml('ov-bonus-food', formatBonus(foodBonus));
     
     // Simplified stats
     let shipCount = 0;
     if (ships) {
-        for (const k in ships) shipCount += ships[k];
+        for (const k in ships) shipCount += (ships[k] || 0);
     }
     let defenseCount = 0;
     if (defenses) {
-        for (const k in defenses) defenseCount += defenses[k];
+        for (const k in defenses) defenseCount += (defenses[k] || 0);
     }
-    safeSetText('ov-military-summary', `${formatNumber(shipCount)} Fleet Units / ${formatNumber(defenseCount)} Tactical Defenses`);
+    updateText('ov-military-summary', `${formatNumber(shipCount)} Fleet Units / ${formatNumber(defenseCount)} Tactical Defenses`);
 
     // Update resources
     const resourceKeys = ['metal', 'crystal', 'deuterium', 'water', 'food'];
     resourceKeys.forEach(key => {
-        const current = resources[key] || 0;
+        const current = Math.floor(resources[key] || 0);
         const max = storage[key] || 10000;
-        safeSetText(`ov-res-${key}`, `${formatNumber(current)} / ${formatNumber(max)}`);
+        const displayVal = `${formatNumber(current)} / ${formatNumber(max)}`;
+        updateText(`ov-res-${key}`, displayVal);
         
         // Update bar
         const bar = document.getElementById(`ov-bar-${key}`);
         if (bar) {
             const percent = Math.min(100, (current / max) * 100);
-            bar.style.width = `${percent}%`;
+            const widthVal = `${percent}%`;
+            if (bar.style.width !== widthVal) bar.style.width = widthVal;
+            
             // Color based on fullness
-            if (percent > 90) bar.style.backgroundColor = 'var(--accent-red)';
-            else if (percent > 75) bar.style.backgroundColor = 'var(--accent-yellow)';
-            else bar.style.backgroundColor = 'var(--accent-blue)';
+            const colorVal = percent > 90 ? 'var(--accent-red)' : (percent > 75 ? 'var(--accent-yellow)' : 'var(--accent-blue)');
+            if (bar.style.backgroundColor !== colorVal) bar.style.backgroundColor = colorVal;
         }
 
         const prod = production[key] || 0;
@@ -406,8 +453,11 @@ function updatePlanetOverviewDetails(planet) {
         const net = prod - cons;
         const prodEl = document.getElementById(`ov-prod-${key}`);
         if (prodEl) {
-            prodEl.textContent = (net >= 0 ? '+' : '') + formatNumber(net) + '/h';
-            prodEl.className = `${net < 0 ? 'text-danger' : 'text-success'}`;
+            const netText = (net >= 0 ? '+' : '') + formatNumber(net) + '/h';
+            if (prodEl.textContent !== netText) prodEl.textContent = netText;
+            
+            const colorClass = `${net < 0 ? 'text-danger' : 'text-success'}`;
+            if (prodEl.className !== colorClass) prodEl.className = colorClass;
         }
     });
 
@@ -415,98 +465,97 @@ function updatePlanetOverviewDetails(planet) {
     const energyBalance = production.energy || 0;
     const isNegative = energyBalance < 0;
 
-    safeSetText('ov-energy-prod', `${formatNumber(energyTotal)}`);
-    safeSetText('ov-energy-cons', `${formatNumber(Math.abs(energyConsumption || 0))}`);
+    updateText('ov-energy-prod', formatNumber(energyTotal));
+    updateText('ov-energy-cons', formatNumber(Math.abs(energyConsumption || 0)));
     
     const netEl = document.getElementById('ov-energy-net');
     if (netEl) {
-        netEl.textContent = (energyBalance >= 0 ? '+' : '') + formatNumber(energyBalance);
-        netEl.className = `prod-val ${isNegative ? 'text-danger' : 'text-success'}`;
+        const netText = (energyBalance >= 0 ? '+' : '') + formatNumber(energyBalance);
+        if (netEl.textContent !== netText) netEl.textContent = netText;
+        
+        const colorClass = `prod-val ${isNegative ? 'text-danger' : 'text-success'}`;
+        if (netEl.className !== colorClass) netEl.className = colorClass;
     }
 
     // Energy Bar (Load %)
     const energyBar = document.getElementById('ov-bar-energy');
     if (energyBar) {
         const loadPercent = energyTotal > 0 ? Math.min(100, (Math.abs(energyConsumption || 0) / energyTotal) * 100) : 0;
-        energyBar.style.width = `${loadPercent}%`;
-        energyBar.style.backgroundColor = isNegative ? 'var(--accent-red)' : 'var(--accent-green)';
+        const widthVal = `${loadPercent}%`;
+        if (energyBar.style.width !== widthVal) energyBar.style.width = widthVal;
+        
+        const colorVal = isNegative ? 'var(--accent-red)' : 'var(--accent-green)';
+        if (energyBar.style.backgroundColor !== colorVal) energyBar.style.backgroundColor = colorVal;
     }
 
     // Update population
-    const currentPop = resources.population || 0;
+    const currentPop = Math.floor(resources.population || 0);
     const maxPop = planet.maxPopulation || 100;
-    safeSetText('ov-pop-val', `${formatNumber(currentPop)} / ${formatNumber(maxPop)}`);
+    updateText('ov-pop-val', `${formatNumber(currentPop)} / ${formatNumber(maxPop)}`);
     
     // Population Bar
     const popBar = document.getElementById('ov-bar-population');
     if (popBar) {
         const popPercent = Math.min(100, (currentPop / maxPop) * 100);
-        popBar.style.width = `${popPercent}%`;
-        popBar.style.backgroundColor = popPercent > 95 ? 'var(--accent-red)' : 'var(--population-color)';
+        const widthVal = `${popPercent}%`;
+        if (popBar.style.width !== widthVal) popBar.style.width = widthVal;
+        
+        const colorVal = popPercent > 95 ? 'var(--accent-red)' : 'var(--population-color)';
+        if (popBar.style.backgroundColor !== colorVal) popBar.style.backgroundColor = colorVal;
     }
 
     const popProdEl = document.getElementById('ov-pop-prod');
     if (popProdEl) {
         const prodMult = window.GAME_CONFIG?.gameSpeed?.resourceProduction || 1.0;
-        const nextPop = calculatePopulationChange(
-            resources.population || 0,
-            planet.maxPopulation || 0,
-            (resources.food || 0) > 0,
-            (resources.water || 0) > 0,
-            1,
-            prodMult
-        );
-        const netChange = nextPop - (resources.population || 0);
-        popProdEl.textContent = (netChange >= 0 ? '+' : '') + formatNumber(netChange) + '/h';
-        popProdEl.className = `prod-net ${netChange < 0 ? 'text-danger' : (netChange > 0 ? 'text-success' : '')}`;
+        const nextPop = calculatePopulationChange(currentPop, maxPop, (resources.food || 0) > 0, (resources.water || 0) > 0, 1, prodMult);
+        const netChange = nextPop - currentPop;
+        const netText = (netChange >= 0 ? '+' : '') + formatNumber(netChange) + '/h';
+        if (popProdEl.textContent !== netText) popProdEl.textContent = netText;
+        
+        const colorClass = `prod-net ${netChange < 0 ? 'text-danger' : (netChange > 0 ? 'text-success' : '')}`;
+        if (popProdEl.className !== colorClass) popProdEl.className = colorClass;
     }
 
     // Warnings
     const warningContainer = document.getElementById('ov-efficiency-warning-container');
     if (warningContainer) {
-        let warnings = '';
+        let warningsHtml = '';
         if (energyEfficiency !== undefined && energyEfficiency < 100) {
-            warnings += `<div class="efficiency-warning text-warning">⚠️ Energy Efficiency: ${energyEfficiency}%</div>`;
+            warningsHtml += `<div class="efficiency-warning text-warning">⚠️ Energy Efficiency: ${energyEfficiency}%</div>`;
         }
         if (populationEfficiency !== undefined && populationEfficiency < 100) {
-            warnings += `<div class="efficiency-warning text-warning">⚠️ Population Efficiency: ${populationEfficiency}%</div>`;
+            warningsHtml += `<div class="efficiency-warning text-warning">⚠️ Population Efficiency: ${populationEfficiency}%</div>`;
         }
-        warningContainer.innerHTML = warnings;
+        if (warningContainer.innerHTML !== warningsHtml) warningContainer.innerHTML = warningsHtml;
     }
 
     // Update Queue Summary
     const queueList = document.getElementById('ov-queue-list');
     if (queueList) {
-        const activeQueues = [];
+        let activeQueuesHtml = '';
         
-        // Building Queue
         if (planet.buildQueue && planet.buildQueue.length > 0) {
             const item = planet.buildQueue[0];
-            activeQueues.push(`<div>🏗️ Building: <strong>${item.building}</strong> (Lvl ${item.level}) <span class="timer" data-finish="${item.finishTime}">-</span></div>`);
+            activeQueuesHtml += `<div>🏗️ Building: <strong>${item.building}</strong> (Lvl ${item.level}) <span class="timer" data-finish="${item.finishTime}">-</span></div>`;
         }
         
-        // Ship Queue
         if (planet.shipQueue && planet.shipQueue.length > 0) {
-            const item = planet.shipQueue[0];
-            activeQueues.push(`<div>🚀 Shipyard: Active Production <span class="timer" data-finish="${item.finishTime}">-</span></div>`);
+            activeQueuesHtml += `<div>🚀 Shipyard: Active Production <span class="timer" data-finish="${planet.shipQueue[0].finishTime}">-</span></div>`;
         }
 
-        // Defense Queue
         if (planet.defenseQueue && planet.defenseQueue.length > 0) {
-            const item = planet.defenseQueue[0];
-            activeQueues.push(`<div>🛡️ Defenses: Active Production <span class="timer" data-finish="${item.finishTime}">-</span></div>`);
+            activeQueuesHtml += `<div>🛡️ Defenses: Active Production <span class="timer" data-finish="${planet.defenseQueue[0].finishTime}">-</span></div>`;
         }
 
-        if (activeQueues.length > 0) {
-            queueList.innerHTML = activeQueues.join('');
-        } else {
-            queueList.innerHTML = '<p class="empty-text">No active construction or production</p>';
-        }
+        if (activeQueuesHtml === '') activeQueuesHtml = '<p class="empty-text">No active construction or production</p>';
+        
+        if (queueList.innerHTML !== activeQueuesHtml) queueList.innerHTML = activeQueuesHtml;
     }
 
     const visualEl = document.getElementById('ov-planet-visual');
     if (visualEl) {
-        visualEl.style.filter = `hue-rotate(${position * 20}deg)`;
+        const filterVal = `hue-rotate(${position * 20}deg)`;
+        if (visualEl.style.filter !== filterVal) visualEl.style.filter = filterVal;
     }
 }
 
@@ -534,16 +583,11 @@ export function updateOverview(planet, allPlanets = []) {
         updatePlanetOverviewDetails(planet);
     } else {
         // Update Empire Table
-        const empireContainer = document.getElementById('empire-summary-table-container');
-        if (empireContainer) {
-            const gameState = getGameState();
-            if (gameState) {
-                empireContainer.innerHTML = renderEmpireTable(gameState);
-            }
+        const gameState = getGameState();
+        if (gameState) {
+            renderEmpireTable(gameState);
         }
     }
-
-    const visualEl = document.getElementById('ov-planet-visual');
 }
 
 /**
