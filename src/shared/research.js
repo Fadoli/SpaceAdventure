@@ -5,7 +5,7 @@ export const THEORETICAL_RESEARCH = {
     // Energy Technologies
     energyTech: {
         name: 'Energy Technology',
-        category: 'Energy',
+        category: 'Core',
         icon: '⚡',
         description: 'Improves energy production and efficiency across all buildings.',
         detailedDescription: 'Energy Technology is the cornerstone of all advanced planetary infrastructure.\n\nIt covers the mastery of high-density power generation, superconducting transmission, and localized grid optimization. As scientists delve deeper into quantum energetics and zero-point fluctuations, they unlock the ability to construct Fusion Reactors, which harness the power of artificial suns.\n\nHigher levels of this research not only unlock new energy structures but also improve the efficiency of existing ones, making it easier to power a rapidly growing colony without constant blackouts.',
@@ -23,7 +23,7 @@ export const THEORETICAL_RESEARCH = {
 
     computerTech: {
         name: 'Computer Technology',
-        category: 'Computing',
+        category: 'Core',
         icon: '💻',
         description: 'Accelerates research and improves fleet efficiency.',
         detailedDescription: 'From localized AI sub-routines to massive planet-wide neural networks, Computer Technology governs the processing power available to your empire.\n\nAdvanced computing allows for more efficient management of complex research simulations and the coordination of vast robotic workforces. Strategically, this is one of the most critical technologies to advance early, as its "research speed" bonus applies to every other technological field.\n\nIt is also a fundamental requirement for advanced defensive systems and the sophisticated navigation computers required for deep-space combat vessels.',
@@ -168,7 +168,7 @@ export const THEORETICAL_RESEARCH = {
 
     espionageTech: {
         name: 'Espionage Technology',
-        category: 'Espionage',
+        category: 'Military',
         icon: '🕵️',
         description: 'Enables espionage missions and improves intelligence gathering.',
         detailedDescription: 'In the dark reaches of space, information is often more valuable than gold.\n\nEspionage Technology focuses on the development of ultra-sensitive long-range scanners, advanced encryption algorithms, and stealth-coatings for probes. Advancing this tech allows your empire to gain detailed insights into enemy planet infrastructure and fleet movements while simultaneously making your own systems much harder to penetrate.\n\nHigh-level espionage is essential for planning successful attacks and avoiding costly ambushes.',
@@ -189,7 +189,7 @@ export const THEORETICAL_RESEARCH = {
 
     astrophysics: {
         name: 'Astrophysics',
-        category: 'Science',
+        category: 'Engineering',
         icon: '🔭',
         description: 'Unlocks additional galaxy slots and colony expansion.',
         detailedDescription: 'The study of the cosmos and the formation of star systems.\n\nAdvanced knowledge of Astrophysics is required to identify and exploit habitable worlds across the galaxy. This research directly determines the maximum number of planets your empire can colonize and manage effectively.\n\nIt also covers the logistical challenges of maintaining distant outposts, ensuring your colonists have the life-support and communications systems needed to survive in the most remote corners of the universe. Every level expands your reach and your influence.',
@@ -212,7 +212,7 @@ export const THEORETICAL_RESEARCH = {
 
     housingTech: {
         name: 'Housing Improvement',
-        category: 'Infrastructure',
+        category: 'Engineering',
         icon: '🏘️',
         description: 'Significantly improves housing capacity and efficiency.',
         detailedDescription: 'Housing Improvement focuses on the architectural and life-support optimizations required to sustain dense populations in hostile environments.\n\nBy developing modular living units, advanced waste recycling, and psychology-aware habitat designs, this technology drastically increases the base capacity of Housing structures. It also provides a scaling bonus that makes every level of Housing more effective as your population grows.',

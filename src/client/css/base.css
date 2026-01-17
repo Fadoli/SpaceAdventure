@@ -354,8 +354,9 @@ body::before {
 /* Main Layout Structure */
 .main-layout-container {
     display: flex;
-    min-height: calc(100vh - 40px); /* Full height minus header */
+    height: calc(100vh - 40px); /* Fixed height minus header */
     margin-top: 40px;
+    overflow: hidden; /* Contain scrolling to children */
 }
 
 .game-nav {
@@ -371,6 +372,25 @@ body::before {
     top: 40px;
     height: calc(100vh - 40px);
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.game-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.game-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.game-nav::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.game-nav::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-blue);
 }
 
 .nav-btn {

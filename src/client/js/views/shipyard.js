@@ -287,7 +287,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                                 id="btn-${shipKey}"
                                 ${!canBuild ? 'disabled' : ''} 
                                 onclick="window.buildShip('${shipKey}', '${ship.name}')">
-                            CONSTRUCT
+                            BUILD
                         </button>
                     </div>
                 `}
@@ -400,7 +400,7 @@ function renderDefensesList(planet, shipyardData) {
                                         id="btn-${defenseKey}"
                                         ${!canBuild ? 'disabled' : ''} 
                                         onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
-                                    DEPLOY
+                                    BUILD
                                 </button>
                             </div>
                         `}
