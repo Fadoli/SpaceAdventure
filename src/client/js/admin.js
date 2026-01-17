@@ -1,5 +1,6 @@
 // Admin Dashboard Logic
 import { API } from './api.js';
+import { parseNumberShorthand } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Auth check - if fails, redirect to home
@@ -52,6 +53,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('search-player-btn').addEventListener('click', searchPlayers);
     document.getElementById('player-search-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchPlayers();
+    });
+
+    // Tab Switching
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+            
+            // Update buttons
+            document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        });
     });
 });
 
@@ -121,11 +137,13 @@ function renderPlayerAdminCard(player) {
                                         <option value="ship-battleship">Battleship</option>
                                         <option value="ship-destroyer">Destroyer</option>
                                         <option value="ship-bomber">Bomber</option>
+                                        <option value="ship-carrier">Carrier</option>
+                                        <option value="ship-dreadnought">Dreadnought</option>
                                     </optgroup>
                                 </select>
                             </div>
                             <div style="display: flex; gap: 5px;">
-                                <input type="number" id="val-${player.userId}-${planet.id}" class="modal-input" placeholder="Qty" style="width: 60px; height: 28px; font-size: 0.7rem;">
+                                <input type="text" id="val-${player.userId}-${planet.id}" class="modal-input" placeholder="Qty (e.g. 5m)" style="width: 100px; height: 28px; font-size: 0.7rem;">
                                 <button class="btn btn-primary btn-small" style="padding: 0 8px; height: 28px;" onclick="window.modifyAssets('${player.userId}', '${planet.id}')">ADD</button>
                             </div>
                         </div>
@@ -140,7 +158,7 @@ window.modifyAssets = async function(userId, planetId) {
     const typeSelect = document.getElementById(`type-${userId}-${planetId}`);
     const valInput = document.getElementById(`val-${userId}-${planetId}`);
     const rawType = typeSelect.value;
-    const value = parseInt(valInput.value) || 0;
+    const value = parseNumberShorthand(valInput.value);
 
     if (value === 0) return;
 
