@@ -14,6 +14,7 @@ import { readJsonFile } from '../storage/storage.js';
 import { wsManager } from './wsManager.js';
 
 let gameLoopInterval = null;
+let isTickRunning = false;
 let lastSaveTime = 0;
 let lastRankingSnapshotTime = 0;
 let lastRecomputeTime = 0;
@@ -45,7 +46,13 @@ export function startGameLoop() {
   }).catch(() => {});
   
   gameLoopInterval = setInterval(async () => {
-    await gameTick();
+    if (isTickRunning) return;
+    isTickRunning = true;
+    try {
+      await gameTick();
+    } finally {
+      isTickRunning = false;
+    }
   }, CONFIG.GAME_TICK_INTERVAL);
 }
 

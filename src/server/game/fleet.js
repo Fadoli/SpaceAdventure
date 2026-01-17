@@ -174,6 +174,7 @@ export async function processFleets(player, allPlayers) {
 
     for (let i = player.fleets.length - 1; i >= 0; i--) {
         const fleet = player.fleets[i];
+        if (!fleet) continue;
 
         // Prevent double-processing in the same tick
         if (fleet.processedAt === now) continue;
@@ -192,7 +193,13 @@ export async function processFleets(player, allPlayers) {
 
                 // Generate expedition result before returning
                 if (fleet.missionType === MISSION_TYPES.EXPEDITION) {
-                    await executeExpedition(player, fleet);
+                    const destroyed = await executeExpedition(player, fleet);
+                    if (destroyed) {
+                        player.fleets.splice(i, 1);
+                        updated = true;
+                        wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
+                        continue;
+                    }
                 }
 
                 const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
@@ -1021,6 +1028,7 @@ async function executeExpedition(player, fleet) {
     let resultType = 'nothing';
     let body = '';
     let subject = 'Expedition Report';
+    let destroyed = false;
 
     // Calculate total resource value of the fleet
     let fleetValue = 0;
@@ -1059,6 +1067,11 @@ async function executeExpedition(player, fleet) {
             }
             
             body = `Your fleet entered a gravity well of a dark star. Structural integrity failed across multiple vessels. You lost: ${lostShipNames.join(', ')}.`;
+            
+            if (isEmpty(fleet.ships)) {
+                body += " The entire fleet was pulverized by the gravitational forces.";
+                destroyed = true;
+            }
         } else {
             body = `Your fleet narrowly escaped a black hole. No ships were lost.`;
         }
@@ -1159,6 +1172,7 @@ async function executeExpedition(player, fleet) {
         
         if (isEmpty(fleet.ships)) {
             body = `Your fleet was intercepted by a massive Xeno-fleet. After a desperate struggle, the last transmission from your commander was cut short. The entire fleet has been lost.`;
+            destroyed = true;
         } else {
             const victory = combatReport.winner === 'attacker';
             body = victory 
@@ -1175,7 +1189,7 @@ async function executeExpedition(player, fleet) {
             type: 'attack',
             data: { ...combatReport, reportId, isAttacker: true, targetCoords: fleet.targetCoords }
         });
-        return; // Message already sent
+        return destroyed; // Return whether fleet was wiped
     } else if (roll < 0.75) {
         // Found credits/statistics (Lore only for now)
         resultType = 'info';
@@ -1193,6 +1207,8 @@ async function executeExpedition(player, fleet) {
         type: 'expedition',
         data: { resultType, coords: [...fleet.targetCoords] }
     });
+
+    return destroyed;
 }
 
 /**
