@@ -302,12 +302,20 @@ export function renderCombatReport(data) {
                 <div class="v-readout-header">ATTACKER LOSSES</div>
                 <div class="bt-readout">
                     ${attackerLossesParts.length === 0 ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : attackerLossesParts.join('')}
+                    <div class="bt-row total-row" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">
+                        <span class="bt-label">TOTAL VALUE LOST</span>
+                        <span class="bt-value text-danger">${formatNumber(data.totalAttackerLossValue || 0)}</span>
+                    </div>
                 </div>
             </div>
             <div class="loss-col">
                 <div class="v-readout-header">DEFENDER LOSSES</div>
                 <div class="bt-readout">
                     ${defenderLossesParts.length === 0 ? '<div class="bt-row"><span class="bt-label">NONE</span></div>' : defenderLossesParts.join('')}
+                    <div class="bt-row total-row" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">
+                        <span class="bt-label">TOTAL VALUE LOST</span>
+                        <span class="bt-value text-danger">${formatNumber(data.totalDefenderLossValue || 0)}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -315,12 +323,17 @@ export function renderCombatReport(data) {
 
     // Debris Field
     if (data.debris && (data.debris.metal > 0 || data.debris.crystal > 0)) {
+        const totalDebris = (data.debris.metal || 0) + (data.debris.crystal || 0);
         html += `
             <div class="report-block">
                 <div class="v-readout-header">DEBRIS FIELD SIGNATURE</div>
                 <div class="bt-readout">
                     <div class="bt-row"><span class="bt-label">METAL RECOVERABLE</span><span class="bt-value archived">${formatNumber(data.debris.metal)}</span></div>
                     <div class="bt-row"><span class="bt-label">CRYSTAL RECOVERABLE</span><span class="bt-value archived">${formatNumber(data.debris.crystal)}</span></div>
+                    <div class="bt-row total-row" style="margin-top: 5px; border-top: 1px dotted rgba(255,255,255,0.1); padding-top: 5px;">
+                        <span class="bt-label">TOTAL SALVAGE POTENTIAL</span>
+                        <span class="bt-value" style="color: var(--accent-blue);">${formatNumber(totalDebris)}</span>
+                    </div>
                 </div>
             </div>
         `;

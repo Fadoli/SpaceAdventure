@@ -166,4 +166,30 @@ describe('Combat Engine', () => {
     expect(repairedLC + lostLC).toBe(50);
     expect(repairedLC).toBeGreaterThanOrEqual(30);
   });
+
+  it('should calculate total resource value of losses', () => {
+    // Light fighter: 3000 metal, 1000 crystal, 0 deuterium = 4000 total
+    const attacker = {
+      ships: { lightFighter: 10 },
+      research: { weaponsTech: 0, shieldingTech: 0, armorTech: 0 }
+    };
+    const defender = {
+      ships: { lightFighter: 10 },
+      research: { weaponsTech: 0, shieldingTech: 0, armorTech: 0 }
+    };
+
+    const report = simulateCombat(attacker, defender);
+    
+    // Sum individual unit losses manually to check total
+    let attackerLostCount = 0;
+    for (const k in report.attackerLosses) attackerLostCount += report.attackerLosses[k];
+    
+    let defenderLostCount = 0;
+    for (const k in report.defenderLosses.ships) defenderLostCount += report.defenderLosses.ships[k];
+
+    expect(report.totalAttackerLossValue).toBe(attackerLostCount * 4000);
+    expect(report.totalDefenderLossValue).toBe(defenderLostCount * 4000);
+    expect(report.totalAttackerLossValue).toBeGreaterThan(0);
+    expect(report.totalDefenderLossValue).toBeGreaterThan(0);
+  });
 });

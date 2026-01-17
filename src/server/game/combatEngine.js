@@ -88,11 +88,16 @@ export function simulateGroupCombat(attackers, defenders) {
   // 4. Calculate Losses per participant and Debris
   const repairChance = CONFIG.DEFENSE_REPAIR_CHANCE || 0.7;
 
+  report.totalAttackerLossValue = 0;
+  report.totalDefenderLossValue = 0;
+
   // Process Attackers
   report.attackers.forEach(a => {
     const participantGroups = attackerGroups.filter(g => g.participantId === a.id);
     a.survivingShips = consolidateGroups(participantGroups);
     a.losses = calculateGroupLosses(a.initialShips, participantGroups);
+    a.lostValue = calculateLossValue(a.losses, SHIPS);
+    report.totalAttackerLossValue += a.lostValue;
   });
 
   // Process Defenders
@@ -125,6 +130,9 @@ export function simulateGroupCombat(attackers, defenders) {
       const lost = rawDefLosses[defKey] - (repairedDefenses[defKey] || 0);
       if (lost > 0) d.losses.defenses[defKey] = lost;
     }
+
+    d.lostValue = calculateLossValue(d.losses.ships, SHIPS) + calculateLossValue(d.losses.defenses, DEFENSES);
+    report.totalDefenderLossValue += d.lostValue;
   });
 
   // Calculate Debris (Consolidated)
@@ -184,7 +192,7 @@ function calculateLossValue(losses, definitions) {
     const count = losses[key];
     const def = getShip(key) || definitions[key];
     if (def && def.baseCost) {
-      value += (def.baseCost.metal + def.baseCost.crystal) * count;
+      value += ((def.baseCost.metal || 0) + (def.baseCost.crystal || 0) + (def.baseCost.deuterium || 0)) * count;
     }
   }
   return value;
