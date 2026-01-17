@@ -63,28 +63,26 @@ let lastContentHash = null;
  */
 export async function updateShipyardView(planet, subView = 'ships', force = false) {
     try {
-        const currentStructuralHash = calculateStructuralHash({
-            shipyardLevel: planet.buildings?.shipyard || 0,
-            roboticsLevel: planet.buildings?.roboticsFactory || 0,
-            naniteLevel: planet.buildings?.naniteFactory || 0
-        }, planet, subView);
-
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // 1. Structural update check
-        if (force || currentStructuralHash !== lastStructuralHash || !container.querySelector('.shipyard-content')) {
-            const shipyardData = await API.getShipyardDetails(planet.id);
-            currentShipyardData = shipyardData;
-            
+        // Fetch data early so it's available for hashes
+        const shipyardData = await API.getShipyardDetails(planet.id);
+        currentShipyardData = shipyardData;
+
+        const structuralHash = calculateStructuralHash(shipyardData, planet, subView);
+
+        // 1. Initialize structural layout if needed
+        if (force || structuralHash !== lastStructuralHash || !container.querySelector('.shipyard-content')) {
             const shipyardLevel = shipyardData.shipyardLevel || 0;
             const isDefenses = subView === 'defenses';
             
             container.innerHTML = `
                 <div class="shipyard-container">
-                    <div class="shipyard-header">
-                        <h3 id="shipyard-title-lvl">⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardLevel}</h3>
+                    <div class="view-header-technical">
+                        <h2 id="shipyard-title-lvl">${isDefenses ? 'DEFENSIVE BATTERIES' : 'SHIPYARD OPERATIONS'} <span style="font-size: 0.8rem; opacity: 0.6; margin-left: 10px;">LVL ${shipyardLevel}</span></h2>
+                        <div class="header-line"></div>
                     </div>
                     <div class="shipyard-content">
                         <div class="shipyard-queue-container"></div>
@@ -99,14 +97,9 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
                 ? renderDefensesList(planet, shipyardData)
                 : renderShipsList(planet, shipyardData);
             
-            lastStructuralHash = currentStructuralHash;
+            lastStructuralHash = structuralHash;
             lastContentHash = calculateContentHash(shipyardData);
             attachShipyardListeners(planet, shipyardData);
-        } else {
-            // Already have data, but check if we need to fetch for count/queue changes
-            // We use a light fetch for data updates
-            const shipyardData = await API.getShipyardDetails(planet.id);
-            currentShipyardData = shipyardData;
         }
 
         const shipyardContent = container.querySelector('.shipyard-content');
@@ -146,8 +139,9 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
     // Update shipyard title level if needed
     const titleEl = document.getElementById('shipyard-title-lvl');
     if (titleEl) {
-        const expectedTitle = `⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardData.shipyardLevel}`;
-        if (titleEl.textContent !== expectedTitle) titleEl.textContent = expectedTitle;
+        const titleText = isDefenses ? 'DEFENSIVE BATTERIES' : 'SHIPYARD OPERATIONS';
+        const expectedHtml = `${titleText} <span style="font-size: 0.8rem; opacity: 0.6; margin-left: 10px;">LVL ${shipyardData.shipyardLevel}</span>`;
+        if (titleEl.innerHTML !== expectedHtml) titleEl.innerHTML = expectedHtml;
     }
 
     for (const key in available) {
@@ -247,16 +241,18 @@ function renderShipsList(planet, shipyardData) {
     
     for (const category in shipCategories) {
         const data = shipCategories[category];
-        if (isEmpty(data.ships)) continue;
+        const shipCount = Object.keys(data.ships).length;
+        if (shipCount === 0) continue;
         
         const isCollapsed = collapsedSections[`ships-${category}`] || false;
         const isLocked = shipyardLevel < data.minLevel;
         
         html += `<div class="shipyard-section">
-            <div class="queue-header" onclick="window.toggleCategory('ships-${category}')">
-                <h3>${data.label}</h3>
+            <div class="category-header-technical" onclick="window.toggleCategory('ships-${category}')" style="cursor: pointer; margin-bottom: 15px;">
+                <h3>${data.label.toUpperCase()} DIVISION</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    ${isLocked ? `<span class="lock-icon">🔒 Level ${data.minLevel}</span>` : ''}
+                    <span class="category-stats-tag">${shipCount} UNIT MODELS AVAILABLE</span>
+                    ${isLocked ? `<span class="lock-icon" style="font-size: 0.7rem; color: var(--accent-red);">🔒 LVL ${data.minLevel}</span>` : ''}
                     <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
                 </div>
             </div>`;
@@ -378,12 +374,14 @@ function renderDefensesList(planet, shipyardData) {
     const minLevel = 1;
     const isCollapsed = collapsedSections['defenses'] || false;
     const isLocked = shipyardLevel < minLevel;
+    const defenseCount = Object.keys(availableDefenses).length;
     
     let html = '<div class="shipyard-section">';
-    html += `<div class="queue-header" onclick="window.toggleCategory('defenses')">
-        <h3>🛡️ Planetary Defenses</h3>
+    html += `<div class="category-header-technical" onclick="window.toggleCategory('defenses')" style="cursor: pointer; margin-bottom: 15px;">
+        <h3>🛡️ PLANETARY DEFENSE NETWORK</h3>
         <div style="display: flex; gap: 10px; align-items: center;">
-            ${isLocked ? `<span class="lock-icon">🔒 Level ${minLevel}</span>` : ''}
+            <span class="category-stats-tag">${defenseCount} DEFENSE MODELS AVAILABLE</span>
+            ${isLocked ? `<span class="lock-icon" style="font-size: 0.7rem; color: var(--accent-red);">🔒 LVL ${minLevel}</span>` : ''}
             <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
         </div>
     </div>`;
@@ -480,11 +478,11 @@ function renderBuildQueue(shipyardData) {
         return '<div class="shipyard-section"><p style="padding: 15px; opacity: 0.5; font-family: \'Share Tech Mono\', monospace;">NO ACTIVE PRODUCTION ORDERS</p></div>';
     }
     
-    let html = '<div class="shipyard-section">';
+    let html = '<div class="shipyard-section" style="margin-bottom: 30px;">';
     html += '<div class="card-corner-top"></div>';
-    html += `<div class="queue-header" onclick="window.toggleCategory('queue')">
-        <h3>📋 PRODUCTION LOG</h3>
-        <span class="toggle-icon">${isCollapsed ? '▶️' : '▼️'}</span>
+    html += `<div class="queue-header" onclick="window.toggleCategory('queue')" style="background: rgba(251, 191, 36, 0.03); border-bottom: 1px solid rgba(251, 191, 36, 0.1);">
+        <h3 style="color: var(--accent-yellow);">🔨 PRODUCTION LOG</h3>
+        <span class="toggle-icon" style="color: var(--accent-yellow);">${isCollapsed ? '▶️' : '▼️'}</span>
     </div>`;
     
     if (!isCollapsed) {
