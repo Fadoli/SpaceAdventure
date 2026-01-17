@@ -1,5 +1,5 @@
 import { API } from '../api.js';
-import { formatNumber, parseNumberShorthand } from '../utils.js';
+import { formatNumber, parseNumberShorthand, positionContextMenu } from '../utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
@@ -895,9 +895,8 @@ window.openRelationMenu = function(event, targetUserId, username) {
 
     document.body.appendChild(menu);
 
-    // Position menu next to mouse
-    menu.style.left = `${event.pageX + 10}px`;
-    menu.style.top = `${event.pageY + 10}px`;
+    // Position menu intelligently
+    positionContextMenu(event, menu);
 
     // Close handler
     const closeMenu = (e) => {
@@ -1004,9 +1003,8 @@ window.openDebrisMenu = function(event, position, metal, crystal) {
 
     document.body.appendChild(menu);
 
-    // Position menu next to mouse
-    menu.style.left = `${event.pageX + 10}px`;
-    menu.style.top = `${event.pageY + 10}px`;
+    // Position menu intelligently
+    positionContextMenu(event, menu);
 
     // Close handler
     const closeMenu = (e) => {

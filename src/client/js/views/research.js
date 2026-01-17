@@ -1,7 +1,7 @@
 // Research view - theoretical and practical research management
 import { API } from '../api.js';
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical } from '../../../shared/research.js';
-import { formatNumber, formatDuration, formatCountdown } from '../utils.js';
+import { formatNumber, formatDuration, formatCountdown, positionContextMenu } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -916,11 +916,8 @@ window.shareVariant = async function(baseType, blueprintId, event) {
     menu.innerHTML = html;
     document.body.appendChild(menu);
 
-    // Position menu next to click
-    const x = event ? event.pageX : window.innerWidth / 2;
-    const y = event ? event.pageY : window.innerHeight / 2;
-    menu.style.left = `${x + 10}px`;
-    menu.style.top = `${y + 10}px`;
+    // Position menu intelligently
+    positionContextMenu(event, menu);
 
     const closeMenu = (e) => {
         if (!menu.contains(e.target)) {
@@ -974,9 +971,8 @@ window.openFriendShareSubMenu = async function(baseType, blueprintId, event) {
         menu.innerHTML = html;
         document.body.appendChild(menu);
 
-        // Position next to mouse
-        menu.style.left = `${event.pageX + 10}px`;
-        menu.style.top = `${event.pageY + 10}px`;
+        // Position intelligently
+        positionContextMenu(event, menu);
 
         const closeMenu = (e) => {
             if (!menu.contains(e.target)) {

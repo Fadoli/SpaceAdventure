@@ -205,6 +205,32 @@ export function parseNumberShorthand(str) {
 }
 
 /**
+ * Position a context menu so it stays within the viewport
+ */
+export function positionContextMenu(event, menu) {
+    const x = event.pageX;
+    const y = event.pageY;
+    
+    // Initial placement
+    menu.style.left = `${x + 10}px`;
+    menu.style.top = `${y + 10}px`;
+    
+    // Adjust if overflowing right
+    const menuWidth = menu.offsetWidth || 250; // Use estimated width if not yet in DOM
+    const viewportWidth = window.innerWidth;
+    if (x + menuWidth + 20 > viewportWidth) {
+        menu.style.left = `${x - menuWidth - 10}px`;
+    }
+    
+    // Adjust if overflowing bottom
+    const menuHeight = menu.offsetHeight || 200;
+    const viewportHeight = window.innerHeight;
+    if (y + menuHeight + 20 > viewportHeight) {
+        menu.style.top = `${y - menuHeight - 10}px`;
+    }
+}
+
+/**
  * Check if an object is empty
  */
 export function isEmpty(obj) {
