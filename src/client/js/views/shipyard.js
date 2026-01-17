@@ -59,44 +59,6 @@ function calculateShipyardStateHash(shipyardData, planet, subView) {
 let lastContentHash = null;
 
 /**
- * Update affordance colors and button states without re-rendering
- */
-function updateShipyardAffordance(planet) {
-    if (!currentShipyardData) return;
-    
-    const isDefenses = document.getElementById('defenses-view')?.classList.contains('active');
-    const available = isDefenses ? currentShipyardData.availableDefenses : currentShipyardData.availableShips;
-    
-    for (const key in available) {
-        const item = available[key];
-        const cost = isDefenses ? calculateDefenseCost(key, 1) : calculateShipCostForDef(item, 1);
-        
-        const canAfford = planet.resources.metal >= cost.metal &&
-                         planet.resources.crystal >= cost.crystal &&
-                         planet.resources.deuterium >= cost.deuterium;
-        
-        const costEl = document.getElementById(`cost-${key}`);
-        const btn = document.getElementById(`btn-${key}`);
-        
-        if (costEl) {
-            const metalItem = costEl.querySelector('.cost-item:nth-child(1)');
-            const crystalItem = costEl.querySelector('.cost-item:nth-child(2)');
-            const deutItem = costEl.querySelector('.cost-item:nth-child(3)');
-            
-            if (metalItem) metalItem.className = `cost-item ${planet.resources.metal < cost.metal ? 'text-danger' : ''}`;
-            if (crystalItem) crystalItem.className = `cost-item ${planet.resources.crystal < cost.crystal ? 'text-danger' : ''}`;
-            if (deutItem) deutItem.className = `cost-item ${planet.resources.deuterium < cost.deuterium ? 'text-danger' : ''}`;
-        }
-        
-        if (btn) {
-            btn.disabled = !canAfford;
-            if (canAfford) btn.classList.add('btn-success');
-            else btn.classList.remove('btn-success');
-        }
-    }
-}
-
-/**
  * Update shipyard view with planet data
  */
 export async function updateShipyardView(planet, subView = 'ships', force = false) {
@@ -107,29 +69,22 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
             naniteLevel: planet.buildings?.naniteFactory || 0
         }, planet, subView);
 
-        if (!force && currentShipyardData && currentStructuralHash === lastStructuralHash) {
-            // Only update dynamic state (affordance colors) if nothing structurally changed
-            updateShipyardAffordance(planet);
-            return;
-        }
-
-        const shipyardData = await API.getShipyardDetails(planet.id);
-        currentShipyardData = shipyardData;
-
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // 1. Initialize structural layout if needed
-        const structuralHash = calculateStructuralHash(shipyardData, planet, subView);
-        if (structuralHash !== lastStructuralHash || !container.querySelector('.shipyard-content')) {
+        // 1. Structural update check
+        if (force || currentStructuralHash !== lastStructuralHash || !container.querySelector('.shipyard-content')) {
+            const shipyardData = await API.getShipyardDetails(planet.id);
+            currentShipyardData = shipyardData;
+            
             const shipyardLevel = shipyardData.shipyardLevel || 0;
             const isDefenses = subView === 'defenses';
             
             container.innerHTML = `
                 <div class="shipyard-container">
                     <div class="shipyard-header">
-                        <h3>⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardLevel}</h3>
+                        <h3 id="shipyard-title-lvl">⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardLevel}</h3>
                     </div>
                     <div class="shipyard-content">
                         <div class="shipyard-queue-container"></div>
@@ -137,32 +92,39 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
                     </div>
                 </div>
             `;
-            lastStructuralHash = structuralHash;
-            lastContentHash = null; // Force content update on structural change
-        }
-
-        const shipyardContent = container.querySelector('.shipyard-content');
-        const queueContainer = shipyardContent.querySelector('.shipyard-queue-container');
-        const listContainer = shipyardContent.querySelector('.shipyard-list-container');
-
-        // 2. Update Content (Queue and Lists)
-        const contentHash = calculateContentHash(shipyardData);
-        if (contentHash !== lastContentHash) {
-            // Update Queue (ALWAYS ON TOP)
-            queueContainer.innerHTML = renderBuildQueue(shipyardData);
             
-            // Update Ships/Defenses list
-            // Note: We only update the list if the counts or availability change.
-            // This is where user input is preserved.
-            const isDefenses = subView === 'defenses';
+            const shipyardContent = container.querySelector('.shipyard-content');
+            const listContainer = shipyardContent.querySelector('.shipyard-list-container');
             listContainer.innerHTML = isDefenses 
                 ? renderDefensesList(planet, shipyardData)
                 : renderShipsList(planet, shipyardData);
             
-            lastContentHash = contentHash;
-            
-            // Re-attach listeners after content update
+            lastStructuralHash = currentStructuralHash;
+            lastContentHash = calculateContentHash(shipyardData);
             attachShipyardListeners(planet, shipyardData);
+        } else {
+            // Already have data, but check if we need to fetch for count/queue changes
+            // We use a light fetch for data updates
+            const shipyardData = await API.getShipyardDetails(planet.id);
+            currentShipyardData = shipyardData;
+        }
+
+        const shipyardContent = container.querySelector('.shipyard-content');
+        const queueContainer = shipyardContent.querySelector('.shipyard-queue-container');
+
+        // 2. Update Dynamic Content (Queue and Units)
+        const contentHash = calculateContentHash(currentShipyardData);
+        if (force || contentHash !== lastContentHash) {
+            // Update Queue (ALWAYS ON TOP)
+            const queueHtml = renderBuildQueue(currentShipyardData);
+            if (queueContainer.innerHTML !== queueHtml) queueContainer.innerHTML = queueHtml;
+            
+            // Update Unit Counts and dynamic data in cards
+            updateUnitCardsGranular(planet, currentShipyardData, subView);
+            lastContentHash = contentHash;
+        } else {
+            // Nothing structurally or content-wise changed, just update resource affordance
+            updateUnitCardsGranular(planet, currentShipyardData, subView);
         }
         
     } catch (error) {
@@ -170,6 +132,94 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const el = document.getElementById(containerId);
         if (el) el.innerHTML = `<p class="error">Failed to load shipyard: ${error.message}</p>`;
+    }
+}
+
+/**
+ * Granularly update ship/defense cards without full re-render
+ */
+function updateUnitCardsGranular(planet, shipyardData, subView) {
+    const isDefenses = subView === 'defenses';
+    const units = isDefenses ? shipyardData.defenses : shipyardData.ships;
+    const available = isDefenses ? shipyardData.availableDefenses : shipyardData.availableShips;
+    
+    // Update shipyard title level if needed
+    const titleEl = document.getElementById('shipyard-title-lvl');
+    if (titleEl) {
+        const expectedTitle = `⚙️ ${isDefenses ? 'Defenses' : 'Shipyard'} Level ${shipyardData.shipyardLevel}`;
+        if (titleEl.textContent !== expectedTitle) titleEl.textContent = expectedTitle;
+    }
+
+    for (const key in available) {
+        const count = units[key] || 0;
+        const card = document.getElementById(`variant-${key}`);
+        if (!card) continue;
+
+        // Update In-Dock / Active count
+        const levelIndicator = card.querySelector('.level-indicator');
+        if (levelIndicator) {
+            const countText = `${count} ${isDefenses ? 'ACTIVE' : 'IN DOCK'}`;
+            if (levelIndicator.textContent !== countText) levelIndicator.textContent = countText;
+        }
+
+        // Update affordance/costs based on current input quantity
+        const qtyInput = document.getElementById(`qty-${key}`);
+        const quantity = qtyInput ? (parseNumberShorthand(qtyInput.value) || 1) : 1;
+        
+        const cost = isDefenses ? calculateDefenseCost(key, quantity) : calculateShipCostForDef(available[key], quantity);
+        const canAfford = planet.resources.metal >= cost.metal &&
+                         planet.resources.crystal >= cost.crystal &&
+                         planet.resources.deuterium >= cost.deuterium;
+        
+        const costEl = document.getElementById(`cost-${key}`);
+        if (costEl) {
+            const metalItem = costEl.querySelector('.cost-item:nth-child(1)');
+            const crystalItem = costEl.querySelector('.cost-item:nth-child(2)');
+            const deutItem = costEl.querySelector('.cost-item:nth-child(3)');
+            
+            if (metalItem) {
+                const metalClass = `cost-item ${planet.resources.metal < cost.metal ? 'text-danger' : ''}`;
+                if (metalItem.className !== metalClass) metalItem.className = metalClass;
+                // Update the text to reflect the total cost for current quantity
+                const metalText = `⚙️ ${formatNumber(cost.metal)}`;
+                if (metalItem.textContent !== metalText) metalItem.textContent = metalText;
+            }
+            if (crystalItem) {
+                const crystalClass = `cost-item ${planet.resources.crystal < cost.crystal ? 'text-danger' : ''}`;
+                if (crystalItem.className !== crystalClass) crystalItem.className = crystalClass;
+                const crystalText = `💎 ${formatNumber(cost.crystal)}`;
+                if (crystalItem.textContent !== crystalText) crystalItem.textContent = crystalText;
+            }
+            if (deutItem) {
+                const deutClass = `cost-item ${planet.resources.deuterium < cost.deuterium ? 'text-danger' : ''}`;
+                if (deutItem.className !== deutClass) deutItem.className = deutClass;
+                const deutText = `🛢️ ${formatNumber(cost.deuterium)}`;
+                if (deutItem.textContent !== deutText) deutItem.textContent = deutText;
+            }
+        }
+
+        // Update build time for the quantity
+        const timeEl = document.getElementById(`time-${key}`);
+        if (timeEl) {
+            const buildTime = isDefenses 
+                ? calculateDefenseBuildTime(key, quantity, shipyardData.shipyardLevel, shipyardData.naniteLevel)
+                : calculateShipBuildTimeForDef(available[key], quantity, shipyardData.shipyardLevel, shipyardData.naniteLevel);
+            const timeText = `🕐 ${formatDuration(buildTime * 1000)}`;
+            if (timeEl.textContent !== timeText) timeEl.textContent = timeText;
+        }
+        
+        const btn = document.getElementById(`btn-${key}`);
+        if (btn) {
+            const minLevel = isDefenses ? 1 : (available[key].type === 'military' ? 2 : 1);
+            const isDisabled = !canAfford || shipyardData.shipyardLevel < minLevel;
+            if (btn.disabled !== isDisabled) btn.disabled = isDisabled;
+            
+            if (!isDisabled) {
+                if (!btn.classList.contains('btn-success')) btn.classList.add('btn-success');
+            } else {
+                btn.classList.remove('btn-success');
+            }
+        }
     }
 }
 
@@ -605,9 +655,9 @@ function updateProductionInfo(type, id, quantity, planet) {
     
     if (costEl) {
         costEl.innerHTML = `
-            <div class="cost-item">⚙️ ${formatNumber(cost.metal)}</div>
-            <div class="cost-item">💎 ${formatNumber(cost.crystal)}</div>
-            ${cost.deuterium > 0 ? `<div class="cost-item">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
+            <div class="cost-item ${planet.resources.metal < cost.metal ? 'text-danger' : ''}">⚙️ ${formatNumber(cost.metal)}</div>
+            <div class="cost-item ${planet.resources.crystal < cost.crystal ? 'text-danger' : ''}">💎 ${formatNumber(cost.crystal)}</div>
+            ${cost.deuterium > 0 ? `<div class="cost-item ${planet.resources.deuterium < cost.deuterium ? 'text-danger' : ''}">🛢️ ${formatNumber(cost.deuterium)}</div>` : ''}
         `;
     }
     
@@ -620,9 +670,12 @@ function updateProductionInfo(type, id, quantity, planet) {
                           planet.resources.crystal >= cost.crystal &&
                           planet.resources.deuterium >= cost.deuterium;
         
-        btn.disabled = !canAfford;
-        if (canAfford) {
-            btn.classList.add('btn-success');
+        const minLevel = type === 'ship' ? (def.type === 'military' ? 2 : 1) : 1;
+        const isDisabled = !canAfford || currentShipyardData.shipyardLevel < minLevel;
+        
+        if (btn.disabled !== isDisabled) btn.disabled = isDisabled;
+        if (!isDisabled) {
+            if (!btn.classList.contains('btn-success')) btn.classList.add('btn-success');
         } else {
             btn.classList.remove('btn-success');
         }

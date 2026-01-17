@@ -117,36 +117,39 @@ async function showGameScreen() {
     // Refresh game state when important events happen on server
     let wsRefreshTimeout = null;
     gameSocket.addHandler((type, data) => {
-        const criticalEvents = [
+        const fleetEvents = ['FLEET_ARRIVED', 'FLEET_RETURNED', 'INCOMING_FLEET'];
+        const structuralEvents = [
             'BUILDING_COMPLETE', 
             'RESEARCH_COMPLETE', 
             'PRODUCTION_COMPLETE', 
             'SHIPYARD_QUEUE_COMPLETE',
-            'FLEET_ARRIVED', 
-            'FLEET_RETURNED',
             'VARIANT_SWITCH_COMPLETE',
             'RESOURCES_UPDATED',
-            'QUEUE_UPDATED',
-            'INCOMING_FLEET',
-            'NEW_MESSAGE'
+            'QUEUE_UPDATED'
         ];
         
-        if (criticalEvents.includes(type)) {
-            if (type === 'NEW_MESSAGE') {
-                updateUnreadCount();
-                if (currentView === 'messages') updateMessagesView();
-            } else {
-                if (type === 'SHIPYARD_QUEUE_COMPLETE') {
-                    Notifications.showSuccess(`Shipyard production on ${data.planetName || 'planet'} complete!`);
-                }
+        if (type === 'NEW_MESSAGE') {
+            updateUnreadCount();
+            if (currentView === 'messages') updateMessagesView();
+            return;
+        }
 
-                // Debounce refresh to avoid 3x fetches on single action
-                if (wsRefreshTimeout) clearTimeout(wsRefreshTimeout);
-                wsRefreshTimeout = setTimeout(() => {
-                    console.log(`[WS] Debounced refresh triggered by ${type}`);
-                    loadGameState(true); // true = force view re-fetch
-                }, 100);
+        const isFleetEvent = fleetEvents.includes(type);
+        const isStructural = structuralEvents.includes(type);
+
+        if (isFleetEvent || isStructural) {
+            if (type === 'SHIPYARD_QUEUE_COMPLETE') {
+                Notifications.showSuccess(`Shipyard production on ${data.planetName || 'planet'} complete!`);
             }
+
+            // Debounce refresh to avoid 3x fetches on single action
+            if (wsRefreshTimeout) clearTimeout(wsRefreshTimeout);
+            wsRefreshTimeout = setTimeout(() => {
+                console.log(`[WS] Debounced refresh triggered by ${type} (structural=${isStructural})`);
+                // For fleet events, we don't force a full details fetch unless we are in fleet view
+                const force = isStructural || currentView === 'fleet';
+                loadGameState(force); 
+            }, 100);
         }
     });
     

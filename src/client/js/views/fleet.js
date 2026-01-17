@@ -3,20 +3,26 @@ import { API } from '../api.js';
 import { formatNumber } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
 
-let lastFleetStateHash = null;
+let lastStructuralHash = null;
+let lastContentHash = null;
+let cachedFleetData = null;
 
 /**
- * Calculate a hash of the fleet state to detect changes
+ * Calculate structural hash (number of planets, names)
  */
-function calculateFleetStateHash(gameState) {
-    const state = {
-        planets: gameState.planets.map(p => ({
-            id: p.id,
-            ships: p.ships,
-            defenses: p.defenses
-        }))
-    };
-    return JSON.stringify(state);
+function calculateStructuralHash(gameState) {
+    return JSON.stringify(gameState.planets.map(p => ({ id: p.id, name: p.name })));
+}
+
+/**
+ * Calculate content hash (total counts and per-planet units)
+ */
+function calculateContentHash(fleetData) {
+    return JSON.stringify(fleetData.map(f => ({
+        id: f.planetId,
+        ships: f.ships,
+        defenses: f.defenses
+    })));
 }
 
 /**
@@ -24,21 +30,40 @@ function calculateFleetStateHash(gameState) {
  */
 export async function updateFleetView(gameState) {
     const container = document.getElementById('fleet-view');
+    if (!container) return;
     
     if (!gameState?.planets || gameState.planets.length === 0) {
         container.innerHTML = '<p>No planets available</p>';
         return;
     }
     
-    // Check if state has changed
-    const currentHash = calculateFleetStateHash(gameState);
-    if (currentHash === lastFleetStateHash) {
-        // State hasn't changed, skip re-render
-        return;
+    // 1. Structural update check
+    const structuralHash = calculateStructuralHash(gameState);
+    if (structuralHash !== lastStructuralHash || !container.querySelector('.fleets-container')) {
+        container.innerHTML = `
+            <h2>🛰️ Fleet Overview</h2>
+            <div class="fleet-summary" id="fleet-summary-stats">
+                <div class="fleet-stats">
+                    <div class="stat-card">
+                        <span>Total Ships</span>
+                        <div class="stat-value" id="total-ships-val">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <span>Total Defenses</span>
+                        <div class="stat-value" id="total-defenses-val">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="fleets-container">
+                ${gameState.planets.map(p => `<div id="planet-fleet-card-${p.id}" class="fleet-card"></div>`).join('')}
+            </div>
+        `;
+        lastStructuralHash = structuralHash;
+        lastContentHash = null; // Force data refresh
     }
-    lastFleetStateHash = currentHash;
-    
+
     try {
+        // Fetch fresh details for each planet
         const fleetData = await Promise.all(
             gameState.planets.map(planet => 
                 API.getFleetDetails(planet.id)
@@ -47,158 +72,118 @@ export async function updateFleetView(gameState) {
             )
         );
         
-        let html = '<h2>🛰️ Fleet Overview</h2>';
-        html += '<div class="fleet-summary">';
-        
-        // Calculate total fleet stats
-        let totalShips = 0;
-        let totalDefenses = 0;
-        
-        for (const fleet of fleetData) {
-            let shipsCount = 0;
-            for (const key in (fleet.ships || {})) {
-                shipsCount += fleet.ships[key];
-            }
-            totalShips += shipsCount;
-            
-            let defensesCount = 0;
-            for (const key in (fleet.defenses || {})) {
-                defensesCount += fleet.defenses[key];
-            }
-            totalDefenses += defensesCount;
+        cachedFleetData = fleetData;
+
+        // 2. Dynamic content update check
+        const contentHash = calculateContentHash(fleetData);
+        if (contentHash !== lastContentHash) {
+            updateFleetDataGranular(fleetData);
+            lastContentHash = contentHash;
         }
-        
-        html += `
-            <div class="fleet-stats">
-                <div class="stat-card">
-                    <span>Total Ships</span>
-                    <div class="stat-value">${formatNumber(totalShips)}</div>
-                </div>
-                <div class="stat-card">
-                    <span>Total Defenses</span>
-                    <div class="stat-value">${formatNumber(totalDefenses)}</div>
-                </div>
-            </div>
-        `;
-        
-        html += '</div><div class="fleets-container">';
-        
-        // Show each planet's fleet
-        for (const fleet of fleetData) {
-            html += renderPlanetFleet(fleet);
-        }
-        
-        html += '</div>';
-        container.innerHTML = html;
         
     } catch (error) {
         console.error('Failed to load fleet details:', error);
-        container.innerHTML = `<p class="error">Failed to load fleet: ${error.message}</p>`;
+        // Only show error if we have no cached data
+        if (!cachedFleetData) {
+            container.innerHTML = `<p class="error">Failed to load fleet: ${error.message}</p>`;
+        }
+    }
+}
+
+function updateFleetDataGranular(fleetData) {
+    let totalShips = 0;
+    let totalDefenses = 0;
+
+    fleetData.forEach(fleet => {
+        // Update per-planet card
+        const card = document.getElementById(`planet-fleet-card-${fleet.planetId}`);
+        if (card) {
+            const html = renderPlanetFleetContent(fleet);
+            if (card.innerHTML !== html) card.innerHTML = html;
+        }
+
+        // Aggregate totals
+        for (const k in (fleet.ships || {})) totalShips += fleet.ships[k];
+        for (const k in (fleet.defenses || {})) totalDefenses += fleet.defenses[k];
+    });
+
+    // Update summary totals
+    const shipsVal = document.getElementById('total-ships-val');
+    const defsVal = document.getElementById('total-defenses-val');
+    
+    if (shipsVal && shipsVal.textContent !== String(totalShips)) {
+        shipsVal.textContent = formatNumber(totalShips);
+    }
+    if (defsVal && defsVal.textContent !== String(totalDefenses)) {
+        defsVal.textContent = formatNumber(totalDefenses);
     }
 }
 
 /**
- * Render a single planet's fleet
+ * Render inner content of a single planet's fleet card
  */
-function renderPlanetFleet(fleet) {
-    let hasShips = false;
+function renderPlanetFleetContent(fleet) {
+    const shipNames = {
+        lightFighter: 'Light Fighter',
+        heavyFighter: 'Heavy Fighter',
+        cruiser: 'Cruiser',
+        battleship: 'Battleship',
+        destroyer: 'Destroyer',
+        bomber: 'Bomber',
+        smallCargo: 'Small Cargo',
+        largeCargo: 'Large Cargo',
+        colonyShip: 'Colony Ship',
+        recycler: 'Recycler',
+        espionageProbe: 'Espionage Probe'
+    };
+
+    const defenseNames = {
+        rocketLauncher: 'Rocket Launcher',
+        laserCannon: 'Laser Cannon',
+        particleBeam: 'Particle Beam',
+        shield: 'Planetary Shield',
+        interceptor: 'Interceptor Missile',
+        antiAirMissile: 'Anti-Air Missile',
+        plasmaTurret: 'Plasma Turret',
+        ionCannon: 'Ion Cannon'
+    };
+
+    let shipHtml = '';
     for (const key in (fleet.ships || {})) {
         if (fleet.ships[key] > 0) {
-            hasShips = true;
-            break;
+            shipHtml += `
+                <div class="fleet-item">
+                    <span class="fleet-item-name">${shipNames[key] || key}</span>
+                    <span class="fleet-item-count">${formatNumber(fleet.ships[key])}</span>
+                </div>`;
         }
     }
-    
-    let hasDefenses = false;
+
+    let defenseHtml = '';
     for (const key in (fleet.defenses || {})) {
         if (fleet.defenses[key] > 0) {
-            hasDefenses = true;
-            break;
+            defenseHtml += `
+                <div class="fleet-item">
+                    <span class="fleet-item-name">${defenseNames[key] || key}</span>
+                    <span class="fleet-item-count">${formatNumber(fleet.defenses[key])}</span>
+                </div>`;
         }
     }
+
+    let html = `<h3>🪐 ${fleet.planetName}</h3>`;
     
-    let html = `<div class="fleet-card">
-        <h3>🪐 ${fleet.planetName}</h3>`;
-    
-    if (!hasShips && !hasDefenses) {
-        html += '<p>No ships or defenses</p>';
+    if (!shipHtml && !defenseHtml) {
+        html += '<p class="empty-text">No ships or defenses detected</p>';
     } else {
         html += '<div class="fleet-details">';
-        
-        if (hasShips) {
-            html += `<div class="fleet-section">
-                <h4>⚔️ Ships</h4>
-                <div class="ship-list">`;
-            
-            for (const shipKey in (fleet.ships || {})) {
-                const count = fleet.ships[shipKey];
-                if (count > 0) {
-                    // Get ship name from SHIPS constant (would need to import)
-                    const shipNames = {
-                        lightFighter: 'Light Fighter',
-                        heavyFighter: 'Heavy Fighter',
-                        cruiser: 'Cruiser',
-                        battleship: 'Battleship',
-                        destroyer: 'Destroyer',
-                        bomber: 'Bomber',
-                        smallCargo: 'Small Cargo',
-                        largeCargo: 'Large Cargo',
-                        colonyShip: 'Colony Ship',
-                        recycler: 'Recycler',
-                        espionageProbe: 'Espionage Probe'
-                    };
-                    
-                    const shipName = shipNames[shipKey] || shipKey;
-                    
-                    html += `
-                        <div class="fleet-item">
-                            <span class="fleet-item-name">${shipName}</span>
-                            <span class="fleet-item-count">${formatNumber(count)}</span>
-                        </div>
-                    `;
-                }
-            }
-            
-            html += '</div></div>';
+        if (shipHtml) {
+            html += `<div class="fleet-section"><h4>⚔️ Ships</h4><div class="ship-list">${shipHtml}</div></div>`;
         }
-        
-        if (hasDefenses) {
-            html += `<div class="fleet-section">
-                <h4>🛡️ Defenses</h4>
-                <div class="defense-list">`;
-            
-            for (const defenseKey in (fleet.defenses || {})) {
-                const count = fleet.defenses[defenseKey];
-                if (count > 0) {
-                    // Get defense name from DEFENSES constant
-                    const defenseNames = {
-                        rocketLauncher: 'Rocket Launcher',
-                        laserCannon: 'Laser Cannon',
-                        particleBeam: 'Particle Beam',
-                        shield: 'Planetary Shield',
-                        interceptor: 'Interceptor Missile',
-                        antiAirMissile: 'Anti-Air Missile',
-                        plasmaTurret: 'Plasma Turret',
-                        ionCannon: 'Ion Cannon'
-                    };
-                    
-                    const defenseName = defenseNames[defenseKey] || defenseKey;
-                    
-                    html += `
-                        <div class="fleet-item">
-                            <span class="fleet-item-name">${defenseName}</span>
-                            <span class="fleet-item-count">${formatNumber(count)}</span>
-                        </div>
-                    `;
-                }
-            }
-            
-            html += '</div></div>';
+        if (defenseHtml) {
+            html += `<div class="fleet-section"><h4>🛡️ Defenses</h4><div class="defense-list">${defenseHtml}</div></div>`;
         }
-        
         html += '</div>';
     }
     
-    html += '</div>';
     return html;
 }
