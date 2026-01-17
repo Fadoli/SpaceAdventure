@@ -983,6 +983,17 @@ window.openDebrisMenu = function(event, position, metal, crystal) {
 
     menu.innerHTML = `
         <div class="menu-header">DEBRIS RECOVERY PROTOCOL</div>
+        <div class="menu-info-block" style="padding: 10px 15px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;">
+            <div style="color: var(--text-secondary); margin-bottom: 5px;">ANALYZED COMPOSITION:</div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>⚙️ METAL:</span>
+                <span style="color: #fff; font-weight: bold;">${formatNumber(metal)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>💎 CRYSTAL:</span>
+                <span style="color: #fff; font-weight: bold;">${formatNumber(crystal)}</span>
+            </div>
+        </div>
         <button class="menu-item" onclick="window.quickHarvestDebris(${position}, ${harvestersNeeded})">
             <span class="indicator friend"></span> SIMPLE RECOVERY (${harvestersNeeded}x HARVESTER)
         </button>
