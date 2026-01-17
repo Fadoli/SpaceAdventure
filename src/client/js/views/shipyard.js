@@ -590,8 +590,18 @@ function attachShipyardListeners(planet, shipyardData) {
     window.toggleCategory = function(categoryId) {
         collapsedSections[categoryId] = !collapsedSections[categoryId];
         lastContentHash = null; // Force content re-render
-        const subView = categoryId.startsWith('ships') ? 'ships' : 'defenses';
-        updateShipyardView(planet, subView);
+        
+        // Find current subview based on DOM visibility
+        const isDefenses = !!document.getElementById('defenses-view')?.classList.contains('active');
+        const subView = isDefenses ? 'defenses' : 'ships';
+        
+        const planetId = getCurrentPlanetId();
+        const gameState = window.getGameState();
+        const currentPlanet = gameState?.planets.find(p => p.id === planetId);
+        
+        if (currentPlanet) {
+            updateShipyardView(currentPlanet, subView);
+        }
     };
 
     // Add input listeners for real-time cost updates

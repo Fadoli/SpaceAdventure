@@ -223,7 +223,6 @@ export const THEORETICAL_RESEARCH = {
         },
         prerequisites: ['energyTech'],
         bonuses: {
-            housingBaseBonus: 5,     // +5 base housing per level
             housingScalingBonus: 0.01  // +0.01 scaling factor per level
         },
         requirements: {

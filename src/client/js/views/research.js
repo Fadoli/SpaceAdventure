@@ -27,10 +27,13 @@ let researchQueueVisible = true;
 window.toggleResearchQueueVisibility = function () {
     researchQueueVisible = !researchQueueVisible;
     
-    // Re-render current tab to apply visibility change
-    const activeTab = document.querySelector('.research-tabs .tab-btn.active');
-    if (activeTab) {
-        switchTab(activeTab.dataset.tab, false);
+    // Find active subtab from sidebar
+    const activeSubBtn = document.querySelector('#research-submenu .nav-sub-btn.active');
+    if (activeSubBtn) {
+        switchTab(activeSubBtn.dataset.subtab, false);
+    } else {
+        // Fallback to theoretical
+        switchTab('theoretical', false);
     }
 };
 

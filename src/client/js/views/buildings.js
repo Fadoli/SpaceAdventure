@@ -373,19 +373,21 @@ function calculateSwitchCostEstimate(building, isCustomActive) {
     return calculateSwitchCost(currentCost, targetCost);
 }
 
-let queueVisible = true;
+// Load saved preference
+let queueVisible = localStorage.getItem('buildQueueVisible') !== 'false';
 
 /**
  * Toggle queue visibility
  */
 window.toggleQueueVisibility = function() {
     queueVisible = !queueVisible;
+    localStorage.setItem('buildQueueVisible', queueVisible);
+    
     const items = document.querySelector('.build-queue-summary .queue-items');
-    const toggle = document.querySelector('.build-queue-summary .queue-header span');
+    const toggle = document.querySelector('.build-queue-summary .queue-header .toggle-icon');
     
     if (items) {
         items.style.display = queueVisible ? 'flex' : 'none';
-        if (queueVisible) items.style.marginTop = '4px';
     }
     if (toggle) {
         toggle.textContent = queueVisible ? '🔼' : '🔽';
@@ -406,7 +408,7 @@ function updateQueueView(queue, maxQueueSize, buildings) {
                     <h3>🔨 CONSTRUCTION LOG (${queue.length}/${maxQueueSize})</h3>
                     <span class="toggle-icon">${queueVisible ? '🔼' : '🔽'}</span>
                 </div>
-                <div class="queue-items" style="${queueVisible ? '' : 'display: none;'}">
+                <div class="queue-items" style="display: ${queueVisible ? 'flex' : 'none'};">
                     ${queue.map((item, index) => {
                         const isActive = index === 0;
                         const elapsed = Date.now() - item.startTime;
