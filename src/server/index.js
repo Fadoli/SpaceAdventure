@@ -1390,6 +1390,73 @@ async function handleRequest(req) {
       return successResponse(req, { message: `Cleared ${keys.length} ghost planets` });
     }
 
+    // GET /api/admin/players/search - Search for players
+    if (path === '/api/admin/players/search' && method === 'GET') {
+      const admin = await requireAdmin(req);
+      if (!admin) return errorResponse(req, 'Unauthorized', 403);
+
+      const query = url.searchParams.get('q')?.toLowerCase() || '';
+      const allPlayers = await getPlayers();
+      
+      const matches = allPlayers.filter(p => 
+        p.username.toLowerCase().includes(query) || 
+        p.userId.includes(query)
+      ).map(p => ({
+        userId: p.userId,
+        username: p.username,
+        planets: p.planets.map(pl => ({ id: pl.id, name: pl.name, coordinates: pl.coordinates }))
+      }));
+
+      return successResponse(req, matches);
+    }
+
+    // POST /api/admin/players/:userId/assets - Modify player assets
+    if (path.match(/^\/api\/admin\/players\/[^/]+\/assets$/) && method === 'POST') {
+      const admin = await requireAdmin(req);
+      if (!admin) return errorResponse(req, 'Unauthorized', 403);
+
+      const targetUserId = path.split('/')[4];
+      const body = await req.json();
+      const { planetId, ships, defenses, resources } = body;
+
+      const player = await getPlayerByUserId(targetUserId);
+      if (!player) return errorResponse(req, 'Player not found', 404);
+
+      const planet = player.planets.find(p => p.id === planetId);
+      if (!planet) return errorResponse(req, 'Planet not found', 404);
+
+      // Apply Ships
+      if (ships) {
+        for (const key in ships) {
+          planet.ships[key] = (planet.ships[key] || 0) + ships[key];
+          if (planet.ships[key] < 0) planet.ships[key] = 0;
+        }
+      }
+
+      // Apply Defenses
+      if (defenses) {
+        for (const key in defenses) {
+          planet.defenses[key] = (planet.defenses[key] || 0) + defenses[key];
+          if (planet.defenses[key] < 0) planet.defenses[key] = 0;
+        }
+      }
+
+      // Apply Resources
+      if (resources) {
+        for (const key in resources) {
+          planet.resources[key] = (planet.resources[key] || 0) + resources[key];
+          if (planet.resources[key] < 0) planet.resources[key] = 0;
+        }
+      }
+
+      await updatePlayer(targetUserId, player);
+      
+      // Notify player via WebSocket if online
+      wsManager.sendToUser(targetUserId, 'RESOURCES_UPDATED', { planetId });
+
+      return successResponse(req, { message: 'Assets updated successfully' });
+    }
+
     // ============================================
     // RESEARCH ROUTES
     // ============================================

@@ -146,8 +146,11 @@ async function showGameScreen() {
             if (wsRefreshTimeout) clearTimeout(wsRefreshTimeout);
             wsRefreshTimeout = setTimeout(() => {
                 console.log(`[WS] Debounced refresh triggered by ${type} (structural=${isStructural})`);
-                // For fleet events, we don't force a full details fetch unless we are in fleet view
-                const force = isStructural || currentView === 'fleet';
+                
+                // For fleet events, we always want to refresh the global state 
+                // but we only "force" a full re-render of sub-details if structural
+                // or if we are currently looking at the fleet view.
+                const force = isFleetEvent ? false : (isStructural || currentView === 'fleet');
                 loadGameState(force); 
             }, 100);
         }
@@ -425,7 +428,7 @@ function updateCurrentView(forceFetch = false) {
             updateShipyardView(planet, 'defenses', forceFetch);
             break;
         case 'fleet':
-            updateFleetView(gameState);
+            if (gameState) updateFleetView(gameState);
             break;
         case 'galaxy':
             // Don't auto-update galaxy view during regular updates

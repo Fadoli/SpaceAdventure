@@ -620,6 +620,6 @@ export function calculateFleetSurvivalNeeds(crew, travelTimeInSeconds) {
 /**
  * Calculate total fleet fuel cost
  */
-export function calculateFleetFuelCost(ships, distance) {
-  return calculateFuelConsumption(distance, ships, SHIPS);
+export function calculateFleetFuelCost(ships, distance, speedPercent = 1.0) {
+  return calculateFuelConsumption(distance, ships, SHIPS, speedPercent);
 }

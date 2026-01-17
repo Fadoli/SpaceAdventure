@@ -47,7 +47,127 @@ document.addEventListener('DOMContentLoaded', async () => {
         await API.logout();
         window.location.href = '/login.html';
     });
+
+    // Player Search
+    document.getElementById('search-player-btn').addEventListener('click', searchPlayers);
+    document.getElementById('player-search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchPlayers();
+    });
 });
+
+async function searchPlayers() {
+    const input = document.getElementById('player-search-input');
+    const results = document.getElementById('player-management-results');
+    const query = input.value.trim();
+    if (!query) return;
+
+    results.innerHTML = '<p>Scanning neural networks...</p>';
+
+    try {
+        const res = await fetch(`/api/admin/players/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        if (!data.success) {
+            results.innerHTML = `<p class="error">Search failed: ${data.error}</p>`;
+            return;
+        }
+
+        if (data.data.length === 0) {
+            results.innerHTML = '<p>No matching biological signatures found.</p>';
+            return;
+        }
+
+        results.innerHTML = data.data.map(player => renderPlayerAdminCard(player)).join('');
+    } catch (e) {
+        results.innerHTML = `<p class="error">Connection lost: ${e.message}</p>`;
+    }
+}
+
+function renderPlayerAdminCard(player) {
+    return `
+        <div class="ghost-card" style="margin-bottom: 20px; border-color: var(--accent-blue);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                <div>
+                    <h3 style="color: #fff; margin: 0;">${player.username}</h3>
+                    <small style="color: var(--text-secondary); font-family: 'Share Tech Mono', monospace;">ID: ${player.userId}</small>
+                </div>
+            </div>
+            
+            <div class="planet-assets-control">
+                ${player.planets.map(planet => `
+                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 2px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong style="color: var(--accent-yellow); font-size: 0.8rem;">🪐 ${planet.name} [${planet.coordinates.join(':')}]</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="admin-control-group">
+                                <select id="type-${player.userId}-${planet.id}" class="modal-input" style="width: 100%; font-size: 0.7rem; height: 28px; padding: 2px;">
+                                    <optgroup label="RESOURCES">
+                                        <option value="res-metal">Metal</option>
+                                        <option value="res-crystal">Crystal</option>
+                                        <option value="res-deuterium">Deuterium</option>
+                                    </optgroup>
+                                    <optgroup label="CIVILIAN SHIPS">
+                                        <option value="ship-smallCargo">Small Cargo</option>
+                                        <option value="ship-largeCargo">Large Cargo</option>
+                                        <option value="ship-colonyShip">Colony Ship</option>
+                                        <option value="ship-recycler">Recycler</option>
+                                        <option value="ship-espionageProbe">Espionage Probe</option>
+                                    </optgroup>
+                                    <optgroup label="MILITARY SHIPS">
+                                        <option value="ship-lightFighter">Light Fighter</option>
+                                        <option value="ship-heavyFighter">Heavy Fighter</option>
+                                        <option value="ship-cruiser">Cruiser</option>
+                                        <option value="ship-battleship">Battleship</option>
+                                        <option value="ship-destroyer">Destroyer</option>
+                                        <option value="ship-bomber">Bomber</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="number" id="val-${player.userId}-${planet.id}" class="modal-input" placeholder="Qty" style="width: 60px; height: 28px; font-size: 0.7rem;">
+                                <button class="btn btn-primary btn-small" style="padding: 0 8px; height: 28px;" onclick="window.modifyAssets('${player.userId}', '${planet.id}')">ADD</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+window.modifyAssets = async function(userId, planetId) {
+    const typeSelect = document.getElementById(`type-${userId}-${planetId}`);
+    const valInput = document.getElementById(`val-${userId}-${planetId}`);
+    const rawType = typeSelect.value;
+    const value = parseInt(valInput.value) || 0;
+
+    if (value === 0) return;
+
+    const payload = { planetId };
+    if (rawType.startsWith('res-')) {
+        payload.resources = { [rawType.replace('res-', '')]: value };
+    } else if (rawType.startsWith('ship-')) {
+        payload.ships = { [rawType.replace('ship-', '')]: value };
+    }
+
+    try {
+        const res = await fetch(`/api/admin/players/${userId}/assets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Assets adjusted successfully');
+            valInput.value = '';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
+    }
+};
 
 async function loadGhosts() {
     const list = document.getElementById('ghost-list');

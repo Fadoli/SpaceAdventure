@@ -193,14 +193,15 @@ describe('Fleet Missions', () => {
     const galaxy = await getGalaxyData();
     const debris = galaxy.debrisFields[coordKey];
     
-    // Capacity 40k. Metal 50k. Metal harvested = 40k. Remaining Metal 10k. Crystal 50k. Remaining Crystal 50k.
-    expect(debris.metal).toBe(10000);
-    expect(debris.crystal).toBe(50000);
+    // Proportional harvesting: field is 50k/50k (1:1 ratio). Capacity is 40k.
+    // Should take 20k Metal and 20k Crystal. Remaining: 30k Metal, 30k Crystal.
+    expect(debris.metal).toBe(30000);
+    expect(debris.crystal).toBe(30000);
     
     // 5. Verify fleet resources
     const processedFleet = mockAttacker.fleets[0];
-    expect(processedFleet.resources.metal).toBe(40000);
-    expect(processedFleet.resources.crystal).toBe(0);
+    expect(processedFleet.resources.metal).toBe(20000);
+    expect(processedFleet.resources.crystal).toBe(20000);
     expect(processedFleet.returning).toBe(true);
   });
 

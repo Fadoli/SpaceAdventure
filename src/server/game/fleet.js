@@ -22,12 +22,15 @@ import { wsManager } from './wsManager.js';
 /**
  * Start a new mission
  */
-export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null) {
+export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null, speedPercent = 1.0) {
     const player = await getPlayerByUserId(userId);
     if (!player) throw new Error('Player not found');
 
     const originPlanet = player.planets.find(p => p.id === originPlanetId);
     if (!originPlanet) throw new Error('Origin planet not found');
+
+    // Limit speedPercent
+    const finalSpeedPercent = Math.max(0.1, Math.min(1.0, speedPercent || 1.0));
 
     // Verify ships availability
     for (const shipKey in ships) {
@@ -72,7 +75,7 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     if (slowestSpeed === Infinity) throw new Error('No ships selected');
 
     const fleetSpeedMultiplier = getFleetSpeedMultiplier();
-    const travelTime = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier);
+    const travelTime = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, finalSpeedPercent);
 
     if (missionType === MISSION_TYPES.COLONIZE) {
         const maxPlanets = calculateMaxPlanets(player.research);
@@ -85,8 +88,8 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
         }
     }
 
-    // Calculate mission costs
-    const fuelCost = calculateFleetFuelCost(ships, distance);
+    // Calculate mission costs - use speed-aware helpers
+    const fuelCost = calculateFleetFuelCost(ships, distance, finalSpeedPercent);
     const crewCount = calculateFleetCrew(ships);
 
     // Total mission duration (travel both ways + stay time for expeditions)
@@ -99,68 +102,53 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     if (originPlanet.resources.water < survivalNeeds.water + (resources.water || 0)) throw new Error(`Insufficient Water (Need ${survivalNeeds.water + (resources.water || 0)})`);
     if ((originPlanet.resources.population || 0) < crewCount) throw new Error(`Insufficient Population (Need ${crewCount})`);
 
-    // Create fleet object
-    const fleet = {
-        id: generateId(),
-        ownerId: player.userId,
-        ownerUsername: player.username,
-        missionType,
-        ships: { ...ships },
-        resources: { ...resources },
-        buyResources: buyResources, // Store requested buy assets for market trade
-        costs: {
-            deuterium: fuelCost,
-            food: survivalNeeds.food,
-            water: survivalNeeds.water,
-            crew: crewCount // Total crew sent
-        },
-        originCoords: [...originPlanet.coordinates],
-        targetCoords: [...targetCoords],
-        startTime: Date.now(),
-        arrivalTime: Date.now() + (travelTime * 1000),
-        travelTime: travelTime,
-        returning: false,
-        stayTime: stayTime // Store requested stay duration
-    };
-
-    // Deduct resources from planet (transported + mission costs)
-    for (const res in resources) {
-        originPlanet.resources[res] -= resources[res];
-    }
+    // Deduct costs
     originPlanet.resources.deuterium -= fuelCost;
     originPlanet.resources.food -= survivalNeeds.food;
     originPlanet.resources.water -= survivalNeeds.water;
     originPlanet.resources.population -= crewCount;
 
-    // Deduct ships from planet
+    // Deduct cargo resources
+    for (const res in resources) {
+        originPlanet.resources[res] -= resources[res];
+    }
+
+    // Deduct ships
     for (const shipKey in ships) {
         originPlanet.ships[shipKey] -= ships[shipKey];
     }
 
-    // Notify client of resource change
-    wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId: originPlanetId });
+    const now = Date.now();
+    const newFleet = {
+        id: generateId(),
+        missionType,
+        ships: { ...ships },
+        resources: { ...resources },
+        buyResources: buyResources ? { ...buyResources } : null,
+        originCoords: [...originPlanet.coordinates],
+        targetCoords: [...targetCoords],
+        startTime: now,
+        arrivalTime: now + (travelTime * 1000),
+        travelTime: travelTime,
+        returning: false,
+        waiting: false,
+        stayTime,
+        speedPercent: finalSpeedPercent,
+        costs: {
+            deuterium: fuelCost,
+            food: survivalNeeds.food,
+            water: survivalNeeds.water,
+            crew: crewCount
+        }
+    };
 
-    // Add to player's active fleets
     if (!player.fleets) player.fleets = [];
-    player.fleets.push(fleet);
+    player.fleets.push(newFleet);
 
-    // Notify target player if applicable (e.g., incoming attack or transport)
-    if (missionType !== MISSION_TYPES.EXPEDITION && missionType !== MISSION_TYPES.COLONIZE) {
-        const allPlayers = await getPlayers();
-        let targetPlayerId = null;
-        for (const p of allPlayers) {
-            if (p.planets.some(pl => pl.coordinates.every((c, i) => c === targetCoords[i]))) {
-                targetPlayerId = p.userId;
-                break;
-            }
-        }
-        if (targetPlayerId && targetPlayerId !== userId) {
-            wsManager.sendToUser(targetPlayerId, 'INCOMING_FLEET', { missionType, arrivalTime: fleet.arrivalTime });
-        }
-    }
+    // Save player state
+    await updatePlayer(player.userId, player);
 
-    await updatePlayer(userId, player);
-    return fleet;
+    return newFleet;
 }
 
 /**
@@ -208,7 +196,7 @@ export async function processFleets(player, allPlayers) {
                     const speed = calculateShipSpeed(shipKey, player.research);
                     if (speed < slowestSpeed) slowestSpeed = speed;
                 }
-                const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier());
+                const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier(), fleet.speedPercent || 1.0);
 
                 fleet.returning = true;
                 fleet.waiting = false;
@@ -249,7 +237,7 @@ export async function processFleets(player, allPlayers) {
                             const speed = calculateShipSpeed(shipKey, player.research);
                             if (speed < slowestSpeed) slowestSpeed = speed;
                         }
-                        const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier());
+                        const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier(), fleet.speedPercent || 1.0);
 
                         fleet.returning = true;
                         fleet.startTime = now;

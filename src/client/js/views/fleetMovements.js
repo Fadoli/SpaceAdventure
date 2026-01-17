@@ -86,18 +86,20 @@ export function updateFleetMovements(gameState) {
 
     // If no fleets, clear container
     if (allFleets.length === 0) {
-        container.innerHTML = '';
-        container.classList.remove('active');
-        lastFleetSignature = '';
+        if (container.innerHTML !== '') {
+            container.innerHTML = '';
+            container.classList.remove('active');
+            lastFleetSignature = '';
+        }
         return;
     }
     
-    container.classList.add('active');
+    if (!container.classList.contains('active')) container.classList.add('active');
     
     // Sort fleets by arrival time (next event)
     const sortedFleets = allFleets.sort((a, b) => a.arrivalTime - b.arrivalTime);
     
-    // Generate signature to detect structural changes
+    // Generate signature to detect structural changes (ID, Mission, Returning, Waiting, Hostile)
     const currentSignature = sortedFleets.map(f => `${f.id}-${f.missionType}-${f.returning}-${f.waiting}-${f.isHostile ? 'h' : 'f'}`).join('|');
     
     // Check if header/structure exists
@@ -106,7 +108,7 @@ export function updateFleetMovements(gameState) {
     
     const count = sortedFleets.length;
     
-    // If full re-render needed (structure missing or fleet list changed)
+    // 1. Structural update check
     if (!header || !list || currentSignature !== lastFleetSignature) {
         // Check saved collapse state
         let isCollapsed = false;
@@ -139,9 +141,11 @@ export function updateFleetMovements(gameState) {
         setupTooltipHandlers();
         lastFleetSignature = currentSignature;
     } else {
-        // Partial Update: Just update timers and header count
+        // 2. Granular Update: Just update timers and header count
         const statsTag = header.querySelector('.header-stats-tag');
-        if (statsTag) statsTag.textContent = `${count} ACTIVE SIGNATURES`;
+        if (statsTag && statsTag.textContent !== `${count} ACTIVE SIGNATURES`) {
+            statsTag.textContent = `${count} ACTIVE SIGNATURES`;
+        }
         
         sortedFleets.forEach(fleet => {
             const row = document.getElementById(`fleet-row-${fleet.id}`);
@@ -151,10 +155,10 @@ export function updateFleetMovements(gameState) {
                 
                 // Update timer
                 const timerEl = row.querySelector('.fleet-timer');
-                if (timerEl) timerEl.textContent = formatCountdown(timeRemaining);
-                
-                // Skip if expired (handled by signature change on next tick usually)
-                if (timeRemaining <= 0) return;
+                if (timerEl) {
+                    const timerText = formatCountdown(timeRemaining);
+                    if (timerEl.textContent !== timerText) timerEl.textContent = timerText;
+                }
             }
         });
     }

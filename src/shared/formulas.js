@@ -99,8 +99,11 @@ export function calculateDistance(coord1, coord2) {
 /**
  * Calculate fleet fuel consumption
  */
-export function calculateFuelConsumption(distance, ships, definitions) {
+export function calculateFuelConsumption(distance, ships, definitions, speedPercent = 1.0) {
   let totalFuel = 0;
+  // Limit speedPercent between 0.1 and 1.0
+  const speedFactor = Math.max(0.1, Math.min(1.0, speedPercent));
+  
   for (const shipKey in ships) {
     const count = ships[shipKey];
     if (count <= 0) continue;
@@ -108,10 +111,10 @@ export function calculateFuelConsumption(distance, ships, definitions) {
     const def = definitions[shipKey];
     if (!def) continue;
 
-    // OGame-like simplified fuel formula
-    // cost = 1 + [baseConsumption * distance * (speed_factor) / 35000]
-    // We assume speed factor is 1 for simplicity here as we use base speed
-    const shipFuel = 1 + (def.fuel * count * distance) / 35000;
+    // OGame-like fuel formula: cost scales with (speedFactor + 1)^2
+    // Higher speed = significantly higher fuel consumption
+    const consumptionFactor = Math.pow(speedFactor + 1, 2) / 4;
+    const shipFuel = 1 + (def.fuel * count * distance * consumptionFactor) / 35000;
     totalFuel += shipFuel;
   }
   return Math.ceil(totalFuel);
@@ -120,10 +123,12 @@ export function calculateFuelConsumption(distance, ships, definitions) {
 /**
  * Calculate fleet travel time
  */
-export function calculateTravelTime(distance, speed, configMultiplier = 1.0) {
+export function calculateTravelTime(distance, speed, configMultiplier = 1.0, speedPercent = 1.0) {
+  const speedFactor = Math.max(0.1, Math.min(1.0, speedPercent));
+  const effectiveSpeed = speed * speedFactor;
+  
   // Power-Law Hybrid formula: (10 + (3500 * (distance^0.7 / sqrt(speed)))) / globalSpeed
-  // This provides a middle ground between sqrt (too flat) and linear (too steep).
-  const time = (5 + (1500 * (Math.pow(distance, 0.7) / Math.sqrt(speed)))) / configMultiplier;
+  const time = (5 + (1500 * (Math.pow(distance, 0.7) / Math.sqrt(effectiveSpeed)))) / configMultiplier;
   return Math.max(1, Math.floor(time));
 }
 

@@ -192,6 +192,23 @@ async function openMissionModal(missionType, targetCoords) {
         html += '</div></div>';
     }
 
+    // --- Fleet Speed Section ---
+    html += `
+        <div class="mission-section fleet-speed-selector" style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-weight: bold; color: var(--accent-blue);">⚡ FLEET VELOCITY:</label>
+                <span id="speed-percent-label" style="font-family: 'Share Tech Mono', monospace; color: var(--accent-blue); font-weight: bold;">100%</span>
+            </div>
+            <input type="range" min="10" max="100" step="1" value="100" id="fleet-speed-range" class="slider" style="width: 100%;" oninput="document.getElementById('speed-percent-label').textContent = this.value + '%'; window.updateMissionCalculations();">
+            
+            <div style="margin-top: 15px;">
+                <label style="display: block; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">Estimated Arrival (Editable):</label>
+                <input type="datetime-local" id="arrival-time-input" class="modal-input" style="width: 100%; padding: 5px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;" onchange="window.reverseCalculateSpeed()">
+            </div>
+            <p style="font-size: 0.6rem; color: #64748b; margin-top: 8px; font-style: italic;">Adjust slider for manual speed, or enter arrival time to reverse-calculate.</p>
+        </div>
+    `;
+
     // --- Special Section for Expedition (Stay Time) ---
     if (missionType === MISSION_TYPES.EXPEDITION) {
         html += `
@@ -321,7 +338,9 @@ window.updateMissionCalculations = function() {
 
     // Calculate costs
     const distance = planet ? calculateDistance(planet.coordinates, targetCoords) : 0;
-    const fuelCost = calculateFleetFuelCost(shipsToSend, distance);
+    const speedPercent = document.getElementById('fleet-speed-range') ? (parseInt(document.getElementById('fleet-speed-range').value) / 100) : 1.0;
+    
+    const fuelCost = calculateFleetFuelCost(shipsToSend, distance, speedPercent);
     
     // Find slowest ship speed for accurate travel time
     let slowestSpeed = Infinity;
@@ -335,9 +354,19 @@ window.updateMissionCalculations = function() {
 
     // Survival needs calculation using SHARED formula
     const fleetSpeedMultiplier = window.GAME_CONFIG?.gameSpeed?.fleetSpeed || 1.0;
-    const travelTimeSeconds = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier);
+    const travelTimeSeconds = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, speedPercent);
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
     
+    // Update arrival time field
+    const arrivalInput = document.getElementById('arrival-time-input');
+    if (arrivalInput && !window.isReverseCalculating) {
+        const arrivalDate = new Date(Date.now() + (travelTimeSeconds * 1000));
+        // Format for datetime-local: YYYY-MM-DDTHH:MM
+        const tzOffset = arrivalDate.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(arrivalDate - tzOffset)).toISOString().slice(0, 16);
+        arrivalInput.value = localISOTime;
+    }
+
     // Total mission duration (travel both ways + stay time for expeditions)
     const totalDurationSeconds = (travelTimeSeconds * 2) + (stayTime * 3600);
     const survivalNeeds = calculateFleetSurvivalNeeds(totalCrew, totalDurationSeconds);
@@ -398,6 +427,64 @@ window.maxResource = function(res, maxAmount) {
     }
 };
 
+window.reverseCalculateSpeed = function() {
+    const arrivalInput = document.getElementById('arrival-time-input');
+    if (!arrivalInput || !arrivalInput.value) return;
+
+    const targetTime = new Date(arrivalInput.value).getTime();
+    const now = Date.now();
+    const requiredDurationSeconds = (targetTime - now) / 1000;
+
+    if (requiredDurationSeconds <= 0) {
+        Notifications.showError('Target arrival time must be in the future.');
+        window.updateMissionCalculations(); // Reset to current
+        return;
+    }
+
+    const planet = window.getCurrentPlanet();
+    const targetCoords = window.lastTargetCoords || [1, 1, 1];
+    const distance = planet ? calculateDistance(planet.coordinates, targetCoords) : 0;
+    
+    // Find slowest ship speed
+    let slowestSpeed = Infinity;
+    document.querySelectorAll('.ship-qty-input').forEach(input => {
+        const qty = parseNumberShorthand(input.value);
+        if (qty > 0) {
+            const speed = SHIPS[input.dataset.ship]?.speed || 100;
+            if (speed < slowestSpeed) slowestSpeed = speed;
+        }
+    });
+    if (slowestSpeed === Infinity) slowestSpeed = 100;
+
+    const fleetSpeedMultiplier = window.GAME_CONFIG?.gameSpeed?.fleetSpeed || 1.0;
+
+    // Binary search for closest speed percent (10% to 100%)
+    let bestSpeed = 100;
+    let minDiff = Infinity;
+
+    for (let s = 10; s <= 100; s++) { // Check each percent
+        const testSpeed = s / 100;
+        const timeAtSpeed = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, testSpeed);
+        const diff = Math.abs(timeAtSpeed - requiredDurationSeconds);
+        
+        if (diff < minDiff) {
+            minDiff = diff;
+            bestSpeed = s;
+        }
+    }
+
+    // Update UI
+    window.isReverseCalculating = true; // Prevent updateMissionCalculations from overwriting our input
+    const slider = document.getElementById('fleet-speed-range');
+    if (slider) {
+        slider.value = bestSpeed;
+        document.getElementById('speed-percent-label').textContent = bestSpeed + '%';
+    }
+    
+    window.updateMissionCalculations();
+    window.isReverseCalculating = false;
+};
+
 window.submitMission = async function(missionType, targetCoords) {
     const planetId = window.getCurrentPlanetId();
     if (!planetId) return;
@@ -408,6 +495,7 @@ window.submitMission = async function(missionType, targetCoords) {
     let totalShips = 0;
     const isMarket = missionType === MISSION_TYPES.MARKET_TRADE;
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
+    const speedPercent = document.getElementById('fleet-speed-range') ? (parseInt(document.getElementById('fleet-speed-range').value) / 100) : 1.0;
 
     document.querySelectorAll('.ship-qty-input').forEach(input => {
         const qty = parseNumberShorthand(input.value);
@@ -451,7 +539,8 @@ window.submitMission = async function(missionType, targetCoords) {
                 resources: isMarket ? tradeData.sell : resourcesToSend,
                 buyResources: isMarket ? tradeData.buy : null,
                 originPlanetId: planetId,
-                stayTime
+                stayTime,
+                speedPercent
             })
         });
 
