@@ -24,6 +24,11 @@ export function switchOverviewMode(mode) {
         }
     });
 
+    // Update URL query parameter
+    const url = new URL(window.location);
+    url.searchParams.set('subview', mode);
+    window.history.replaceState({}, '', url);
+
     const container = document.getElementById('overview-view');
     if (container) {
         // Force a re-render
@@ -92,6 +97,10 @@ window.viewMyRank = async function() {
 function initializeOverviewStructure(container, planet, allPlanets) {
     const { coordinates } = planet;
     
+    // Get mode from URL or default
+    const urlParams = new URLSearchParams(window.location.search);
+    currentOverviewMode = urlParams.get('subview') || 'planet';
+
     // Planet Selector HTML
     let selectorHtml = '';
     if (allPlanets && allPlanets.length > 1) {

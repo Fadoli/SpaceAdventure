@@ -42,7 +42,7 @@ function getUrlParams() {
 }
 
 function updateUrlParams(planetId, view) {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
     if (planetId) {
         params.set('planet', planetId);
     }

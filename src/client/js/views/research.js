@@ -17,6 +17,7 @@ import { isEmpty } from '../../../shared/utils.js';
 import { getCurrentPlanetId, getCurrentPlanet } from '../main.js';
 
 let currentPlanetBuildings = null;
+let lastResearchPlanetId = null;
 let researchData = null;
 let lastResearchStateHash = null;
 let researchQueueVisible = true;
@@ -1187,9 +1188,15 @@ window.showResearchHistory = async function (baseType) {
 
 export function updateResearchView(player, planetId = null, forceFetch = false) {
     const target = planetId || getCurrentPlanetId() || (player?.planets?.[0]?.id);
-    if (target) { const p = player.planets.find(pl => pl.id === target); if (p) currentPlanetBuildings = p.buildings; }
+    const planetChanged = lastResearchPlanetId !== target;
     
-    if (forceFetch || !researchData) {
+    if (target) { 
+        const p = player.planets.find(pl => pl.id === target); 
+        if (p) currentPlanetBuildings = p.buildings; 
+        lastResearchPlanetId = target;
+    }
+    
+    if (forceFetch || !researchData || planetChanged) {
         loadResearchData(forceFetch);
     } else {
         updateCurrentTabStatus();
