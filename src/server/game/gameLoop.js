@@ -1,5 +1,5 @@
 // Game tick system - processes game state periodically
-import { getPlayers, savePlayers, takeRankingSnapshot, recomputePlayerScores } from './player.js';
+import { getPlayers, savePlayers, takeRankingSnapshot, recomputePlayerScores, flushDirtyPlayers } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
@@ -10,8 +10,10 @@ import { CONFIG } from '../../shared/constants.js';
 import { getAllAiPlayers } from './aiManager.js';
 import { processAiPlayer } from './aiLogic.js';
 import { spawnGhostPlanets, cleanupGhostPlanets } from './events.js';
-import { readJsonFile } from '../storage/storage.js';
+import { flushGalaxyData } from './galaxyData.js';
+import { flushDirtyMessages } from './messages.js';
 import { wsManager } from './wsManager.js';
+import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 
 let gameLoopInterval = null;
 let isTickRunning = false;
@@ -127,6 +129,9 @@ async function performCatchUp(startTime, targetTime) {
     simTime = Math.min(simTime + STEP, targetTime);
     await gameTick(simTime, true); // Pass true for isCatchUp
   }
+  await flushDirtyPlayers(); // Final catch-up flush
+  await flushGalaxyData();
+  await flushDirtyMessages();
   lastProcessedTick = targetTime;
 }
 
@@ -138,10 +143,13 @@ export async function stopGameLoop() {
     clearInterval(gameLoopInterval);
     gameLoopInterval = null;
     
-    // Final persistence of heartbeat
+    // Final persistence of dirty data and heartbeat
+    await flushDirtyPlayers();
+    await flushGalaxyData();
+    await flushDirtyMessages();
     await saveServerState(lastProcessedTick);
     
-    console.log('Game loop stopped and heartbeat persisted.');
+    console.log('Game loop stopped and data persisted.');
   }
 }
 
@@ -303,8 +311,10 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
     
     // Save if anything changed and enough time has passed
     // During catch-up, we don't save every tick to disk for performance
-    if (updated && !isCatchUp && (now - lastSaveTime) >= SAVE_INTERVAL) {
-      await savePlayers(players);
+    if ((now - lastSaveTime) >= SAVE_INTERVAL) {
+      await flushDirtyPlayers();
+      await flushGalaxyData();
+      await flushDirtyMessages();
       lastSaveTime = now;
     }
 
@@ -321,7 +331,9 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
         await recomputePlayerScores(player);
       }
       if (!isCatchUp) {
-        await savePlayers(players);
+        await flushDirtyPlayers();
+        await flushGalaxyData();
+        await flushDirtyMessages();
         console.log('[GameLoop] Hourly score recomputation complete.');
       }
       lastRecomputeTime = now;
@@ -341,7 +353,9 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
 
     // If catch up finished a major chunk, we should save periodically
     if (isCatchUp && (now - lastSaveTime) >= (SAVE_INTERVAL * 10)) {
-       await savePlayers(players);
+       await flushDirtyPlayers();
+       await flushGalaxyData();
+       await flushDirtyMessages();
        lastSaveTime = now;
     }
 

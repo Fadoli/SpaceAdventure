@@ -12,6 +12,7 @@ import { SCALING } from '../../shared/constants.js';
 import { calculateBuildingCost, calculateTheoreticalResearchCost } from '../../shared/formulas.js';
 
 const playersCache = new Map();
+const dirtyPlayers = new Set();
 
 /**
  * Find a suitable available planet slot [G, S, P] for a new player or expansion.
@@ -198,12 +199,32 @@ export async function createPlayer(userId, username) {
 }
 
 /**
- * Update player data (writes to individual file)
+ * Update player data (In-memory update + Mark dirty)
  */
 export async function updatePlayer(userId, playerData) {
   playersCache.set(userId, playerData);
-  await writeJsonFile(`players/${userId}/data.json`, playerData);
+  dirtyPlayers.add(userId);
   return playerData;
+}
+
+/**
+ * Flush all dirty player data to disk
+ */
+export async function flushDirtyPlayers() {
+  if (dirtyPlayers.size === 0) return;
+
+  const count = dirtyPlayers.size;
+  console.log(`[Storage] Flushing ${count} dirty players to disk...`);
+
+  const ids = Array.from(dirtyPlayers);
+  dirtyPlayers.clear();
+
+  for (const userId of ids) {
+    const player = playersCache.get(userId);
+    if (player) {
+      await writeJsonFile(`players/${userId}/data.json`, player);
+    }
+  }
 }
 
 /**

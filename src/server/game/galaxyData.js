@@ -3,6 +3,7 @@ import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 
 const GALAXY_FILE = 'galaxy.json';
 let galaxyCache = null;
+let isGalaxyDirty = false;
 
 /**
  * Get galaxy data
@@ -37,15 +38,27 @@ export async function updateGhostPlanet(coords, data) {
     };
   }
   
-  await saveGalaxyData(galaxy);
+  isGalaxyDirty = true;
 }
 
 /**
- * Save galaxy data
+ * Save galaxy data (In-memory + Mark dirty)
  */
 export async function saveGalaxyData(data) {
   galaxyCache = data;
-  return await writeJsonFile(GALAXY_FILE, data);
+  isGalaxyDirty = true;
+  return true;
+}
+
+/**
+ * Flush galaxy data to disk if dirty
+ */
+export async function flushGalaxyData() {
+  if (!isGalaxyDirty || !galaxyCache) return;
+  
+  console.log('[Storage] Flushing galaxy data to disk...');
+  await writeJsonFile(GALAXY_FILE, galaxyCache);
+  isGalaxyDirty = false;
 }
 
 /**
@@ -54,7 +67,7 @@ export async function saveGalaxyData(data) {
 export async function registerPlayer(userId, username, homeworldCoords) {
   const data = await getGalaxyData();
   data.playerRegistry[userId] = { username, homeworld: homeworldCoords };
-  await saveGalaxyData(data);
+  isGalaxyDirty = true;
 }
 
 /**
@@ -72,5 +85,5 @@ export async function updateDebrisField(coords, resources) {
     data.debrisFields[coordKey] = resources;
   }
   
-  await saveGalaxyData(data);
+  isGalaxyDirty = true;
 }

@@ -2,6 +2,9 @@ import { readJsonFile, writeJsonFile } from '../storage/storage.js';
 import { generateId } from '../../shared/utils.js';
 import { wsManager } from './wsManager.js';
 
+const messagesCache = new Map(); // userId -> messages array
+const dirtyMessageUsers = new Set();
+
 /**
  * Get the filename for a user's messages
  */
@@ -13,9 +16,16 @@ function getMessagesFilename(userId) {
  * Get all messages for a player
  */
 export async function getPlayerMessages(userId) {
+  if (messagesCache.has(userId)) {
+    return messagesCache.get(userId);
+  }
+
   const filename = getMessagesFilename(userId);
   const data = await readJsonFile(filename);
-  return data?.messages || [];
+  const messages = data?.messages || [];
+  
+  messagesCache.set(userId, messages);
+  return messages;
 }
 
 /**
@@ -24,7 +34,6 @@ export async function getPlayerMessages(userId) {
  * @param {Object} messageData - Message content (subject, body, sender, type, data)
  */
 export async function addMessage(userId, messageData) {
-  const filename = getMessagesFilename(userId);
   const messages = await getPlayerMessages(userId);
   
   const newMessage = {
@@ -41,7 +50,7 @@ export async function addMessage(userId, messageData) {
     messages.pop();
   }
   
-  await writeJsonFile(filename, { messages });
+  dirtyMessageUsers.add(userId);
 
   // Notify client of new message
   wsManager.sendToUser(userId, 'NEW_MESSAGE', { count: messages.filter(m => !m.read).length });
@@ -53,13 +62,12 @@ export async function addMessage(userId, messageData) {
  * Mark a message as read
  */
 export async function markMessageRead(userId, messageId) {
-  const filename = getMessagesFilename(userId);
   const messages = await getPlayerMessages(userId);
   const message = messages.find(m => m.id === messageId);
   
   if (message) {
     message.read = true;
-    await writeJsonFile(filename, { messages });
+    dirtyMessageUsers.add(userId);
     return true;
   }
   return false;
@@ -69,12 +77,14 @@ export async function markMessageRead(userId, messageId) {
  * Delete a specific message
  */
 export async function deleteMessage(userId, messageId) {
-  const filename = getMessagesFilename(userId);
   const messages = await getPlayerMessages(userId);
+  const initialLength = messages.length;
+  
   const filtered = messages.filter(m => m.id !== messageId);
   
-  if (filtered.length !== messages.length) {
-    await writeJsonFile(filename, { messages: filtered });
+  if (filtered.length !== initialLength) {
+    messagesCache.set(userId, filtered);
+    dirtyMessageUsers.add(userId);
     return true;
   }
   return false;
@@ -84,7 +94,27 @@ export async function deleteMessage(userId, messageId) {
  * Delete all messages for a player
  */
 export async function clearMessages(userId) {
-  const filename = getMessagesFilename(userId);
-  await writeJsonFile(filename, { messages: [] });
+  messagesCache.set(userId, []);
+  dirtyMessageUsers.add(userId);
   return true;
+}
+
+/**
+ * Flush all dirty message mailboxes to disk
+ */
+export async function flushDirtyMessages() {
+  if (dirtyMessageUsers.size === 0) return;
+
+  const count = dirtyMessageUsers.size;
+  console.log(`[Storage] Flushing ${count} dirty mailboxes to disk...`);
+
+  const ids = Array.from(dirtyMessageUsers);
+  dirtyMessageUsers.clear();
+
+  for (const userId of ids) {
+    const messages = messagesCache.get(userId);
+    if (messages) {
+      await writeJsonFile(getMessagesFilename(userId), { messages });
+    }
+  }
 }
