@@ -22,10 +22,9 @@ const PLANET_NAMES = [
 /**
  * Process a single AI player's turn
  */
-export async function processAiPlayer(player) {
+export async function processAiPlayer(player, now = Date.now()) {
   if (!player.isAI) return false;
   
-  const now = Date.now();
   if (now < player.aiConfig.nextAction) return false;
   
   let updated = false;
@@ -67,7 +66,7 @@ export async function processAiPlayer(player) {
   updated = await handleColonization(player) || updated;
 
   // 7. Handle Flavor (Renaming)
-  updated = await handlePlanetRenaming(player) || updated;
+  updated = await handlePlanetRenaming(player, now) || updated;
   
   // Set next action time (30-60 seconds for much faster progression)
   const delay = (Math.random() * 30 + 30) * 1000; 
@@ -144,9 +143,8 @@ async function handleColonization(player) {
 /**
  * AI Planet Renaming for flavor
  */
-async function handlePlanetRenaming(player) {
+async function handlePlanetRenaming(player, now = Date.now()) {
   let changed = false;
-  const now = Date.now();
   const COOLDOWN = 3600000; // 1 hour
 
   for (const planet of player.planets) {

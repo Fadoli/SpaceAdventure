@@ -275,7 +275,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
 /**
  * Complete practical research
  */
-export async function completePracticalResearch(player, queueItemId) {
+export async function completePracticalResearch(player, queueItemId, now = Date.now()) {
   const index = (player.practicalResearchQueue || []).findIndex(item => item.id === queueItemId);
   if (index === -1) throw new Error('Practical research queue item not found');
   
@@ -327,7 +327,7 @@ export async function completePracticalResearch(player, queueItemId) {
 
   const logEntry = {
     id: generateId(),
-    timestamp: Date.now(),
+    timestamp: now,
     type: outcome.type,
     xpGain: totalXpGain,
     focusGains: gains,
@@ -459,8 +459,7 @@ export function getActiveBuildingVariant(player, planetId, baseType) {
   return variant ? variant.customDefinition : BUILDINGS[baseType];
 }
 
-export function getResearchProgress(player) {
-  const now = Date.now();
+export function getResearchProgress(player, now = Date.now()) {
   const theoretical = (player.researchQueue || []).map(item => ({
     ...item,
     progress: Math.min(100, Math.floor(((now - item.startTime) / item.duration) * 100)),

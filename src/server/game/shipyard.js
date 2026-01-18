@@ -231,8 +231,7 @@ export function cancelProduction(planet, queueId, type = 'ships') {
 /**
  * Process completed ship/defense production
  */
-export function processCompletedProduction(planet) {
-  const now = Date.now();
+export function processCompletedProduction(planet, now = Date.now()) {
   let anyCompleted = false;
 
   // Process ship queue
@@ -258,7 +257,7 @@ export function processCompletedProduction(planet) {
       });
 
       // Update activity timestamp when ships complete
-      planet.lastActivity = Date.now();
+      planet.lastActivity = now;
       anyCompleted = true;
     } else {
       break;
@@ -288,7 +287,7 @@ export function processCompletedProduction(planet) {
       });
 
       // Update activity timestamp when defenses complete
-      planet.lastActivity = Date.now();
+      planet.lastActivity = now;
       anyCompleted = true;
     } else {
       break;

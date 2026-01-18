@@ -364,9 +364,8 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
 /**
  * Process completed buildings for all players
  */
-export async function processCompletedBuildings(player) {
+export async function processCompletedBuildings(player, now = Date.now()) {
   let updated = false;
-  let now = Date.now();
   
   for (const planet of player.planets) {
     // Process queue sequentially
@@ -1113,7 +1112,7 @@ export async function queueVariantSwitch(userId, planetId, buildingType, toCusto
 /**
  * Process completed variant switches in the game loop
  */
-export async function processCompletedVariantSwitches(player) {
+export async function processCompletedVariantSwitches(player, now = Date.now()) {
   let updated = false;
   
   for (const planet of player.planets) {
@@ -1125,7 +1124,7 @@ export async function processCompletedVariantSwitches(player) {
     const switchItem = planet.variantSwitchQueue[0];
     
     // Check if switch is complete
-    if (switchItem.finishTime <= Date.now()) {
+    if (switchItem.finishTime <= now) {
       // Complete the switch
       if (!planet.activeVariants) {
         planet.activeVariants = {};

@@ -154,11 +154,10 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
 /**
  * Process all active fleets for a player
  */
-export async function processFleets(player, allPlayers) {
+export async function processFleets(player, allPlayers, now = Date.now(), isCatchUp = false) {
     if (!player.fleets || player.fleets.length === 0) return false;
 
     let updated = false;
-    const now = Date.now();
 
     for (let i = player.fleets.length - 1; i >= 0; i--) {
         const fleet = player.fleets[i];
@@ -185,7 +184,7 @@ export async function processFleets(player, allPlayers) {
                     if (destroyed) {
                         player.fleets.splice(i, 1);
                         updated = true;
-                        wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
+                        if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
                         continue;
                     }
                 }
@@ -214,14 +213,14 @@ export async function processFleets(player, allPlayers) {
                 await handleFleetReturn(player, fleet);
                 player.fleets.splice(i, 1);
                 updated = true;
-                wsManager.sendToUser(player.userId, 'FLEET_RETURNED', { userId: player.userId, fleetId: fleet.id });
+                if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_RETURNED', { userId: player.userId, fleetId: fleet.id });
             } else {
                 // Fleet arrived at target
                 const missionCompleted = await handleFleetArrival(player, fleet, allPlayers);
                 if (missionCompleted) {
                     // Some missions complete immediately (like colonize success)
                     player.fleets.splice(i, 1);
-                    wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
+                    if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
                 } else {
                     // Other missions reverse and return (spy, attack, transport)
                     // For expedition, it stays for a while
@@ -248,7 +247,7 @@ export async function processFleets(player, allPlayers) {
                         fleet.originCoords = [...fleet.targetCoords];
                         fleet.targetCoords = origin;
                     }
-                    wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: false });
+                    if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: false });
                 }
                 updated = true;
             }

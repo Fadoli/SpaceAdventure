@@ -133,6 +133,12 @@ export async function initializeStorage() {
   if (!alliances) {
     await writeJsonFile('alliances.json', { alliances: {} });
   }
+
+  // Initialize server_state.json if it doesn't exist
+  const serverState = await readJsonFile('server_state.json');
+  if (!serverState) {
+    await writeJsonFile('server_state.json', { lastHeartbeat: Date.now() });
+  }
   
   console.log('Storage initialized');
 }
