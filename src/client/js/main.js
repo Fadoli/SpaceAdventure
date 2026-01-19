@@ -186,7 +186,8 @@ async function showGameScreen() {
     
     // Now switch to the restored/default view
     // Use false to not push to history since we're just restoring state
-    switchView(currentView, false);
+    // Use true to force a deep fetch of sub-details (queues, etc) on startup
+    switchView(currentView, false, true);
     
     startResourceUpdate();
 }
@@ -245,7 +246,7 @@ function setupGameListeners() {
     });
 }
 
-function switchView(view, updateHistory = true) {
+function switchView(view, updateHistory = true, forceFetch = false) {
     currentView = view;
     
     // Update URL if requested
@@ -296,7 +297,7 @@ function switchView(view, updateHistory = true) {
         } else if (view === 'ranking') {
             updateRankingView();
         } else {
-            updateCurrentView();
+            updateCurrentView(forceFetch);
         }
     }
 
@@ -562,7 +563,7 @@ window.selectPlanet = function(planetId) {
     if (planet) {
         currentPlanetId = planet.id;
         updateUrlParams(currentPlanetId, currentView);
-        updateUI();
+        updateUI(true);
     }
 };
 

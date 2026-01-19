@@ -415,10 +415,12 @@ function updateQueueView(queue, maxQueueSize, buildings) {
                         const total = item.finishTime - item.startTime;
                         const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
                         
+                        const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${item.queuePosition}`);
+
                         return `
                             <div class="queue-item ${isActive ? 'active' : ''}">
                                 <div class="queue-item-row">
-                                    <span class="q-pos">${item.queuePosition}</span>
+                                    <span class="q-pos" style="width: 60px;">${posLabel}</span>
                                     <span class="q-name" title="${buildings[item.building]?.name || item.building}">${buildings[item.building]?.name || item.building}</span>
                                     <span class="q-level">LVL ${item.level}</span>
                                     <div class="progress-bar-mini">

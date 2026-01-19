@@ -328,7 +328,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                     </div>
                 ` : `
                     <div class="action-group">
-                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${shipKey}" placeholder="QTY" data-id="${shipKey}">
+                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${shipKey}" placeholder="QTY (e.g. 5m)" data-id="${shipKey}">
                         <button class="btn upgrade-btn" 
                                 id="btn-${shipKey}"
                                 ${!canBuild ? 'disabled' : ''} 
@@ -443,7 +443,7 @@ function renderDefensesList(planet, shipyardData) {
                             </div>
                         ` : `
                             <div class="action-group">
-                                <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY" data-id="${defenseKey}">
+                                <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY (e.g. 5m)" data-id="${defenseKey}">
                                 <button class="btn upgrade-btn" 
                                         id="btn-${defenseKey}"
                                         ${!canBuild ? 'disabled' : ''} 
@@ -489,15 +489,18 @@ function renderBuildQueue(shipyardData) {
         html += '<div class="queue-items">';
         
         for (const item of allQueue) {
-            const isActive = item.queuePosition === 1;
+            const index = allQueue.indexOf(item);
+            const isActive = index === 0;
             const timeRemaining = Math.max(0, item.timeRemaining || 0) / 1000; // Convert to seconds
             
+            const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
+
             let itemDetails = '';
             
             if (item.ships && !isEmpty(item.ships)) {
                 const shipDetails = [];
                 for (const key in item.ships) {
-                    shipDetails.push(`${item.ships[key]}x ${availableShips[key]?.name || key}`);
+                    shipDetails.push(`${formatNumber(item.ships[key])}x ${availableShips[key]?.name || key}`);
                 }
                 itemDetails = shipDetails.join(', ');
             }
@@ -505,7 +508,7 @@ function renderBuildQueue(shipyardData) {
             if (item.defenses && !isEmpty(item.defenses)) {
                 const defenseDetails = [];
                 for (const key in item.defenses) {
-                    defenseDetails.push(`${item.defenses[key]}x ${availableDefenses[key]?.name || key}`);
+                    defenseDetails.push(`${formatNumber(item.defenses[key])}x ${availableDefenses[key]?.name || key}`);
                 }
                 itemDetails = defenseDetails.join(', ');
             }
@@ -513,7 +516,7 @@ function renderBuildQueue(shipyardData) {
             html += `
                 <div class="queue-item ${isActive ? 'active' : ''}">
                     <div class="queue-item-row">
-                        <span class="q-pos">${item.queuePosition}</span>
+                        <span class="q-pos" style="width: 60px;">${posLabel}</span>
                         <span class="q-name">${itemDetails}</span>
                         <div class="progress-bar-mini">
                             <div class="progress-fill" id="build-progress-${item.queuePosition}" style="width: ${isActive ? Math.max(0, 100 - (timeRemaining / item.buildTime * 100)) : 0}%"></div>

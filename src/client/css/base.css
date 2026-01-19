@@ -616,7 +616,7 @@ body::before {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.85rem;
     font-weight: bold;
-    flex: 0 0 250px; /* Fixed width for name to allow bar to grow */
+    flex: 0 0 350px; /* Fixed width for name to allow bar to grow */
     color: #fff;
     white-space: nowrap;
     overflow: hidden;

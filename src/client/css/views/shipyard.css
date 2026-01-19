@@ -105,7 +105,7 @@
 
 .shipyard-container .ship-quantity, 
 .shipyard-container .defense-quantity {
-    flex: 0 0 100px;
+    flex: 0 0 120px;
     background: rgba(0, 0, 0, 0.4);
     border: none;
     border-right: 1px solid rgba(255, 255, 255, 0.1);

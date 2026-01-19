@@ -224,18 +224,44 @@ describe('calculateFuelConsumption', () => {
 
 // ============ Travel Time Tests ============
 describe('calculateTravelTime', () => {
-      it('should calculate travel time in seconds', () => {
-        const distance = 1000;
-        const speed = 10000;
-        const result = calculateTravelTime(distance, speed);
-        // Formula: (5 + (1500 * (distance^0.7 / sqrt(speed))))
-        const expected = Math.floor(5 + (1500 * (Math.pow(distance, 0.7) / Math.sqrt(speed))));
-        expect(result).toBe(expected);
-      });
+  it('should calculate travel time in seconds', () => {
+    const distance = 1000;
+    const speed = 10000;
+    const result = calculateTravelTime(distance, speed);
+    // Formula: (5 + (1500 * (distance^0.7 / sqrt(speed))))
+    const expected = Math.floor(5 + (1500 * (Math.pow(distance, 0.7) / Math.sqrt(speed))));
+    expect(result).toBe(expected);
+  });
+
   it('should increase with distance', () => {
     const result1 = calculateTravelTime(1000, 10000);
     const result2 = calculateTravelTime(2000, 10000);
     expect(result2).toBeGreaterThan(result1);
+  });
+
+  it('should respect speed percentage (100% vs 10%)', () => {
+    const distance = 1000;
+    const speed = 10000;
+    const time100 = calculateTravelTime(distance, speed, 1.0, 1.0);
+    const time10 = calculateTravelTime(distance, speed, 1.0, 0.1);
+    
+    // speedFactor 0.1 means sqrt(0.1) slower => ~3.16x slower
+    expect(time10).toBeGreaterThan(time100);
+    expect(time10).toBeGreaterThan(time100 * 3);
+  });
+
+  it('should handle ultra-low speeds without capping at 10%', () => {
+    const distance = 1000;
+    const speed = 10000;
+    const time10 = calculateTravelTime(distance, speed, 1.0, 0.1);
+    const time1 = calculateTravelTime(distance, speed, 1.0, 0.01);
+    const time01 = calculateTravelTime(distance, speed, 1.0, 0.001);
+
+    expect(time1).toBeGreaterThan(time10);
+    expect(time01).toBeGreaterThan(time1);
+    
+    // 0.1% speed should be roughly sqrt(100) = 10x slower than 10% speed
+    expect(time01).toBeGreaterThan(time10 * 9);
   });
 });
 

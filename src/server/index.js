@@ -1313,7 +1313,7 @@ async function handleRequest(req) {
       }
 
       const body = await req.json();
-      const { missionType, targetCoords, ships, resources, buyResources, originPlanetId, stayTime } = body;
+      const { missionType, targetCoords, ships, resources, buyResources, originPlanetId, stayTime, speedPercent } = body;
 
       if (!missionType || !targetCoords || !ships) {
         return errorResponse(req, 'Missing mission details', 400);
@@ -1344,7 +1344,7 @@ async function handleRequest(req) {
           return errorResponse(req, 'No planet found with sufficient ships for this mission', 400);
         }
 
-        const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships, resources || {}, stayTime, buyResources);
+        const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships, resources || {}, stayTime, buyResources, speedPercent);
         return successResponse(req, fleet);
       } catch (error) {
         return errorResponse(req, error.message, 400);

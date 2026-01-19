@@ -102,6 +102,35 @@ describe('Fleet Management', () => {
       expect(mockPlayer.planets[0].ships.lightFighter).toBe(5); // 10 - 5
     });
 
+    it('should handle ultra-slow speed (0.1%)', async () => {
+      const slowFleet = await sendFleet(
+        'user1',
+        'p1',
+        [1, 1, 2],
+        MISSION_TYPES.ATTACK,
+        { lightFighter: 1 },
+        {},
+        0,
+        null,
+        0.001 // 0.1% speed
+      );
+
+      const fastFleet = await sendFleet(
+        'user1',
+        'p1',
+        [1, 1, 2],
+        MISSION_TYPES.ATTACK,
+        { lightFighter: 1 },
+        {},
+        0,
+        null,
+        1.0 // 100% speed
+      );
+
+      expect(slowFleet.speedPercent).toBe(0.001);
+      expect(slowFleet.travelTime).toBeGreaterThan(fastFleet.travelTime * 10);
+    });
+
     it('should throw if insufficient ships', async () => {
       expect(sendFleet(
         'user1',

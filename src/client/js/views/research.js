@@ -267,15 +267,18 @@ function renderTheoreticalResearch() {
         for (const queueItem of queue) {
             const tech = theoryResearch[queueItem.techKey];
             if (!tech) continue;
-            const isActive = queue.indexOf(queueItem) === 0;
+            const index = queue.indexOf(queueItem);
+            const isActive = index === 0;
             const elapsed = Date.now() - queueItem.startTime;
             const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
             const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
 
+            const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
+
             html += `
         <div class="queue-item ${isActive ? 'active' : ''}">
           <div class="queue-item-row">
-            <span class="q-pos">${queue.indexOf(queueItem) + 1}</span>
+            <span class="q-pos" style="width: 60px;">${posLabel}</span>
             <span class="q-name" title="${tech.name}">${tech.name}</span>
             <span class="q-level">LVL ${queueItem.level}</span>
             <div class="progress-bar-mini">
@@ -433,12 +436,16 @@ async function renderPracticalResearch() {
                     }
                 }
                 if (!r) continue;
-                const isActive = queue.indexOf(q) === 0;
+                const index = queue.indexOf(q);
+                const isActive = index === 0;
                 const percent = Math.min(100, Math.max(0, ((Date.now() - q.startTime) / (q.endTime - q.startTime)) * 100));
+                
+                const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
+
                 html += `
           <div class="queue-item ${isActive ? 'active' : ''}">
             <div class="queue-item-row">
-              <span class="q-pos">${queue.indexOf(q) + 1}</span>
+              <span class="q-pos" style="width: 60px;">${posLabel}</span>
               <span class="q-name">${r.name}</span>
               <span class="q-level">STRENGTH: ${(q.strength * 100).toFixed(0)}%</span>
               <div class="progress-bar-mini"><div class="progress-fill" id="research-practical-progress-${q.id}" style="width: ${isActive ? percent : 0}%"></div></div>

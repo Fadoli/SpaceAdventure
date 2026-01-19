@@ -29,8 +29,8 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     const originPlanet = player.planets.find(p => p.id === originPlanetId);
     if (!originPlanet) throw new Error('Origin planet not found');
 
-    // Limit speedPercent
-    const finalSpeedPercent = Math.max(0.1, Math.min(1.0, speedPercent || 1.0));
+    // Limit speedPercent (down to 0.01% for extremely precise long-term timing)
+    const finalSpeedPercent = Math.max(0.0001, Math.min(1.0, speedPercent || 1.0));
 
     // Verify ships availability
     for (const shipKey in ships) {

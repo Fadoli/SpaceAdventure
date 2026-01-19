@@ -101,8 +101,8 @@ export function calculateDistance(coord1, coord2) {
  */
 export function calculateFuelConsumption(distance, ships, definitions, speedPercent = 1.0) {
   let totalFuel = 0;
-  // Limit speedPercent between 0.1 and 1.0
-  const speedFactor = Math.max(0.1, Math.min(1.0, speedPercent));
+  // Use a very low floor to support ultra-slow tactical travel
+  const speedFactor = Math.max(0.0001, Math.min(1.0, speedPercent));
   
   for (const shipKey in ships) {
     const count = ships[shipKey];
@@ -124,7 +124,7 @@ export function calculateFuelConsumption(distance, ships, definitions, speedPerc
  * Calculate fleet travel time
  */
 export function calculateTravelTime(distance, speed, configMultiplier = 1.0, speedPercent = 1.0) {
-  const speedFactor = Math.max(0.1, Math.min(1.0, speedPercent));
+  const speedFactor = Math.max(0.0001, Math.min(1.0, speedPercent));
   const effectiveSpeed = speed * speedFactor;
   
   // Power-Law Hybrid formula: (10 + (3500 * (distance^0.7 / sqrt(speed)))) / globalSpeed

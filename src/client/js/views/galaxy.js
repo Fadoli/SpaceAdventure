@@ -3,7 +3,7 @@ import { formatNumber, parseNumberShorthand, positionContextMenu } from '../util
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
-import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity } from '../../../shared/ships.js';
+import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity, calculateShipSpeed } from '../../../shared/ships.js';
 import { calculateDistance, calculateTravelTime } from '../../../shared/formulas.js';
 
 let lastRenderedGalaxy = null;
@@ -199,11 +199,11 @@ async function openMissionModal(missionType, targetCoords) {
                 <label style="font-weight: bold; color: var(--accent-blue);">⚡ FLEET VELOCITY:</label>
                 <span id="speed-percent-label" style="font-family: 'Share Tech Mono', monospace; color: var(--accent-blue); font-weight: bold;">100%</span>
             </div>
-            <input type="range" min="10" max="100" step="1" value="100" id="fleet-speed-range" class="slider" style="width: 100%;" oninput="document.getElementById('speed-percent-label').textContent = this.value + '%'; window.updateMissionCalculations();">
+            <input type="range" min="1" max="100" step="1" value="100" id="fleet-speed-range" class="slider" style="width: 100%;" oninput="delete this.dataset.preciseValue; document.getElementById('speed-percent-label').textContent = this.value + '%'; window.updateMissionCalculations();">
             
             <div style="margin-top: 15px;">
-                <label style="display: block; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">Estimated Arrival (Editable):</label>
-                <input type="datetime-local" id="arrival-time-input" class="modal-input" style="width: 100%; padding: 5px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;" onchange="window.reverseCalculateSpeed()">
+                <label style="display: block; font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">Estimated Arrival (HH:MM:SS or YYYY-MM-DD HH:MM:SS):</label>
+                <input type="text" id="arrival-time-input" class="modal-input" placeholder="e.g. 14:30:00" style="width: 100%; padding: 5px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;" onchange="window.reverseCalculateSpeed()">
             </div>
             <p style="font-size: 0.6rem; color: #64748b; margin-top: 8px; font-style: italic;">Adjust slider for manual speed, or enter arrival time to reverse-calculate.</p>
         </div>
@@ -338,7 +338,8 @@ window.updateMissionCalculations = function() {
 
     // Calculate costs
     const distance = planet ? calculateDistance(planet.coordinates, targetCoords) : 0;
-    const speedPercent = document.getElementById('fleet-speed-range') ? (parseInt(document.getElementById('fleet-speed-range').value) / 100) : 1.0;
+    const speedSlider = document.getElementById('fleet-speed-range');
+    const speedPercent = speedSlider ? (speedSlider.dataset.preciseValue ? parseFloat(speedSlider.dataset.preciseValue) : parseInt(speedSlider.value) / 100) : 1.0;
     
     const fuelCost = calculateFleetFuelCost(shipsToSend, distance, speedPercent);
     
@@ -346,7 +347,7 @@ window.updateMissionCalculations = function() {
     let slowestSpeed = Infinity;
     for (const shipKey in shipsToSend) {
         if (shipsToSend[shipKey] > 0) {
-            const speed = SHIPS[shipKey]?.speed || 100;
+            const speed = calculateShipSpeed(shipKey, currentGameState?.research || {});
             if (speed < slowestSpeed) slowestSpeed = speed;
         }
     }
@@ -361,10 +362,15 @@ window.updateMissionCalculations = function() {
     const arrivalInput = document.getElementById('arrival-time-input');
     if (arrivalInput && !window.isReverseCalculating) {
         const arrivalDate = new Date(Date.now() + (travelTimeSeconds * 1000));
-        // Format for datetime-local: YYYY-MM-DDTHH:MM
-        const tzOffset = arrivalDate.getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(arrivalDate - tzOffset)).toISOString().slice(0, 16);
-        arrivalInput.value = localISOTime;
+        // Format: YYYY-MM-DD HH:MM:SS
+        const y = arrivalDate.getFullYear();
+        const m = String(arrivalDate.getMonth() + 1).padStart(2, '0');
+        const d = String(arrivalDate.getDate()).padStart(2, '0');
+        const hh = String(arrivalDate.getHours()).padStart(2, '0');
+        const mm = String(arrivalDate.getMinutes()).padStart(2, '0');
+        const ss = String(arrivalDate.getSeconds()).padStart(2, '0');
+        const newTimeStr = `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+        if (arrivalInput.value !== newTimeStr) arrivalInput.value = newTimeStr;
     }
 
     // Total mission duration (travel both ways + stay time for expeditions)
@@ -431,7 +437,31 @@ window.reverseCalculateSpeed = function() {
     const arrivalInput = document.getElementById('arrival-time-input');
     if (!arrivalInput || !arrivalInput.value) return;
 
-    const targetTime = new Date(arrivalInput.value).getTime();
+    let targetTime;
+    const inputVal = arrivalInput.value.trim();
+
+    // Try parsing as HH:MM:SS
+    const timeMatch = inputVal.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+    if (timeMatch) {
+        const now = new Date();
+        targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                              parseInt(timeMatch[1]), parseInt(timeMatch[2]), parseInt(timeMatch[3])).getTime();
+        
+        // If the time already passed today, assume tomorrow
+        if (targetTime <= now.getTime()) {
+            targetTime += 24 * 60 * 60 * 1000;
+        }
+    } else {
+        // Fallback to standard date parsing
+        targetTime = new Date(inputVal).getTime();
+    }
+
+    if (isNaN(targetTime)) {
+        Notifications.showError('Invalid time format. Use HH:MM:SS or YYYY-MM-DD HH:MM:SS');
+        window.updateMissionCalculations();
+        return;
+    }
+
     const now = Date.now();
     const requiredDurationSeconds = (targetTime - now) / 1000;
 
@@ -450,7 +480,8 @@ window.reverseCalculateSpeed = function() {
     document.querySelectorAll('.ship-qty-input').forEach(input => {
         const qty = parseNumberShorthand(input.value);
         if (qty > 0) {
-            const speed = SHIPS[input.dataset.ship]?.speed || 100;
+            const shipKey = input.dataset.ship;
+            const speed = calculateShipSpeed(shipKey, currentGameState?.research || {});
             if (speed < slowestSpeed) slowestSpeed = speed;
         }
     });
@@ -458,27 +489,43 @@ window.reverseCalculateSpeed = function() {
 
     const fleetSpeedMultiplier = window.GAME_CONFIG?.gameSpeed?.fleetSpeed || 1.0;
 
-    // Binary search for closest speed percent (10% to 100%)
+    // Search for closest speed percent (1% to 100%)
     let bestSpeed = 100;
     let minDiff = Infinity;
 
-    for (let s = 10; s <= 100; s++) { // Check each percent
-        const testSpeed = s / 100;
-        const timeAtSpeed = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, testSpeed);
-        const diff = Math.abs(timeAtSpeed - requiredDurationSeconds);
-        
-        if (diff < minDiff) {
-            minDiff = diff;
-            bestSpeed = s;
+    // First check if we need to go LOWER than 1%
+    const timeAtOnePercent = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, 0.01);
+    
+    if (requiredDurationSeconds > timeAtOnePercent) {
+        // Calculate exact decimal percentage needed: 
+        // Since travelTime is roughly (distance / speed), speedPercent = (timeAt100% / requiredTime)
+        const timeAt100Percent = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, 1.0);
+        bestSpeed = (timeAt100Percent / requiredDurationSeconds) * 100;
+        // Clamp to 0.01% minimum
+        bestSpeed = Math.max(0.01, bestSpeed);
+    } else {
+        for (let s = 1; s <= 100; s++) { // Check each percent from 1% up
+            const testSpeed = s / 100;
+            const timeAtSpeed = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, testSpeed);
+            const diff = Math.abs(timeAtSpeed - requiredDurationSeconds);
+            
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestSpeed = s;
+            }
         }
     }
 
     // Update UI
-    window.isReverseCalculating = true; // Prevent updateMissionCalculations from overwriting our input
+    window.isReverseCalculating = true; 
     const slider = document.getElementById('fleet-speed-range');
     if (slider) {
-        slider.value = bestSpeed;
-        document.getElementById('speed-percent-label').textContent = bestSpeed + '%';
+        slider.min = 1; 
+        slider.value = Math.max(1, Math.round(bestSpeed));
+        const displayPercent = bestSpeed < 1 ? bestSpeed.toFixed(2) : Math.round(bestSpeed);
+        document.getElementById('speed-percent-label').textContent = displayPercent + '%';
+        // Store the precise value on the slider for the submit function to pick up
+        slider.dataset.preciseValue = bestSpeed / 100;
     }
     
     window.updateMissionCalculations();
@@ -495,7 +542,8 @@ window.submitMission = async function(missionType, targetCoords) {
     let totalShips = 0;
     const isMarket = missionType === MISSION_TYPES.MARKET_TRADE;
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
-    const speedPercent = document.getElementById('fleet-speed-range') ? (parseInt(document.getElementById('fleet-speed-range').value) / 100) : 1.0;
+    const speedSlider = document.getElementById('fleet-speed-range');
+    const speedPercent = speedSlider ? (speedSlider.dataset.preciseValue ? parseFloat(speedSlider.dataset.preciseValue) : parseInt(speedSlider.value) / 100) : 1.0;
 
     document.querySelectorAll('.ship-qty-input').forEach(input => {
         const qty = parseNumberShorthand(input.value);
