@@ -69,7 +69,7 @@ describe('Fleet Durability and Integrity', () => {
     
     // 1. Force Arrival
     player.fleets[0].arrivalTime = now - 1000;
-    await processFleets(player, [player]);
+    await processFleets(player, [player], now);
     
     // Fleet should now be returning
     expect(player.fleets[0].returning).toBe(true);
@@ -77,7 +77,7 @@ describe('Fleet Durability and Integrity', () => {
     
     // 2. Force Return
     player.fleets[0].arrivalTime = now - 500;
-    await processFleets(player, [player]);
+    await processFleets(player, [player], now + 100);
     
     // Fleet should be gone from active fleets and ships back on planet
     expect(player.fleets.length).toBe(0);
@@ -108,6 +108,7 @@ describe('Fleet Durability and Integrity', () => {
   });
 
   it('should maintain total ship count during high-volume operations', async () => {
+    const now = Date.now();
     // Stress test: launch 20 small missions
     for (let i = 0; i < 20; i++) {
       await sendFleet(PLAYER_ID, 'p1', [1, 1, i + 5], MISSION_TYPES.ESPIONAGE, { lightFighter: 1 });
@@ -126,15 +127,15 @@ describe('Fleet Durability and Integrity', () => {
     expect(getShipSum(player)).toBe(100); // 100 initial fighters
     
     // Arrive all
-    player.fleets.forEach(f => f.arrivalTime = Date.now() - 1000);
-    await processFleets(player, [player]);
+    player.fleets.forEach(f => f.arrivalTime = now - 1000);
+    await processFleets(player, [player], now);
     
     expect(player.fleets.every(f => f.returning)).toBe(true);
     expect(getShipSum(player)).toBe(100);
     
     // Return all
-    player.fleets.forEach(f => f.arrivalTime = Date.now() - 500);
-    await processFleets(player, [player]);
+    player.fleets.forEach(f => f.arrivalTime = now - 500);
+    await processFleets(player, [player], now + 1000);
     
     expect(player.fleets.length).toBe(0);
     expect(player.planets[0].ships.lightFighter).toBe(100);

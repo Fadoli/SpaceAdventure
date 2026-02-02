@@ -1,21 +1,21 @@
 // JSON file storage utilities with backup support
 import { existsSync } from 'fs';
-import { readFile, writeFile, mkdir, rename } from 'fs/promises';
-import { dirname } from 'path';
+import { readFile, writeFile, mkdir, rename, unlink } from 'fs/promises';
+import { dirname, resolve } from 'path';
 import { AI_TYPES } from '../../shared/constants.js';
 
-const DATA_DIR = './data';
+const DATA_DIR = resolve('./data');
 
 /**
  * Read JSON file with backup fallback
  */
 export async function readJsonFile(filename) {
-  const filepath = `${DATA_DIR}/${filename}`;
+  const filepath = resolve(DATA_DIR, filename);
   const dir = dirname(filepath);
   if (!existsSync(dir)) {
     await mkdir(dir, { recursive: true });
   }
-  const backupPath = `${DATA_DIR}/${filename}.backup`;
+  const backupPath = `${filepath}.backup`;
   
   // Try reading main file first
   if (existsSync(filepath)) {
@@ -59,14 +59,14 @@ export async function readJsonFile(filename) {
  * Write JSON file with atomic backup strategy
  */
 export async function writeJsonFile(filename, data) {
-  const filepath = `${DATA_DIR}/${filename}`;
+  const filepath = resolve(DATA_DIR, filename);
   const dir = dirname(filepath);
   if (!existsSync(dir)) {
     await mkdir(dir, { recursive: true });
   }
   
-  const backupPath = `${DATA_DIR}/${filename}.backup`;
-  const tempPath = `${DATA_DIR}/${filename}.tmp`;
+  const backupPath = `${filepath}.backup`;
+  const tempPath = `${filepath}.tmp`;
   
   try {
     // Step 1: Write to temporary file
@@ -74,10 +74,16 @@ export async function writeJsonFile(filename, data) {
     
     // Step 2: If main file exists, rename it to backup (overwrites old backup)
     if (existsSync(filepath)) {
+      if (existsSync(backupPath)) {
+        await unlink(backupPath);
+      }
       await rename(filepath, backupPath);
     }
     
     // Step 3: Rename temporary file to main file
+    if (existsSync(filepath)) {
+      await unlink(filepath);
+    }
     await rename(tempPath, filepath);
     
     return true;
@@ -87,7 +93,7 @@ export async function writeJsonFile(filename, data) {
     // Cleanup: try to remove temp file if it exists
     if (existsSync(tempPath)) {
       try {
-        await rename(tempPath, tempPath + '.failed');
+        await unlink(tempPath).catch(() => {});
       } catch (cleanupError) {
         // Ignore cleanup errors
       }

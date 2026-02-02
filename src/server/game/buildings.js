@@ -24,6 +24,7 @@ import {
 import { CONFIG, BUILDING_SPEED_MULTIPLIER, SCALING } from '../../shared/constants.js';
 import { getPlayerByUserId, updatePlayer } from './player.js';
 import { wsManager } from './wsManager.js';
+import { logEvent } from '../storage/eventLogger.js';
 import { 
   getBuildQueueSize, 
   getResourceProductionMultiplier,
@@ -377,6 +378,14 @@ export async function processCompletedBuildings(player, now = Date.now()) {
         // Complete the building
         planet.buildings[buildItem.building] = buildItem.level;
         
+        // Log the event
+        await logEvent('BUILDING_COMPLETE', { 
+            username: player.username, 
+            building: buildItem.building, 
+            level: buildItem.level,
+            planetName: planet.name
+        });
+
         // Recalculate production
         updatePlanetProduction(planet, player);
         

@@ -110,6 +110,7 @@
         <div class="admin-tabs" style="display: flex; gap: 5px; margin-bottom: 20px;">
             <button class="btn btn-secondary admin-tab-btn active" data-tab="anomalies">ANOMALY CONTROL</button>
             <button class="btn btn-secondary admin-tab-btn" data-tab="players">PLAYER ASSET CONTROL</button>
+            <button class="btn btn-secondary admin-tab-btn" data-tab="events">EVENT VIEWER</button>
         </div>
 
         <div id="tab-anomalies" class="admin-tab-content active">
@@ -141,6 +142,21 @@
                 </div>
                 <div id="player-management-results" style="margin-top: 25px;">
                     <!-- Loaded via JS -->
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-events" class="admin-tab-content">
+            <section class="admin-section">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>📡 GLOBAL EVENT LOG</h2>
+                    <div class="admin-btn-group">
+                        <button id="refresh-events-btn" class="btn btn-secondary">REFRESH LOG</button>
+                    </div>
+                </div>
+                <div id="event-log-container" style="margin-top: 20px; max-height: 600px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;">
+                    <!-- Loaded via JS -->
+                    <p>Scanning subspace transmissions...</p>
                 </div>
             </section>
         </div>

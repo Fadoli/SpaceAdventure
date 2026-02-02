@@ -2,6 +2,7 @@
 import { getGalaxyData, updateGhostPlanet } from './galaxyData.js';
 import { SHIPS } from '../../shared/ships.js';
 import { DEFENSES } from '../../shared/defenses.js';
+import { logEvent } from '../storage/eventLogger.js';
 
 /**
  * Generate a random ghost planet with balanced stats
@@ -134,6 +135,7 @@ export async function spawnGhostPlanets() {
         const ghost = generateGhostPlanet(coords);
         
         await updateGhostPlanet(coords, ghost);
+        await logEvent('SPAWN_GHOST', { coords, tier: ghost.tier });
         spawnedCount++;
       }
     }

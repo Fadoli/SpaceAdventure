@@ -41,6 +41,7 @@ import { sendFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
+import { getRecentEvents } from './storage/eventLogger.js';
 import { getAlliances, getAllianceById, createAlliance, joinAlliance, leaveAlliance, shareBlueprint, getAllianceMessages, sendAllianceMessage, shareAllianceReport } from './game/alliance.js';
 import { 
   startTheoreticalResearch, 
@@ -1390,6 +1391,16 @@ async function handleRequest(req) {
       return successResponse(req, { message: `Cleared ${keys.length} ghost planets` });
     }
 
+    // GET /api/admin/events - Get recent global events
+    if (path === '/api/admin/events' && method === 'GET') {
+      const admin = await requireAdmin(req);
+      if (!admin) return errorResponse(req, 'Unauthorized', 403);
+
+      const limit = parseInt(url.searchParams.get('limit') || '100', 10);
+      const events = await getRecentEvents(limit);
+      return successResponse(req, events);
+    }
+
     // GET /api/admin/players/search - Search for players
     if (path === '/api/admin/players/search' && method === 'GET') {
       const admin = await requireAdmin(req);
@@ -1417,42 +1428,67 @@ async function handleRequest(req) {
 
       const targetUserId = path.split('/')[4];
       const body = await req.json();
-      const { planetId, ships, defenses, resources } = body;
+      const { planetId, ships, defenses, resources, buildings, research } = body;
 
       const player = await getPlayerByUserId(targetUserId);
       if (!player) return errorResponse(req, 'Player not found', 404);
 
-      const planet = player.planets.find(p => p.id === planetId);
-      if (!planet) return errorResponse(req, 'Planet not found', 404);
+      if (planetId) {
+        const planet = player.planets.find(p => p.id === planetId);
+        if (!planet) return errorResponse(req, 'Planet not found', 404);
 
-      // Apply Ships
-      if (ships) {
-        for (const key in ships) {
-          planet.ships[key] = (planet.ships[key] || 0) + ships[key];
-          if (planet.ships[key] < 0) planet.ships[key] = 0;
+        // Apply Ships
+        if (ships) {
+          for (const key in ships) {
+            planet.ships[key] = (planet.ships[key] || 0) + ships[key];
+            if (planet.ships[key] < 0) planet.ships[key] = 0;
+          }
+        }
+
+        // Apply Defenses
+        if (defenses) {
+          for (const key in defenses) {
+            planet.defenses[key] = (planet.defenses[key] || 0) + defenses[key];
+            if (planet.defenses[key] < 0) planet.defenses[key] = 0;
+          }
+        }
+
+        // Apply Resources
+        if (resources) {
+          for (const key in resources) {
+            planet.resources[key] = (planet.resources[key] || 0) + resources[key];
+            if (planet.resources[key] < 0) planet.resources[key] = 0;
+          }
+        }
+
+        // Apply Buildings
+        if (buildings) {
+          for (const key in buildings) {
+            planet.buildings[key] = (planet.buildings[key] || 0) + buildings[key];
+            if (planet.buildings[key] < 0) planet.buildings[key] = 0;
+          }
+          // Recalculate production if buildings changed
+          updatePlanetProduction(planet, player);
         }
       }
 
-      // Apply Defenses
-      if (defenses) {
-        for (const key in defenses) {
-          planet.defenses[key] = (planet.defenses[key] || 0) + defenses[key];
-          if (planet.defenses[key] < 0) planet.defenses[key] = 0;
-        }
-      }
-
-      // Apply Resources
-      if (resources) {
-        for (const key in resources) {
-          planet.resources[key] = (planet.resources[key] || 0) + resources[key];
-          if (planet.resources[key] < 0) planet.resources[key] = 0;
+      // Apply Research (Global to player)
+      if (research) {
+        if (!player.research) player.research = {};
+        for (const key in research) {
+          player.research[key] = (player.research[key] || 0) + research[key];
+          if (player.research[key] < 0) player.research[key] = 0;
         }
       }
 
       await updatePlayer(targetUserId, player);
       
       // Notify player via WebSocket if online
-      wsManager.sendToUser(targetUserId, 'RESOURCES_UPDATED', { planetId });
+      if (planetId) {
+        wsManager.sendToUser(targetUserId, 'RESOURCES_UPDATED', { planetId });
+      } else {
+        wsManager.sendToUser(targetUserId, 'RESEARCH_COMPLETE', { userId: targetUserId });
+      }
 
       return successResponse(req, { message: 'Assets updated successfully' });
     }

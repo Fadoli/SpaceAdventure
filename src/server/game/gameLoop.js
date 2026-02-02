@@ -75,6 +75,8 @@ export async function startGameLoop() {
 
   // 2. Perform Catch-up Simulation
   const lastHeartbeat = await loadServerState();
+  lastProcessedTick = lastHeartbeat; // Initialize from persisted state
+  
   const now = Date.now();
   const gap = now - lastHeartbeat;
 
@@ -94,8 +96,9 @@ export async function startGameLoop() {
     if (isTickRunning) return;
     isTickRunning = true;
     try {
-      lastProcessedTick = Date.now();
-      await gameTick(lastProcessedTick);
+      const now = Date.now();
+      await gameTick(now);
+      lastProcessedTick = now; // Only update AFTER successful tick
       // Heartbeat is NOT saved to disk here to prevent SSD wear.
       // It is only saved on graceful shutdown.
     } finally {
@@ -107,7 +110,7 @@ export async function startGameLoop() {
   const shutdown = async () => {
     console.log('\n[GameLoop] SHUTDOWN SIGNAL RECEIVED.');
     await stopGameLoop();
-    process.exit(0);
+    // process.exit(0); // Let Bun exit naturally or handle it via stopGameLoop
   };
 
   process.on('SIGINT', shutdown);
@@ -374,7 +377,7 @@ async function processCompletedResearch(player, now = Date.now()) {
   while (player.researchQueue && player.researchQueue.length > 0) {
     const item = player.researchQueue[0];
     if (item.endTime <= now) {
-      completeTheoreticalResearch(player, item.id);
+      await completeTheoreticalResearch(player, item.id);
       
       // Update activity on the research planet
       const planet = player.planets.find(p => p.id === item.planetId);

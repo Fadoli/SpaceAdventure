@@ -18,6 +18,7 @@ import { addMessage } from './messages.js';
 import { simulateCombat, simulateGroupCombat } from './combatEngine.js';
 import { getGalaxyData, updateDebrisField, updateGhostPlanet } from './galaxyData.js';
 import { wsManager } from './wsManager.js';
+import { logEvent } from '../storage/eventLogger.js';
 
 /**
  * Start a new mission
@@ -513,7 +514,7 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
 
     // 2. Prepare Combat Data for all participants
     const attackers = alliedFleets.map(af => ({
-        id: af.player.userId,
+        id: af.fleet.id,
         username: af.player.username,
         ships: af.fleet.ships,
         research: af.player.research || {}
@@ -521,14 +522,14 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
 
     const defenders = [
         {
-            id: targetPlayer.userId,
+            id: targetPlanet.id || targetPlayer.userId,
             username: targetPlayer.username,
             ships: targetPlanet.ships || {},
             defenses: targetPlanet.defenses || {},
             research: targetPlayer.research || {}
         },
         ...defendingFleets.map(df => ({
-            id: df.player.userId,
+            id: df.fleet.id,
             username: df.player.username,
             ships: df.fleet.ships,
             research: df.player.research || {}
@@ -538,23 +539,74 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
     // 3. Simulate Group Combat
     const combatReport = simulateGroupCombat(attackers, defenders);
 
+    // Log the event
+    await logEvent('COMBAT', { 
+        coords: leadFleet.targetCoords, 
+        attacker: leadAttackerPlayer.username, 
+        defender: targetPlayer.username,
+        winner: combatReport.winner
+    });
+
     // 4. Apply Losses
     // Update Target Planet
-    const targetReportDef = combatReport.defenders.find(d => d.id === targetPlayer.userId);
+    const targetReportDef = combatReport.defenders.find(d => d.id === (targetPlanet.id || targetPlayer.userId));
     targetPlanet.ships = targetReportDef.survivingShips;
     targetPlanet.defenses = targetReportDef.survivingDefenses;
 
     // Update Attacking Fleets
-    alliedFleets.forEach(af => {
-        const reportAtk = combatReport.attackers.find(a => a.id === af.player.userId);
+    const now = Date.now();
+    for (const af of alliedFleets) {
+        const reportAtk = combatReport.attackers.find(a => a.id === af.fleet.id);
         af.fleet.ships = reportAtk.survivingShips;
-    });
+
+        // If not the lead fleet (which is handled by the caller), we need to set its return state here
+        if (af.fleet.id !== leadFleet.id) {
+            const distance = calculateDistance(af.fleet.originCoords, af.fleet.targetCoords);
+            let slowestSpeed = Infinity;
+            for (const shipKey in af.fleet.ships) {
+                const speed = calculateShipSpeed(shipKey, af.player.research);
+                if (speed < slowestSpeed) slowestSpeed = speed;
+            }
+            const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier(), af.fleet.speedPercent || 1.0);
+
+            af.fleet.returning = true;
+            af.fleet.startTime = now;
+            af.fleet.arrivalTime = now + (travelTime * 1000);
+
+            // Swap coords
+            const origin = [...af.fleet.originCoords];
+            af.fleet.originCoords = [...af.fleet.targetCoords];
+            af.fleet.targetCoords = origin;
+            af.fleet.processedAt = now; // Prevent further processing in this tick
+        }
+    }
 
     // Update Stationary Defending Fleets
-    defendingFleets.forEach(df => {
-        const reportDef = combatReport.defenders.find(d => d.id === df.player.userId);
+    for (const df of defendingFleets) {
+        const reportDef = combatReport.defenders.find(d => d.id === df.fleet.id);
         df.fleet.ships = reportDef.survivingShips;
-    });
+
+        // Stationary fleets stay at the planet or return? 
+        // In this game, STATION (deployment) is permanent, but ACS defend might return.
+        // If MISSION_TYPES.STATION is used for temporary defense, it should return.
+        // Assuming STATION fleets should return home after combat.
+        const distance = calculateDistance(df.fleet.originCoords, df.fleet.targetCoords);
+        let slowestSpeed = Infinity;
+        for (const shipKey in df.fleet.ships) {
+            const speed = calculateShipSpeed(shipKey, df.player.research);
+            if (speed < slowestSpeed) slowestSpeed = speed;
+        }
+        const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier(), df.fleet.speedPercent || 1.0);
+
+        df.fleet.returning = true;
+        df.fleet.startTime = now;
+        df.fleet.arrivalTime = now + (travelTime * 1000);
+
+        const origin = [...df.fleet.originCoords];
+        df.fleet.originCoords = [...df.fleet.targetCoords];
+        df.fleet.targetCoords = origin;
+        df.fleet.processedAt = now;
+    }
 
     // 5. Handle Looting (Only for attackers)
     let totalLoot = { metal: 0, crystal: 0, deuterium: 0, water: 0, food: 0 };
@@ -1014,6 +1066,12 @@ async function executeColonization(player, fleet, allPlayers) {
     };
 
     player.planets.push(newPlanet);
+    // Log the event
+    await logEvent('COLONY', { 
+        coords: [...fleet.targetCoords], 
+        username: player.username,
+        planetId
+    });
     // Notify client of new planet and changed resources
     wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planetId });
 

@@ -38,6 +38,7 @@ import {
 } from '../config.js';
 import { updatePlayer, getPlayerByUserId } from './player.js';
 import { wsManager } from './wsManager.js';
+import { logEvent } from '../storage/eventLogger.js';
 
 /**
  * Start theoretical research
@@ -144,12 +145,20 @@ export function startTheoreticalResearch(player, techKey, planetId) {
 /**
  * Complete theoretical research
  */
-export function completeTheoreticalResearch(player, queueItemId) {
+export async function completeTheoreticalResearch(player, queueItemId) {
   const index = player.researchQueue.findIndex(item => item.id === queueItemId);
   if (index === -1) throw new Error('Research queue item not found');
   
   const item = player.researchQueue[index];
   player.research[item.techKey] = item.level;
+  
+  // Log the event
+  await logEvent('RESEARCH_COMPLETE', { 
+      username: player.username, 
+      research: item.techKey, 
+      level: item.level 
+  });
+
   player.researchQueue.splice(index, 1);
   
   return item;
@@ -337,6 +346,13 @@ export async function completePracticalResearch(player, queueItemId, now = Date.
   
   // Save to external history file
   await addResearchHistoryEntry(player.userId, baseType, logEntry);
+
+  // Log the event
+  await logEvent('RESEARCH_COMPLETE', { 
+      username: player.username, 
+      research: baseType + ' (Practical)', 
+      level: tree.bankedBreakthroughs + 1 // Approximation
+  });
 
   // Store only the last result in the player object to avoid bloating
   tree.lastResult = logEntry;

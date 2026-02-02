@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Event Listeners
     document.getElementById('refresh-ghosts-btn').addEventListener('click', loadGhosts);
+    document.getElementById('refresh-events-btn').addEventListener('click', loadEvents);
     
     document.getElementById('spawn-ghosts-btn').addEventListener('click', async () => {
         if (!confirm('Force a spawn cycle? This will try to fill empty slots.')) return;
@@ -67,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update content
             document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            if (tabId === 'events') loadEvents();
         });
     });
 });
@@ -107,6 +110,31 @@ function renderPlayerAdminCard(player) {
                     <h3 style="color: #fff; margin: 0;">${player.username}</h3>
                     <small style="color: var(--text-secondary); font-family: 'Share Tech Mono', monospace;">ID: ${player.userId}</small>
                 </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 5px; border-radius: 2px;">
+                     <strong style="color: var(--accent-blue); font-size: 0.7rem;">GLOBAL RESEARCH</strong>
+                     <div style="display: flex; gap: 5px; margin-top: 5px;">
+                        <select id="research-${player.userId}" class="modal-input" style="width: 150px; font-size: 0.7rem; height: 28px; padding: 2px;">
+                            <option value="energyTech">Energy Tech</option>
+                            <option value="computerTech">Computer Tech</option>
+                            <option value="weaponsTech">Weapons Tech</option>
+                            <option value="shieldingTech">Shielding Tech</option>
+                            <option value="armorTech">Armor Tech</option>
+                            <option value="combustionDrive">Combustion Drive</option>
+                            <option value="impulseDrive">Impulse Drive</option>
+                            <option value="hyperspaceDrive">Hyperspace Drive</option>
+                            <option value="espionageTech">Espionage Tech</option>
+                            <option value="astrophysics">Astrophysics</option>
+                            <option value="housingTech">Housing Tech</option>
+                            <option value="laserTech">Laser Tech</option>
+                            <option value="ionTech">Ion Tech</option>
+                            <option value="plasmaTech">Plasma Tech</option>
+                            <option value="resourceEfficiency">Resource Efficiency</option>
+                            <option value="modularConstruction">Modular Construction</option>
+                        </select>
+                        <input type="text" id="research-val-${player.userId}" class="modal-input" placeholder="Lvl +/-" style="width: 60px; height: 28px; font-size: 0.7rem;">
+                        <button class="btn btn-primary btn-small" style="padding: 0 8px; height: 28px;" onclick="window.modifyResearch('${player.userId}')">SET</button>
+                     </div>
+                </div>
             </div>
             
             <div class="planet-assets-control">
@@ -122,13 +150,20 @@ function renderPlayerAdminCard(player) {
                                         <option value="res-metal">Metal</option>
                                         <option value="res-crystal">Crystal</option>
                                         <option value="res-deuterium">Deuterium</option>
+                                        <option value="res-water">Water</option>
+                                        <option value="res-food">Food</option>
                                     </optgroup>
-                                    <optgroup label="CIVILIAN SHIPS">
-                                        <option value="ship-smallCargo">Small Cargo</option>
-                                        <option value="ship-largeCargo">Large Cargo</option>
-                                        <option value="ship-colonyShip">Colony Ship</option>
-                                        <option value="ship-recycler">Recycler</option>
-                                        <option value="ship-espionageProbe">Espionage Probe</option>
+                                    <optgroup label="BUILDINGS">
+                                        <option value="build-metalMine">Metal Mine</option>
+                                        <option value="build-crystalMine">Crystal Mine</option>
+                                        <option value="build-deuteriumSynthesizer">Deuterium Synth</option>
+                                        <option value="build-solarPlant">Solar Plant</option>
+                                        <option value="build-fusionReactor">Fusion Reactor</option>
+                                        <option value="build-roboticsFactory">Robotics Factory</option>
+                                        <option value="build-shipyard">Shipyard</option>
+                                        <option value="build-researchLab">Research Lab</option>
+                                        <option value="build-naniteFactory">Nanite Factory</option>
+                                        <option value="build-housing">Housing</option>
                                     </optgroup>
                                     <optgroup label="MILITARY SHIPS">
                                         <option value="ship-lightFighter">Light Fighter</option>
@@ -139,6 +174,13 @@ function renderPlayerAdminCard(player) {
                                         <option value="ship-bomber">Bomber</option>
                                         <option value="ship-carrier">Carrier</option>
                                         <option value="ship-dreadnought">Dreadnought</option>
+                                    </optgroup>
+                                    <optgroup label="CIVILIAN SHIPS">
+                                        <option value="ship-smallCargo">Small Cargo</option>
+                                        <option value="ship-largeCargo">Large Cargo</option>
+                                        <option value="ship-colonyShip">Colony Ship</option>
+                                        <option value="ship-recycler">Recycler</option>
+                                        <option value="ship-espionageProbe">Espionage Probe</option>
                                     </optgroup>
                                 </select>
                             </div>
@@ -154,6 +196,32 @@ function renderPlayerAdminCard(player) {
     `;
 }
 
+window.modifyResearch = async function(userId) {
+    const typeSelect = document.getElementById(`research-${userId}`);
+    const valInput = document.getElementById(`research-val-${userId}`);
+    const techKey = typeSelect.value;
+    const value = parseInt(valInput.value, 10);
+
+    if (isNaN(value)) return;
+
+    try {
+        const res = await fetch(`/api/admin/players/${userId}/assets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ research: { [techKey]: value } })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Research levels adjusted successfully');
+            valInput.value = '';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
+    }
+}
+
 window.modifyAssets = async function(userId, planetId) {
     const typeSelect = document.getElementById(`type-${userId}-${planetId}`);
     const valInput = document.getElementById(`val-${userId}-${planetId}`);
@@ -167,6 +235,8 @@ window.modifyAssets = async function(userId, planetId) {
         payload.resources = { [rawType.replace('res-', '')]: value };
     } else if (rawType.startsWith('ship-')) {
         payload.ships = { [rawType.replace('ship-', '')]: value };
+    } else if (rawType.startsWith('build-')) {
+        payload.buildings = { [rawType.replace('build-', '')]: value };
     }
 
     try {
@@ -238,6 +308,62 @@ async function loadGhosts() {
 
     } catch (e) {
         list.innerHTML = `<p class="error">Failed to fetch data: ${e.message}</p>`;
+    }
+}
+
+async function loadEvents() {
+    const container = document.getElementById('event-log-container');
+    try {
+        const res = await fetch('/api/admin/events?limit=50');
+        const data = await res.json();
+        
+        if (!data.success) {
+            container.innerHTML = `<p class="error">Failed to load events: ${data.error}</p>`;
+            return;
+        }
+
+        if (data.data.length === 0) {
+            container.innerHTML = '<p>The galaxy is surprisingly quiet.</p>';
+            return;
+        }
+
+        container.innerHTML = data.data.map(event => {
+            const time = new Date(event.timestamp).toLocaleTimeString();
+            let color = '#94a3b8';
+            if (event.type === 'COMBAT') color = 'var(--accent-red)';
+            if (event.type === 'COLONY') color = 'var(--accent-blue)';
+            if (event.type === 'BUILDING' || event.type === 'RESEARCH') color = 'var(--accent-yellow)';
+            
+            return `
+                <div style="margin-bottom: 8px; border-left: 2px solid ${color}; padding-left: 10px;">
+                    <span style="color: #64748b; font-size: 0.7rem;">[${time}]</span>
+                    <strong style="color: ${color}; margin-right: 10px;">${event.type}</strong>
+                    <span style="color: #e2e8f0;">${formatEventData(event)}</span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = `<p class="error">Connection lost: ${e.message}</p>`;
+    }
+}
+
+function formatEventData(event) {
+    const { type, ...data } = event;
+    delete data.timestamp;
+    
+    switch(type) {
+        case 'COMBAT':
+            return `Battle at [${data.coords.join(':')}] between ${data.attacker} and ${data.defender}. Result: ${data.winner}`;
+        case 'COLONY':
+            return `New colony established at [${data.coords.join(':')}] by ${data.username}`;
+        case 'BUILDING_COMPLETE':
+            return `${data.username} completed ${data.building} level ${data.level} on ${data.planetName}`;
+        case 'RESEARCH_COMPLETE':
+            return `${data.username} finished ${data.research} level ${data.level}`;
+        case 'SPAWN_GHOST':
+            return `Anomalous activity detected at [${data.coords.join(':')}] (Tier ${data.tier})`;
+        default:
+            return JSON.stringify(data);
     }
 }
 
