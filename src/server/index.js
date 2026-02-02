@@ -1409,13 +1409,19 @@ async function handleRequest(req) {
       const query = url.searchParams.get('q')?.toLowerCase() || '';
       const allPlayers = await getPlayers();
       
-      const matches = allPlayers.filter(p => 
+      const filtered = allPlayers.filter(p => 
         p.username.toLowerCase().includes(query) || 
         p.userId.includes(query)
-      ).map(p => ({
-        userId: p.userId,
-        username: p.username,
-        planets: p.planets.map(pl => ({ id: pl.id, name: pl.name, coordinates: pl.coordinates }))
+      );
+
+      const matches = await Promise.all(filtered.map(async p => {
+        const fullPlayer = await getPlayerByUserId(p.userId);
+        return {
+          userId: fullPlayer.userId,
+          username: fullPlayer.username,
+          research: fullPlayer.research || {},
+          planets: fullPlayer.planets
+        };
       }));
 
       return successResponse(req, matches);
@@ -1428,7 +1434,8 @@ async function handleRequest(req) {
 
       const targetUserId = path.split('/')[4];
       const body = await req.json();
-      const { planetId, ships, defenses, resources, buildings, research } = body;
+      const { planetId, ships, defenses, resources, buildings, research, mode } = body;
+      const isSet = mode === 'SET';
 
       const player = await getPlayerByUserId(targetUserId);
       if (!player) return errorResponse(req, 'Player not found', 404);
@@ -1440,7 +1447,7 @@ async function handleRequest(req) {
         // Apply Ships
         if (ships) {
           for (const key in ships) {
-            planet.ships[key] = (planet.ships[key] || 0) + ships[key];
+            planet.ships[key] = isSet ? ships[key] : (planet.ships[key] || 0) + ships[key];
             if (planet.ships[key] < 0) planet.ships[key] = 0;
           }
         }
@@ -1448,7 +1455,7 @@ async function handleRequest(req) {
         // Apply Defenses
         if (defenses) {
           for (const key in defenses) {
-            planet.defenses[key] = (planet.defenses[key] || 0) + defenses[key];
+            planet.defenses[key] = isSet ? defenses[key] : (planet.defenses[key] || 0) + defenses[key];
             if (planet.defenses[key] < 0) planet.defenses[key] = 0;
           }
         }
@@ -1456,7 +1463,7 @@ async function handleRequest(req) {
         // Apply Resources
         if (resources) {
           for (const key in resources) {
-            planet.resources[key] = (planet.resources[key] || 0) + resources[key];
+            planet.resources[key] = isSet ? resources[key] : (planet.resources[key] || 0) + resources[key];
             if (planet.resources[key] < 0) planet.resources[key] = 0;
           }
         }
@@ -1464,7 +1471,7 @@ async function handleRequest(req) {
         // Apply Buildings
         if (buildings) {
           for (const key in buildings) {
-            planet.buildings[key] = (planet.buildings[key] || 0) + buildings[key];
+            planet.buildings[key] = isSet ? buildings[key] : (planet.buildings[key] || 0) + buildings[key];
             if (planet.buildings[key] < 0) planet.buildings[key] = 0;
           }
           // Recalculate production if buildings changed
@@ -1476,7 +1483,7 @@ async function handleRequest(req) {
       if (research) {
         if (!player.research) player.research = {};
         for (const key in research) {
-          player.research[key] = (player.research[key] || 0) + research[key];
+          player.research[key] = isSet ? research[key] : (player.research[key] || 0) + research[key];
           if (player.research[key] < 0) player.research[key] = 0;
         }
       }

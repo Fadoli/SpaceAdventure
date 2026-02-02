@@ -96,6 +96,7 @@ async function searchPlayers() {
             return;
         }
 
+        console.log('DEBUG: Admin search results:', data.data);
         results.innerHTML = data.data.map(player => renderPlayerAdminCard(player)).join('');
     } catch (e) {
         results.innerHTML = `<p class="error">Connection lost: ${e.message}</p>`;
@@ -103,90 +104,77 @@ async function searchPlayers() {
 }
 
 function renderPlayerAdminCard(player) {
+    const research = player.research || {};
+    
     return `
-        <div class="ghost-card" style="margin-bottom: 20px; border-color: var(--accent-blue);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                <div>
-                    <h3 style="color: #fff; margin: 0;">${player.username}</h3>
-                    <small style="color: var(--text-secondary); font-family: 'Share Tech Mono', monospace;">ID: ${player.userId}</small>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); padding: 5px; border-radius: 2px;">
-                     <strong style="color: var(--accent-blue); font-size: 0.7rem;">GLOBAL RESEARCH</strong>
-                     <div style="display: flex; gap: 5px; margin-top: 5px;">
-                        <select id="research-${player.userId}" class="modal-input" style="width: 150px; font-size: 0.7rem; height: 28px; padding: 2px;">
-                            <option value="energyTech">Energy Tech</option>
-                            <option value="computerTech">Computer Tech</option>
-                            <option value="weaponsTech">Weapons Tech</option>
-                            <option value="shieldingTech">Shielding Tech</option>
-                            <option value="armorTech">Armor Tech</option>
-                            <option value="combustionDrive">Combustion Drive</option>
-                            <option value="impulseDrive">Impulse Drive</option>
-                            <option value="hyperspaceDrive">Hyperspace Drive</option>
-                            <option value="espionageTech">Espionage Tech</option>
-                            <option value="astrophysics">Astrophysics</option>
-                            <option value="housingTech">Housing Tech</option>
-                            <option value="laserTech">Laser Tech</option>
-                            <option value="ionTech">Ion Tech</option>
-                            <option value="plasmaTech">Plasma Tech</option>
-                            <option value="resourceEfficiency">Resource Efficiency</option>
-                            <option value="modularConstruction">Modular Construction</option>
-                        </select>
-                        <input type="text" id="research-val-${player.userId}" class="modal-input" placeholder="Lvl +/-" style="width: 60px; height: 28px; font-size: 0.7rem;">
-                        <button class="btn btn-primary btn-small" style="padding: 0 8px; height: 28px;" onclick="window.modifyResearch('${player.userId}')">SET</button>
-                     </div>
-                </div>
+        <div class="ghost-card" style="margin-bottom: 40px; border-color: var(--accent-blue); width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--accent-blue); padding-bottom: 10px;">
+                <h3 style="color: #fff; margin: 0; font-size: 1.4rem;">${player.username} <span style="font-size: 0.9rem; color: var(--text-secondary); margin-left: 10px;">[ID: ${player.userId}]</span></h3>
             </div>
             
+            <div style="margin-bottom: 30px; background: rgba(56, 189, 248, 0.05); padding: 15px; border-radius: 4px;">
+                <h4 style="color: var(--accent-blue); font-size: 0.85rem; margin-bottom: 15px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 5px;">🧬 GLOBAL RESEARCH</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;">
+                    ${renderResearchGrid(player.userId, research)}
+                </div>
+            </div>
+
             <div class="planet-assets-control">
                 ${player.planets.map(planet => `
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 2px; margin-bottom: 10px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <strong style="color: var(--accent-yellow); font-size: 0.8rem;">🪐 ${planet.name} [${planet.coordinates.join(':')}]</strong>
+                    <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 4px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div style="margin-bottom: 20px;">
+                            <strong style="color: var(--accent-yellow); font-size: 1.1rem;">🪐 ${planet.name} <span style="color: var(--text-secondary); font-size: 0.8rem; margin-left: 10px;">[${planet.coordinates.join(':')}]</span></strong>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div class="admin-control-group">
-                                <select id="type-${player.userId}-${planet.id}" class="modal-input" style="width: 100%; font-size: 0.7rem; height: 28px; padding: 2px;">
-                                    <optgroup label="RESOURCES">
-                                        <option value="res-metal">Metal</option>
-                                        <option value="res-crystal">Crystal</option>
-                                        <option value="res-deuterium">Deuterium</option>
-                                        <option value="res-water">Water</option>
-                                        <option value="res-food">Food</option>
-                                    </optgroup>
-                                    <optgroup label="BUILDINGS">
-                                        <option value="build-metalMine">Metal Mine</option>
-                                        <option value="build-crystalMine">Crystal Mine</option>
-                                        <option value="build-deuteriumSynthesizer">Deuterium Synth</option>
-                                        <option value="build-solarPlant">Solar Plant</option>
-                                        <option value="build-fusionReactor">Fusion Reactor</option>
-                                        <option value="build-roboticsFactory">Robotics Factory</option>
-                                        <option value="build-shipyard">Shipyard</option>
-                                        <option value="build-researchLab">Research Lab</option>
-                                        <option value="build-naniteFactory">Nanite Factory</option>
-                                        <option value="build-housing">Housing</option>
-                                    </optgroup>
-                                    <optgroup label="MILITARY SHIPS">
-                                        <option value="ship-lightFighter">Light Fighter</option>
-                                        <option value="ship-heavyFighter">Heavy Fighter</option>
-                                        <option value="ship-cruiser">Cruiser</option>
-                                        <option value="ship-battleship">Battleship</option>
-                                        <option value="ship-destroyer">Destroyer</option>
-                                        <option value="ship-bomber">Bomber</option>
-                                        <option value="ship-carrier">Carrier</option>
-                                        <option value="ship-dreadnought">Dreadnought</option>
-                                    </optgroup>
-                                    <optgroup label="CIVILIAN SHIPS">
-                                        <option value="ship-smallCargo">Small Cargo</option>
-                                        <option value="ship-largeCargo">Large Cargo</option>
-                                        <option value="ship-colonyShip">Colony Ship</option>
-                                        <option value="ship-recycler">Recycler</option>
-                                        <option value="ship-espionageProbe">Espionage Probe</option>
-                                    </optgroup>
-                                </select>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Resources Section -->
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="opacity: 0.7;">📦</span> Resources
+                                </h5>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                                    ${renderAssetInputs(player.userId, planet.id, 'resources', planet.resources, ['metal', 'crystal', 'deuterium', 'water', 'food', 'population'])}
+                                </div>
                             </div>
-                            <div style="display: flex; gap: 5px;">
-                                <input type="text" id="val-${player.userId}-${planet.id}" class="modal-input" placeholder="Qty (e.g. 5m)" style="width: 100px; height: 28px; font-size: 0.7rem;">
-                                <button class="btn btn-primary btn-small" style="padding: 0 8px; height: 28px;" onclick="window.modifyAssets('${player.userId}', '${planet.id}')">ADD</button>
+                            
+                            <!-- Buildings Section -->
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="opacity: 0.7;">🏗️</span> Buildings
+                                </h5>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                                    ${renderAssetInputs(player.userId, planet.id, 'buildings', planet.buildings, [
+                                        'metalMine', 'crystalMine', 'deuteriumSynthesizer', 'solarPlant', 'fusionReactor',
+                                        'roboticsFactory', 'shipyard', 'researchLab', 'naniteFactory', 'housing',
+                                        'waterExtractor', 'farm', 'metalStorage', 'crystalStorage', 'deuteriumTank'
+                                    ])}
+                                </div>
+                            </div>
+                            
+                            <!-- Ships Section -->
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="opacity: 0.7;">🚀</span> Ships
+                                </h5>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                                    ${renderAssetInputs(player.userId, planet.id, 'ships', planet.ships, [
+                                        'smallCargo', 'largeCargo', 'lightFighter', 'heavyFighter', 'cruiser', 
+                                        'battleship', 'destroyer', 'bomber', 'carrier', 'dreadnought', 
+                                        'colonyShip', 'recycler', 'espionageProbe'
+                                    ])}
+                                </div>
+                            </div>
+
+                            <!-- Defenses Section -->
+                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="opacity: 0.7;">🛡️</span> Defenses
+                                </h5>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                                    ${renderAssetInputs(player.userId, planet.id, 'defenses', planet.defenses, [
+                                        'rocketLauncher', 'laserCannon', 'particleBeam', 'ionCannon', 'gaussCannon', 'plasmaTurret', 'shield'
+                                    ])}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -196,48 +184,50 @@ function renderPlayerAdminCard(player) {
     `;
 }
 
-window.modifyResearch = async function(userId) {
-    const typeSelect = document.getElementById(`research-${userId}`);
-    const valInput = document.getElementById(`research-val-${userId}`);
-    const techKey = typeSelect.value;
-    const value = parseInt(valInput.value, 10);
-
-    if (isNaN(value)) return;
-
-    try {
-        const res = await fetch(`/api/admin/players/${userId}/assets`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ research: { [techKey]: value } })
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert('Research levels adjusted successfully');
-            valInput.value = '';
-        } else {
-            alert('Error: ' + data.error);
-        }
-    } catch (e) {
-        alert('Request failed: ' + e.message);
-    }
+function renderResearchGrid(userId, research) {
+    const techs = [
+        'energyTech', 'computerTech', 'weaponsTech', 'shieldingTech', 'armorTech',
+        'combustionDrive', 'impulseDrive', 'hyperspaceDrive', 'espionageTech', 'astrophysics',
+        'housingTech', 'laserTech', 'ionTech', 'plasmaTech', 'resourceEfficiency', 'modularConstruction'
+    ];
+    
+    return techs.map(tech => `
+        <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+            <label style="font-size: 0.7rem; color: #94a3b8; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tech}">${tech}</label>
+            <input type="number" id="research-${userId}-${tech}" value="${research[tech] || 0}" class="modal-input" style="width: 50px; height: 24px; font-size: 0.75rem; padding: 0 4px; text-align: center; border-color: rgba(56, 189, 248, 0.3);">
+            <button class="btn btn-primary btn-small" style="padding: 0 4px; height: 24px; width: 35px; font-size: 0.65rem;" onclick="window.updateSingleResearch('${userId}', '${tech}')">SET</button>
+        </div>
+    `).join('');
 }
 
-window.modifyAssets = async function(userId, planetId) {
-    const typeSelect = document.getElementById(`type-${userId}-${planetId}`);
-    const valInput = document.getElementById(`val-${userId}-${planetId}`);
-    const rawType = typeSelect.value;
-    const value = parseNumberShorthand(valInput.value);
+function renderAssetInputs(userId, planetId, category, currentValues, keys) {
+    console.log(`DEBUG: renderAssetInputs ${category} for ${planetId}:`, currentValues);
+    return keys.map(key => {
+        const val = currentValues ? (currentValues[key] || 0) : 0;
+        const displayVal = typeof val === 'number' ? formatNumber(val) : val;
+        
+        return `
+            <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+                <label style="font-size: 0.7rem; color: #94a3b8; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${key}">${key}</label>
+                <input type="text" id="${category}-${userId}-${planetId}-${key}" value="${displayVal}" placeholder="${displayVal}" class="modal-input" style="width: 65px; height: 24px; font-size: 0.75rem; padding: 0 4px; text-align: center; border-color: rgba(255,255,255,0.1);">
+                <button class="btn btn-primary btn-small" style="padding: 0 4px; height: 24px; width: 35px; font-size: 0.65rem;" onclick="window.updateSingleAsset('${userId}', '${planetId}', '${category}', '${key}')">SET</button>
+            </div>
+        `;
+    }).join('');
+}
 
-    if (value === 0) return;
+window.updateSingleAsset = async function(userId, planetId, category, key) {
+    const input = document.getElementById(`${category}-${userId}-${planetId}-${key}`);
+    const rawValue = input.value.trim();
+    if (!rawValue) return;
 
-    const payload = { planetId };
-    if (rawType.startsWith('res-')) {
-        payload.resources = { [rawType.replace('res-', '')]: value };
-    } else if (rawType.startsWith('ship-')) {
-        payload.ships = { [rawType.replace('ship-', '')]: value };
-    } else if (rawType.startsWith('build-')) {
-        payload.buildings = { [rawType.replace('build-', '')]: value };
-    }
+    const newValue = parseNumberShorthand(rawValue);
+
+    const payload = { 
+        planetId,
+        mode: 'SET'
+    };
+    payload[category] = { [key]: newValue };
 
     try {
         const res = await fetch(`/api/admin/players/${userId}/assets`, {
@@ -247,8 +237,38 @@ window.modifyAssets = async function(userId, planetId) {
         });
         const data = await res.json();
         if (data.success) {
-            alert('Assets adjusted successfully');
-            valInput.value = '';
+            const formatted = formatNumber(newValue);
+            input.value = formatted;
+            input.placeholder = formatted;
+            // Visual feedback
+            input.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
+            setTimeout(() => input.style.backgroundColor = '', 1000);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
+    }
+};
+
+window.updateSingleResearch = async function(userId, techKey) {
+    const input = document.getElementById(`research-${userId}-${techKey}`);
+    const newValue = parseInt(input.value, 10);
+    if (isNaN(newValue)) return;
+
+    try {
+        const res = await fetch(`/api/admin/players/${userId}/assets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                research: { [techKey]: newValue },
+                mode: 'SET'
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            input.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
+            setTimeout(() => input.style.backgroundColor = '', 1000);
         } else {
             alert('Error: ' + data.error);
         }
@@ -332,7 +352,7 @@ async function loadEvents() {
             let color = '#94a3b8';
             if (event.type === 'COMBAT') color = 'var(--accent-red)';
             if (event.type === 'COLONY') color = 'var(--accent-blue)';
-            if (event.type === 'BUILDING' || event.type === 'RESEARCH') color = 'var(--accent-yellow)';
+            if (event.type === 'BUILDING_COMPLETE' || event.type === 'RESEARCH_COMPLETE') color = 'var(--accent-yellow)';
             
             return `
                 <div style="margin-bottom: 8px; border-left: 2px solid ${color}; padding-left: 10px;">
