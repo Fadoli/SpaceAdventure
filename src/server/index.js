@@ -1415,12 +1415,16 @@ async function handleRequest(req) {
       );
 
       const matches = await Promise.all(filtered.map(async p => {
-        const fullPlayer = await getPlayerByUserId(p.userId);
+        const fullPlayer = await getPlayerByUserId(p.userId, true);
+        // Force deep copy to ensure clean JSON serialization
+        const cleanPlanets = JSON.parse(JSON.stringify(fullPlayer.planets || []));
+        console.log(`[ADMIN] Serialized ${cleanPlanets.length} planets for ${fullPlayer.username}. Resources keys:`, Object.keys(cleanPlanets[0]?.resources || {}));
+        
         return {
           userId: fullPlayer.userId,
           username: fullPlayer.username,
           research: fullPlayer.research || {},
-          planets: fullPlayer.planets
+          planets: cleanPlanets
         };
       }));
 

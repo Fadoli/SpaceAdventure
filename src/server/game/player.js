@@ -108,14 +108,21 @@ export async function savePlayers(players) {
 /**
  * Get player by user ID (reads from cache or individual file)
  */
-export async function getPlayerByUserId(userId) {
-  if (playersCache.has(userId)) {
+export async function getPlayerByUserId(userId, forceFresh = false) {
+  if (!forceFresh && playersCache.has(userId)) {
     return playersCache.get(userId);
   }
 
   const player = await readJsonFile(`players/${userId}/data.json`);
   
   if (player) {
+    if (forceFresh) {
+        console.log(`[DEBUG] Loaded FRESH player ${player.username}. Planets: ${player.planets?.length}`);
+        if (player.planets?.length > 0) {
+            console.log(`[DEBUG] Planet 0 Resources:`, player.planets[0].resources);
+        }
+    }
+
     // Initialize missing fields for backward compatibility
     if (!player.research) player.research = {};
     if (!player.researchQueue) player.researchQueue = [];

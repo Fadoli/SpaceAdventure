@@ -1,6 +1,6 @@
 // Admin Dashboard Logic
 import { API } from './api.js';
-import { parseNumberShorthand } from './utils.js';
+import { parseNumberShorthand, formatNumber } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Auth check - if fails, redirect to home
@@ -83,7 +83,7 @@ async function searchPlayers() {
     results.innerHTML = '<p>Scanning neural networks...</p>';
 
     try {
-        const res = await fetch(`/api/admin/players/search?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/admin/players/search?q=${encodeURIComponent(query)}&t=${Date.now()}`);
         const data = await res.json();
         
         if (!data.success) {
@@ -96,7 +96,19 @@ async function searchPlayers() {
             return;
         }
 
-        console.log('DEBUG: Admin search results:', data.data);
+        console.log('DEBUG: RAW DATA FROM SERVER:', data.data);
+        data.data.forEach(p => {
+            console.log(`DEBUG: Player ${p.username} has ${p.planets?.length || 0} planets`);
+            p.planets?.forEach(pl => {
+                console.log(`DEBUG: Planet ${pl.name} [${pl.id}] data:`, {
+                    resources: pl.resources,
+                    buildings: pl.buildings,
+                    ships: pl.ships,
+                    defenses: pl.defenses
+                });
+            });
+        });
+
         results.innerHTML = data.data.map(player => renderPlayerAdminCard(player)).join('');
     } catch (e) {
         results.innerHTML = `<p class="error">Connection lost: ${e.message}</p>`;
@@ -105,6 +117,7 @@ async function searchPlayers() {
 
 function renderPlayerAdminCard(player) {
     const research = player.research || {};
+    const planets = player.planets || [];
     
     return `
         <div class="ghost-card" style="margin-bottom: 40px; border-color: var(--accent-blue); width: 100%;">
@@ -120,65 +133,76 @@ function renderPlayerAdminCard(player) {
             </div>
 
             <div class="planet-assets-control">
-                ${player.planets.map(planet => `
-                    <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 4px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <div style="margin-bottom: 20px;">
-                            <strong style="color: var(--accent-yellow); font-size: 1.1rem;">🪐 ${planet.name} <span style="color: var(--text-secondary); font-size: 0.8rem; margin-left: 10px;">[${planet.coordinates.join(':')}]</span></strong>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 20px;">
-                            <!-- Resources Section -->
-                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
-                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                                    <span style="opacity: 0.7;">📦</span> Resources
-                                </h5>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
-                                    ${renderAssetInputs(player.userId, planet.id, 'resources', planet.resources, ['metal', 'crystal', 'deuterium', 'water', 'food', 'population'])}
-                                </div>
-                            </div>
-                            
-                            <!-- Buildings Section -->
-                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
-                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                                    <span style="opacity: 0.7;">🏗️</span> Buildings
-                                </h5>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
-                                    ${renderAssetInputs(player.userId, planet.id, 'buildings', planet.buildings, [
-                                        'metalMine', 'crystalMine', 'deuteriumSynthesizer', 'solarPlant', 'fusionReactor',
-                                        'roboticsFactory', 'shipyard', 'researchLab', 'naniteFactory', 'housing',
-                                        'waterExtractor', 'farm', 'metalStorage', 'crystalStorage', 'deuteriumTank'
-                                    ])}
-                                </div>
-                            </div>
-                            
-                            <!-- Ships Section -->
-                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
-                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                                    <span style="opacity: 0.7;">🚀</span> Ships
-                                </h5>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
-                                    ${renderAssetInputs(player.userId, planet.id, 'ships', planet.ships, [
-                                        'smallCargo', 'largeCargo', 'lightFighter', 'heavyFighter', 'cruiser', 
-                                        'battleship', 'destroyer', 'bomber', 'carrier', 'dreadnought', 
-                                        'colonyShip', 'recycler', 'espionageProbe'
-                                    ])}
-                                </div>
-                            </div>
+                ${planets.map(planet => renderPlanetAdminControl(player.userId, planet)).join('')}
+            </div>
+        </div>
+    `;
+}
 
-                            <!-- Defenses Section -->
-                            <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
-                                <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                                    <span style="opacity: 0.7;">🛡️</span> Defenses
-                                </h5>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
-                                    ${renderAssetInputs(player.userId, planet.id, 'defenses', planet.defenses, [
-                                        'rocketLauncher', 'laserCannon', 'particleBeam', 'ionCannon', 'gaussCannon', 'plasmaTurret', 'shield'
-                                    ])}
-                                </div>
-                            </div>
-                        </div>
+function renderPlanetAdminControl(userId, planet) {
+    // Debug helper to find where data might be missing
+    const resData = planet.resources || {};
+    const buildData = planet.buildings || {};
+    const shipData = planet.ships || {};
+    const defData = planet.defenses || {};
+
+    return `
+        <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 4px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center;">
+                <strong style="color: var(--accent-yellow); font-size: 1.1rem;">🪐 ${planet.name} <span style="color: var(--text-secondary); font-size: 0.8rem; margin-left: 10px;">[${planet.coordinates.join(':')}]</span></strong>
+                <span style="font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: #64748b;">PLANET ID: ${planet.id}</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Resources Section -->
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                    <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <span style="opacity: 0.7;">📦</span> Resources
+                    </h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                        ${renderAssetInputs(userId, planet.id, 'resources', resData, ['metal', 'crystal', 'deuterium', 'water', 'food', 'population'])}
                     </div>
-                `).join('')}
+                </div>
+                
+                <!-- Buildings Section -->
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                    <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <span style="opacity: 0.7;">🏗️</span> Buildings
+                    </h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                        ${renderAssetInputs(userId, planet.id, 'buildings', buildData, [
+                            'metalMine', 'crystalMine', 'deuteriumSynthesizer', 'solarPlant', 'fusionReactor',
+                            'roboticsFactory', 'shipyard', 'researchLab', 'naniteFactory', 'housing',
+                            'waterExtractor', 'farm', 'metalStorage', 'crystalStorage', 'deuteriumTank'
+                        ])}
+                    </div>
+                </div>
+                
+                <!-- Ships Section -->
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                    <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <span style="opacity: 0.7;">🚀</span> Ships
+                    </h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                        ${renderAssetInputs(userId, planet.id, 'ships', shipData, [
+                            'smallCargo', 'largeCargo', 'lightFighter', 'heavyFighter', 'cruiser', 
+                            'battleship', 'destroyer', 'bomber', 'carrier', 'dreadnought', 
+                            'colonyShip', 'recycler', 'espionageProbe'
+                        ])}
+                    </div>
+                </div>
+
+                <!-- Defenses Section -->
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px;">
+                    <h5 style="color: var(--accent-blue); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <span style="opacity: 0.7;">🛡️</span> Defenses
+                    </h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+                        ${renderAssetInputs(userId, planet.id, 'defenses', defData, [
+                            'rocketLauncher', 'laserCannon', 'particleBeam', 'ionCannon', 'gaussCannon', 'plasmaTurret', 'shield'
+                        ])}
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -191,20 +215,22 @@ function renderResearchGrid(userId, research) {
         'housingTech', 'laserTech', 'ionTech', 'plasmaTech', 'resourceEfficiency', 'modularConstruction'
     ];
     
-    return techs.map(tech => `
-        <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
-            <label style="font-size: 0.7rem; color: #94a3b8; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tech}">${tech}</label>
-            <input type="number" id="research-${userId}-${tech}" value="${research[tech] || 0}" class="modal-input" style="width: 50px; height: 24px; font-size: 0.75rem; padding: 0 4px; text-align: center; border-color: rgba(56, 189, 248, 0.3);">
-            <button class="btn btn-primary btn-small" style="padding: 0 4px; height: 24px; width: 35px; font-size: 0.65rem;" onclick="window.updateSingleResearch('${userId}', '${tech}')">SET</button>
-        </div>
-    `).join('');
+    return techs.map(tech => {
+        const val = research[tech] || 0;
+        return `
+            <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+                <label style="font-size: 0.7rem; color: #94a3b8; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tech}">${tech}</label>
+                <input type="number" id="research-${userId}-${tech}" value="${val}" class="modal-input" style="width: 50px; height: 24px; font-size: 0.75rem; padding: 0 4px; text-align: center; border-color: rgba(56, 189, 248, 0.3);">
+                <button class="btn btn-primary btn-small" style="padding: 0 4px; height: 24px; width: 35px; font-size: 0.65rem;" onclick="window.updateSingleResearch('${userId}', '${tech}')">SET</button>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderAssetInputs(userId, planetId, category, currentValues, keys) {
-    console.log(`DEBUG: renderAssetInputs ${category} for ${planetId}:`, currentValues);
     return keys.map(key => {
         const val = currentValues ? (currentValues[key] || 0) : 0;
-        const displayVal = typeof val === 'number' ? formatNumber(val) : val;
+        const displayVal = typeof val === 'number' ? formatNumber(val) : (val || 0);
         
         return `
             <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
@@ -385,12 +411,4 @@ function formatEventData(event) {
         default:
             return JSON.stringify(data);
     }
-}
-
-function formatNumber(num) {
-    if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
-    return num.toLocaleString();
 }
