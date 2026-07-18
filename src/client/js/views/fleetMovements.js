@@ -205,7 +205,7 @@ export function renderFleetRow(fleet) {
     // Helper to generate clickable coord
     const createCoordLink = (coords) => {
         const [g, s, p] = coords;
-        return `<span class="clickable-coord" onclick="event.stopPropagation(); window.navigateToCoords(${g}, ${s}, ${p});">[${coords.join(':')}]</span>`;
+        return `<button type="button" class="clickable-coord" onclick="event.stopPropagation(); window.navigateToCoords(${g}, ${s}, ${p});">[${coords.join(':')}]</button>`;
     };
 
     const originLink = createCoordLink(fleet.originCoords);

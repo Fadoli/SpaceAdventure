@@ -275,12 +275,14 @@ export async function renamePlanet(userId, planetId, newName) {
 export async function updatePlayerRelation(userId, targetUserId, tag) {
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
+  if (typeof targetUserId !== 'string' || !targetUserId) throw new Error('Invalid target player');
   
   if (!player.relations) player.relations = {};
   
   if (tag === null || tag === 'none') {
     delete player.relations[targetUserId];
   } else if (['friend', 'enemy'].includes(tag)) {
+    if (targetUserId === userId || !await getPlayerByUserId(targetUserId)) throw new Error('Invalid target player');
     player.relations[targetUserId] = tag;
   } else {
     throw new Error('Invalid relation tag');
@@ -300,8 +302,8 @@ export async function getFriends(userId) {
   const friends = [];
   const allPlayers = await getPlayers();
 
-  for (const targetId in player.relations) {
-    if (player.relations[targetId] === 'friend') {
+  for (const [targetId, relation] of Object.entries(player.relations)) {
+    if (relation === 'friend') {
       const targetPlayer = allPlayers.find(p => p.userId === targetId);
       friends.push({
         id: targetId,

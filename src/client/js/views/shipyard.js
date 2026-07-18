@@ -248,7 +248,7 @@ function renderShipsList(planet, shipyardData) {
         const isLocked = shipyardLevel < data.minLevel;
         
         html += `<div class="shipyard-section">
-            <div class="category-header-technical" onclick="window.toggleCategory('ships-${category}')" style="cursor: pointer; margin-bottom: 15px;">
+            <div class="category-header-technical" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('ships-${category}')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('ships-${category}'); }" style="cursor: pointer; margin-bottom: 15px;">
                 <h3>${data.label.toUpperCase()} DIVISION</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <span class="category-stats-tag">${shipCount} UNIT MODELS AVAILABLE</span>
@@ -377,7 +377,7 @@ function renderDefensesList(planet, shipyardData) {
     const defenseCount = Object.keys(availableDefenses).length;
     
     let html = '<div class="shipyard-section">';
-    html += `<div class="category-header-technical" onclick="window.toggleCategory('defenses')" style="cursor: pointer; margin-bottom: 15px;">
+    html += `<div class="category-header-technical" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('defenses')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('defenses'); }" style="cursor: pointer; margin-bottom: 15px;">
         <h3>🛡️ PLANETARY DEFENSE NETWORK</h3>
         <div style="display: flex; gap: 10px; align-items: center;">
             <span class="category-stats-tag">${defenseCount} DEFENSE MODELS AVAILABLE</span>
@@ -480,7 +480,7 @@ function renderBuildQueue(shipyardData) {
     
     let html = '<div class="shipyard-section" style="margin-bottom: 30px;">';
     html += '<div class="card-corner-top"></div>';
-    html += `<div class="queue-header" onclick="window.toggleCategory('queue')" style="background: rgba(251, 191, 36, 0.03); border-bottom: 1px solid rgba(251, 191, 36, 0.1);">
+    html += `<div class="queue-header" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('queue')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('queue'); }" style="background: rgba(251, 191, 36, 0.03); border-bottom: 1px solid rgba(251, 191, 36, 0.1);">
         <h3 style="color: var(--accent-yellow);">🔨 PRODUCTION LOG</h3>
         <span class="toggle-icon" style="color: var(--accent-yellow);">${isCollapsed ? '▶️' : '▼️'}</span>
     </div>`;
@@ -489,11 +489,11 @@ function renderBuildQueue(shipyardData) {
         html += '<div class="queue-items">';
         
         for (const item of allQueue) {
-            const index = allQueue.indexOf(item);
-            const isActive = index === 0;
+            const isActive = item.queuePosition === 1;
+            const queueType = item.defenses ? 'defenses' : 'ships';
             const timeRemaining = Math.max(0, item.timeRemaining || 0) / 1000; // Convert to seconds
             
-            const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
+            const posLabel = isActive ? 'ACTIVE' : `#${item.queuePosition}`;
 
             let itemDetails = '';
             
@@ -525,7 +525,7 @@ function renderBuildQueue(shipyardData) {
                               data-finish="${item.finishTime}" 
                               data-start="${item.startTime}" 
                               data-queue-pos="${item.queuePosition}">${isActive ? formatCountdown(timeRemaining) : 'Waiting'}</span>
-                        <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}')" title="Terminate Order">✕</button>
+                        <button class="btn-cancel-small" onclick="window.cancelShipyardBuild('${item.id}', '${queueType}')" title="Terminate Order">✕</button>
                     </div>
                 </div>
             `;
@@ -576,7 +576,7 @@ function attachShipyardListeners(planet, shipyardData) {
         }
     };
     
-    window.cancelShipyardBuild = async function(queueId) {
+    window.cancelShipyardBuild = async function(queueId, type) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
         
@@ -584,7 +584,7 @@ function attachShipyardListeners(planet, shipyardData) {
         if (!confirmed) return;
 
         try {
-            const response = await API.cancelShipyardProduction(planetId, queueId);
+            const response = await API.cancelShipyardProduction(planetId, queueId, type);
         } catch (error) {
             Notifications.showError(`Failed to cancel build: ${error.message}`);
         }

@@ -34,6 +34,10 @@ function setupAuthListeners() {
                 f.classList.toggle('active', active);
                 f.hidden = !active;
             });
+            document.querySelectorAll('.error-message').forEach(error => {
+                error.textContent = '';
+                error.classList.remove('show');
+            });
             
         });
     });

@@ -33,13 +33,14 @@ export const Notifications = {
 
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
+        notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
         
         let icon = 'ℹ️';
         if (type === 'success') icon = '✅';
         else if (type === 'error') icon = '❌';
         
         notification.innerHTML = `
-            <span class="notification-icon">${icon}</span>
+            <span class="notification-icon" aria-hidden="true">${icon}</span>
             <span class="notification-message"></span>
             <button type="button" class="notification-close" aria-label="Dismiss notification">&times;</button>
         `;

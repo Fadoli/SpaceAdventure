@@ -595,6 +595,25 @@ export function getPracticalResearch() {
     return PRACTICAL_RESEARCH;
 }
 
+export function validateFocusLevels(researchConfig, focusLevels, experience = {}) {
+    if (!researchConfig?.focusModifiers || !focusLevels || typeof focusLevels !== 'object' || Array.isArray(focusLevels)) {
+        throw new Error('Invalid focus levels');
+    }
+
+    const entries = Object.entries(focusLevels);
+    if (entries.length === 0) throw new Error('Invalid focus levels');
+
+    for (const [focus, level] of entries) {
+        if (!Object.hasOwn(researchConfig.focusModifiers, focus)) throw new Error(`Invalid research focus: ${focus}`);
+        if (!Number.isSafeInteger(level) || level < 0) throw new Error('Focus levels must be non-negative integers');
+        const currentExp = Object.hasOwn(experience, focus) && Number.isFinite(experience[focus]) ? Math.max(0, experience[focus]) : 0;
+        const maxLevel = Math.floor(Math.sqrt(currentExp / 100));
+        if (level > maxLevel) throw new Error(`Focus level ${level} exceeds research level ${maxLevel}`);
+    }
+
+    return Object.fromEntries(entries);
+}
+
 /**
  * Check if a theoretical technology is available based on prerequisites
  */

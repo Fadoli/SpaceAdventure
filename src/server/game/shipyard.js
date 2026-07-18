@@ -88,13 +88,14 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
   const effectiveBuildTime = totalBuildTime * configMultiplier;
-  const finishTime = Date.now() + (effectiveBuildTime * 1000);
+  const startTime = Math.max(Date.now(), planet.shipQueue.at(-1)?.finishTime || 0);
+  const finishTime = startTime + (effectiveBuildTime * 1000);
 
   // Add to queue
   const queueItem = {
     id: Math.random().toString(36).substr(2, 9),
     ships,
-    startTime: Date.now(),
+    startTime,
     finishTime,
     buildTime: effectiveBuildTime,
     queuePosition: planet.shipQueue.length + 1
@@ -164,13 +165,14 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
   const effectiveBuildTime = totalBuildTime * configMultiplier;
-  const finishTime = Date.now() + (effectiveBuildTime * 1000);
+  const startTime = Math.max(Date.now(), planet.defenseQueue.at(-1)?.finishTime || 0);
+  const finishTime = startTime + (effectiveBuildTime * 1000);
 
   // Add to queue
   const queueItem = {
     id: Math.random().toString(36).substr(2, 9),
     defenses,
-    startTime: Date.now(),
+    startTime,
     finishTime,
     buildTime: effectiveBuildTime,
     queuePosition: planet.defenseQueue.length + 1

@@ -28,7 +28,8 @@ import {
   createBuildingBlueprint,
   setActiveBlueprint,
   deleteBuildingBlueprint,
-  renameBuildingBlueprint
+  renameBuildingBlueprint,
+  validateBuildingType
 } from './game/buildings.js';
 import { 
   buildShips, 
@@ -74,6 +75,7 @@ import { gzipSync, deflateSync } from 'zlib';
 
 import { wsManager } from './game/wsManager.js';
 import { canServeDuringStartup, getPublicFilePath } from './publicFiles.js';
+import { applyAdminAssetUpdate } from './adminAssets.js';
 
 // Load configuration
 await loadConfig();
@@ -1458,70 +1460,20 @@ async function handleRequest(req) {
 
       const targetUserId = path.split('/')[4];
       const body = await req.json();
-      const { planetId, ships, defenses, resources, buildings, research, mode } = body;
-      const isSet = mode === 'SET';
 
       const player = await getPlayerByUserId(targetUserId);
       if (!player) return errorResponse(req, 'Player not found', 404);
 
-      if (planetId) {
-        const planet = player.planets.find(p => p.id === planetId);
-        if (!planet) return errorResponse(req, 'Planet not found', 404);
+      try {
+        const { planet, buildingsChanged } = applyAdminAssetUpdate(player, body);
+        if (buildingsChanged) updatePlanetProduction(planet, player);
+        await updatePlayer(targetUserId, player);
 
-        // Apply Ships
-        if (ships) {
-          for (const key in ships) {
-            planet.ships[key] = isSet ? ships[key] : (planet.ships[key] || 0) + ships[key];
-            if (planet.ships[key] < 0) planet.ships[key] = 0;
-          }
-        }
-
-        // Apply Defenses
-        if (defenses) {
-          for (const key in defenses) {
-            planet.defenses[key] = isSet ? defenses[key] : (planet.defenses[key] || 0) + defenses[key];
-            if (planet.defenses[key] < 0) planet.defenses[key] = 0;
-          }
-        }
-
-        // Apply Resources
-        if (resources) {
-          for (const key in resources) {
-            planet.resources[key] = isSet ? resources[key] : (planet.resources[key] || 0) + resources[key];
-            if (planet.resources[key] < 0) planet.resources[key] = 0;
-          }
-        }
-
-        // Apply Buildings
-        if (buildings) {
-          for (const key in buildings) {
-            planet.buildings[key] = isSet ? buildings[key] : (planet.buildings[key] || 0) + buildings[key];
-            if (planet.buildings[key] < 0) planet.buildings[key] = 0;
-          }
-          // Recalculate production if buildings changed
-          updatePlanetProduction(planet, player);
-        }
+        wsManager.sendToUser(targetUserId, planet ? 'RESOURCES_UPDATED' : 'RESEARCH_COMPLETE', planet ? { planetId: planet.id } : { userId: targetUserId });
+        return successResponse(req, { message: 'Assets updated successfully' });
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
       }
-
-      // Apply Research (Global to player)
-      if (research) {
-        if (!player.research) player.research = {};
-        for (const key in research) {
-          player.research[key] = isSet ? research[key] : (player.research[key] || 0) + research[key];
-          if (player.research[key] < 0) player.research[key] = 0;
-        }
-      }
-
-      await updatePlayer(targetUserId, player);
-      
-      // Notify player via WebSocket if online
-      if (planetId) {
-        wsManager.sendToUser(targetUserId, 'RESOURCES_UPDATED', { planetId });
-      } else {
-        wsManager.sendToUser(targetUserId, 'RESEARCH_COMPLETE', { userId: targetUserId });
-      }
-
-      return successResponse(req, { message: 'Assets updated successfully' });
     }
 
     // ============================================
@@ -1704,7 +1656,7 @@ async function handleRequest(req) {
         let queueItem;
         if (allocation) {
           // Allocation-based research (customization)
-          queueItem = startPracticalResearchWithAllocation(player, researchKey, allocation, planetId, strength || 0.5);
+          queueItem = startPracticalResearchWithAllocation(player, researchKey, allocation, planetId, strength ?? 0.5);
         } else {
           // Simple default research (balanced)
           const defaultAllocation = { output: 0.25, automation: 0.25, energy: 0.25, cost: 0.25 };
@@ -1835,9 +1787,14 @@ async function handleRequest(req) {
 
       const baseType = path.split('/')[4];
       const player = await getPlayerByUserId(user.id);
-      
-      const blueprints = (player.buildingBlueprints && player.buildingBlueprints[baseType]) || [];
-      return successResponse(req, blueprints);
+
+      try {
+        validateBuildingType(baseType);
+        const blueprints = Object.hasOwn(player.buildingBlueprints || {}, baseType) ? player.buildingBlueprints[baseType] : [];
+        return successResponse(req, blueprints);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
     }
 
     // DELETE /api/game/blueprints/:baseType/:blueprintId - Delete building blueprint
@@ -1939,33 +1896,6 @@ async function handleRequest(req) {
       
       const result = await clearMessages(user.id);
       return successResponse(req, { success: result });
-    }
-
-    // POST /api/game/planet/:planetId/building/:buildingType/activate-blueprint
-    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/activate-blueprint$/) && method === 'POST') {
-      const user = await requireAuth(req);
-      if (!user) return errorResponse(req, 'Not authenticated', 401);
-      
-      const pathParts = path.split('/');
-      const planetId = pathParts[4];
-      const buildingType = pathParts[6];
-
-      const body = await req.json();
-      const { blueprintId } = body;
-      
-      try {
-        const player = await getPlayerByUserId(user.id);
-        const planet = player.planets.find(p => p.id === planetId);
-        if (!planet) return errorResponse(req, 'Planet not found', 404);
-
-        if (!planet.activeVariants) planet.activeVariants = {};
-        planet.activeVariants[buildingType] = blueprintId;
-        
-        await updatePlayer(user.id, player);
-        return successResponse(req, { success: true });
-      } catch (error) {
-        return errorResponse(req, error.message, 400);
-      }
     }
 
     // GET /api/game/alliance/messages

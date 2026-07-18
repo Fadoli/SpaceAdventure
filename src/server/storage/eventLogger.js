@@ -4,6 +4,10 @@ import { join, dirname } from 'path';
 
 const EVENTS_FILE = './data/events.jsonl';
 
+export function normalizeEventLimit(limit) {
+    return Number.isFinite(limit) ? Math.min(100, Math.max(1, Math.trunc(limit))) : 100;
+}
+
 // Ensure data directory exists
 const dir = dirname(EVENTS_FILE);
 if (!existsSync(dir)) {
@@ -44,7 +48,7 @@ export async function getRecentEvents(limit = 100) {
         if (!text) return [];
         
         const events = Bun.JSONL.parse(text);
-        return events.slice(-limit).reverse(); // Newest first
+        return events.slice(-normalizeEventLimit(limit)).reverse(); // Newest first
     } catch (error) {
         console.error('[EventLogger] Failed to read events:', error);
         return [];

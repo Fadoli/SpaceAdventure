@@ -1,6 +1,6 @@
 // Overview view logic
 import { API } from '../api.js';
-import { formatNumber, formatDuration } from '../utils.js';
+import { escapeHtml, formatNumber, formatDuration } from '../utils.js';
 import { showPrompt } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { calculatePopulationChange, calculatePositionMultiplier } from '../../../shared/formulas.js';
@@ -257,9 +257,9 @@ function renderEmpireTable(gameState) {
     const container = document.getElementById('empire-summary-table-container');
     if (!container) return;
 
-    // Determine if we need a full re-render (e.g. planet count changed)
-    const planetIds = gameState.planets.map(p => p.id).join(',');
-    if (container.dataset.planetIds !== planetIds || container.innerHTML.trim() === '') {
+    // Rebuild when skeleton-owned identity fields change (add/remove, rename, or relocation)
+    const planetStructure = JSON.stringify(gameState.planets.map(p => [p.id, p.name, p.coordinates]));
+    if (container.dataset.planetStructure !== planetStructure || container.innerHTML.trim() === '') {
         let html = `
             <div class="empire-table-wrapper">
                 <table class="empire-stats-table">
@@ -286,7 +286,7 @@ function renderEmpireTable(gameState) {
             </div>
         `;
         container.innerHTML = html;
-        container.dataset.planetIds = planetIds;
+        container.dataset.planetStructure = planetStructure;
     }
 
     // Granularly update every row
@@ -296,10 +296,10 @@ function renderEmpireTable(gameState) {
 }
 
 function renderEmpirePlanetRowSkeleton(planet, isCurrent) {
-    return `<tr class="empire-planet-row ${isCurrent ? 'current' : ''}" id="empire-row-${planet.id}" onclick="window.selectPlanet('${planet.id}')">
+    return `<tr class="empire-planet-row ${isCurrent ? 'current' : ''}" id="empire-row-${planet.id}" role="button" tabindex="0" onclick="window.selectPlanet('${planet.id}')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.selectPlanet('${planet.id}'); }">
         <td class="planet-col">
             <div class="planet-identity">
-                <span class="p-name">${planet.name}</span>
+                <span class="p-name">${escapeHtml(planet.name)}</span>
                 <span class="p-coords">[${planet.coordinates.join(':')}]</span>
             </div>
         </td>

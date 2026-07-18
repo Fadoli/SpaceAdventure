@@ -443,8 +443,7 @@ describe('Utils - isEmpty Function', () => {
     expect(isEmpty(obj)).toBe(false);
     
     const objWithInherited = Object.create({ inheritedProp: 'value' });
-    // for-in loop includes inherited properties
-    expect(isEmpty(objWithInherited)).toBe(false);
+    expect(isEmpty(objWithInherited)).toBe(true);
   });
 
   it('should work with game data structures', () => {

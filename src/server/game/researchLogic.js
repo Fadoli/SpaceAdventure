@@ -9,15 +9,15 @@ import {
   getCustomVariant,
   calculateFocusModifiers,
   applyCustomization,
-  getResearchBonus
+  getResearchBonus,
+  validateFocusLevels
 } from '../../shared/research.js';
 import {
   calculateTheoreticalResearchCost,
   calculateTheoreticalResearchTime,
   calculatePracticalResearchCost,
   calculatePracticalResearchTime,
-  rollResearchOutcome,
-  calculateFocusLevel
+  rollResearchOutcome
 } from '../../shared/formulas.js';
 import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
@@ -195,14 +195,23 @@ export function cancelTheoreticalResearch(player, queueItemId, planetId) {
  */
 export function startPracticalResearchWithAllocation(player, researchKey, allocation, planetId, strength = 0.5) {
   const PRACTICAL = getPracticalResearch();
-  const practicalResearchConfig = PRACTICAL[researchKey];
+  const practicalResearchConfig = Object.hasOwn(PRACTICAL, researchKey) ? PRACTICAL[researchKey] : null;
   if (!practicalResearchConfig) throw new Error(`No practical research available for ${researchKey}`);
-  
+
+  if (!allocation || typeof allocation !== 'object' || Array.isArray(allocation)) throw new Error('Invalid research allocation');
+  if (!Number.isFinite(strength) || strength < 0 || strength > 1) throw new Error('Research strength must be between 0 and 1');
+
   const baseType = practicalResearchConfig.baseType;
-  
+
   // Validate allocation
   let allocationSum = 0;
-  for (const focus in allocation) allocationSum += allocation[focus];
+  const allocationEntries = Object.entries(allocation);
+  if (allocationEntries.length === 0) throw new Error('Invalid research allocation');
+  for (const [focus, value] of allocationEntries) {
+    if (!Object.hasOwn(practicalResearchConfig.focusModifiers, focus)) throw new Error(`Invalid research focus: ${focus}`);
+    if (!Number.isFinite(value) || value < 0 || value > 1) throw new Error('Research allocation values must be between 0 and 1');
+    allocationSum += value;
+  }
   if (Math.abs(allocationSum - 1) > 0.01) throw new Error(`Allocation must sum to 100%`);
   
   const planet = player.planets.find(p => p.id === planetId);
@@ -262,7 +271,7 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
     type: 'practical',
     baseType,
     itemType: practicalResearchConfig.type,
-    allocation,
+    allocation: { ...allocation },
     strength,
     startTime,
     duration: time * 1000,
@@ -391,7 +400,7 @@ export function cancelPracticalResearch(player, queueItemId, planetId) {
  * Reset practical research for an item to bank breakthroughs
  */
 export function resetPracticalResearch(player, baseType) {
-  if (!player.practicalResearch || !player.practicalResearch[baseType]) {
+  if (!player.practicalResearch || !Object.hasOwn(player.practicalResearch, baseType)) {
     throw new Error('Research for this item not found');
   }
 
@@ -441,6 +450,7 @@ export function getAvailablePracticalResearchForPlayer(player, planetId) {
 export function selectCustomBuildingVariant(player, planetId, baseType, focusLevels) {
   const planet = player.planets.find(p => p.id === planetId);
   if (!planet) throw new Error('Planet not found');
+  if (typeof baseType !== 'string' || !Object.hasOwn(BUILDINGS, baseType)) throw new Error('Invalid building type');
   if (!planet.buildings[baseType] || planet.buildings[baseType] === 0) throw new Error(`Building not available`);
   
   const practical = getPracticalResearch();
@@ -453,20 +463,15 @@ export function selectCustomBuildingVariant(player, planetId, baseType, focusLev
   }
   if (!researchConfig) throw new Error(`No practical research available for ${baseType}`);
   
-  // Validate focus levels
   const currentExp = player.practicalResearch?.[baseType]?.experience || { output: 0, automation: 0, energy: 0, cost: 0 };
-  for (const focus in focusLevels) {
-    const level = focusLevels[focus];
-    const maxLevel = calculateFocusLevel(currentExp[focus]);
-    if (level > maxLevel) throw new Error(`Focus level ${level} exceeds research level ${maxLevel}`);
-  }
+  const validatedFocusLevels = validateFocusLevels(researchConfig, focusLevels, currentExp);
   
   if (!player.customBuildingVariants) player.customBuildingVariants = {};
   
-  const modifiers = calculateFocusModifiers(researchConfig, focusLevels);
+  const modifiers = calculateFocusModifiers(researchConfig, validatedFocusLevels);
   const customized = applyCustomization(BUILDINGS[baseType], modifiers);
   
-  player.customBuildingVariants[baseType] = { focusLevels, modifiers, customDefinition: customized };
+  player.customBuildingVariants[baseType] = { focusLevels: validatedFocusLevels, modifiers, customDefinition: customized };
   return player.customBuildingVariants[baseType];
 }
 

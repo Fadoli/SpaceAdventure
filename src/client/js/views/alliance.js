@@ -5,6 +5,7 @@ import { Notifications } from '../notifications.js';
 import { showConfirm, showPrompt } from './modals.js';
 import { renderCombatReport, renderEspionageData } from './messages.js';
 import { openDetailsModal } from './details.js';
+import { isEmpty } from '../../../shared/utils.js';
 
 let currentSubView = 'overview';
 let messageRefreshInterval = null;
@@ -478,7 +479,7 @@ function renderAlliancePlanner(container, alliance, player) {
     container.innerHTML = html;
 }
 
-function renderPlanParticipantSummary(plan) {
+export function renderPlanParticipantSummary(plan) {
     // Collect all ships being sent/gathered
     const totals = {};
     plan.participants.forEach(p => {

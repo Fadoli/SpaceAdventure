@@ -116,7 +116,7 @@ export const API = {
     },
 
     async getMyRank() {
-        return await this.request('/game/my-rank');
+        return await this.request('/game/rank-index');
     },
 
     async getShipyardDetails(planetId) {
@@ -137,10 +137,10 @@ export const API = {
         });
     },
     
-    async cancelShipyardProduction(planetId, queueId) {
+    async cancelShipyardProduction(planetId, queueId, type = 'ships') {
         return await this.request(`/game/planet/${planetId}/shipyard/${queueId}`, {
             method: 'DELETE',
-            body: JSON.stringify({ type: 'ships' })
+            body: JSON.stringify({ type })
         });
     },
     

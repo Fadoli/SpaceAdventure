@@ -1,5 +1,6 @@
 import { API } from '../api.js';
-import { escapeHtml, formatDate, formatNumber, isEmpty } from '../utils.js';
+import { escapeHtml, formatDate, formatNumber } from '../utils.js';
+import { isEmpty } from '../../../shared/utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { SHIPS, ALIEN_SHIPS } from '../../../shared/ships.js';

@@ -59,11 +59,8 @@ export function deepClone(obj) {
 }
 
 /**
- * Check if an object is empty using for-in loop
+ * Check if an object has no own enumerable properties
  */
 export function isEmpty(obj) {
-  for (const key in obj) {
-    return false;
-  }
-  return true;
+  return Object.keys(obj).length === 0;
 }

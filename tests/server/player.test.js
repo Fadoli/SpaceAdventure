@@ -152,4 +152,13 @@ describe('Player Management', () => {
     // Invalid chars
     expect(playerModule.renamePlanet('userBadName', planetId, 'Bad@Name')).rejects.toThrow();
   });
+
+  it('validates relation targets before storing them', async () => {
+    await playerModule.createPlayer('relation-owner', 'Owner');
+    await playerModule.createPlayer('relation-target', 'Target');
+
+    await expect(playerModule.updatePlayerRelation('relation-owner', 'missing', 'friend')).rejects.toThrow('Invalid target player');
+    await expect(playerModule.updatePlayerRelation('relation-owner', 'relation-owner', 'enemy')).rejects.toThrow('Invalid target player');
+    expect(await playerModule.updatePlayerRelation('relation-owner', 'relation-target', 'friend')).toEqual({ 'relation-target': 'friend' });
+  });
 });

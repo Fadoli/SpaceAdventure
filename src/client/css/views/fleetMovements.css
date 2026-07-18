@@ -157,6 +157,9 @@
     transition: all 0.2s;
     color: var(--accent-blue);
     padding: 0 2px;
+    background: none;
+    border: 0;
+    font: inherit;
 }
 
 .clickable-coord:hover {

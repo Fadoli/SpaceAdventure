@@ -75,7 +75,9 @@ export async function startGameLoop() {
     if (rankingData?.snapshots?.length > 0) {
       lastRankingSnapshotTime = rankingData.snapshots[rankingData.snapshots.length - 1].timestamp;
     }
-  } catch (e) {}
+  } catch (error) {
+    console.warn('[GameLoop] Unable to load ranking snapshot history:', error);
+  }
 
   // 2. Perform Catch-up Simulation
   const lastHeartbeat = await loadServerState();
@@ -108,6 +110,8 @@ export async function startGameLoop() {
       lastProcessedTick = now; // Only update AFTER successful tick
       // Heartbeat is NOT saved to disk here to prevent SSD wear.
       // It is only saved on graceful shutdown.
+    } catch (error) {
+      console.error('[GameLoop] Tick failed; retrying on the next interval:', error);
     } finally {
       isTickRunning = false;
     }

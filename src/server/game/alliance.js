@@ -7,6 +7,7 @@ import { getPlayerMessages } from './messages.js';
 import { sendFleet } from './fleet.js';
 import { MISSION_TYPES } from '../../shared/constants.js';
 import { wsManager } from './wsManager.js';
+import { validateBuildingType } from './buildings.js';
 
 let alliancesCache = null;
 
@@ -21,9 +22,9 @@ export async function getAlliances() {
   
   // Ensure plannedAttacks exists for each alliance
   let updated = false;
-  for (const id in alliancesCache) {
-    if (!alliancesCache[id].plannedAttacks) {
-      alliancesCache[id].plannedAttacks = [];
+  for (const alliance of Object.values(alliancesCache)) {
+    if (!alliance.plannedAttacks) {
+      alliance.plannedAttacks = [];
       updated = true;
     }
   }
@@ -38,10 +39,15 @@ export async function getAlliances() {
  * Create a new planned attack
  */
 export async function createPlannedAttack(userId, allianceId, hostPlanetId, targetCoords) {
+  if (!Array.isArray(targetCoords) || targetCoords.length !== 3 || !targetCoords.every(Number.isSafeInteger) ||
+      targetCoords[0] < 1 || targetCoords[0] > 10 || targetCoords[1] < 1 || targetCoords[1] > 499 ||
+      targetCoords[2] < 1 || targetCoords[2] > 15) throw new Error('Invalid target coordinates');
+
   const alliance = await getAllianceById(allianceId);
   if (!alliance) throw new Error('Alliance not found');
 
   const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
   const hostPlanet = player.planets.find(p => p.id === hostPlanetId);
   if (!hostPlanet) throw new Error('Host planet not found');
 
@@ -51,7 +57,7 @@ export async function createPlannedAttack(userId, allianceId, hostPlanetId, targ
     hostUsername: player.username,
     hostPlanetId,
     hostCoords: [...hostPlanet.coordinates],
-    targetCoords,
+    targetCoords: [...targetCoords],
     createdAt: Date.now(),
     status: 'gathering', // gathering, launched, completed
     participants: [
@@ -126,14 +132,6 @@ export async function launchPlannedAttack(userId, allianceId, planId, hostShips)
 
   // 1. Gather all ships that have arrived at the host planet
   const pooledShips = { ...hostShips };
-  const player = await getPlayerByUserId(userId);
-  const hostPlanet = player.planets.find(p => p.id === plan.hostPlanetId);
-
-  // Deduct host's own ships
-  for (const shipKey in hostShips) {
-    if ((hostPlanet.ships[shipKey] || 0) < hostShips[shipKey]) throw new Error(`Insufficient ${shipKey} on host planet`);
-    hostPlanet.ships[shipKey] -= hostShips[shipKey];
-  }
 
   // Gather arrived allied ships
   const now = Date.now();
@@ -194,28 +192,31 @@ export async function launchPlannedAttack(userId, allianceId, planId, hostShips)
  */
 export async function getAllianceById(allianceId) {
   const alliances = await getAlliances();
-  return alliances[allianceId] || null;
+  return typeof allianceId === 'string' && Object.hasOwn(alliances, allianceId) ? alliances[allianceId] : null;
 }
 
 /**
  * Create a new alliance
  */
 export async function createAlliance(userId, name, tag) {
+  if (typeof name !== 'string') throw new Error('Alliance name must be text');
+  if (typeof tag !== 'string') throw new Error('Alliance tag must be text');
+  name = name.trim();
+  tag = tag.trim();
+  if (name.length < 3 || name.length > 30) throw new Error('Alliance name must be 3-30 characters');
+  if (tag.length < 3 || tag.length > 8) throw new Error('Alliance tag must be 3-8 characters');
+  if (!/^[a-zA-Z0-9]+$/.test(tag)) throw new Error('Alliance tag must be alphanumeric only');
+
   const alliances = await getAlliances();
   const player = await getPlayerByUserId(userId);
   
   if (!player) throw new Error('Player not found');
   if (player.allianceId) throw new Error('Player already in an alliance');
 
-  // Validation
-  if (!name || name.length < 3 || name.length > 30) throw new Error('Alliance name must be 3-30 characters');
-  if (!tag || tag.length < 3 || tag.length > 8) throw new Error('Alliance tag must be 3-8 characters');
-  if (!/^[a-zA-Z0-9]+$/.test(tag)) throw new Error('Alliance tag must be alphanumeric only');
-  
   // Check if name or tag taken
-  for (const id in alliances) {
-    if (alliances[id].name.toLowerCase() === name.toLowerCase()) throw new Error('Alliance name already taken');
-    if (alliances[id].tag.toLowerCase() === tag.toLowerCase()) throw new Error('Alliance tag already taken');
+  for (const existing of Object.values(alliances)) {
+    if (existing.name.toLowerCase() === name.toLowerCase()) throw new Error('Alliance name already taken');
+    if (existing.tag.toLowerCase() === tag.toLowerCase()) throw new Error('Alliance tag already taken');
   }
   
   const allianceId = generateId();
@@ -253,7 +254,7 @@ export async function createAlliance(userId, name, tag) {
  */
 export async function joinAlliance(userId, allianceId) {
   const alliances = await getAlliances();
-  const alliance = alliances[allianceId];
+  const alliance = typeof allianceId === 'string' && Object.hasOwn(alliances, allianceId) ? alliances[allianceId] : null;
   const player = await getPlayerByUserId(userId);
   
   if (!alliance) throw new Error('Alliance not found');
@@ -286,7 +287,7 @@ export async function leaveAlliance(userId) {
   if (!player || !player.allianceId) throw new Error('Player not in an alliance');
   
   const alliances = await getAlliances();
-  const alliance = alliances[player.allianceId];
+  const alliance = Object.hasOwn(alliances, player.allianceId) ? alliances[player.allianceId] : null;
   
   if (!alliance) {
     // Clean up corrupted player state
@@ -333,6 +334,8 @@ export async function leaveAlliance(userId) {
  */
 export async function shareBlueprint(userId, baseType, blueprintId, type, targetType, targetId = null) {
   if (type !== 'building') throw new Error('Only building blueprints can be shared');
+  validateBuildingType(baseType);
+  if (!['alliance', 'player'].includes(targetType)) throw new Error('Invalid blueprint target');
   
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
@@ -400,7 +403,7 @@ export async function getAllianceMessages(allianceId) {
  * Send a message to the alliance
  */
 export async function sendAllianceMessage(userId, allianceId, content) {
-  if (!content || content.trim().length === 0) {
+  if (typeof content !== 'string' || content.trim().length === 0) {
     throw new Error('Message content cannot be empty');
   }
   if (content.trim().length > 500) {

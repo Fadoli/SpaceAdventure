@@ -162,7 +162,10 @@ async function showGameScreen() {
     });
     
     // Load game state first
-    await loadGameState();
+    if (!await loadGameState()) {
+        Notifications.showError('Unable to load your game state. Please refresh and try again.');
+        return;
+    }
     
     // Restore state from URL if available
     const urlParams = getUrlParams();
@@ -327,8 +330,10 @@ async function loadGameState(forceFetch = false) {
         gameState = await API.getGameState();
         setGameState(gameState);
         updateUI(forceFetch);
+        return true;
     } catch (error) {
         console.error('Failed to load game state:', error);
+        return false;
     } finally {
         isFetchingState = false;
         // If another fetch was requested while we were busy, do it now

@@ -11,7 +11,8 @@ import {
   getCustomVariant,
   calculateFocusModifiers,
   applyCustomization,
-  getResearchBonus
+  getResearchBonus,
+  validateFocusLevels
 } from '../../shared/research.js';
 import {
   getBuildingEnergyConsumption,
@@ -33,6 +34,20 @@ import {
   getStorageCapacityMultiplier
 } from '../config.js';
 import { calculateBaseTime } from '../../shared/time.js';
+
+export function validateBuildingType(buildingType) {
+  if (typeof buildingType !== 'string' || !Object.hasOwn(BUILDINGS, buildingType)) {
+    throw new Error('Invalid building type');
+  }
+  return BUILDINGS[buildingType];
+}
+
+export function validateBlueprintName(name) {
+  if (typeof name !== 'string') throw new Error('Blueprint name must be text');
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 40) throw new Error('Blueprint name must be 1-40 characters');
+  return trimmed;
+}
 
 /**
  * Get the effective building definition for a planet (base or custom blueprint)
@@ -173,12 +188,7 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
     throw new Error('Planet not found');
   }
   
-  // Validate building type
-  if (!BUILDINGS[buildingType]) {
-    throw new Error('Invalid building type');
-  }
-  
-  const building = BUILDINGS[buildingType];
+  const building = validateBuildingType(buildingType);
   const currentLevel = planet.buildings[buildingType] || 0;
   
   // Find the highest level of this building in the queue
@@ -839,6 +849,21 @@ export function updatePlanetStorage(planet) {
 /**
  * Update building allocation (power and population)
  */
+export function validateBuildingAllocation(planet, buildingType, allocation) {
+  if (!Object.hasOwn(BUILDINGS, buildingType) || !Object.hasOwn(planet.buildings || {}, buildingType) || planet.buildings[buildingType] <= 0) {
+    throw new Error('Building not found or at level 0');
+  }
+  if (!allocation || typeof allocation !== 'object' || Array.isArray(allocation)) throw new Error('Invalid building allocation');
+
+  const { power, population, priority = 3 } = allocation;
+  if (!Number.isFinite(power) || power < 0 || power > 2 || !Number.isFinite(population) || population < 0 || population > 2) {
+    throw new Error('Allocation must be between 0% and 200%');
+  }
+  if (!Number.isSafeInteger(priority) || priority < 1 || priority > 3) throw new Error('Allocation priority must be between 1 and 3');
+
+  return { power, population, priority };
+}
+
 export async function updateBuildingAllocation(userId, planetId, buildingType, powerPercent, populationPercent, priority) {
   const player = await getPlayerByUserId(userId);
   if (!player) {
@@ -850,15 +875,7 @@ export async function updateBuildingAllocation(userId, planetId, buildingType, p
     throw new Error('Planet not found');
   }
   
-  // Validate building exists
-  if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
-    throw new Error('Building not found or at level 0');
-  }
-  
-  // Validate percentages (allow 0-200% as per requirements)
-  if (powerPercent < 0 || powerPercent > 2 || populationPercent < 0 || populationPercent > 2) {
-    throw new Error('Allocation must be between 0% and 200%');
-  }
+  const validated = validateBuildingAllocation(planet, buildingType, { power: powerPercent, population: populationPercent, priority: priority ?? 3 });
   
   // Initialize allocations if not exists
   if (!planet.buildingAllocations) {
@@ -866,11 +883,7 @@ export async function updateBuildingAllocation(userId, planetId, buildingType, p
   }
   
   // Update allocation with priority
-  planet.buildingAllocations[buildingType] = {
-    power: powerPercent,
-    population: populationPercent,
-    priority: priority || 3
-  };
+  planet.buildingAllocations[buildingType] = validated;
   
   // Recalculate production (pass player for variant modifier support)
   updatePlanetProduction(planet, player);
@@ -895,30 +908,14 @@ export async function updatePlanetAllocations(userId, planetId, allocations) {
     throw new Error('Planet not found');
   }
   
-  // Initialize allocations if not exists
-  if (!planet.buildingAllocations) {
-    planet.buildingAllocations = {};
-  }
-  
-  // Update all allocations
-  for (const buildingType in allocations) {
-    const allocation = allocations[buildingType];
-    // Validate building exists
-    if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
-      continue;
-    }
-    
-    // Validate percentages (allow 0-200% as per requirements)
-    if (allocation.power < 0 || allocation.power > 2 || allocation.population < 0 || allocation.population > 2) {
-      throw new Error(`Allocation for ${buildingType} must be between 0% and 200%`);
-    }
-    
-    planet.buildingAllocations[buildingType] = {
-      power: allocation.power,
-      population: allocation.population,
-      priority: allocation.priority || 3
-    };
-  }
+  if (!allocations || typeof allocations !== 'object' || Array.isArray(allocations)) throw new Error('Invalid building allocations');
+  const validated = Object.fromEntries(Object.entries(allocations).map(([buildingType, allocation]) => [
+    buildingType,
+    validateBuildingAllocation(planet, buildingType, allocation)
+  ]));
+
+  if (!planet.buildingAllocations) planet.buildingAllocations = {};
+  Object.assign(planet.buildingAllocations, validated);
   
   // Recalculate production (pass player for variant modifier support)
   updatePlanetProduction(planet, player);
@@ -952,6 +949,8 @@ export async function queueVariantSwitch(userId, planetId, buildingType, toCusto
   if (!planet) {
     throw new Error('Planet not found');
   }
+
+  validateBuildingType(buildingType);
   
   // Validate building exists
   if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
@@ -1131,6 +1130,13 @@ export async function processCompletedVariantSwitches(player, now = Date.now()) 
     
     // Only process the first item in queue (currently switching)
     const switchItem = planet.variantSwitchQueue[0];
+
+    if (typeof switchItem?.buildingType !== 'string' || !Object.hasOwn(BUILDINGS, switchItem.buildingType)) {
+      planet.variantSwitchQueue.shift();
+      planet.variantSwitchQueue.forEach((item, index) => { item.queuePosition = index + 1; });
+      updated = true;
+      continue;
+    }
     
     // Check if switch is complete
     if (switchItem.finishTime <= now) {
@@ -1174,6 +1180,8 @@ export async function switchBuildingVariant(userId, planetId, buildingType, toCu
   if (!planet) {
     throw new Error('Planet not found');
   }
+
+  validateBuildingType(buildingType);
   
   // Validate building exists
   if (!planet.buildings[buildingType] || planet.buildings[buildingType] === 0) {
@@ -1315,11 +1323,12 @@ export async function createBuildingBlueprint(userId, baseType, focusLevels, nam
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
 
-  if (!player.buildingBlueprints) player.buildingBlueprints = {};
-  if (!player.buildingBlueprints[baseType]) player.buildingBlueprints[baseType] = [];
+  validateBuildingType(baseType);
+  const validatedName = name == null ? null : validateBlueprintName(name);
 
   const MAX_BLUEPRINTS = 5;
-  if (player.buildingBlueprints[baseType].length >= MAX_BLUEPRINTS) {
+  const existingBlueprints = player.buildingBlueprints?.[baseType] || [];
+  if (existingBlueprints.length >= MAX_BLUEPRINTS) {
     throw new Error(`Maximum limit of ${MAX_BLUEPRINTS} blueprints reached for ${baseType}.`);
   }
 
@@ -1333,23 +1342,20 @@ export async function createBuildingBlueprint(userId, baseType, focusLevels, nam
   }
   if (!researchConfig) throw new Error('No practical research available for ' + baseType);
 
-  // Validate focus levels
-  for (const focus in focusLevels) {
-    const level = focusLevels[focus];
-    const currentExp = player.practicalResearch?.[baseType]?.experience?.[focus] || 0;
-    const maxLevel = Math.floor(Math.sqrt(currentExp / 100));
-    if (level > maxLevel) throw new Error('Focus level ' + level + ' exceeds research level ' + maxLevel);
-  }
+  const validatedFocusLevels = validateFocusLevels(researchConfig, focusLevels, player.practicalResearch?.[baseType]?.experience);
+
+  if (!player.buildingBlueprints) player.buildingBlueprints = {};
+  if (!player.buildingBlueprints[baseType]) player.buildingBlueprints[baseType] = [];
 
   const blueprintId = 'bp_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-  const modifiers = calculateFocusModifiers(researchConfig, focusLevels);
+  const modifiers = calculateFocusModifiers(researchConfig, validatedFocusLevels);
   const customDefinition = applyCustomization(BUILDINGS[baseType], modifiers);
 
   const blueprint = {
     id: blueprintId,
-    name: name || (baseType + ' Variant ' + (player.buildingBlueprints[baseType].length + 1)),
+    name: validatedName ?? (baseType + ' Variant ' + (player.buildingBlueprints[baseType].length + 1)),
     baseType,
-    focusLevels,
+    focusLevels: validatedFocusLevels,
     modifiers,
     customDefinition,
     createdAt: Date.now()
@@ -1366,6 +1372,8 @@ export async function createBuildingBlueprint(userId, baseType, focusLevels, nam
 export async function setActiveBlueprint(userId, planetId, baseType, blueprintId) {
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
+
+  validateBuildingType(baseType);
 
   const planet = player.planets.find(p => p.id === planetId);
   if (!planet) throw new Error('Planet not found');
@@ -1399,6 +1407,8 @@ export async function deleteBuildingBlueprint(userId, baseType, blueprintId) {
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
 
+  validateBuildingType(baseType);
+
   if (!player.buildingBlueprints || !player.buildingBlueprints[baseType]) {
     throw new Error('Blueprint not found');
   }
@@ -1420,6 +1430,9 @@ export async function renameBuildingBlueprint(userId, baseType, blueprintId, new
   const player = await getPlayerByUserId(userId);
   if (!player) throw new Error('Player not found');
 
+  validateBuildingType(baseType);
+  const validatedName = validateBlueprintName(newName);
+
   if (!player.buildingBlueprints || !player.buildingBlueprints[baseType]) {
     throw new Error('Blueprint not found');
   }
@@ -1427,12 +1440,12 @@ export async function renameBuildingBlueprint(userId, baseType, blueprintId, new
   const blueprint = player.buildingBlueprints[baseType].find(bp => bp.id === blueprintId);
   if (!blueprint) throw new Error('Blueprint not found');
 
-  blueprint.name = newName;
+  blueprint.name = validatedName;
 
   // Also update any planets using this blueprint locally
   for (const planet of player.planets) {
     if (planet.activeVariants?.[baseType] === blueprintId && planet.localBlueprints?.[baseType]) {
-      planet.localBlueprints[baseType].name = newName;
+      planet.localBlueprints[baseType].name = validatedName;
     }
   }
 

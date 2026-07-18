@@ -32,4 +32,15 @@ describe('shipyard order validation', () => {
     expect(planet.shipQueue).toHaveLength(1);
     expect(planet.defenseQueue).toHaveLength(1);
   });
+
+  it('schedules each shipyard queue in order', () => {
+    const planet = makePlanet();
+    buildShips(planet, null, { smallCargo: 1 }, 1);
+    buildShips(planet, null, { smallCargo: 1 }, 1);
+    buildDefenses(planet, null, { rocketLauncher: 1 }, 1);
+    buildDefenses(planet, null, { rocketLauncher: 1 }, 1);
+
+    expect(planet.shipQueue[1].startTime).toBe(planet.shipQueue[0].finishTime);
+    expect(planet.defenseQueue[1].startTime).toBe(planet.defenseQueue[0].finishTime);
+  });
 });

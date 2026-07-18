@@ -228,14 +228,3 @@ export function positionContextMenu(event, menu) {
         menu.style.top = `${y - menuHeight - 10}px`;
     }
 }
-
-/**
- * Check if an object is empty
- */
-export function isEmpty(obj) {
-    if (!obj) return true;
-    for (const key in obj) {
-        return false;
-    }
-    return true;
-}

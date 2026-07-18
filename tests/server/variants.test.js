@@ -79,6 +79,30 @@ describe('Building Variants System', () => {
     player.planets.push(planet);
   });
 
+  it('rejects malformed focus levels before changing variants', () => {
+    const before = structuredClone(player.customBuildingVariants);
+    const invalid = [
+      { output: -1 },
+      { output: 1.5 },
+      { output: '1' },
+      { exploit: 0 }
+    ];
+
+    for (const focusLevels of invalid) {
+      expect(() => selectCustomBuildingVariant(player, planet.id, 'metalMine', focusLevels)).toThrow();
+    }
+    expect(player.customBuildingVariants).toEqual(before);
+  });
+
+  it('rejects inherited building keys without changing variant state', () => {
+    const before = structuredClone(player.customBuildingVariants);
+    const prototype = Object.getPrototypeOf(player.customBuildingVariants);
+
+    expect(() => selectCustomBuildingVariant(player, planet.id, '__proto__', { output: 0 })).toThrow('Invalid building type');
+    expect(player.customBuildingVariants).toEqual(before);
+    expect(Object.getPrototypeOf(player.customBuildingVariants)).toBe(prototype);
+  });
+
   afterEach(() => {
     mock.restore();
   });
@@ -201,6 +225,15 @@ describe('Building Variants System', () => {
   });
 
   describe('processCompletedVariantSwitches', () => {
+    it('drops malformed persisted switch items without changing prototypes', async () => {
+      const prototype = Object.getPrototypeOf(planet.activeVariants);
+      planet.variantSwitchQueue.push({ buildingType: '__proto__', toCustom: true, finishTime: 0 });
+
+      expect(await processCompletedVariantSwitches(player)).toBe(true);
+      expect(planet.variantSwitchQueue).toEqual([]);
+      expect(Object.getPrototypeOf(planet.activeVariants)).toBe(prototype);
+    });
+
     it('should switch variant and recalculate production', async () => {
       // Create custom variant
       selectCustomBuildingVariant(player, planet.id, 'metalMine', {
