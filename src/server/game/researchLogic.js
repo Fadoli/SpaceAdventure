@@ -38,6 +38,15 @@ import {
 } from '../config.js';
 import { updatePlayer, getPlayerByUserId } from './player.js';
 import { wsManager } from './wsManager.js';
+
+function closeResearchQueueGap(queue, removedIndex) {
+  queue.splice(removedIndex, 1);
+  queue.forEach((item, index) => {
+    if (index < removedIndex) return;
+    item.startTime = index === 0 ? Date.now() : queue[index - 1].endTime;
+    item.endTime = item.startTime + item.duration;
+  });
+}
 import { logEvent } from '../storage/eventLogger.js';
 
 /**
@@ -186,7 +195,7 @@ export function cancelTheoreticalResearch(player, queueItemId, planetId) {
   // Notify client of queue change
   wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
 
-  player.researchQueue.splice(index, 1);
+  closeResearchQueueGap(player.researchQueue, index);
   return refund;
 }
 
@@ -392,7 +401,7 @@ export function cancelPracticalResearch(player, queueItemId, planetId) {
   // Notify client of queue change
   wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
 
-  player.practicalResearchQueue.splice(index, 1);
+  closeResearchQueueGap(player.practicalResearchQueue, index);
   return refund;
 }
 

@@ -195,6 +195,10 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
  * Cancel ship or defense in queue
  */
 export function cancelProduction(planet, queueId, type = 'ships') {
+  if (!['ships', 'defenses'].includes(type)) {
+    throw new Error('Invalid production type');
+  }
+
   const queue = type === 'ships' ? planet.shipQueue : planet.defenseQueue;
   if (!queue) return null;
 
@@ -229,9 +233,14 @@ export function cancelProduction(planet, queueId, type = 'ships') {
   // Remove from queue
   queue.splice(index, 1);
 
-  // Update queue positions
+  // Update queue positions and close the gap left by the cancelled order.
   queue.forEach((qItem, idx) => {
     qItem.queuePosition = idx + 1;
+    if (idx < index) return;
+
+    const duration = qItem.finishTime - qItem.startTime;
+    qItem.startTime = idx === 0 ? Date.now() : queue[idx - 1].finishTime;
+    qItem.finishTime = qItem.startTime + duration;
   });
 
   return item;

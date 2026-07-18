@@ -8,7 +8,7 @@
 /* 1. Fleet Stats */
 .fleet-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
     gap: 15px;
     margin-bottom: 25px;
 }
@@ -57,7 +57,7 @@
 /* 2. Ship Lists */
 .fleets-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
     gap: 15px;
 }
 

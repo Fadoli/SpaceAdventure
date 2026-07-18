@@ -163,6 +163,7 @@ async function showGameScreen() {
     
     // Load game state first
     if (!await loadGameState()) {
+        gameSocket.disconnect();
         Notifications.showError('Unable to load your game state. Please refresh and try again.');
         return;
     }
@@ -217,6 +218,7 @@ function setupGameListeners() {
         if (!confirmed) return;
         
         await API.logout();
+        gameSocket.disconnect();
         currentUser = null;
         gameState = null;
         if (updateInterval) {

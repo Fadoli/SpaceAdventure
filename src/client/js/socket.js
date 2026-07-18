@@ -1,19 +1,22 @@
 // WebSocket client for real-time updates
 import { Notifications } from './notifications.js';
 
-class GameSocket {
+export class GameSocket {
     constructor() {
         this.socket = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.reconnectInterval = 3000;
         this.handlers = new Set();
+        this.shouldReconnect = true;
+        this.reconnectTimer = null;
     }
 
     /**
      * Connect to the WebSocket server
      */
     connect() {
+        this.shouldReconnect = true;
         if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
             return;
         }
@@ -41,7 +44,7 @@ class GameSocket {
 
         this.socket.onclose = (event) => {
             console.log('[WS] Connection closed:', event.code, event.reason);
-            this.attemptReconnect();
+            if (this.shouldReconnect) this.attemptReconnect();
         };
 
         this.socket.onerror = (error) => {
@@ -57,7 +60,10 @@ class GameSocket {
             this.reconnectAttempts++;
             const delay = this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts - 1);
             console.log(`[WS] Reconnecting in ${Math.round(delay)}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-            setTimeout(() => this.connect(), delay);
+            this.reconnectTimer = setTimeout(() => {
+                this.reconnectTimer = null;
+                this.connect();
+            }, delay);
         } else {
             console.log('[WS] Max reconnect attempts reached');
         }
@@ -126,6 +132,9 @@ class GameSocket {
      * Close the connection
      */
     disconnect() {
+        this.shouldReconnect = false;
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
         if (this.socket) {
             this.socket.close();
             this.socket = null;

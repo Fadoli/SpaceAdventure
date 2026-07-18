@@ -269,11 +269,11 @@ window.sendAllianceMessageUI = async function() {
     if (!input || !input.value.trim()) return;
 
     const content = input.value.trim();
-    input.value = '';
     input.disabled = true;
 
     try {
         await API.sendAllianceMessage(content);
+        input.value = '';
         await refreshAllianceMessages();
     } catch (error) {
         Notifications.showError('Failed to send message: ' + error.message);

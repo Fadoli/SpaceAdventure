@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { buildDefenses, buildShips } from '../../src/server/game/shipyard.js';
+import { buildDefenses, buildShips, cancelProduction } from '../../src/server/game/shipyard.js';
 
 function makePlanet() {
   return {
@@ -42,5 +42,29 @@ describe('shipyard order validation', () => {
 
     expect(planet.shipQueue[1].startTime).toBe(planet.shipQueue[0].finishTime);
     expect(planet.defenseQueue[1].startTime).toBe(planet.defenseQueue[0].finishTime);
+  });
+
+  it('rejects an invalid queue type without cancelling either queue', () => {
+    const planet = makePlanet();
+    planet.shipQueue.push({ id: 'ship-order' });
+    planet.defenseQueue.push({ id: 'defense-order' });
+
+    expect(() => cancelProduction(planet, 'defense-order', 'other')).toThrow('Invalid production type');
+    expect(planet.shipQueue).toHaveLength(1);
+    expect(planet.defenseQueue).toHaveLength(1);
+  });
+
+  it('moves later orders forward after cancellation', () => {
+    const planet = makePlanet();
+    buildShips(planet, null, { smallCargo: 1 }, 1);
+    buildShips(planet, null, { smallCargo: 1 }, 1);
+    const queued = planet.shipQueue[1];
+    const originalStart = queued.startTime;
+    const duration = queued.finishTime - queued.startTime;
+
+    cancelProduction(planet, planet.shipQueue[0].id, 'ships');
+
+    expect(planet.shipQueue[0].startTime).toBeLessThan(originalStart);
+    expect(planet.shipQueue[0].finishTime - planet.shipQueue[0].startTime).toBe(duration);
   });
 });

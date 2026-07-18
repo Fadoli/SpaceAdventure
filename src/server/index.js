@@ -518,7 +518,7 @@ async function handleRequest(req) {
       }
 
       const body = await req.json().catch(() => ({}));
-      const queuePosition = body.queuePosition || 1;
+      const queuePosition = body.queuePosition ?? 1;
       
       try {
         const result = await cancelBuilding(user.id, planetId, queuePosition);
@@ -1140,7 +1140,7 @@ async function handleRequest(req) {
       
       const planet = player.planets.find(p => p.id === planetId);
       const body = await req.json().catch(() => ({}));
-      const type = body.type || 'ships';
+      const type = body.type ?? 'ships';
       
       try {
         const result = cancelProduction(planet, queueId, type);

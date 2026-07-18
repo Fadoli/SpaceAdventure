@@ -73,7 +73,7 @@
 /* 4. Research Cards */
 .tech-list, .research-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Wider cards */
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); /* Wider cards */
     gap: 20px;
 }
 
@@ -302,7 +302,7 @@
 
 .variant-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
     gap: 20px;
 }
 

@@ -1,5 +1,5 @@
 import { expect, it } from 'bun:test';
-import { validateBlueprintName, validateBuildingAllocation, validateBuildingType } from '../../src/server/game/buildings.js';
+import { cancelBuilding, validateBlueprintName, validateBuildingAllocation, validateBuildingType } from '../../src/server/game/buildings.js';
 
 it('normalizes bounded blueprint names', () => {
   expect(validateBlueprintName('  Efficient Mine  ')).toBe('Efficient Mine');
@@ -31,4 +31,10 @@ it('validates building allocations without changing planet state', () => {
   }
   expect(planet).toEqual(before);
   expect(validateBuildingAllocation(planet, 'metalMine', { power: 0, population: 2 })).toEqual({ power: 0, population: 2, priority: 3 });
+});
+
+it('rejects malformed building queue positions before loading player state', async () => {
+  for (const position of [0, -1, 1.5, Number.NaN, '1']) {
+    await expect(cancelBuilding('missing', 'missing', position)).rejects.toThrow('Invalid queue position');
+  }
 });

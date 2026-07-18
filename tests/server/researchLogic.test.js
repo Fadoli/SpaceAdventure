@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { completePracticalResearch, startPracticalResearchWithAllocation } from '../../src/server/game/researchLogic.js';
+import { cancelPracticalResearch, cancelTheoreticalResearch, completePracticalResearch, startPracticalResearchWithAllocation } from '../../src/server/game/researchLogic.js';
 
 describe('completePracticalResearch Fix', () => {
   it('should handle missing experience/history in practicalResearch', async () => {
@@ -64,5 +64,35 @@ describe('practical research input validation', () => {
     const item = startPracticalResearchWithAllocation(player, 'metalMine', { output: 1 }, 'planet-1', 0);
 
     expect(item.strength).toBe(0);
+  });
+});
+
+describe('research queue cancellation', () => {
+  const makeQueue = () => {
+    const start = Date.now();
+    return [
+      { id: 'first', startTime: start, endTime: start + 1_000, duration: 1_000, cost: { metal: 0 } },
+      { id: 'second', startTime: start + 1_000, endTime: start + 3_000, duration: 2_000, cost: { metal: 0 } }
+    ];
+  };
+
+  it('moves theoretical research forward after cancellation', () => {
+    const player = { userId: 'user-1', planets: [{ id: 'planet-1', resources: { metal: 0 } }], researchQueue: makeQueue() };
+    const originalStart = player.researchQueue[1].startTime;
+
+    cancelTheoreticalResearch(player, 'first', 'planet-1');
+
+    expect(player.researchQueue[0].startTime).toBeLessThan(originalStart);
+    expect(player.researchQueue[0].endTime - player.researchQueue[0].startTime).toBe(2_000);
+  });
+
+  it('moves practical research forward after cancellation', () => {
+    const player = { userId: 'user-1', planets: [{ id: 'planet-1', resources: { metal: 0 } }], practicalResearchQueue: makeQueue() };
+    const originalStart = player.practicalResearchQueue[1].startTime;
+
+    cancelPracticalResearch(player, 'first', 'planet-1');
+
+    expect(player.practicalResearchQueue[0].startTime).toBeLessThan(originalStart);
+    expect(player.practicalResearchQueue[0].endTime - player.practicalResearchQueue[0].startTime).toBe(2_000);
   });
 });

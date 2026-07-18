@@ -291,6 +291,10 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
  * Cancel building construction (refunds 50% of resources)
  */
 export async function cancelBuilding(userId, planetId, queuePosition = 1) {
+  if (!Number.isInteger(queuePosition) || queuePosition < 1) {
+    throw new Error('Invalid queue position');
+  }
+
   const player = await getPlayerByUserId(userId);
   if (!player) {
     throw new Error('Player not found');
