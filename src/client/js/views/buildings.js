@@ -1,6 +1,6 @@
 // Buildings view logic
 import { API } from '../api.js';
-import { formatNumber, formatCountdown, formatDuration } from '../utils.js';
+import { escapeHtml, formatNumber, formatCountdown, formatDuration } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
@@ -123,12 +123,6 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
                     🎨
                 </button>
             `;
-        }
-
-        let blueprintName = 'Standard Model';
-        if (building.currentVariant !== 'base' && building.availableBlueprints) {
-            const activeBp = building.availableBlueprints.find(bp => bp.id === building.currentVariant);
-            if (activeBp) blueprintName = activeBp.name;
         }
 
         let allocationBadge = '';
@@ -384,6 +378,7 @@ window.toggleQueueVisibility = function() {
     localStorage.setItem('buildQueueVisible', queueVisible);
     
     const items = document.querySelector('.build-queue-summary .queue-items');
+    const header = document.querySelector('.build-queue-summary .queue-header');
     const toggle = document.querySelector('.build-queue-summary .queue-header .toggle-icon');
     
     if (items) {
@@ -392,6 +387,7 @@ window.toggleQueueVisibility = function() {
     if (toggle) {
         toggle.textContent = queueVisible ? '🔼' : '🔽';
     }
+    header?.setAttribute('aria-expanded', String(queueVisible));
 };
 
 /**
@@ -404,11 +400,11 @@ function updateQueueView(queue, maxQueueSize, buildings) {
         const queueSummary = `
             <div class="build-queue-summary">
                 <div class="card-corner-top"></div>
-                <div class="queue-header" onclick="window.toggleQueueVisibility()">
+                <div class="queue-header" role="button" tabindex="0" aria-expanded="${queueVisible}" aria-controls="build-queue-items" onclick="window.toggleQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleQueueVisibility(); }">
                     <h3>🔨 CONSTRUCTION LOG (${queue.length}/${maxQueueSize})</h3>
                     <span class="toggle-icon">${queueVisible ? '🔼' : '🔽'}</span>
                 </div>
-                <div class="queue-items" style="display: ${queueVisible ? 'flex' : 'none'};">
+                <div id="build-queue-items" class="queue-items" style="display: ${queueVisible ? 'flex' : 'none'};">
                     ${queue.map((item, index) => {
                         const isActive = index === 0;
                         const elapsed = Date.now() - item.startTime;
@@ -616,7 +612,7 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
         html += `
             <div class="blueprint-card-select ${isActive ? 'active' : ''}">
                 <div class="blueprint-card-header">
-                    <h4>${bp.name}</h4>
+                    <h4>${escapeHtml(bp.name)}</h4>
                     ${isActive ? '<span class="active-tag">Active</span>' : ''}
                 </div>
                 <div class="blueprint-card-body">
@@ -665,7 +661,7 @@ window.selectAndActivateBlueprint = async function(buildingKey, blueprintId) {
 window.deleteBlueprintFromSelection = async function(buildingKey, blueprintId) {
     if (!(await showConfirm('Delete Blueprint', `Delete this design? It will no longer be available for selection.`))) return;
     try {
-        await fetch(`/api/game/blueprints/${buildingKey}/${blueprintId}`, { method: 'DELETE' });
+        await API.request(`/game/blueprints/${buildingKey}/${blueprintId}`, { method: 'DELETE' });
         // Refresh modal
         window.openDesignSelection(buildingKey);
     } catch (error) {
@@ -690,7 +686,7 @@ function createCustomVariantModalElement() {
             <div class="card-corner-top"></div>
             <div class="modal-header">
                 <h2 id="modal-variant-title">CONFIGURATION INTERFACE</h2>
-                <button onclick="window.closeCustomVariantModal()" class="modal-close">&times;</button>
+                <button type="button" onclick="window.closeCustomVariantModal()" class="modal-close" aria-label="Close">&times;</button>
             </div>
             <div id="modal-variant-body" class="modal-body"></div>
         </div>

@@ -1,6 +1,6 @@
 // Admin Dashboard Logic
 import { API } from './api.js';
-import { parseNumberShorthand, formatNumber } from './utils.js';
+import { escapeHtml, parseNumberShorthand, formatNumber } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Auth check - if fails, redirect to home
@@ -87,7 +87,7 @@ async function searchPlayers() {
         const data = await res.json();
         
         if (!data.success) {
-            results.innerHTML = `<p class="error">Search failed: ${data.error}</p>`;
+            results.innerHTML = `<p class="error">Search failed: ${escapeHtml(data.error)}</p>`;
             return;
         }
 
@@ -96,22 +96,9 @@ async function searchPlayers() {
             return;
         }
 
-        console.log('DEBUG: RAW DATA FROM SERVER:', data.data);
-        data.data.forEach(p => {
-            console.log(`DEBUG: Player ${p.username} has ${p.planets?.length || 0} planets`);
-            p.planets?.forEach(pl => {
-                console.log(`DEBUG: Planet ${pl.name} [${pl.id}] data:`, {
-                    resources: pl.resources,
-                    buildings: pl.buildings,
-                    ships: pl.ships,
-                    defenses: pl.defenses
-                });
-            });
-        });
-
         results.innerHTML = data.data.map(player => renderPlayerAdminCard(player)).join('');
     } catch (e) {
-        results.innerHTML = `<p class="error">Connection lost: ${e.message}</p>`;
+        results.innerHTML = `<p class="error">Connection lost: ${escapeHtml(e.message)}</p>`;
     }
 }
 
@@ -312,7 +299,7 @@ async function loadGhosts() {
         const result = await res.json();
         
         if (!result.success) {
-            list.innerHTML = `<p class="error">Unauthorized or Error: ${result.error}</p>`;
+            list.innerHTML = `<p class="error">Unauthorized or Error: ${escapeHtml(result.error)}</p>`;
             return;
         }
 
@@ -353,7 +340,7 @@ async function loadGhosts() {
         }).join('');
 
     } catch (e) {
-        list.innerHTML = `<p class="error">Failed to fetch data: ${e.message}</p>`;
+        list.innerHTML = `<p class="error">Failed to fetch data: ${escapeHtml(e.message)}</p>`;
     }
 }
 
@@ -364,7 +351,7 @@ async function loadEvents() {
         const data = await res.json();
         
         if (!data.success) {
-            container.innerHTML = `<p class="error">Failed to load events: ${data.error}</p>`;
+            container.innerHTML = `<p class="error">Failed to load events: ${escapeHtml(data.error)}</p>`;
             return;
         }
 
@@ -389,7 +376,7 @@ async function loadEvents() {
             `;
         }).join('');
     } catch (e) {
-        container.innerHTML = `<p class="error">Connection lost: ${e.message}</p>`;
+        container.innerHTML = `<p class="error">Connection lost: ${escapeHtml(e.message)}</p>`;
     }
 }
 

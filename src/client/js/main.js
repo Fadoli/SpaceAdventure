@@ -81,13 +81,18 @@ async function init() {
     }
     
     // Handle browser back/forward buttons
-    window.addEventListener('popstate', (event) => {
-        if (event.state && gameState) {
-            const { planetId, view } = event.state;
+    window.addEventListener('popstate', () => {
+        if (!gameState) return;
+
+        const { planetId, view } = getUrlParams();
+        if (planetId && gameState.planets.some(planet => planet.id === planetId)) {
             currentPlanetId = planetId;
-            currentView = view || 'overview';
-            switchView(currentView, false); // false = don't push to history
+        } else {
+            currentPlanetId = gameState.planets[0]?.id || null;
         }
+        currentView = view;
+        switchView(currentView, false);
+        updateUI(true);
     });
     
     // Check if already logged in
@@ -613,11 +618,14 @@ window.showView = function(view) {
 
 // Galaxy navigation functions
 window.navigateGalaxySystem = async function(galaxy, system) {
-    if (system < 1 || system > 499) return; // Limit systems 1-499
+    const parsedGalaxy = Number(galaxy);
+    const parsedSystem = Number(system);
+    if (!Number.isInteger(parsedGalaxy) || parsedGalaxy < 1 || parsedGalaxy > 10 ||
+        !Number.isInteger(parsedSystem) || parsedSystem < 1 || parsedSystem > 499) return;
     
     // Update global state
-    window.currentGalaxy = parseInt(galaxy, 10);
-    window.currentSystem = parseInt(system, 10);
+    window.currentGalaxy = parsedGalaxy;
+    window.currentSystem = parsedSystem;
     
     // Delegate rendering to the galaxy view module
     const { updateGalaxyView } = await import('./views/galaxy.js');

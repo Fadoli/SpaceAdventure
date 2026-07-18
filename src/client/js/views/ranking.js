@@ -1,6 +1,6 @@
 // Ranking view logic
 import { API } from '../api.js';
-import { formatNumber } from '../utils.js';
+import { escapeHtml, formatNumber } from '../utils.js';
 
 let currentCategory = 'total';
 
@@ -18,14 +18,14 @@ export async function updateRankingView(offset = 0, category = null) {
         renderRankingTable(container, data.rankings, data.totalPlayers, data.offset, data.limit, data.category, data.lastSnapshotTime);
     } catch (error) {
         console.error('Failed to load rankings:', error);
-        container.innerHTML = `<p class="error">Failed to load rankings: ${error.message}</p>`;
+        container.innerHTML = `<p class="error">Failed to load rankings: ${escapeHtml(error.message)}</p>`;
     }
 }
 
 /**
  * Render the ranking table
  */
-function renderRankingTable(container, rankings, totalPlayers, offset, limit, category, lastSnapshotTime) {
+export function renderRankingTable(container, rankings, totalPlayers, offset, limit, category, lastSnapshotTime) {
     const startRange = totalPlayers === 0 ? 0 : offset + 1;
     const endRange = Math.min(offset + limit, totalPlayers);
     
@@ -85,7 +85,7 @@ function renderRankingTable(container, rankings, totalPlayers, offset, limit, ca
             const coords = player.homeworldCoords || [1, 1, 1];
             const coordsStr = `[${coords.join(':')}]`;
             
-            const allianceTagHtml = player.allianceTag ? `<span class="ranking-alliance-tag">[${player.allianceTag}] </span>` : '';
+            const allianceTagHtml = player.allianceTag ? `<span class="ranking-alliance-tag">[${escapeHtml(player.allianceTag)}] </span>` : '';
 
             // Rank Change formatting
             let rankChangeHtml = '<span class="change-neutral">-</span>';
@@ -105,7 +105,7 @@ function renderRankingTable(container, rankings, totalPlayers, offset, limit, ca
                 <tr class="${isCurrentPlayer ? 'current-player-row' : ''}">
                     <td class="rank-col">${player.rank}</td>
                     <td class="change-col">${rankChangeHtml}</td>
-                    <td class="player-col">${allianceTagHtml}${player.username}</td>
+                    <td class="player-col">${allianceTagHtml}${escapeHtml(player.username)}</td>
                     <td class="coords-col">
                         <a href="#" class="galaxy-link" onclick="event.preventDefault(); window.navigateToCoords(${coords[0]}, ${coords[1]}, ${coords[2]})">
                             ${coordsStr}
@@ -130,4 +130,3 @@ function renderRankingTable(container, rankings, totalPlayers, offset, limit, ca
 
 // Expose to window for onclick handlers
 window.updateRankingView = updateRankingView;
-

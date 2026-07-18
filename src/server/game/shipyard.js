@@ -1,17 +1,30 @@
 // Shipyard production system
 
 import { getShip, calculateShipCost, calculateShipBuildTime, calculateShipSpeed, SHIPS } from '../../shared/ships.js';
-import { getDefense, calculateDefenseCost, calculateDefenseBuildTime } from '../../shared/defenses.js';
+import { DEFENSES, calculateDefenseCost, calculateDefenseBuildTime } from '../../shared/defenses.js';
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
 import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
 import { wsManager } from './wsManager.js';
 
+function validateBuildOrder(order, definitions, label) {
+  if (!order || typeof order !== 'object' || Array.isArray(order) || Object.keys(order).length === 0) {
+    throw new Error(`No ${label} selected`);
+  }
+
+  for (const [key, quantity] of Object.entries(order)) {
+    if (!Object.hasOwn(definitions, key)) throw new Error(`Unknown ${label}: ${key}`);
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) throw new Error(`${label} quantity must be a positive integer`);
+  }
+}
+
 /**
  * Add ships to build queue
  */
 export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel = 0, naniteLevel = 0) {
+  validateBuildOrder(ships, SHIPS, 'ship');
+
   if (!planet.shipQueue) {
     planet.shipQueue = [];
   }
@@ -31,9 +44,6 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
     if (quantity <= 0) continue;
 
     const shipDef = SHIPS[shipKey];
-    if (!shipDef) {
-      throw new Error(`Unknown ship type: ${shipKey}`);
-    }
 
     // Calculate cost based on the specific definition
     const baseCost = shipDef.baseCost;
@@ -107,6 +117,8 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
  * Add defenses to build queue
  */
 export function buildDefenses(planet, player, defenses, shipyardLevel = 0, roboticsLevel = 0, naniteLevel = 0) {
+  validateBuildOrder(defenses, DEFENSES, 'defense');
+
   if (!planet.defenseQueue) {
     planet.defenseQueue = [];
   }
@@ -122,11 +134,6 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   for (const defenseKey in defenses) {
     const quantity = defenses[defenseKey];
     if (quantity <= 0) continue;
-
-    const defense = getDefense(defenseKey);
-    if (!defense) {
-      throw new Error(`Unknown defense: ${defenseKey}`);
-    }
 
     const cost = calculateDefenseCost(defenseKey, quantity, costReductionBonus);
     totalCost.metal += cost.metal;

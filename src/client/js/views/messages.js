@@ -1,8 +1,9 @@
 import { API } from '../api.js';
-import { formatDate, formatNumber, isEmpty } from '../utils.js';
+import { escapeHtml, formatDate, formatNumber, isEmpty } from '../utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { SHIPS, ALIEN_SHIPS } from '../../../shared/ships.js';
+import { openDetailsModal } from './details.js';
 
 let lastMessagesHash = null;
 let currentFilter = 'all';
@@ -46,6 +47,7 @@ export async function updateMessagesView() {
                 if (body && item) {
                     body.style.display = 'block';
                     item.setAttribute('data-open', 'true');
+                    item.querySelector('.msg-entry-header')?.setAttribute('aria-expanded', 'true');
                 }
             });
             
@@ -62,15 +64,15 @@ export async function updateMessagesView() {
                         if (isUnread) item.classList.add('unread');
                         else item.classList.remove('unread');
                         
-                        const icon = item.querySelector('.msg-status-icon');
-                        if (icon) icon.textContent = isUnread ? '📧' : '📖';
+                        const status = item.querySelector('.msg-status-tag');
+                        if (status) status.textContent = isUnread ? 'NEW' : 'READ';
                     }
                 }
             });
         }
     } catch (error) {
         console.error('Failed to load messages:', error);
-        container.innerHTML = `<p class="error">Failed to load messages: ${error.message}</p>`;
+        container.innerHTML = `<p class="error">Failed to load messages: ${escapeHtml(error.message)}</p>`;
     }
 }
 
@@ -98,12 +100,12 @@ function renderMessagesList(container, messages) {
             <div class="msg-filter-bar">
                 <div class="filter-group">
                     ${['all', 'espionage', 'attack', 'harvest', 'colonization', 'expedition'].map(f => `
-                        <button class="msg-filter-btn ${currentFilter === f ? 'active' : ''}" onclick="window.filterMessages('${f}')">
+                        <button type="button" class="msg-filter-btn ${currentFilter === f ? 'active' : ''}" onclick="window.filterMessages('${f}')">
                             ${f.toUpperCase()}
                         </button>
                     `).join('')}
                 </div>
-                <button class="v-action-btn delete" onclick="window.clearAllMessages()">PURGE ALL</button>
+                <button type="button" class="v-action-btn delete" onclick="window.clearAllMessages()">PURGE ALL</button>
             </div>
         </div>
         <div class="messages-list">
@@ -118,16 +120,16 @@ function renderMessagesList(container, messages) {
             
             html += `
                 <div id="msg-${msg.id}" class="msg-entry ${isUnread ? 'unread' : ''}" data-open="false">
-                    <div class="msg-entry-header" onclick="window.toggleMessageBody('${msg.id}')">
+                    <div class="msg-entry-header" role="button" tabindex="0" aria-expanded="false" aria-controls="msg-body-${msg.id}" onclick="window.toggleMessageBody('${msg.id}')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleMessageBody('${msg.id}'); }">
                         <div class="msg-main-info">
                             <span class="msg-status-tag">${isUnread ? 'NEW' : 'READ'}</span>
                             <span class="msg-type-tag">${typeLabel}</span>
-                            <span class="msg-subject">${msg.subject}</span>
+                            <span class="msg-subject">${escapeHtml(msg.subject)}</span>
                         </div>
                         <div class="msg-meta-info">
-                            <span class="msg-sender">FROM: ${msg.from.toUpperCase()}</span>
+                            <span class="msg-sender">FROM: ${escapeHtml(msg.from).toUpperCase()}</span>
                             <span class="msg-date">${formatDate(msg.timestamp)}</span>
-                            <button class="msg-delete-icon" onclick="window.deleteSingleMessage('${msg.id}', event)">✕</button>
+                            <button type="button" class="msg-delete-icon" aria-label="Delete message" onclick="window.deleteSingleMessage('${msg.id}', event)">✕</button>
                         </div>
                     </div>
                     <div id="msg-body-${msg.id}" class="msg-entry-body" style="display: none;" onclick="event.stopPropagation()">
@@ -174,10 +176,10 @@ window.shareMessageToAllianceUI = async function(messageId) {
 /**
  * Replace [G:S:P] coordinates with clickable galaxy links
  */
-function linkifyCoords(text) {
+export function linkifyCoords(text) {
     if (!text) return '';
     // Match [G:S:P] or G:S:P where G,S,P are numbers
-    return text.replace(/\[?(\d+):(\d+):(\d+)\]?/g, (match, g, s, p) => {
+    return escapeHtml(text).replace(/\[?(\d+):(\d+):(\d+)\]?/g, (match, g, s, p) => {
         return `<a href="#" class="galaxy-link" onclick="event.preventDefault(); event.stopPropagation(); window.navigateToCoords(${g}, ${s}, ${p})">[${g}:${s}:${p}]</a>`;
     });
 }
@@ -443,14 +445,15 @@ window.toggleMessageBody = async function(id) {
     const isOpening = body.style.display === 'none';
     body.style.display = isOpening ? 'block' : 'none';
     item.setAttribute('data-open', isOpening ? 'true' : 'false');
+    item.querySelector('.msg-entry-header')?.setAttribute('aria-expanded', String(isOpening));
     
     if (isUnread(item) && isOpening) {
         try {
             await API.markMessageRead(id);
             // Locally update UI without full re-render
             item.classList.remove('unread');
-            const icon = item.querySelector('.msg-status-icon');
-            if (icon) icon.textContent = '📖';
+            const status = item.querySelector('.msg-status-tag');
+            if (status) status.textContent = 'READ';
             
             // Update the badge
             updateUnreadCount();
@@ -478,7 +481,7 @@ window.openBattleSimulator = async function(msgId) {
     const modalBody = document.getElementById('details-modal-body');
 
     modalTitle.innerHTML = `⚔️ BATTLE SIMULATOR - [${scanData.coords.join(':')}]`;
-    modal.style.display = 'flex';
+    openDetailsModal();
 
     // Remove any existing footer to prevent duplicates when reusing the modal
     const existingFooter = modal.querySelector('.modal-footer');
@@ -648,7 +651,7 @@ window.runCombatSimulation = async function(msgId) {
         resultArea.innerHTML = resultHtml;
 
     } catch (error) {
-        resultArea.innerHTML = `<p style="text-align: center; color: var(--accent-red); margin-top: 45px; font-family: 'Share Tech Mono', monospace;">ANALYSIS FAILED: ${error.message.toUpperCase()}</p>`;
+        resultArea.innerHTML = `<p style="text-align: center; color: var(--accent-red); margin-top: 45px; font-family: 'Share Tech Mono', monospace;">ANALYSIS FAILED: ${escapeHtml(error.message.toUpperCase())}</p>`;
     }
 };
 

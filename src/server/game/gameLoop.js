@@ -1,5 +1,5 @@
 // Game tick system - processes game state periodically
-import { getPlayers, savePlayers, takeRankingSnapshot, recomputePlayerScores, flushDirtyPlayers } from './player.js';
+import { getPlayers, updatePlayer, savePlayers, takeRankingSnapshot, recomputePlayerScores, flushDirtyPlayers } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
@@ -29,6 +29,10 @@ const RECOMPUTE_INTERVAL = 60 * 60 * 1000; // 1 hour
 const GHOST_SPAWN_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const GHOST_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 let lastProcessedTick = Date.now();
+
+export function getCatchUpTimes(startTime, targetTime) {
+  return targetTime > startTime ? [targetTime] : [];
+}
 
 /**
  * Persist server heartbeat to file
@@ -91,6 +95,9 @@ export async function startGameLoop() {
     console.log('[GameLoop] CATCH-UP SIMULATION COMPLETE.');
   }
 
+  lastSaveTime = now;
+  lastRecomputeTime = now;
+
   // 3. Start real-time loop
   gameLoopInterval = setInterval(async () => {
     if (isTickRunning) return;
@@ -122,14 +129,8 @@ export async function startGameLoop() {
  * Advances game state from lastHeartbeat to targetTime
  */
 async function performCatchUp(startTime, targetTime) {
-  // To be safe and keep order, we simulate in "chunks" of 5 seconds
-  // or jump to the next event time.
-  // For simplicity and to avoid missing ACS windows, let's use a 5s step.
-  const STEP = 5000; 
-  let simTime = startTime;
-
-  while (simTime < targetTime) {
-    simTime = Math.min(simTime + STEP, targetTime);
+  // ponytail: one delta-based replay; use an event scheduler if cross-player historical ordering matters.
+  for (const simTime of getCatchUpTimes(startTime, targetTime)) {
     await gameTick(simTime, true); // Pass true for isCatchUp
   }
   await flushDirtyPlayers(); // Final catch-up flush
@@ -167,9 +168,8 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       return;
     }
     
-    let updated = false;
-    
     for (const player of players) {
+      let stateChanged = false;
       // Process each planet
       for (const planet of player.planets) {
         // Update resources based on production
@@ -253,21 +253,20 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
           planet.resources.food = Math.max(0, planet.resources.food);
           
           planet.lastUpdate = now;
-          updated = true;
         }
       }
       
       // Process completed buildings
       const buildingsUpdated = await processCompletedBuildings(player, now);
       if (buildingsUpdated) {
-        updated = true;
+        stateChanged = true;
         if (!isCatchUp) wsManager.sendToUser(player.userId, 'BUILDING_COMPLETE', { userId: player.userId });
       }
       
       // Process completed variant switches
       const variantSwitchesUpdated = await processCompletedVariantSwitches(player, now);
       if (variantSwitchesUpdated) {
-        updated = true;
+        stateChanged = true;
         if (!isCatchUp) wsManager.sendToUser(player.userId, 'VARIANT_SWITCH_COMPLETE', { userId: player.userId });
       }
       
@@ -275,7 +274,7 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       for (const planet of player.planets) {
         const productionUpdated = processCompletedProduction(planet, now);
         if (productionUpdated) {
-          updated = true;
+          stateChanged = true;
           if (!isCatchUp) wsManager.sendToUser(player.userId, 'PRODUCTION_COMPLETE', { userId: player.userId, planetId: planet.id });
           
           // If queue is now completely empty, send a specific completion event
@@ -295,26 +294,33 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       // Process completed research
       const researchUpdated = await processCompletedResearch(player, now);
       if (researchUpdated) {
-        updated = true;
+        stateChanged = true;
         if (!isCatchUp) wsManager.sendToUser(player.userId, 'RESEARCH_COMPLETE', { userId: player.userId });
       }
 
       // Process fleets
-      const fleetsUpdated = await processFleets(player, players, now);
-      if (fleetsUpdated) {
-        updated = true;
+      const fleetPasses = isCatchUp ? 3 : 1;
+      for (let pass = 0; pass < fleetPasses; pass++) {
+        const fleetsUpdated = await processFleets(player, players, now, isCatchUp);
+        if (fleetsUpdated) stateChanged = true;
       }
 
       // Process AI decisions if it's an AI player
       if (player.isAI) {
-        const aiUpdated = await processAiPlayer(player, now);
-        if (aiUpdated) updated = true;
+        if (isCatchUp) {
+          player.aiConfig.nextAction = now + Math.random() * 60_000;
+        } else {
+          const aiUpdated = await processAiPlayer(player, now);
+          if (aiUpdated) stateChanged = true;
+        }
       }
+
+      if (stateChanged) await updatePlayer(player.userId, player);
     }
     
     // Save if anything changed and enough time has passed
     // During catch-up, we don't save every tick to disk for performance
-    if ((now - lastSaveTime) >= SAVE_INTERVAL) {
+    if (!isCatchUp && (now - lastSaveTime) >= SAVE_INTERVAL) {
       await flushDirtyPlayers();
       await flushGalaxyData();
       await flushDirtyMessages();
@@ -322,13 +328,13 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
     }
 
     // Handle periodic ranking snapshots (every 6 hours)
-    if (now - lastRankingSnapshotTime >= RANKING_SNAPSHOT_INTERVAL) {
+    if (!isCatchUp && now - lastRankingSnapshotTime >= RANKING_SNAPSHOT_INTERVAL) {
       await takeRankingSnapshot();
       lastRankingSnapshotTime = now;
     }
 
     // Handle hourly score recomputation
-    if (now - lastRecomputeTime >= RECOMPUTE_INTERVAL) {
+    if (!isCatchUp && now - lastRecomputeTime >= RECOMPUTE_INTERVAL) {
       if (!isCatchUp) console.log('[GameLoop] Hourly score recomputation starting...');
       for (const player of players) {
         await recomputePlayerScores(player);
@@ -343,23 +349,15 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
     }
 
     // Handle PvE Spawning (Ghost Planets)
-    if (now - lastGhostSpawnTime >= GHOST_SPAWN_INTERVAL) {
+    if (!isCatchUp && now - lastGhostSpawnTime >= GHOST_SPAWN_INTERVAL) {
       await spawnGhostPlanets();
       lastGhostSpawnTime = now;
     }
 
     // Handle PvE Cleanup
-    if (now - lastGhostCleanupTime >= GHOST_CLEANUP_INTERVAL) {
+    if (!isCatchUp && now - lastGhostCleanupTime >= GHOST_CLEANUP_INTERVAL) {
       await cleanupGhostPlanets();
       lastGhostCleanupTime = now;
-    }
-
-    // If catch up finished a major chunk, we should save periodically
-    if (isCatchUp && (now - lastSaveTime) >= (SAVE_INTERVAL * 10)) {
-       await flushDirtyPlayers();
-       await flushGalaxyData();
-       await flushDirtyMessages();
-       lastSaveTime = now;
     }
 
   } catch (error) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { hashPassword, formatNumber, formatCountdown, formatTime } from '../../src/client/js/utils.js';
+import { hashPassword, formatNumber, formatCountdown, formatTime, escapeHtml, parseNumberShorthand } from '../../src/client/js/utils.js';
 
 describe('Client Utils', () => {
   describe('hashPassword', () => {
@@ -14,6 +14,10 @@ describe('Client Utils', () => {
       const h1 = await hashPassword('abc');
       const h2 = await hashPassword('abd');
       expect(h1).not.toBe(h2);
+    });
+
+    it('should hash Unicode passwords', async () => {
+      expect(await hashPassword('pässwörd🚀')).toBe('715190877d316079f2f72308f10e334bc7c00296394a9c7ab9848a7725604676');
     });
   });
 
@@ -56,6 +60,26 @@ describe('Client Utils', () => {
       const formatted = formatTime(time);
       // Locale might vary, but usually contains AM/PM or :
       expect(formatted).toContain(':');
+    });
+  });
+
+  it('escapes text before HTML rendering', () => {
+    expect(escapeHtml(`<img src=x onerror="alert('x')">`)).toBe('&lt;img src=x onerror=&quot;alert(&#39;x&#39;)&quot;&gt;');
+  });
+
+  describe('parseNumberShorthand', () => {
+    it('parses plain and abbreviated quantities', () => {
+      expect(parseNumberShorthand('125')).toBe(125);
+      expect(parseNumberShorthand('1.5m')).toBe(1_500_000);
+      expect(parseNumberShorthand('.5K')).toBe(500);
+      expect(parseNumberShorthand('1.5')).toBe(1);
+    });
+
+    it('rejects malformed and non-finite quantities', () => {
+      expect(parseNumberShorthand('12abc')).toBe(0);
+      expect(parseNumberShorthand('1.2.3m')).toBe(0);
+      expect(parseNumberShorthand(Infinity)).toBe(0);
+      expect(parseNumberShorthand('999999999999999999q')).toBe(0);
     });
   });
 });

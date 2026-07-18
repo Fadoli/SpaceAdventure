@@ -74,6 +74,12 @@ class WebSocketManager {
     const url = new URL(req.url);
     if (url.pathname !== '/ws') return null; // Not a WS request, proceed to other routes
 
+    const origin = req.headers.get('origin');
+    const forwardedProtocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+    const forwardedHost = req.headers.get('x-forwarded-host')?.split(',')[0].trim();
+    const expectedOrigin = `${forwardedProtocol || url.protocol.slice(0, -1)}://${forwardedHost || url.host}`;
+    if (origin && origin !== expectedOrigin) return new Response('Forbidden', { status: 403 });
+
     // Get session token from cookie
     const cookies = req.headers.get('cookie');
     if (!cookies) return new Response('Unauthorized', { status: 401 });

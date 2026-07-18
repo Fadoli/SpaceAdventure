@@ -104,6 +104,15 @@ body::before {
 
 .btn:active { transform: scale(0.98); }
 
+.btn:focus-visible,
+.nav-btn:focus-visible,
+.nav-sub-btn:focus-visible,
+.tab-btn:focus-visible,
+.queue-header:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: -2px;
+}
+
 .btn-small, .btn-sm {
     padding: 6px 12px;
     font-size: 0.75rem;
@@ -114,6 +123,15 @@ body::before {
     background: rgba(56, 189, 248, 0.1);
     color: var(--accent-blue);
     border-color: var(--accent-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 .btn-primary:hover {
     background: var(--accent-blue);
@@ -346,8 +364,11 @@ body::before {
 @media (max-width: 600px) {
     /* Critical Mobile: Hide secondary resources in header */
     .resource:nth-child(n+5) { display: none; } 
-    .resource-display { gap: 15px; }
+    .game-header { height: auto; min-height: 40px; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+    .header-center { order: 3; flex-basis: 100%; padding: 0; }
+    .resource-display { width: 100%; justify-content: space-between; gap: 8px; }
     .resource { font-size: 0.85rem; }
+
 }
 
 #game-screen {
@@ -718,3 +739,39 @@ body::before {
 .card-corner-top::after { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
 .card-corner-bottom::before { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
 .card-corner-bottom::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+@media (max-width: 768px) {
+    .main-layout-container { flex-direction: column; }
+    .game-nav {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        padding: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .nav-btn, .nav-sub-btn {
+        width: auto;
+        flex: 0 0 auto;
+        padding: 11px 14px;
+        text-align: center;
+    }
+    .nav-btn:hover, .nav-btn.active { padding-left: 14px; }
+    .nav-submenu { flex-direction: row; margin: 0; }
+    .game-content {
+        width: 100%;
+        max-width: 100%;
+        padding: 15px;
+    }
+    .q-name { flex: 1 1 160px; }
+}
+
+@media (max-width: 600px) {
+    .game-content { padding: 12px; }
+    .queue-item-row { flex-wrap: wrap; gap: 8px; }
+    .q-level { flex: 0 0 auto; }
+    .progress-bar-mini { flex-basis: calc(100% - 115px); order: 4; margin: 0; }
+    .q-time-mini { order: 5; }
+}

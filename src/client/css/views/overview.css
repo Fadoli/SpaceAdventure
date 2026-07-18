@@ -298,6 +298,10 @@
 
 @media (max-width: 600px) {
     .production-grid { grid-template-columns: 1fr; }
+    .planet-main-info { grid-template-columns: 1fr; padding: 12px; }
+    .planet-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .planet-image-large { width: 180px; height: 180px; font-size: 5rem; }
+    .production-report { padding: 15px; }
 }
 
 .queue-card {
@@ -471,7 +475,7 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.q-name {
+.q-mini-item .q-name {
     font-family: 'Share Tech Mono', monospace;
     color: #eee;
     white-space: nowrap;

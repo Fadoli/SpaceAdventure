@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Space Adventure - OGame-like Strategy Game</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/client/css/main.css">
 </head>
 <body>
@@ -177,27 +174,27 @@
         </div>
         
         <!-- Generic Details Modal -->
-        <div id="details-modal" class="modal">
+        <div id="details-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="details-modal-title">
             <div class="modal-content">
                 <div class="modal-header">
                     <h2 id="details-modal-title"></h2>
-                    <span class="modal-close" onclick="window.closeDetailsModal()">&times;</span>
+                    <button type="button" class="modal-close" aria-label="Close" onclick="window.closeDetailsModal()">&times;</button>
                 </div>
                 <div id="details-modal-body" class="modal-body"></div>
             </div>
         </div>
 
         <!-- Input/Confirm Modal -->
-        <div id="input-modal" class="modal">
+        <div id="input-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="input-modal-title">
             <div class="modal-content modal-small">
                 <div class="card-corner-top"></div>
                 <div class="modal-header">
                     <h2 id="input-modal-title">Confirm Action</h2>
-                    <span class="modal-close" onclick="window.closeInputModal()">&times;</span>
+                    <button type="button" class="modal-close" aria-label="Close" onclick="window.closeInputModal()">&times;</button>
                 </div>
                 <div id="input-modal-body" class="modal-body"></div>
                 <div id="input-modal-field-container" style="display: none; padding: 0 25px 25px 25px;">
-                    <input type="text" id="input-modal-field" class="modal-input">
+                    <input type="text" id="input-modal-field" class="modal-input" aria-describedby="input-modal-body">
                 </div>
                 <div class="modal-footer">
                     <button id="input-modal-cancel" class="btn btn-secondary" onclick="window.closeInputModal()">Cancel</button>

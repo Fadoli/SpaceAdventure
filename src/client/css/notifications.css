@@ -52,6 +52,7 @@
     font-size: 0.85rem;
     line-height: 1.4;
     letter-spacing: 0.5px;
+    overflow-wrap: anywhere;
 }
 
 /* Notification Types */
@@ -74,6 +75,10 @@
 
 .notification-close {
     margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
     cursor: pointer;
     font-size: 1.2rem;
     opacity: 0.5;
@@ -86,6 +91,12 @@
     color: var(--accent-red);
 }
 
+.notification-close:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 3px;
+}
+
 .notification.removing {
     animation: notifySlideOut 0.4s forwards cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -93,4 +104,13 @@
 @keyframes notifySlideOut {
     from { transform: translateX(0); opacity: 1; }
     to { transform: translateX(120%); opacity: 0; }
+}
+
+@media (max-width: 600px) {
+    .notifications-container {
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        max-width: none;
+    }
 }

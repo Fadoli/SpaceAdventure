@@ -22,14 +22,17 @@
 
 /* 1. Technical Header */
 .fleet-header {
+    width: 100%;
     background: rgba(56, 189, 248, 0.03);
     padding: 0 10px;
-    height: 28px;
+    min-height: 44px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
+    border: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: inherit;
     transition: all 0.2s;
 }
 

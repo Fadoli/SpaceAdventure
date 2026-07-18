@@ -1,9 +1,10 @@
 // Alliance view logic
 import { API } from '../api.js';
-import { formatDate, formatNumber } from '../utils.js';
+import { escapeHtml, formatDate, formatNumber } from '../utils.js';
 import { Notifications } from '../notifications.js';
 import { showConfirm, showPrompt } from './modals.js';
 import { renderCombatReport, renderEspionageData } from './messages.js';
+import { openDetailsModal } from './details.js';
 
 let currentSubView = 'overview';
 let messageRefreshInterval = null;
@@ -54,7 +55,7 @@ export async function updateAllianceView() {
         }
     } catch (error) {
         console.error('Failed to load alliance data:', error);
-        container.innerHTML = `<div class="empty-log-message">> DATA LINK FAILURE: ${error.message}</div>`;
+        container.innerHTML = `<div class="empty-log-message">> DATA LINK FAILURE: ${escapeHtml(error.message)}</div>`;
         // Reset trackers on error so next retry can force render
         lastAllianceId = null;
         lastSubView = null;
@@ -106,7 +107,7 @@ function renderAllianceDashboard(container, alliance, player) {
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="details-description" style="margin: 0;">${alliance.description}</div>
+                        <div class="details-description" style="margin: 0;">${escapeHtml(alliance.description)}</div>
                     </div>
                 </div>
 
@@ -121,7 +122,7 @@ function renderAllianceDashboard(container, alliance, player) {
                         <div class="bt-readout">
                             ${alliance.members.map(m => `
                                 <div class="bt-row">
-                                    <span class="bt-label">${m.username.toUpperCase()} [${m.role.toUpperCase()}]</span>
+                                    <span class="bt-label">${escapeHtml(m.username.toUpperCase())} [${escapeHtml(m.role.toUpperCase())}]</span>
                                     <span class="bt-value archived">ACTIVE</span>
                                 </div>
                             `).join('')}
@@ -143,7 +144,7 @@ function renderAllianceDashboard(container, alliance, player) {
                             <div class="section-tag">Logistics</div>
                             <div class="bt-readout">
                                 <div class="bt-row"><span class="bt-label">ESTABLISHED</span><span class="bt-value">${formatDate(alliance.createdAt)}</span></div>
-                                <div class="bt-row"><span class="bt-label">ALLIANCE TAG</span><span class="bt-value archived">${alliance.tag}</span></div>
+                                <div class="bt-row"><span class="bt-label">ALLIANCE TAG</span><span class="bt-value archived">${escapeHtml(alliance.tag)}</span></div>
                                 <div class="bt-row"><span class="bt-label">TOTAL MEMBERS</span><span class="bt-value">${alliance.members.length}</span></div>
                             </div>
                         </div>
@@ -163,7 +164,7 @@ async function renderAllianceCommunications(container, alliance, player) {
     let html = `
         <div class="messages-header-control">
             <div class="msg-title-area">
-                <h2>ENCRYPTED COMM-LINK: ${alliance.name.toUpperCase()}</h2>
+                <h2>ENCRYPTED COMM-LINK: ${escapeHtml(alliance.name.toUpperCase())}</h2>
                 <span class="msg-stats-tag">SECURE CONNECTION ESTABLISHED</span>
             </div>
             <div class="msg-filter-bar">
@@ -182,7 +183,7 @@ async function renderAllianceCommunications(container, alliance, player) {
                 <div class="chat-loading">Initializing secure link...</div>
             </div>
             <div class="alliance-chat-input-area">
-                <input type="text" id="alliance-chat-input" placeholder="ENTER ENCRYPTED MESSAGE..." autocomplete="off">
+                <input type="text" id="alliance-chat-input" maxlength="500" placeholder="ENTER ENCRYPTED MESSAGE..." autocomplete="off">
                 <button class="btn btn-primary" onclick="window.sendAllianceMessageUI()">SEND</button>
             </div>
         </div>
@@ -227,13 +228,13 @@ async function refreshAllianceMessages() {
             const isSystem = msg.userId === 'SYSTEM';
             const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
-            let contentHtml = `<span class="msg-content">${msg.content}</span>`;
+            let contentHtml = `<span class="msg-content">${escapeHtml(msg.content)}</span>`;
             
             // Render shared reports if present
             if (msg.reportData) {
                 contentHtml = `
                     <div class="shared-report-container">
-                        <span class="msg-content" style="display: block; margin-bottom: 8px; color: var(--accent-blue);">${msg.content}</span>
+                        <span class="msg-content" style="display: block; margin-bottom: 8px; color: var(--accent-blue);">${escapeHtml(msg.content)}</span>
                         <div class="shared-report-mini card-base">
                             ${msg.reportData.type === 'attack' ? renderCombatReport(msg.reportData.data) : renderEspionageData(msg.reportData.data)}
                         </div>
@@ -243,7 +244,7 @@ async function refreshAllianceMessages() {
 
             return `
                 <div class="chat-msg ${isMe ? 'msg-me' : ''} ${isSystem ? 'msg-system' : ''}">
-                    <span class="msg-meta">[${time}] <span class="msg-user">${msg.username.toUpperCase()}</span>:</span>
+                    <span class="msg-meta">[${time}] <span class="msg-user">${escapeHtml(msg.username.toUpperCase())}</span>:</span>
                     ${contentHtml}
                 </div>
             `;
@@ -312,7 +313,7 @@ function renderAllianceSearch(container, alliances) {
                     <div class="card-header">
                         <div class="header-main">
                             <div class="title-row">
-                                <span class="name">[${all.tag}] ${all.name.toUpperCase()}</span>
+                                <span class="name">[${escapeHtml(all.tag)}] ${escapeHtml(all.name.toUpperCase())}</span>
                             </div>
                             <div class="blueprint-row">
                                 <span class="eff-multiplier" style="color: var(--accent-blue); opacity: 0.8; font-size: 0.65rem;">${all.members.length} MEMBERS</span>
@@ -320,11 +321,11 @@ function renderAllianceSearch(container, alliances) {
                         </div>
                     </div>
                     <div class="card-body">
-                        <p style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic; min-height: 40px;">${all.description}</p>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic; min-height: 40px;">${escapeHtml(all.description)}</p>
                     </div>
                     <div class="building-actions">
                         <div class="action-group">
-                            <button class="btn upgrade-btn" style="padding: 10px !important; font-size: 0.75rem !important;" onclick="window.joinAllianceUI('${all.id}', '${all.name}')">
+                            <button class="btn upgrade-btn" style="padding: 10px !important; font-size: 0.75rem !important;" onclick="window.joinAllianceUI('${all.id}')">
                                 REQUEST AFFILIATION
                             </button>
                         </div>
@@ -355,8 +356,8 @@ window.createAllianceUI = async function() {
     }
 };
 
-window.joinAllianceUI = async function(id, name) {
-    const confirmed = await showConfirm('Join Alliance', `Request immediate affiliation with [${name}]?`);
+window.joinAllianceUI = async function(id) {
+    const confirmed = await showConfirm('Join Alliance', 'Request immediate affiliation with this alliance?');
     if (!confirmed) return;
 
     try {
@@ -572,7 +573,7 @@ window.joinAttackPlanUI = async function(planId) {
     html += `</div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="window.closeDetailsModal()">ABORT</button><button class="btn btn-primary" onclick="window.submitJoinAttackPlan('${planId}')">DISPATCH REINFORCEMENTS</button></div></div>`;
     
     modalBody.innerHTML = html;
-    modal.style.display = 'flex';
+    openDetailsModal();
 };
 
 window.submitJoinAttackPlan = async function(planId) {

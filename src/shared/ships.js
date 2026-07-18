@@ -416,7 +416,8 @@ export const ALIEN_SHIPS = {
  * Get ship data by key
  */
 export function getShip(shipKey) {
-  return SHIPS[shipKey] || ALIEN_SHIPS[shipKey];
+  if (Object.hasOwn(SHIPS, shipKey)) return SHIPS[shipKey];
+  return Object.hasOwn(ALIEN_SHIPS, shipKey) ? ALIEN_SHIPS[shipKey] : undefined;
 }
 
 /**

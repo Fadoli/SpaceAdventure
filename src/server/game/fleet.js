@@ -1,12 +1,13 @@
 // Fleet and Mission management logic
 import { generateId, isEmpty, formatNumber } from '../../shared/utils.js';
-import { MISSION_TYPES, SHIPS as SHIP_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
+import { MISSION_TYPES, STARTING_BUILDINGS, CONFIG } from '../../shared/constants.js';
 import { 
     calculateShipSpeed, 
     calculateFleetFuelCost, 
     calculateFleetCrew, 
     calculateFleetSurvivalNeeds, 
     calculateCargoCapacity, 
+    getShip,
     SHIPS as SHIP_DEFINITIONS,
     ALIEN_SHIPS
 } from '../../shared/ships.js';
@@ -20,18 +21,54 @@ import { getGalaxyData, updateDebrisField, updateGhostPlanet } from './galaxyDat
 import { wsManager } from './wsManager.js';
 import { logEvent } from '../storage/eventLogger.js';
 
+const CARGO_RESOURCES = new Set(['metal', 'crystal', 'deuterium', 'water', 'food']);
+const TRADE_RESOURCES = new Set(['metal', 'crystal', 'deuterium']);
+
+function validateQuantities(values, label, isAllowed, required = false) {
+    if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error(`Invalid ${label} payload`);
+    const entries = Object.entries(values);
+    if (required && entries.length === 0) throw new Error(`No ${label} selected`);
+
+    let total = 0;
+    for (const [key, quantity] of entries) {
+        if (!isAllowed(key)) throw new Error(`Unknown ${label}: ${key}`);
+        if (!Number.isSafeInteger(quantity) || quantity <= 0) throw new Error(`${label} quantity must be a positive integer`);
+        total += quantity;
+        if (!Number.isSafeInteger(total)) throw new Error(`${label} quantity is too large`);
+    }
+    return total;
+}
+
 /**
  * Start a new mission
  */
 export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null, speedPercent = 1.0) {
+    if (!Object.values(MISSION_TYPES).includes(missionType)) throw new Error('Invalid mission type');
+    const maxPosition = missionType === MISSION_TYPES.EXPEDITION ? 16 : 15;
+    if (!Array.isArray(targetCoords) || targetCoords.length !== 3 ||
+        !targetCoords.every(Number.isSafeInteger) || targetCoords[0] < 1 || targetCoords[0] > 10 ||
+        targetCoords[1] < 1 || targetCoords[1] > 499 || targetCoords[2] < 1 || targetCoords[2] > maxPosition) {
+        throw new Error('Invalid target coordinates');
+    }
+
+    validateQuantities(ships, 'ships', key => Boolean(getShip(key)), true);
+    const resourceKeys = missionType === MISSION_TYPES.MARKET_TRADE ? TRADE_RESOURCES : CARGO_RESOURCES;
+    validateQuantities(resources, 'resources', key => resourceKeys.has(key), missionType === MISSION_TYPES.MARKET_TRADE);
+    if (missionType === MISSION_TYPES.MARKET_TRADE) {
+        validateQuantities(buyResources, 'trade resources', key => TRADE_RESOURCES.has(key), true);
+    } else if (buyResources !== null) {
+        throw new Error('Buy resources are only valid for market missions');
+    }
+    if (!Number.isFinite(stayTime) || stayTime < 0 || stayTime > 24) throw new Error('Invalid mission duration');
+    if (!Number.isFinite(speedPercent) || speedPercent < 0.0001 || speedPercent > 1) throw new Error('Invalid fleet speed');
+
     const player = await getPlayerByUserId(userId);
     if (!player) throw new Error('Player not found');
 
     const originPlanet = player.planets.find(p => p.id === originPlanetId);
     if (!originPlanet) throw new Error('Origin planet not found');
 
-    // Limit speedPercent (down to 0.01% for extremely precise long-term timing)
-    const finalSpeedPercent = Math.max(0.0001, Math.min(1.0, speedPercent || 1.0));
+    const finalSpeedPercent = speedPercent;
 
     // Verify ships availability
     for (const shipKey in ships) {
@@ -168,13 +205,14 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
         if (fleet.processedAt === now) continue;
 
         if (now >= fleet.arrivalTime) {
+            const transitionTime = isCatchUp ? fleet.arrivalTime : now;
             // Skip if this fleet was already processed by a "lead" fleet in a group combat this tick
             if (fleet.processedAtWS) {
                 delete fleet.processedAtWS;
                 continue;
             }
 
-            fleet.processedAt = now; // Mark as processed in this tick
+            fleet.processedAt = transitionTime;
 
             if (fleet.waiting) {
                 // Stay time finished, start return journey
@@ -200,8 +238,8 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
 
                 fleet.returning = true;
                 fleet.waiting = false;
-                fleet.startTime = now;
-                fleet.arrivalTime = now + (travelTime * 1000);
+                fleet.startTime = transitionTime;
+                fleet.arrivalTime = transitionTime + (travelTime * 1000);
 
                 // Swap coords so target becomes home
                 const origin = [...fleet.originCoords];
@@ -227,9 +265,9 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
                     // For expedition, it stays for a while
                     if (fleet.missionType === MISSION_TYPES.EXPEDITION) {
                         fleet.waiting = true;
-                        fleet.startTime = now;
+                        fleet.startTime = transitionTime;
                         const stayTime = (fleet.stayTime || 1) * 60 * 60 * 1000; // Use stored hours or default to 1h
-                        fleet.arrivalTime = now + stayTime;
+                        fleet.arrivalTime = transitionTime + stayTime;
                     } else {
                         const distance = calculateDistance(fleet.originCoords, fleet.targetCoords);
                         let slowestSpeed = Infinity;
@@ -240,8 +278,8 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
                         const travelTime = calculateTravelTime(distance, slowestSpeed, getFleetSpeedMultiplier(), fleet.speedPercent || 1.0);
 
                         fleet.returning = true;
-                        fleet.startTime = now;
-                        fleet.arrivalTime = now + (travelTime * 1000);
+                        fleet.startTime = transitionTime;
+                        fleet.arrivalTime = transitionTime + (travelTime * 1000);
 
                         // Swap coords
                         const origin = [...fleet.originCoords];

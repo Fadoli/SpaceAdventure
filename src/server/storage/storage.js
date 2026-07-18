@@ -5,6 +5,17 @@ import { dirname, resolve } from 'path';
 import { AI_TYPES } from '../../shared/constants.js';
 
 const DATA_DIR = resolve('./data');
+const writeQueues = new Map();
+
+function queueFileWrite(filename, operation) {
+  const next = (writeQueues.get(filename) || Promise.resolve())
+    .catch(() => {})
+    .then(operation);
+  writeQueues.set(filename, next);
+  return next.finally(() => {
+    if (writeQueues.get(filename) === next) writeQueues.delete(filename);
+  });
+}
 
 /**
  * Read JSON file with backup fallback
@@ -58,7 +69,18 @@ export async function readJsonFile(filename) {
 /**
  * Write JSON file with atomic backup strategy
  */
-export async function writeJsonFile(filename, data) {
+export function writeJsonFile(filename, data) {
+  return queueFileWrite(filename, () => writeJsonFileNow(filename, data));
+}
+
+export function updateJsonFile(filename, updater) {
+  return queueFileWrite(filename, async () => {
+    const current = await readJsonFile(filename);
+    return writeJsonFileNow(filename, await updater(current));
+  });
+}
+
+async function writeJsonFileNow(filename, data) {
   const filepath = resolve(DATA_DIR, filename);
   const dir = dirname(filepath);
   if (!existsSync(dir)) {

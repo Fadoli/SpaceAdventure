@@ -1,7 +1,7 @@
 // Research view - theoretical and practical research management
 import { API } from '../api.js';
 import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical } from '../../../shared/research.js';
-import { formatNumber, formatDuration, formatCountdown, positionContextMenu } from '../utils.js';
+import { escapeHtml, formatNumber, formatDuration, formatCountdown, positionContextMenu } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -68,9 +68,7 @@ export async function initializeResearch(planet) {
  */
 async function loadResearchData(force = false) {
     try {
-        const response = await fetch('/api/game/research');
-        const result = await response.json();
-        const newResearchData = result.data || result;
+        const newResearchData = await API.request('/game/research');
         
         const currentHash = calculateResearchStateHash(newResearchData);
 
@@ -258,11 +256,11 @@ function renderTheoreticalResearch() {
         html += `
       <div class="research-queue-section">
         <div class="card-corner-top"></div>
-        <div class="queue-header" onclick="window.toggleResearchQueueVisibility()">
+        <div class="queue-header" role="button" tabindex="0" aria-expanded="${researchQueueVisible}" aria-controls="theoretical-research-queue" onclick="window.toggleResearchQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleResearchQueueVisibility(); }">
           <h3>🔬 TECHNOLOGICAL DEVELOPMENT LOG (${queue.length}/${maxQueue})</h3>
           <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
         </div>
-        <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
+        <div id="theoretical-research-queue" class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
     `;
         for (const queueItem of queue) {
             const tech = theoryResearch[queueItem.techKey];
@@ -399,8 +397,7 @@ async function renderPracticalResearch() {
 
     try {
         const planetId = getCurrentPlanetId();
-        const response = await fetch(`/api/game/planet/${planetId}/research/available`);
-        const available = (await response.json()).data || {};
+        const available = await API.request(`/game/planet/${planetId}/research/available`);
         
         const practical = getPracticalResearch();
         const playerPractical = researchData?.practical || {};
@@ -421,11 +418,11 @@ async function renderPracticalResearch() {
             html += `
         <div class="research-queue-section">
           <div class="card-corner-top"></div>
-          <div class="queue-header" onclick="window.toggleResearchQueueVisibility()">
+          <div class="queue-header" role="button" tabindex="0" aria-expanded="${researchQueueVisible}" aria-controls="practical-research-queue" onclick="window.toggleResearchQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleResearchQueueVisibility(); }">
             <h3>🔬 EXPERIMENTAL LOG (${queue.length}/${maxQueue})</h3>
             <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
           </div>
-          <div class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
+          <div id="practical-research-queue" class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
       `;
             for (const q of queue) {
                 let r = null;
@@ -587,13 +584,12 @@ async function renderPracticalResearch() {
         }
         html += '</div></div></div>';
         container.innerHTML = html;
-    } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }
+    } catch (e) { container.innerHTML = `<p class="error">${escapeHtml(e.message)}</p>`; }
 }
 
 window.startResearchLevel = async function (researchKey) {
     try {
-        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ researchKey }) });
-        if (!response.ok) { Notifications.showError(`Error: ${(await response.json()).message}`); return; }
+        await API.request(`/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', body: JSON.stringify({ researchKey }) });
         await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
@@ -622,7 +618,7 @@ window.openAllocationModal = function (researchKey, researchName, baseType, icon
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h2>${icon} ${researchName}</h2>
-                <button class="modal-close" onclick="window.closeAllocationModal()">✕</button>
+                <button type="button" class="modal-close" aria-label="Close" onclick="window.closeAllocationModal()">✕</button>
             </div>
             <div class="modal-body">
               <p style="font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">> CALIBRATING EXPERIMENT FOCUS (TOTAL 100%):</p>
@@ -726,8 +722,7 @@ window.submitAllocationResearch = async function (researchKey, baseType) {
     const sliderVal = parseFloat(document.getElementById('slider-strength').value);
     const str = (sliderVal - 1) / 5;
     try {
-        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ researchKey, allocation: { output: vals[0], automation: vals[1], energy: vals[2], cost: vals[3] }, strength: str }) });
-        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        await API.request(`/game/planet/${getCurrentPlanetId()}/research/practical`, { method: 'POST', body: JSON.stringify({ researchKey, allocation: { output: vals[0], automation: vals[1], energy: vals[2], cost: vals[3] }, strength: str }) });
         closeAllocationModal(); await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
@@ -736,8 +731,7 @@ async function renderCustomVariants() {
     const container = document.querySelector('#variants-tab .research-content');
     if (!container) return;
     try {
-        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/variants`);
-        const { building } = (await response.json()).data;
+        const { building } = await API.request(`/game/planet/${getCurrentPlanetId()}/research/variants`);
         let html = '<div class="variants-container">';
         
         const buildingTypes = [];
@@ -757,7 +751,7 @@ async function renderCustomVariants() {
         
         if (buildingTypes.length === 0) html += '<p style="padding: 20px; opacity: 0.5; font-family: \'Share Tech Mono\', monospace;">NO ACTIVE BLUEPRINTS DETECTED</p>';
         container.innerHTML = html + '</div>';
-    } catch (e) { container.innerHTML = `<p class="error">${e.message}</p>`; }
+    } catch (e) { container.innerHTML = `<p class="error">${escapeHtml(e.message)}</p>`; }
 }
 
 function renderVariantCard(baseType, variant) {
@@ -799,15 +793,13 @@ function renderVariantCard(baseType, variant) {
         }
     }
 
-    const escapedName = (name || baseType).replace(/'/g, "\\'");
-
     return `
         <div class="research-card" id="variant-${id}">
             <div class="card-corner-top"></div>
             <div class="card-header">
                 <div class="header-main">
                     <div class="title-row">
-                        <span class="name">${name || baseType}</span>
+                        <span class="name">${escapeHtml(name || baseType)}</span>
                     </div>
                     <div class="blueprint-row">
                         <span class="eff-multiplier" style="color: var(--accent-blue); opacity: 0.8; font-size: 0.65rem;">BUILDING MODEL</span>
@@ -830,7 +822,7 @@ function renderVariantCard(baseType, variant) {
             </div>
             <div class="building-actions">
                 <div class="action-group">
-                    <button class="btn upgrade-btn" style="padding: 10px !important;" onclick="window.renameVariant('${baseType}', '${id}', '${escapedName}')">
+                    <button class="btn upgrade-btn" style="padding: 10px !important;" onclick="window.renameVariant('${baseType}', '${id}')">
                         Rename
                     </button>
                     <button class="btn design-btn" onclick="window.shareVariant('${baseType}', '${id}', event)" title="Share Design">
@@ -845,24 +837,17 @@ function renderVariantCard(baseType, variant) {
     `;
 }
 
-window.renameVariant = async function(baseType, blueprintId, currentName) {
+window.renameVariant = async function(baseType, blueprintId) {
     const { showPrompt } = await import('./modals.js');
+    const currentName = document.getElementById(`variant-${blueprintId}`)?.querySelector('.name')?.textContent || baseType;
     const newName = await showPrompt('Rename Blueprint', `Enter a new name for your design:`, currentName);
     if (!newName || newName === currentName) return;
 
     try {
-        const response = await fetch(`/api/game/blueprints/${baseType}/${blueprintId}`, { 
+        await API.request(`/game/blueprints/${baseType}/${blueprintId}`, {
             method: 'PATCH', 
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newName }) 
         });
-        const result = await response.json();
-        
-        if (!response.ok) {
-            Notifications.showError(result.message || 'Failed to rename blueprint');
-            return;
-        }
-        
         Notifications.showSuccess('Blueprint renamed');
         await loadResearchData();
         if (window.loadGameState) await window.loadGameState();
@@ -965,7 +950,7 @@ window.openFriendShareSubMenu = async function(baseType, blueprintId, event) {
         friends.forEach(f => {
             html += `
                 <button class="menu-item" onclick="window.executeShareBlueprint('${baseType}', '${blueprintId}', 'player', '${f.id}')">
-                    <span class="indicator friend"></span> ${f.username.toUpperCase()}
+                    <span class="indicator friend"></span> ${escapeHtml(f.username.toUpperCase())}
                 </button>`;
         });
 
@@ -1010,14 +995,7 @@ window.deleteVariant = async function(baseType, blueprintId) {
     if (!(await showConfirm('Delete Blueprint', `Are you sure you want to delete this blueprint? Any planets using it will revert to the standard model.`))) return;
     
     try {
-        const response = await fetch(`/api/game/blueprints/${baseType}/${blueprintId}`, { method: 'DELETE' });
-        const result = await response.json();
-        
-        if (!result.success) {
-            Notifications.showError(result.error || 'Failed to delete blueprint');
-            return;
-        }
-        
+        await API.request(`/game/blueprints/${baseType}/${blueprintId}`, { method: 'DELETE' });
         Notifications.showSuccess('Blueprint deleted');
         await loadResearchData();
         if (window.loadGameState) await window.loadGameState();
@@ -1028,8 +1006,7 @@ window.deleteVariant = async function(baseType, blueprintId) {
 
 window.startTheoreticalResearch = async function (techKey) {
     try {
-        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/theoretical`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ techKey }) });
-        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        await API.request(`/game/planet/${getCurrentPlanetId()}/research/theoretical`, { method: 'POST', body: JSON.stringify({ techKey }) });
         await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
@@ -1073,8 +1050,7 @@ window.closeResearchModal = function () { closeDetailsModal(); };
 window.cancelTheoreticalResearch = async function (queueId) {
     if (!(await showConfirm('Cancel', 'Confirm?'))) return;
     try {
-        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/theoretical/${queueId}`, { method: 'DELETE' });
-        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        await API.request(`/game/planet/${getCurrentPlanetId()}/research/theoretical/${queueId}`, { method: 'DELETE' });
         await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
@@ -1082,8 +1058,7 @@ window.cancelTheoreticalResearch = async function (queueId) {
 window.cancelPracticalResearch = async function (queueId) {
     if (!(await showConfirm('Cancel', 'Confirm?'))) return;
     try {
-        const response = await fetch(`/api/game/planet/${getCurrentPlanetId()}/research/practical/${queueId}`, { method: 'DELETE' });
-        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
+        await API.request(`/game/planet/${getCurrentPlanetId()}/research/practical/${queueId}`, { method: 'DELETE' });
         await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
@@ -1116,15 +1091,13 @@ window.buildCustomVariantFromResearch = async function (baseType, type, event) {
     try {
         const planetId = getCurrentPlanetId();
         const endpoint = type === 'building' 
-            ? `/api/game/planet/${planetId}/research/building-variant` 
-            : `/api/game/research/ship-blueprint`;
+            ? `/game/planet/${planetId}/research/building-variant`
+            : `/game/research/ship-blueprint`;
 
-        const response = await fetch(endpoint, { 
+        await API.request(endpoint, {
             method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ baseType, focusLevels, name }) 
         });
-        if (!response.ok) { Notifications.showError((await response.json()).message); return; }
         Notifications.showSuccess('Blueprint created!'); await loadResearchData();
     } catch (e) { Notifications.showError(e.message); }
 };
@@ -1150,15 +1123,7 @@ window.resetPracticalResearchUI = async function(baseType) {
 
 window.showResearchHistory = async function (baseType) {
     try {
-        const response = await fetch(`/api/game/research/history/${baseType}`);
-        const result = await response.json();
-        
-        if (!result.success) {
-            Notifications.showError(result.error || 'Failed to load history');
-            return;
-        }
-
-        const history = result.data || [];
+        const history = await API.request(`/game/research/history/${baseType}`);
         if (history.length === 0) {
             Notifications.showInfo('No experiment history for this tree yet.');
             return;

@@ -73,6 +73,7 @@ import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 import { gzipSync, deflateSync } from 'zlib';
 
 import { wsManager } from './game/wsManager.js';
+import { canServeDuringStartup, getPublicFilePath } from './publicFiles.js';
 
 // Load configuration
 await loadConfig();
@@ -80,19 +81,8 @@ await loadConfig();
 // Initialize storage on startup
 await initializeStorage();
 
-// Auto-spawn AI if none exist
-const aiMetadata = await getAiMetadata();
-if (!aiMetadata.aiPlayers || aiMetadata.aiPlayers.length < 100) {
-  await seedAiPlayers(100);
-}
-
-// Recompute all planets on startup (in-memory, no persistence)
-await recomputeAllPlanetsOnStartup();
-
-// Start game loop
-startGameLoop();
-
 const PORT = process.env.PORT || 3000;
+let serverReady = false;
 
 /**
  * Compress response body based on Accept-Encoding header
@@ -133,8 +123,21 @@ function getCookie(req, name) {
 }
 
 // Helper to create cookie string
-function createCookie(name, value, maxAge) {
-  return `${name}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
+function createCookie(req, name, value, maxAge) {
+  const forwardedProtocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+  const secure = new URL(req.url).protocol === 'https:' || forwardedProtocol === 'https';
+  return `${name}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+}
+
+function corsHeaders(req) {
+  const origin = req.headers.get('origin');
+  if (!origin || origin !== new URL(req.url).origin) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true'
+  };
 }
 
 // Middleware to check authentication
@@ -167,16 +170,12 @@ function jsonResponse(req, data, status = 200, headers = {}) {
   const contentType = 'application/json';
   const { compressedBody, encoding } = compressResponse(req, Buffer.from(body), contentType);
   
-  const origin = req.headers.get('origin') || '*';
   const finalHeaders = {
     'Content-Type': contentType,
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     'Pragma': 'no-cache',
     'Expires': '0',
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Credentials': 'true',
+    ...corsHeaders(req),
     ...headers
   };
 
@@ -235,24 +234,16 @@ async function handleRequest(req) {
   const method = req.method;
   
   if (method === 'OPTIONS') {
-    const origin = req.headers.get('origin') || '*';
-    return new Response(null, { 
-      headers: {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Credentials': 'true'
-      }
-    });
+    return new Response(null, { status: 204, headers: corsHeaders(req) });
   }
   
   try {
     // Static file serving
-    if (path === '/' || path === '/login.html' || !path.startsWith('/api/')) {
-      const filePath = (path === '/' || path === '/login.html') ? (path === '/' ? '/src/client/index.html' : '/src/client/login.html') : path;
-      const file = Bun.file(`.${filePath}`);
+    if (!path.startsWith('/api/')) {
+      const filePath = getPublicFilePath(path);
+      const file = filePath && Bun.file(filePath);
       
-      if (await file.exists()) {
+      if (file && await file.exists()) {
         // Determine content type based on file extension
         let contentType = 'text/html; charset=utf-8';
         let cacheTime = 5; // 5 seconds for most files (dev)
@@ -262,7 +253,7 @@ async function handleRequest(req) {
           cacheTime = 5; // 5 seconds for JS (dev)
         } else if (filePath.endsWith('.css')) {
           contentType = 'text/css; charset=utf-8';
-          cacheTime = 86400; // 1 day for CSS
+          cacheTime = 5;
         } else if (filePath.endsWith('.json')) {
           contentType = 'application/json; charset=utf-8';
         } else if (filePath.endsWith('.png')) {
@@ -318,46 +309,72 @@ async function handleRequest(req) {
     
     // POST /api/auth/register
     if (path === '/api/auth/register' && method === 'POST') {
-      const body = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        return errorResponse(req, 'Invalid JSON body', 400);
+      }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return errorResponse(req, 'Invalid JSON body', 400);
+      }
       const { username, password, email } = body;
-      
-      const user = await registerUser(username, password, email);
-      const sessionToken = createSession(user.id);
+
+      let user;
+      try {
+        user = await registerUser(username, password, email);
+      } catch (error) {
+        const status = error.message === 'Username already exists' ? 409 :
+          error.message === 'Failed to save user' ? 500 : 400;
+        return errorResponse(req, error.message, status);
+      }
       
       // Create player game state
       await createPlayer(user.id, user.username);
+      const sessionToken = createSession(user.id);
       
       return jsonResponse(req, {
         success: true,
         data: {
           userId: user.id,
-          username: user.username,
-          sessionToken
+          username: user.username
         },
         timestamp: Date.now()
       }, 200, {
-        'Set-Cookie': createCookie('session', sessionToken, 86400)
+        'Set-Cookie': createCookie(req, 'session', sessionToken, 86400)
       });
     }
     
     // POST /api/auth/login
     if (path === '/api/auth/login' && method === 'POST') {
-      const body = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        return errorResponse(req, 'Invalid JSON body', 400);
+      }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return errorResponse(req, 'Invalid JSON body', 400);
+      }
       const { username, password } = body;
-      
-      const user = await authenticateUser(username, password);
+
+      let user;
+      try {
+        user = await authenticateUser(username, password);
+      } catch {
+        return errorResponse(req, 'Invalid credentials', 401);
+      }
       const sessionToken = createSession(user.id);
       
       return jsonResponse(req, {
         success: true,
         data: {
           userId: user.id,
-          username: user.username,
-          sessionToken
+          username: user.username
         },
         timestamp: Date.now()
       }, 200, {
-        'Set-Cookie': createCookie('session', sessionToken, 86400)
+        'Set-Cookie': createCookie(req, 'session', sessionToken, 86400)
       });
     }
     
@@ -373,7 +390,7 @@ async function handleRequest(req) {
         data: null,
         timestamp: Date.now()
       }, 200, {
-        'Set-Cookie': createCookie('session', '', 0)
+        'Set-Cookie': createCookie(req, 'session', '', 0)
       });
     }
     
@@ -1177,6 +1194,10 @@ async function handleRequest(req) {
       const pathParts = path.split('/');
       const galaxy = parseInt(pathParts[4], 10);
       const system = parseInt(pathParts[5], 10);
+
+      if (galaxy < 1 || galaxy > 10 || system < 1 || system > 499) {
+        return errorResponse(req, 'Invalid galaxy coordinates', 400);
+      }
       
       // Get all players to scan for planets in this system
       const allPlayers = await getPlayers();
@@ -1418,7 +1439,6 @@ async function handleRequest(req) {
         const fullPlayer = await getPlayerByUserId(p.userId, true);
         // Force deep copy to ensure clean JSON serialization
         const cleanPlanets = JSON.parse(JSON.stringify(fullPlayer.planets || []));
-        console.log(`[ADMIN] Serialized ${cleanPlanets.length} planets for ${fullPlayer.username}. Resources keys:`, Object.keys(cleanPlanets[0]?.resources || {}));
         
         return {
           userId: fullPlayer.userId,
@@ -2176,6 +2196,10 @@ async function handleRequest(req) {
 const server = Bun.serve({
   port: PORT,
   async fetch(req) {
+    if (!serverReady && !canServeDuringStartup(req)) {
+      return errorResponse(req, 'Server is starting', 503);
+    }
+
     // 1. Handle WebSocket upgrade requests
     const upgraded = await wsManager.handleUpgrade(req, server);
     if (upgraded !== null) return upgraded; // Returns Response (error) or undefined (success)
@@ -2199,3 +2223,13 @@ const server = Bun.serve({
 });
 
 console.log(`🚀 Space Adventure server running on http://localhost:${PORT}`);
+
+// Finish game initialization while static UI remains available.
+const aiMetadata = await getAiMetadata();
+if (!aiMetadata.aiPlayers || aiMetadata.aiPlayers.length < 100) {
+  await seedAiPlayers(100);
+}
+await recomputeAllPlanetsOnStartup();
+await startGameLoop();
+serverReady = true;
+console.log('Space Adventure server ready.');

@@ -20,7 +20,8 @@ export async function hashPassword(password) {
     }
 
     // Fallback SHA-256 implementation
-    return sha256_fallback(password);
+    const utf8Password = Array.from(new TextEncoder().encode(password), byte => String.fromCharCode(byte)).join('');
+    return sha256_fallback(utf8Password);
 }
 
 /**
@@ -179,29 +180,27 @@ export function formatTime(timestamp) {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+export function escapeHtml(value) {
+    const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, char => entities[char]);
+}
+
 /**
  * Parse shorthand number strings (e.g. 100k, 1.5m)
  */
 export function parseNumberShorthand(str) {
-    if (typeof str === 'number') return str;
+    if (typeof str === 'number') return Number.isFinite(str) ? Math.floor(str) : 0;
     if (!str) return 0;
     
     const cleanStr = str.toString().trim().toLowerCase();
-    const match = cleanStr.match(/^([\d.]+)([kmb tq]?)$/);
+    const match = cleanStr.match(/^(\d+(?:\.\d+)?|\.\d+)([kmbtq]?)$/);
     
-    if (!match) return parseFloat(cleanStr) || 0;
+    if (!match) return 0;
     
     const value = parseFloat(match[1]);
-    const multiplier = match[2].trim();
-    
-    switch (multiplier) {
-        case 'k': return value * 1e3;
-        case 'm': return value * 1e6;
-        case 'b': return value * 1e9;
-        case 't': return value * 1e12;
-        case 'q': return value * 1e15;
-        default: return value;
-    }
+    const scales = { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15 };
+    const result = Math.floor(value * scales[match[2]]);
+    return Number.isSafeInteger(result) ? result : 0;
 }
 
 /**

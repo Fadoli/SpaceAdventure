@@ -1,4 +1,4 @@
-import { formatCountdown, formatTime, formatNumber } from '../utils.js';
+import { escapeHtml, formatCountdown, formatTime, formatNumber } from '../utils.js';
 import { isEmpty } from '../../../shared/utils.js';
 
 // Global toggle handler
@@ -6,11 +6,14 @@ window.toggleFleetMovements = function() {
     const list = document.getElementById('fleet-list');
     const header = document.getElementById('fleet-header');
     if (list && header) {
-        list.classList.toggle('collapsed');
-        header.classList.toggle('collapsed');
+        const collapsed = list.classList.toggle('collapsed');
+        header.classList.toggle('collapsed', collapsed);
+        header.setAttribute('aria-expanded', String(!collapsed));
+        header.querySelector('.header-status-text').textContent = collapsed ? 'DATA FEED COLLAPSED' : 'ACTIVE OPERATIONS';
+        header.querySelector('.toggle-icon').textContent = collapsed ? '▼' : '▲';
         
         // Save state preference
-        localStorage.setItem('fleetViewCollapsed', list.classList.contains('collapsed'));
+        localStorage.setItem('fleetViewCollapsed', collapsed);
     }
 };
 
@@ -122,16 +125,16 @@ export function updateFleetMovements(gameState) {
         const statusText = isCollapsed ? 'DATA FEED COLLAPSED' : 'ACTIVE OPERATIONS';
         
         container.innerHTML = `
-            <div id="fleet-header" class="fleet-header ${collapseClass}" onclick="window.toggleFleetMovements()">
-                <div class="header-left-group">
+            <button type="button" id="fleet-header" class="fleet-header ${collapseClass}" onclick="window.toggleFleetMovements()" aria-expanded="${!isCollapsed}" aria-controls="fleet-list">
+                <span class="header-left-group">
                     <span class="header-title">FLEET TELEMETRY FEED</span>
                     <span class="header-stats-tag">${count} ACTIVE SIGNATURES</span>
-                </div>
-                <div class="header-right-group">
+                </span>
+                <span class="header-right-group">
                     <span class="header-status-text">${statusText}</span>
                     <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
-                </div>
-            </div>
+                </span>
+            </button>
             <div id="fleet-list" class="fleet-list ${collapseClass}">
                 ${sortedFleets.map(f => renderFleetRow(f)).join('')}
             </div>
@@ -164,7 +167,7 @@ export function updateFleetMovements(gameState) {
     }
 }
 
-function renderFleetRow(fleet) {
+export function renderFleetRow(fleet) {
     const now = Date.now();
     const isReturning = fleet.returning;
     const timeRemaining = Math.max(0, Math.floor((fleet.arrivalTime - now) / 1000));
@@ -245,7 +248,7 @@ function renderFleetRow(fleet) {
     let tooltipContent = '';
     if (isHostile) {
         tooltipContent = `
-            <strong>THREAT SOURCE:</strong> ${fleet.ownerName || 'UNKNOWN'}<br>
+            <strong>THREAT SOURCE:</strong> ${escapeHtml(fleet.ownerName || 'UNKNOWN')}<br>
             <strong>MISSION:</strong> ${missionName}<br><br>
             <em>Sensors cannot determine vessel composition of hostile fleets.</em>
         `;

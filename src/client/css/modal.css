@@ -76,6 +76,7 @@
     color: var(--text-secondary);
     font-size: 1.8rem;
     font-weight: 300;
+    padding: 0;
     cursor: pointer;
     background: rgba(255, 255, 255, 0.02);
     border: none;
@@ -89,6 +90,11 @@
     color: #fff;
     background: var(--accent-red);
     box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: -4px;
 }
 
 .modal-body {

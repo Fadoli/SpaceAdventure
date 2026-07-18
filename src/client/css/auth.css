@@ -69,6 +69,7 @@
 
 .tab-btn {
     flex: 1;
+    min-height: 44px;
     background: transparent;
     border: none;
     padding: 10px;

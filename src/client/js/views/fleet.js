@@ -1,6 +1,6 @@
 // Fleet view logic
 import { API } from '../api.js';
-import { formatNumber } from '../utils.js';
+import { escapeHtml, formatNumber } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
 
 let lastStructuralHash = null;
@@ -85,7 +85,7 @@ export async function updateFleetView(gameState) {
         console.error('Failed to load fleet details:', error);
         // Only show error if we have no cached data
         if (!cachedFleetData) {
-            container.innerHTML = `<p class="error">Failed to load fleet: ${error.message}</p>`;
+            container.innerHTML = `<p class="error">Failed to load fleet: ${escapeHtml(error.message)}</p>`;
         }
     }
 }
@@ -122,7 +122,7 @@ function updateFleetDataGranular(fleetData) {
 /**
  * Render inner content of a single planet's fleet card
  */
-function renderPlanetFleetContent(fleet) {
+export function renderPlanetFleetContent(fleet) {
     const shipNames = {
         lightFighter: 'Light Fighter',
         heavyFighter: 'Heavy Fighter',
@@ -170,7 +170,7 @@ function renderPlanetFleetContent(fleet) {
         }
     }
 
-    let html = `<h3>🪐 ${fleet.planetName}</h3>`;
+    let html = `<h3>🪐 ${escapeHtml(fleet.planetName)}</h3>`;
     
     if (!shipHtml && !defenseHtml) {
         html += '<p class="empty-text">No ships or defenses detected</p>';

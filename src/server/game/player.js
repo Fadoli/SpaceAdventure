@@ -116,13 +116,6 @@ export async function getPlayerByUserId(userId, forceFresh = false) {
   const player = await readJsonFile(`players/${userId}/data.json`);
   
   if (player) {
-    if (forceFresh) {
-        console.log(`[DEBUG] Loaded FRESH player ${player.username}. Planets: ${player.planets?.length}`);
-        if (player.planets?.length > 0) {
-            console.log(`[DEBUG] Planet 0 Resources:`, player.planets[0].resources);
-        }
-    }
-
     // Initialize missing fields for backward compatibility
     if (!player.research) player.research = {};
     if (!player.researchQueue) player.researchQueue = [];
@@ -496,6 +489,9 @@ export async function takeRankingSnapshot() {
  * @param {string} category - Ranking category (total, economy, research, fleet)
  */
 export async function getRankings(offset = 0, limit = 100, alliances = {}, category = 'total') {
+  offset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
+  limit = Number.isFinite(limit) ? Math.min(100, Math.max(1, Math.trunc(limit))) : 100;
+  if (!['total', 'economy', 'research', 'fleet'].includes(category)) category = 'total';
   const players = await getPlayers();
   
   // Load ranking history for 24h change calculation
@@ -585,8 +581,6 @@ export async function recomputeAllPlanetsOnStartup() {
       }
       // Recompute scores to ensure rankings are correct after a restart
       await recomputePlayerScores(player);
-      
-      await updatePlayer(player.userId, player);
     }
     console.log(`[Startup] Recomputed ${recomputedCount} planets and all player scores.`);
   } catch (error) {

@@ -1,6 +1,6 @@
 // Shipyard view logic
 import { API } from '../api.js';
-import { formatNumber, formatCountdown, formatDuration, parseNumberShorthand } from '../utils.js';
+import { escapeHtml, formatNumber, formatCountdown, formatDuration, parseNumberShorthand } from '../utils.js';
 import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { isEmpty } from '../../../shared/utils.js';
@@ -124,7 +124,7 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
         console.error('Failed to load shipyard details:', error);
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const el = document.getElementById(containerId);
-        if (el) el.innerHTML = `<p class="error">Failed to load shipyard: ${error.message}</p>`;
+        if (el) el.innerHTML = `<p class="error">Failed to load shipyard: ${escapeHtml(error.message)}</p>`;
     }
 }
 

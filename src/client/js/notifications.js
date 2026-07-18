@@ -40,9 +40,10 @@ export const Notifications = {
         
         notification.innerHTML = `
             <span class="notification-icon">${icon}</span>
-            <span class="notification-message">${message}</span>
-            <span class="notification-close">&times;</span>
+            <span class="notification-message"></span>
+            <button type="button" class="notification-close" aria-label="Dismiss notification">&times;</button>
         `;
+        notification.querySelector('.notification-message').textContent = String(message);
 
         container.appendChild(notification);
 

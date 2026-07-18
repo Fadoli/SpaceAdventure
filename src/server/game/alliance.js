@@ -400,13 +400,16 @@ export async function getAllianceMessages(allianceId) {
  * Send a message to the alliance
  */
 export async function sendAllianceMessage(userId, allianceId, content) {
+  if (!content || content.trim().length === 0) {
+    throw new Error('Message content cannot be empty');
+  }
+  if (content.trim().length > 500) {
+    throw new Error('Message content cannot exceed 500 characters');
+  }
+
   const player = await getPlayerByUserId(userId);
   if (!player || player.allianceId !== allianceId) {
     throw new Error('Not authorized to send messages to this alliance');
-  }
-
-  if (!content || content.trim().length === 0) {
-    throw new Error('Message content cannot be empty');
   }
 
   const filename = `alliances/${allianceId}/messages.json`;

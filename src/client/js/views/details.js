@@ -3,6 +3,8 @@
  * Handles rendering of detailed information for buildings, research, ships, etc.
  */
 
+let returnFocus = null;
+
 /**
  * Render and show the details modal
  * @param {Object} data - The data to display
@@ -120,9 +122,17 @@ export function renderDetailsModal(data) {
     }
 
     modalBody.innerHTML = html;
-    modal.style.display = 'flex';
+    openDetailsModal();
+}
 
+export function openDetailsModal() {
+    const modal = document.getElementById('details-modal');
+    if (!modal) return;
+
+    if (modal.style.display !== 'flex') returnFocus = document.activeElement;
+    modal.style.display = 'flex';
     setupModalCloseHandlers(modal);
+    modal.querySelector('.modal-close')?.focus();
 }
 
 /**
@@ -135,10 +145,12 @@ export function closeDetailsModal() {
         // Clean up any dynamic footer
         const existingFooter = modal.querySelector('.modal-footer');
         if (existingFooter) existingFooter.remove();
+        returnFocus?.focus?.();
+        returnFocus = null;
     }
 }
 
-export function setupModalCloseHandlers(modal) {
+function setupModalCloseHandlers(modal) {
     // Click outside to close
     modal.onclick = (e) => {
         if (e.target === modal) {

@@ -111,7 +111,7 @@ describe('Fleet Durability and Integrity', () => {
     const now = Date.now();
     // Stress test: launch 20 small missions
     for (let i = 0; i < 20; i++) {
-      await sendFleet(PLAYER_ID, 'p1', [1, 1, i + 5], MISSION_TYPES.ESPIONAGE, { lightFighter: 1 });
+      await sendFleet(PLAYER_ID, 'p1', [1, i + 1, 5], MISSION_TYPES.ESPIONAGE, { lightFighter: 1 });
     }
     
     let player = await getPlayerByUserId(PLAYER_ID);

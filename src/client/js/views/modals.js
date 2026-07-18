@@ -2,7 +2,7 @@
  * Modal System for Confirmations and Inputs
  */
 
-let activeModalPromise = null;
+let cancelActiveModal = null;
 
 /**
  * Show a confirmation modal
@@ -42,6 +42,9 @@ export function showPrompt(title, body, defaultValue = '') {
  * Internal function to handle modal logic
  */
 function showInputModal(options) {
+    cancelActiveModal?.();
+    const previousFocus = document.activeElement;
+
     const modal = document.getElementById('input-modal');
     const titleEl = document.getElementById('input-modal-title');
     const bodyEl = document.getElementById('input-modal-body');
@@ -53,12 +56,12 @@ function showInputModal(options) {
     if (!modal) return Promise.resolve(null);
 
     titleEl.textContent = (options.title || 'Confirm Action').toUpperCase();
-    bodyEl.innerHTML = options.body || '';
+    bodyEl.textContent = options.body || '';
     
     if (options.showInput) {
         fieldContainer.style.display = 'block';
         field.value = options.defaultValue || '';
-        setTimeout(() => field.focus(), 50);
+        field.setAttribute('aria-label', options.title || 'Input');
     } else {
         fieldContainer.style.display = 'none';
     }
@@ -67,40 +70,40 @@ function showInputModal(options) {
     cancelBtn.textContent = options.cancelText || 'Cancel';
 
     modal.style.display = 'flex';
+    (options.showInput ? field : confirmBtn).focus();
 
     return new Promise((resolve) => {
-        const cleanup = () => {
+        const finish = (result) => {
             modal.style.display = 'none';
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             window.removeEventListener('keydown', handleEsc);
+            cancelActiveModal = null;
+            previousFocus?.focus?.();
+            resolve(result);
         };
 
         const handleEsc = (e) => {
             if (e.key === 'Escape') {
-                cleanup();
-                resolve(null);
+                cancelActiveModal();
             }
         };
 
+        cancelActiveModal = () => finish(options.showInput ? null : false);
+
         confirmBtn.onclick = () => {
             const result = options.showInput ? field.value : true;
-            cleanup();
-            resolve(result);
+            finish(result);
         };
 
-        cancelBtn.onclick = () => {
-            cleanup();
-            resolve(options.showInput ? null : false);
-        };
+        cancelBtn.onclick = cancelActiveModal;
 
         window.addEventListener('keydown', handleEsc);
         
         // Click outside
         modal.onclick = (e) => {
             if (e.target === modal) {
-                cleanup();
-                resolve(options.showInput ? null : false);
+                cancelActiveModal();
             }
         };
     });
@@ -110,10 +113,8 @@ function showInputModal(options) {
  * Close input modal (exposed globally)
  */
 export function closeInputModal() {
-    const modal = document.getElementById('input-modal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (cancelActiveModal) cancelActiveModal();
+    else document.getElementById('input-modal')?.style.setProperty('display', 'none');
 }
 
 // Expose globally

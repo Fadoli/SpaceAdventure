@@ -2,7 +2,7 @@
 import bcrypt from 'bcrypt';
 import { generateId } from '../../shared/utils.js';
 import { CONFIG } from '../../shared/constants.js';
-import { readJsonFile, writeJsonFile } from '../storage/storage.js';
+import { readJsonFile, writeJsonFile, updateJsonFile } from '../storage/storage.js';
 
 // In-memory session storage
 const sessions = new Map();
@@ -70,16 +70,10 @@ async function getUsers() {
 }
 
 /**
- * Save users to storage
- */
-async function saveUsers(users) {
-  return await writeJsonFile('users.json', { users });
-}
-
-/**
  * Find user by username
  */
 export async function findUserByUsername(username) {
+  if (typeof username !== 'string') return undefined;
   const users = await getUsers();
   return users.find(u => u.username.toLowerCase() === username.toLowerCase());
 }
@@ -97,17 +91,21 @@ export async function findUserById(userId) {
  */
 export async function registerUser(username, password, email = null) {
   // Validation
-  if (!username || username.length < 3 || username.length > 20) {
+  if (typeof username !== 'string' || username.length < 3 || username.length > 20) {
     throw new Error('Username must be 3-20 characters');
   }
   
   // Password is already hashed on client (SHA-256), so it's 64 hex chars
-  if (!password || password.length !== 64) {
+  if (typeof password !== 'string' || !/^[a-f0-9]{64}$/i.test(password)) {
     throw new Error('Invalid password format');
   }
   
   if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
     throw new Error('Username can only contain letters, numbers, underscores, and hyphens');
+  }
+
+  if (email != null && email !== '' && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    throw new Error('Invalid email address');
   }
   
   // Check if username exists
@@ -125,16 +123,21 @@ export async function registerUser(username, password, email = null) {
     id: generateId(),
     username,
     passwordHash,
-    email,
+    email: email || null,
     role: 'member',
     createdAt: Date.now(),
     lastLogin: Date.now()
   };
   
-  // Save to storage
-  const users = await getUsers();
-  users.push(user);
-  await saveUsers(users);
+  const saved = await updateJsonFile('users.json', data => {
+    const users = data?.users || [];
+    if (users.some(existing => existing.username.toLowerCase() === username.toLowerCase())) {
+      throw new Error('Username already exists');
+    }
+    users.push(user);
+    return { users };
+  });
+  if (!saved) throw new Error('Failed to save user');
   
   return {
     id: user.id,
@@ -147,6 +150,10 @@ export async function registerUser(username, password, email = null) {
  * Authenticate user
  */
 export async function authenticateUser(username, password) {
+  if (typeof username !== 'string' || typeof password !== 'string' || !/^[a-f0-9]{64}$/i.test(password)) {
+    throw new Error('Invalid credentials');
+  }
+
   const user = await findUserByUsername(username);
   
   if (!user) {
@@ -161,12 +168,13 @@ export async function authenticateUser(username, password) {
   
   // Update last login
   user.lastLogin = Date.now();
-  const users = await getUsers();
-  const index = users.findIndex(u => u.id === user.id);
-  if (index !== -1) {
-    users[index] = user;
-    await saveUsers(users);
-  }
+  const saved = await updateJsonFile('users.json', data => {
+    const users = data?.users || [];
+    const index = users.findIndex(u => u.id === user.id);
+    if (index !== -1) users[index] = user;
+    return { users };
+  });
+  if (!saved) throw new Error('Failed to update login');
   
   return {
     id: user.id,

@@ -14,9 +14,14 @@ export const API = {
             credentials: 'include'
         });
         
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            throw new Error(response.ok ? 'Invalid server response' : `Request failed (${response.status})`);
+        }
         
-        if (!data.success) {
+        if (!response.ok || !data.success) {
             throw new Error(data.error || 'Request failed');
         }
         

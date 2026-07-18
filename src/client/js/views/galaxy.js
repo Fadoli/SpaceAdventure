@@ -1,29 +1,17 @@
 import { API } from '../api.js';
-import { formatNumber, parseNumberShorthand, positionContextMenu } from '../utils.js';
+import { escapeHtml, formatNumber, parseNumberShorthand, positionContextMenu } from '../utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
 import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity, calculateShipSpeed } from '../../../shared/ships.js';
 import { calculateDistance, calculateTravelTime } from '../../../shared/formulas.js';
+import { openDetailsModal } from './details.js';
 
 let lastRenderedGalaxy = null;
 let lastRenderedSystem = null;
 let currentGameState = null;
 let currentGalaxy = null;
 let currentSystem = null;
-
-/**
- * Setup modal close handlers
- */
-function setupModalCloseHandlers(modal) {
-    const closeBtn = modal.querySelector('.close-button');
-    if (closeBtn) {
-        closeBtn.onclick = () => window.closeDetailsModal();
-    }
-    window.onclick = (event) => {
-        if (event.target === modal) window.closeDetailsModal();
-    };
-}
 
 /**
  * Open unified mission modal
@@ -240,8 +228,7 @@ async function openMissionModal(missionType, targetCoords) {
     </div>`;
 
     modalBody.innerHTML = html;
-    modal.style.display = 'flex';
-    setupModalCloseHandlers(modal);
+    openDetailsModal();
 
     // Attach listeners
     document.querySelectorAll('.exp-qty-input, #exp-stay-time').forEach(el => {
@@ -577,9 +564,8 @@ window.submitMission = async function(missionType, targetCoords) {
     }
 
     try {
-        const response = await fetch('/api/game/galaxy/mission', {
+        await API.request('/game/galaxy/mission', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 missionType,
                 targetCoords,
@@ -591,15 +577,9 @@ window.submitMission = async function(missionType, targetCoords) {
                 speedPercent
             })
         });
-
-        const result = await response.json();
-        if (result.success) {
-            Notifications.showSuccess(`${missionType.charAt(0).toUpperCase() + missionType.slice(1)} mission launched!`);
-            window.closeDetailsModal();
-            if (window.loadGameState) await window.loadGameState();
-        } else {
-            Notifications.showError(`Failed: ${result.error}`);
-        }
+        Notifications.showSuccess(`${missionType.charAt(0).toUpperCase() + missionType.slice(1)} mission launched!`);
+        window.closeDetailsModal();
+        if (window.loadGameState) await window.loadGameState();
     } catch (error) {
         Notifications.showError(`Error: ${error.message}`);
     }
@@ -628,22 +608,16 @@ window.colonizePlanetFromGalaxy = async function(position) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch('/api/game/galaxy/mission', {
+        const result = await API.request('/game/galaxy/mission', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 missionType: 'colonize',
                 targetCoords: coords,
-                ships: { colonyShip: 1 }
+                ships: { colonyShip: 1 },
+                originPlanetId: window.getCurrentPlanetId()
             })
         });
-
-        const result = await response.json();
-        if (result.success) {
-            Notifications.showSuccess(`Colony ship dispatched! Arrival in ${Math.round((result.data.arrivalTime - Date.now()) / 1000)}s`);
-        } else {
-            Notifications.showError(`Failed: ${result.error}`);
-        }
+        Notifications.showSuccess(`Colony ship dispatched! Arrival in ${Math.round((result.arrivalTime - Date.now()) / 1000)}s`);
     } catch (error) {
         Notifications.showError(`Error: ${error.message}`);
     }
@@ -701,7 +675,7 @@ window.planAttackFromGalaxy = async function(position) {
 window.navigateGalaxy = function(delta) {
     let val = (currentGalaxy || 1) + delta;
     if (val < 1) val = 1;
-    if (val > 9) val = 9;
+    if (val > 10) val = 10;
     window.navigateToCoords(val, currentSystem || 1);
 };
 
@@ -716,10 +690,11 @@ window.navigateToCoords = async function(galaxy, system, position = null) {
     const container = document.getElementById('galaxy-view');
     if (!container) return;
     
-    const g = parseInt(galaxy, 10);
-    const s = parseInt(system, 10);
+    const g = Number(galaxy);
+    const s = Number(system);
     
-    if (isNaN(g) || isNaN(s)) return;
+    if (!Number.isInteger(g) || g < 1 || g > 10 ||
+        !Number.isInteger(s) || s < 1 || s > 499) return;
 
     // Update module variables
     currentGalaxy = g;
@@ -787,7 +762,7 @@ async function loadAndRenderGalaxy(container, galaxy, system, gameState) {
         lastRenderedSystem = system;
     } catch (error) {
         console.error('Failed to load galaxy view:', error);
-        container.innerHTML = `<p class="error">Failed to load galaxy: ${error.message}</p>`;
+        container.innerHTML = `<p class="error">Failed to load galaxy: ${escapeHtml(error.message)}</p>`;
     }
 }
 
@@ -881,7 +856,7 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
     if (gInput) {
         gInput.addEventListener('change', () => {
             let val = parseInt(gInput.value) || 1;
-            val = Math.max(1, Math.min(9, val));
+            val = Math.max(1, Math.min(10, val));
             gInput.value = val;
             window.navigateToCoords(val, window.currentSystem);
         });
@@ -905,7 +880,7 @@ function renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system
 /**
  * Render a table row for an occupied planet
  */
-function renderOGameTableRow(planet, position, isPlayerPlanet) {
+export function renderOGameTableRow(planet, position, isPlayerPlanet) {
     const isGhost = planet.playerType === 'ghost';
     const moonBadge = planet.moon ? '<span class="moon-badge">🌙</span>' : '';
     const playerIcon = isGhost ? '👻' : (planet.playerType === 'player' ? '👨‍💼' : (planet.playerType === 'market' ? '🏛️' : '🤖'));
@@ -960,7 +935,7 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
                 <div class="planet-name-cell">
                     <div class="planet-icon-mini">${planet.playerType === 'market' ? '⚖️' : (isGhost ? '☄️' : '🌍')}</div>
                     <div class="planet-details">
-                        <div class="planet-name">${planet.planetName} ${ghostTierInfo}</div>
+                        <div class="planet-name">${escapeHtml(planet.planetName)} ${ghostTierInfo}</div>
                         <div class="planet-activity">Last: ${planet.activity}</div>
                     </div>
                     ${moonBadge}
@@ -969,9 +944,9 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
             <td class="debris-col">${debrisHtml}</td>
             <td class="player-col">
                 <div class="player-info ${planet.playerType !== 'market' && !isGhost ? 'clickable' : ''}" 
-                     onclick="${planet.playerType !== 'market' && !isGhost ? `window.openRelationMenu(event, '${planet.playerId}', '${planet.player}')` : ''}">
+                     ${planet.playerType !== 'market' && !isGhost ? `role="button" tabindex="0" data-player-id="${escapeHtml(planet.playerId)}" data-username="${escapeHtml(planet.player)}" onclick="window.openRelationMenu(event)" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.openRelationMenu(event); }"` : ''}>
                     ${playerIcon}
-                    <span>${planet.allianceTag ? `<span class="galaxy-alliance-tag">[${planet.allianceTag}] </span>` : ''}${planet.player}</span>
+                    <span>${planet.allianceTag ? `<span class="galaxy-alliance-tag">[${escapeHtml(planet.allianceTag)}] </span>` : ''}${escapeHtml(planet.player)}</span>
                     ${(relation !== 'none' && planet.playerType !== 'market' && !isGhost) ? `<span class="relation-tag">${relation.toUpperCase()}</span>` : ''}
                 </div>
             </td>
@@ -1001,9 +976,11 @@ function renderOGameTableRow(planet, position, isPlayerPlanet) {
     `;
 }
 
-window.openRelationMenu = function(event, targetUserId, username) {
+window.openRelationMenu = function(event) {
     event.preventDefault();
     event.stopPropagation();
+
+    const { playerId: targetUserId, username = 'UNKNOWN' } = event.currentTarget.dataset;
 
     // Close any existing menu
     const existing = document.getElementById('relation-context-menu');
@@ -1016,7 +993,7 @@ window.openRelationMenu = function(event, targetUserId, username) {
     menu.className = 'context-menu-scifi';
     
     menu.innerHTML = `
-        <div class="menu-header">INTELLIGENCE CLASSIFICATION: ${username.toUpperCase()}</div>
+        <div class="menu-header">INTELLIGENCE CLASSIFICATION: ${escapeHtml(username.toUpperCase())}</div>
         <button class="menu-item ${currentRelation === 'friend' ? 'active' : ''}" onclick="window.setPlayerRelation('${targetUserId}', 'friend')">
             <span class="indicator friend"></span> TAG AS FRIEND
         </button>
@@ -1172,9 +1149,8 @@ window.quickHarvestDebris = async function(position, harvestersNeeded) {
     }
 
     try {
-        const response = await fetch('/api/game/galaxy/mission', {
+        await API.request('/game/galaxy/mission', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 missionType: MISSION_TYPES.HARVEST,
                 targetCoords,
@@ -1182,16 +1158,10 @@ window.quickHarvestDebris = async function(position, harvestersNeeded) {
                 originPlanetId: planetId
             })
         });
-
-        const result = await response.json();
-        if (result.success) {
-            Notifications.showSuccess(`Simple Recovery initiated: ${toSend}x Harvester dispatched.`);
-            const menu = document.getElementById('debris-context-menu');
-            if (menu) menu.remove();
-            if (window.loadGameState) await window.loadGameState();
-        } else {
-            Notifications.showError(`Protocol failure: ${result.error}`);
-        }
+        Notifications.showSuccess(`Simple Recovery initiated: ${toSend}x Harvester dispatched.`);
+        const menu = document.getElementById('debris-context-menu');
+        if (menu) menu.remove();
+        if (window.loadGameState) await window.loadGameState();
     } catch (error) {
         Notifications.showError(`System error: ${error.message}`);
     }

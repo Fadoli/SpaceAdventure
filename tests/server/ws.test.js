@@ -93,6 +93,8 @@ describe('WebSocket Manager', () => {
       upgrade: mock(() => true)
     };
 
+    beforeEach(() => mockServer.upgrade.mockClear());
+
     it('should reject non-/ws paths', async () => {
       const req = new Request('http://localhost/api/test');
       const result = await wsManager.handleUpgrade(req, mockServer);
@@ -112,6 +114,19 @@ describe('WebSocket Manager', () => {
       });
       const result = await wsManager.handleUpgrade(req, mockServer);
       expect(result.status).toBe(401);
+    });
+
+    it('should reject cross-origin browser upgrades', async () => {
+      const req = new Request('http://localhost/ws', {
+        headers: {
+          'cookie': 'session=valid-token',
+          'origin': 'https://evil.example'
+        }
+      });
+      const result = await wsManager.handleUpgrade(req, mockServer);
+
+      expect(result.status).toBe(403);
+      expect(mockServer.upgrade).not.toHaveBeenCalled();
     });
 
     it('should approve valid session token and return undefined', async () => {

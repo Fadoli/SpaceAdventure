@@ -60,6 +60,28 @@ describe('Rankings System', () => {
       const rank = await getRankings(0, 10, {}, 'economy');
       expect(rank.rankings[0].username).toBe('Eco1');
     });
+
+    it('bounds invalid pagination values', async () => {
+      await createPlayer('u1', 'Player1');
+
+      const rank = await getRankings(-10, 10_000);
+
+      expect(rank.offset).toBe(0);
+      expect(rank.limit).toBe(100);
+      expect(rank.rankings).toHaveLength(1);
+    });
+
+    it('falls back to total for invalid categories', async () => {
+      await createPlayer('u1', 'Player1');
+      mockStorage['rankings_history.json'] = {
+        snapshots: [{ timestamp: Date.now(), rankings: { total: [] } }]
+      };
+
+      const rank = await getRankings(0, 10, {}, '__proto__');
+
+      expect(rank.category).toBe('total');
+      expect(rank.rankings).toHaveLength(1);
+    });
   });
 
   describe('Historical Changes', () => {

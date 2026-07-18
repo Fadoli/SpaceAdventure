@@ -148,7 +148,23 @@ describe('Fleet Management', () => {
         [1, 1, 2],
         MISSION_TYPES.ATTACK,
         { lightFighter: 0 }
-      )).rejects.toThrow('No ships selected');
+      )).rejects.toThrow('ships quantity must be a positive integer');
+    });
+
+    it('rejects malformed payloads before changing the origin planet', async () => {
+      const origin = mockPlayer.planets[0];
+      const before = structuredClone(origin);
+
+      await expect(sendFleet('user1', 'p1', [1, 1, 2], MISSION_TYPES.ATTACK, { lightFighter: 1.5 }))
+        .rejects.toThrow('ships quantity must be a positive integer');
+      await expect(sendFleet('user1', 'p1', [1, 1, 2], MISSION_TYPES.TRANSPORT, { lightFighter: 1 }, { metal: -1 }))
+        .rejects.toThrow('resources quantity must be a positive integer');
+      await expect(sendFleet('user1', 'p1', [1, 1, 2], MISSION_TYPES.ATTACK, JSON.parse('{"__proto__":1}')))
+        .rejects.toThrow('Unknown ships');
+      await expect(sendFleet('user1', 'p1', [1, 500, 2], MISSION_TYPES.ATTACK, { lightFighter: 1 }))
+        .rejects.toThrow('Invalid target coordinates');
+
+      expect(origin).toEqual(before);
     });
   });
 
@@ -201,6 +217,32 @@ describe('Fleet Management', () => {
       expect(mockPlayer.fleets.length).toBe(1);
       expect(mockPlayer.fleets[0].returning).toBe(true);
       expect(mockPlayer.fleets[0].arrivalTime).toBeGreaterThan(now);
+    });
+
+    it('preserves historical timing during catch-up', async () => {
+      const now = Date.now();
+      const fleet = {
+        id: 'f-catch-up',
+        ownerId: 'user1',
+        originCoords: [1, 1, 1],
+        targetCoords: [1, 1, 2],
+        missionType: MISSION_TYPES.ATTACK,
+        ships: { lightFighter: 5 },
+        resources: {},
+        startTime: now - 86_410_000,
+        arrivalTime: now - 86_400_000,
+        returning: false
+      };
+      mockPlayer.fleets = [fleet];
+
+      await processFleets(mockPlayer, [mockPlayer], now, true);
+
+      expect(fleet.startTime).toBe(now - 86_400_000);
+      expect(fleet.arrivalTime).toBeLessThan(now);
+
+      await processFleets(mockPlayer, [mockPlayer], now, true);
+      await processFleets(mockPlayer, [mockPlayer], now, true);
+      expect(mockPlayer.fleets).toHaveLength(0);
     });
 
     it('should process colonization success', async () => {
