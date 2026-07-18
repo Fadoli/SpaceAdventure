@@ -61,19 +61,19 @@
 ### Phase 3: Combat System (Weeks 5-6)
 
 #### Week 5: Combat Engine
-- [ ] Combat calculation algorithm
-- [ ] Rapid fire mechanics
-- [ ] Shield/armor/weapon interactions
-- [ ] Debris field generation
-- [ ] Combat simulator testing
+- [x] Combat calculation algorithm
+- [x] Rapid fire mechanics
+- [x] Shield/armor/weapon interactions
+- [x] Debris field generation
+- [x] Combat simulator testing
 
 #### Week 6: Combat Integration
-- [ ] Fleet missions (attack, transport)
-- [ ] Fleet movement system
-- [ ] Combat reports
-- [ ] Loot calculation
-- [ ] Defense structures
-- [ ] Combat UI
+- [x] Fleet missions (attack, transport)
+- [x] Fleet movement system
+- [x] Combat reports
+- [x] Loot calculation
+- [x] Defense structures
+- [x] Combat UI
 
 **Deliverable**: Complete combat system with fleet missions
 
@@ -103,20 +103,20 @@
 ### Phase 5: Galaxy & Expansion (Weeks 9-10)
 
 #### Week 9: Galaxy System
-- [ ] Galaxy/system/position coordinates
-- [ ] Galaxy view UI
-- [ ] Planet distribution
-- [ ] AI planet placement
-- [ ] Espionage system
-- [ ] Intelligence gathering
+- [x] Galaxy/system/position coordinates
+- [x] Galaxy view UI
+- [x] Planet distribution
+- [x] AI planet placement
+- [x] Espionage system
+- [x] Intelligence gathering
 
 #### Week 10: Colonization
-- [ ] Colony ships
-- [ ] Planet colonization
-- [ ] Multi-planet management
-- [ ] Resource distribution between planets
-- [ ] Astrophysics research
-- [ ] Colony UI
+- [x] Colony ships
+- [x] Planet colonization
+- [x] Multi-planet management
+- [x] Resource distribution between planets
+- [x] Astrophysics research
+- [x] Colony UI
 
 **Deliverable**: Full galaxy with colonization system
 
@@ -302,6 +302,12 @@
 ---
 
 ## Current Status
+
+**Project state (July 18, 2026)**: Core gameplay systems are implemented, including combat, galaxy exploration, colonization, fleet missions, combat reports, and espionage.
+
+**Next steps**: Continue balance, cross-browser, and mobile testing; then prioritize the remaining AI and production-readiness work.
+
+### Historical Roadmap Snapshot (superseded)
 
 **Phase**: 1 - Foundation & MVP
 **Status**: Documentation Complete ✓
