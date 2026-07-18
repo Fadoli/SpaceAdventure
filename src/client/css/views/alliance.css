@@ -152,6 +152,16 @@
 .plan-card.gathering { border-color: rgba(56, 189, 248, 0.3); }
 .plan-card.launched { border-color: rgba(244, 63, 94, 0.3); opacity: 0.8; }
 
+/* The launch action uses the shared 50px icon button. */
+.plan-card .design-btn {
+    font-size: 0 !important;
+}
+
+.plan-card .design-btn::after {
+    content: '\1F680';
+    font-size: 1.2rem;
+}
+
 .status-badge-technical {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.65rem;
