@@ -46,11 +46,19 @@ async function openMissionModal(missionType, targetCoords) {
     const modal = document.getElementById('details-modal');
     const modalTitle = document.getElementById('details-modal-title');
     const modalBody = document.getElementById('details-modal-body');
+    modal?.classList.add('mission-modal');
 
     const typeLabel = missionType === MISSION_TYPES.MARKET_TRADE ? 'Commodity Exchange' : (missionType.charAt(0).toUpperCase() + missionType.slice(1));
     modalTitle.innerHTML = `🚀 ${typeLabel} Mission [${targetCoords.join(':')}]`;
     
     let html = '<div class="expedition-ship-selection">';
+    html += `
+        <div class="mission-stepper" aria-label="Mission setup steps">
+            <div class="mission-step active" data-step="1"><span>01</span> FLEET COMPOSITION</div>
+            <div class="mission-step" data-step="2"><span>02</span> ROUTE &amp; DURATION</div>
+        </div>
+        <div class="mission-phase" id="mission-phase-1" data-phase="1">
+    `;
     
     // --- Ship Selection Section ---
     html += '<div class="mission-section">';
@@ -106,15 +114,6 @@ async function openMissionModal(missionType, targetCoords) {
         html += '</section>';
     }
     html += '</div></div>';
-
-    // --- Cargo Capacity Status (Universal) ---
-    if (missionType !== MISSION_TYPES.ESPIONAGE) {
-        html += `
-            <div class="mission-section cargo-summary-section" style="margin-top: 10px; padding: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 4px;">
-                <div id="cargo-status" style="font-weight: bold; color: var(--accent-blue); font-family: 'Share Tech Mono', monospace;">CARGO CAPACITY: 0 / 0</div>
-            </div>
-        `;
-    }
 
     // --- Market Trade Section ---
     if (missionType === MISSION_TYPES.MARKET_TRADE) {
@@ -197,6 +196,17 @@ async function openMissionModal(missionType, targetCoords) {
         html += '</div></div>';
     }
 
+    // Keep cargo validation with composition so users can confirm capacity before continuing.
+    if (missionType !== MISSION_TYPES.ESPIONAGE) {
+        html += `
+            <div class="mission-section cargo-summary-section" style="margin-top: 15px; padding: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 4px;">
+                <div id="cargo-status" style="font-weight: bold; color: var(--accent-blue); font-family: 'Share Tech Mono', monospace;">CARGO CAPACITY: 0 / 0</div>
+            </div>
+        `;
+    }
+
+    html += '</div><div class="mission-phase" id="mission-phase-2" data-phase="2" hidden>';
+
     // --- Fleet Speed Section ---
     html += `
         <div class="mission-section fleet-speed-selector" style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px;">
@@ -236,11 +246,15 @@ async function openMissionModal(missionType, targetCoords) {
         </div>
     `;
 
+    html += '</div>';
+
     // --- Footer ---
     html += `
         <div class="modal-footer" style="margin-top: 20px;">
             <button class="btn btn-secondary" onclick="window.closeDetailsModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="window.submitMission('${missionType}', [${targetCoords.join(',')}])">Launch Fleet</button>
+            <button id="mission-back-btn" class="btn btn-secondary" onclick="window.setMissionPhase(1)" hidden>Back</button>
+            <button id="mission-next-btn" class="btn btn-primary" onclick="window.advanceMissionPhase()">Continue</button>
+            <button id="mission-launch-btn" class="btn btn-primary" onclick="window.submitMission('${missionType}', [${targetCoords.join(',')}])" hidden>Launch Fleet</button>
         </div>
     </div>`;
 
@@ -255,6 +269,38 @@ async function openMissionModal(missionType, targetCoords) {
     // Update initial view
     window.updateMissionCalculations();
 }
+
+window.setMissionPhase = function(phase) {
+    const phaseOne = document.getElementById('mission-phase-1');
+    const phaseTwo = document.getElementById('mission-phase-2');
+    const nextButton = document.getElementById('mission-next-btn');
+    const backButton = document.getElementById('mission-back-btn');
+    const launchButton = document.getElementById('mission-launch-btn');
+    if (!phaseOne || !phaseTwo) return;
+
+    const isFirstPhase = phase === 1;
+    phaseOne.hidden = !isFirstPhase;
+    phaseTwo.hidden = isFirstPhase;
+    if (nextButton) nextButton.hidden = !isFirstPhase;
+    if (backButton) backButton.hidden = isFirstPhase;
+    if (launchButton) launchButton.hidden = isFirstPhase;
+
+    document.querySelectorAll('.mission-step').forEach(step => {
+        step.classList.toggle('active', Number(step.dataset.step) === phase);
+        step.classList.toggle('complete', Number(step.dataset.step) < phase);
+    });
+    window.updateMissionCalculations();
+};
+
+window.advanceMissionPhase = function() {
+    const hasShips = Array.from(document.querySelectorAll('.ship-qty-input'))
+        .some(input => parseNumberShorthand(input.value) > 0);
+    if (!hasShips) {
+        Notifications.showError('Select at least one ship before continuing');
+        return;
+    }
+    window.setMissionPhase(2);
+};
 
 /**
  * Shared calculation logic for mission modal
@@ -394,7 +440,7 @@ window.updateMissionCalculations = function() {
     }
     
     // Update launch button state
-    const launchBtn = document.querySelector('.modal-footer .btn-primary');
+    const launchBtn = document.getElementById('mission-launch-btn');
     if (launchBtn) {
         let disabled = totalTransported > totalCargoCapacity || totalShips === 0;
         if (isMarket) {

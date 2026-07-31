@@ -34,6 +34,16 @@
     animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.mission-modal .modal-content {
+    width: min(1180px, 96vw);
+    max-width: 1180px;
+    max-height: 92vh;
+}
+
+.mission-modal .modal-body {
+    padding: 30px 34px;
+}
+
 .modal-small {
     max-width: 450px;
 }

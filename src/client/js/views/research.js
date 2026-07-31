@@ -1136,19 +1136,21 @@ window.showResearchHistory = async function (baseType) {
                 }
             }
             const allocationStr = allocationParts.join(', ');
+            const resultType = run.type === 'breakthrough' ? 'BREAKTHROUGH' : (run.type === 'failure' ? 'FAILURE' : 'SUCCESS');
+            const resultColor = run.type === 'breakthrough' ? 'var(--accent-green)' : (run.type === 'failure' ? 'var(--accent-red)' : 'white');
             
             return [
-                `<span style="color: ${run.type === 'breakthrough' ? 'var(--accent-green)' : (run.type === 'failure' ? 'var(--accent-red)' : 'white')}">${run.type.toUpperCase()}</span>`,
-                `+${run.xpGain} XP`,
-                allocationStr,
-                date
+                `<span style="color: ${resultColor}">${resultType}</span>`,
+                `+${escapeHtml(String(run.xpGain))} XP`,
+                escapeHtml(allocationStr),
+                escapeHtml(date)
             ];
         });
 
         renderDetailsModal({
             title: `🧪 Experiment History: ${baseType}`,
             description: 'Review the outcomes of your previous research runs in this tree.',
-            table: { headers, rows }
+            table: { headers, rows, allowHtml: true }
         });
     } catch (e) {
         Notifications.showError('Failed to fetch history: ' + e.message);

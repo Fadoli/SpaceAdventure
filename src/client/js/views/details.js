@@ -29,6 +29,7 @@ export function renderDetailsModal(data) {
 
     const modalTitle = document.getElementById('details-modal-title');
     const modalBody = document.getElementById('details-modal-body');
+    modal.classList?.remove('mission-modal');
 
     // Set Title
     modalTitle.textContent = data.title;
@@ -145,6 +146,7 @@ export function closeDetailsModal() {
     const modal = document.getElementById('details-modal');
     if (modal) {
         modal.style.display = 'none';
+        modal.classList?.remove('mission-modal');
         // Clean up any dynamic footer
         const existingFooter = modal.querySelector('.modal-footer');
         if (existingFooter) existingFooter.remove();

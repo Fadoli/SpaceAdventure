@@ -19,11 +19,13 @@ it('escapes dynamic errors written through HTML sinks', async () => {
 it('keeps the details modal text-safe', async () => {
   const source = await readFile(new URL('../../src/client/js/views/details.js', import.meta.url), 'utf8');
   const buildingsSource = await readFile(new URL('../../src/client/js/views/buildings.js', import.meta.url), 'utf8');
+  const researchSource = await readFile(new URL('../../src/client/js/views/research.js', import.meta.url), 'utf8');
   expect(source).toContain('modalTitle.textContent = data.title');
   expect(source).toContain('escapeHtml(data.detailedDescription || data.description)');
   expect(source).toContain('data.table.allowHtml ? cell : escapeHtml(cell)');
   expect(buildingsSource).toContain('modalTitle.textContent = `Design Options: ${building.name}`');
   expect(buildingsSource).toContain('allowHtml: true');
+  expect(researchSource).toContain('table: { headers, rows, allowHtml: true }');
 });
 
 it('escapes renamed planets in shell and overview renders', async () => {
