@@ -58,6 +58,10 @@ function calculateShipyardStateHash(shipyardData, planet, subView) {
 
 let lastContentHash = null;
 
+function getActiveShipyardContainer() {
+    return document.querySelector('#defenses-view.active, #shipyard-view.active') || document;
+}
+
 /**
  * Update shipyard view with planet data
  */
@@ -242,8 +246,8 @@ function renderShipsList(planet, shipyardData) {
         const isCollapsed = collapsedSections[`ships-${category}`] || false;
         const isLocked = shipyardLevel < data.minLevel;
         
-        html += `<div class="shipyard-section">
-            <div class="category-header-technical" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('ships-${category}')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('ships-${category}'); }" style="cursor: pointer; margin-bottom: 15px;">
+        html += `<div class="shipyard-section" data-category-section="ships-${category}">
+            <div class="category-header-technical" data-category-toggle="ships-${category}" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('ships-${category}')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('ships-${category}'); }" style="cursor: pointer; margin-bottom: 15px;">
                 <h3>${data.label.toUpperCase()} DIVISION</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <span class="category-stats-tag">${shipCount} UNIT MODELS AVAILABLE</span>
@@ -252,14 +256,12 @@ function renderShipsList(planet, shipyardData) {
                 </div>
             </div>`;
         
-        if (!isCollapsed) {
-            html += '<div class="ships-grid">';
-            for (const shipKey in data.ships) {
-                const baseShip = data.ships[shipKey];
-                html += renderShipCard(planet, shipKey, baseShip, shipyardLevel, isLocked);
-            }
-            html += '</div>';
+        html += `<div class="ships-grid" data-category-content="ships-${category}"${isCollapsed ? ' hidden' : ''}>`;
+        for (const shipKey in data.ships) {
+            const baseShip = data.ships[shipKey];
+            html += renderShipCard(planet, shipKey, baseShip, shipyardLevel, isLocked);
         }
+        html += '</div>';
         
         html += '</div>';
     }
@@ -368,8 +370,8 @@ function renderDefensesList(planet, shipyardData) {
     const isLocked = shipyardLevel < minLevel;
     const defenseCount = Object.keys(availableDefenses).length;
     
-    let html = '<div class="shipyard-section">';
-    html += `<div class="category-header-technical" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('defenses')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('defenses'); }" style="cursor: pointer; margin-bottom: 15px;">
+    let html = '<div class="shipyard-section" data-category-section="defenses">';
+    html += `<div class="category-header-technical" data-category-toggle="defenses" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('defenses')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('defenses'); }" style="cursor: pointer; margin-bottom: 15px;">
         <h3>🛡️ PLANETARY DEFENSE NETWORK</h3>
         <div style="display: flex; gap: 10px; align-items: center;">
             <span class="category-stats-tag">${defenseCount} DEFENSE MODELS AVAILABLE</span>
@@ -378,8 +380,7 @@ function renderDefensesList(planet, shipyardData) {
         </div>
     </div>`;
     
-    if (!isCollapsed) {
-        html += '<div class="defenses-grid">';
+    html += `<div class="defenses-grid" data-category-content="defenses"${isCollapsed ? ' hidden' : ''}>`;
         
         for (const defenseKey in availableDefenses) {
             const defense = availableDefenses[defenseKey];
@@ -446,8 +447,7 @@ function renderDefensesList(planet, shipyardData) {
             `;
         }
         
-        html += '</div>';
-    }
+    html += '</div>';
     
     html += '</div>';
     return html;
@@ -469,18 +469,17 @@ function renderBuildQueue(shipyardData) {
     
     let html = '<div class="shipyard-section" style="margin-bottom: 30px;">';
     html += '<div class="card-corner-top"></div>';
-    html += `<div class="queue-header" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('queue')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('queue'); }" style="background: rgba(251, 191, 36, 0.03); border-bottom: 1px solid rgba(251, 191, 36, 0.1);">
+    html += `<div class="queue-header" data-category-toggle="queue" role="button" tabindex="0" aria-expanded="${!isCollapsed}" onclick="window.toggleCategory('queue')" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleCategory('queue'); }" style="background: rgba(251, 191, 36, 0.03); border-bottom: 1px solid rgba(251, 191, 36, 0.1);">
         <h3 style="color: var(--accent-yellow);">🔨 PRODUCTION LOG</h3>
         <span class="toggle-icon" style="color: var(--accent-yellow);">${isCollapsed ? '▶️' : '▼️'}</span>
     </div>`;
     
-    if (!isCollapsed) {
-        html += '<div class="queue-items">';
+    html += `<div class="queue-items" data-category-content="queue"${isCollapsed ? ' hidden' : ''}>`;
         
         for (const item of allQueue) {
             const isActive = item.queuePosition === 1;
             const queueType = item.defenses ? 'defenses' : 'ships';
-            const timeRemaining = Math.max(0, item.timeRemaining || 0) / 1000; // Convert to seconds
+            const timeRemaining = Math.max(0, item.timeRemaining ?? (item.finishTime - Date.now())) / 1000; // Convert to seconds
             
             const posLabel = isActive ? 'ACTIVE' : `#${item.queuePosition}`;
 
@@ -520,11 +519,33 @@ function renderBuildQueue(shipyardData) {
             `;
         }
         
-        html += '</div>';
-    }
+    html += '</div>';
     
     html += '</div>';
     return html;
+}
+
+function refreshRenderedQueue() {
+    const queueContainer = getActiveShipyardContainer().querySelector('.shipyard-queue-container');
+    if (queueContainer && currentShipyardData) {
+        queueContainer.innerHTML = renderBuildQueue(currentShipyardData);
+    }
+}
+
+function appendQueueItem(type, item) {
+    if (!item || !currentShipyardData) return;
+    const queueKey = type === 'defenses' ? 'defenseQueue' : 'shipQueue';
+    currentShipyardData[queueKey] = [...(currentShipyardData[queueKey] || []), item];
+    refreshRenderedQueue();
+    lastContentHash = calculateContentHash(currentShipyardData);
+}
+
+function removeQueueItem(queueId, type) {
+    if (!currentShipyardData) return;
+    const queueKey = type === 'defenses' ? 'defenseQueue' : 'shipQueue';
+    currentShipyardData[queueKey] = (currentShipyardData[queueKey] || []).filter(item => item.id !== queueId);
+    refreshRenderedQueue();
+    lastContentHash = calculateContentHash(currentShipyardData);
 }
 
 /**
@@ -542,6 +563,7 @@ function attachShipyardListeners(planet, shipyardData) {
         try {
             const response = await API.buildShips(planetId, { [shipKey]: qty });
             Notifications.showSuccess(`${formatNumber(qty)}x ${shipName} added to build queue`);
+            appendQueueItem('ships', response);
             input.value = ''; // Clear field
         } catch (error) {
             Notifications.showError(`Failed to build ship: ${error.message}`);
@@ -559,6 +581,7 @@ function attachShipyardListeners(planet, shipyardData) {
         try {
             const response = await API.buildDefenses(planetId, { [defenseKey]: qty });
             Notifications.showSuccess(`${formatNumber(qty)}x ${defenseName} added to build queue`);
+            appendQueueItem('defenses', response);
             input.value = ''; // Clear field
         } catch (error) {
             Notifications.showError(`Failed to build defense: ${error.message}`);
@@ -574,6 +597,7 @@ function attachShipyardListeners(planet, shipyardData) {
 
         try {
             const response = await API.cancelShipyardProduction(planetId, queueId, type);
+            removeQueueItem(queueId, type);
         } catch (error) {
             Notifications.showError(`Failed to cancel build: ${error.message}`);
         }
@@ -581,19 +605,24 @@ function attachShipyardListeners(planet, shipyardData) {
     
     window.toggleCategory = function(categoryId) {
         collapsedSections[categoryId] = !collapsedSections[categoryId];
-        lastContentHash = null; // Force content re-render
-        
-        // Find current subview based on DOM visibility
+        const activeContainer = getActiveShipyardContainer();
+        const content = activeContainer.querySelector(`[data-category-content="${categoryId}"]`);
+        const header = activeContainer.querySelector(`[data-category-toggle="${categoryId}"]`);
+        if (content && header) {
+            content.hidden = collapsedSections[categoryId];
+            header.setAttribute('aria-expanded', String(!collapsedSections[categoryId]));
+            const icon = header.querySelector('.toggle-icon');
+            if (icon) icon.textContent = collapsedSections[categoryId] ? '▶️' : '▼️';
+            return;
+        }
+
+        // Fallback for an empty queue or a view rendered before category metadata exists.
         const isDefenses = !!document.getElementById('defenses-view')?.classList.contains('active');
         const subView = isDefenses ? 'defenses' : 'ships';
-        
         const planetId = getCurrentPlanetId();
         const gameState = window.getGameState();
         const currentPlanet = gameState?.planets.find(p => p.id === planetId);
-        
-        if (currentPlanet) {
-            updateShipyardView(currentPlanet, subView);
-        }
+        if (currentPlanet) updateShipyardView(currentPlanet, subView);
     };
 
     // Add input listeners for real-time cost updates

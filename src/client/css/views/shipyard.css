@@ -41,6 +41,10 @@
     padding: 12px;
 }
 
+.shipyard-container [data-category-content][hidden] {
+    display: none !important;
+}
+
 .shipyard-container .research-card {
     min-height: 260px; /* Reduced from 320px for a more compact feel */
 }

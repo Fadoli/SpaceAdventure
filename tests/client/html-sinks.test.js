@@ -49,3 +49,11 @@ it('opens detail cards without separate info buttons', async () => {
   expect(sources[2]).toContain('onclick="window.showShipDetails');
   expect(sources[2]).toContain('onclick="window.showDefenseDetails');
 });
+
+it('updates shipyard folds and queue mutations without polling', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  expect(source).toContain('data-category-content="queue"');
+  expect(source).toContain('content.hidden = collapsedSections[categoryId]');
+  expect(source).toContain("appendQueueItem('ships', response)");
+  expect(source).toContain("appendQueueItem('defenses', response)");
+});
