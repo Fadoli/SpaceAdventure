@@ -117,15 +117,6 @@ export async function startGameLoop() {
     }
   }, CONFIG.GAME_TICK_INTERVAL);
 
-  // Register shutdown handlers
-  const shutdown = async () => {
-    console.log('\n[GameLoop] SHUTDOWN SIGNAL RECEIVED.');
-    await stopGameLoop();
-    // process.exit(0); // Let Bun exit naturally or handle it via stopGameLoop
-  };
-
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
 }
 
 /**
@@ -147,18 +138,28 @@ async function performCatchUp(startTime, targetTime) {
  * Stop the game loop
  */
 export async function stopGameLoop() {
+  const wasRunning = Boolean(gameLoopInterval);
   if (gameLoopInterval) {
     clearInterval(gameLoopInterval);
     gameLoopInterval = null;
-    
-    // Final persistence of dirty data and heartbeat
-    await flushDirtyPlayers();
-    await flushGalaxyData();
-    await flushDirtyMessages();
-    await saveServerState(lastProcessedTick);
-    
-    console.log('Game loop stopped and data persisted.');
   }
+
+  // Always flush, including shutdown during startup before the interval exists.
+  // Try each store even when a sibling write fails.
+  const flushResults = await Promise.allSettled([
+    flushDirtyPlayers(),
+    flushGalaxyData(),
+    flushDirtyMessages()
+  ]);
+  await saveServerState(lastProcessedTick);
+
+  for (const result of flushResults) {
+    if (result.status === 'rejected') {
+      console.error('[GameLoop] Shutdown persistence failed:', result.reason);
+    }
+  }
+
+  if (wasRunning) console.log('Game loop stopped and data persisted.');
 }
 
 /**

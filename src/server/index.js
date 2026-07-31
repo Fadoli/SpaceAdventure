@@ -60,7 +60,7 @@ import {
   getAvailablePracticalResearchForPlayer,
   getResearchHistory
 } from './game/researchLogic.js';
-import { startGameLoop } from './game/gameLoop.js';
+import { startGameLoop, stopGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
 import { getTheoreticalResearch, getResearchBonus } from '../shared/research.js';
 import { SHIPS, calculateShipSpeed, getEffectiveDriveType } from '../shared/ships.js';
@@ -2153,6 +2153,30 @@ const server = Bun.serve({
 });
 
 console.log(`🚀 Space Adventure server running on http://localhost:${PORT}`);
+
+let shutdownPromise = null;
+const shutdown = (signal) => {
+  if (shutdownPromise) return shutdownPromise;
+
+  shutdownPromise = (async () => {
+    console.log(`\n[Server] ${signal} received; saving state before shutdown...`);
+    serverReady = false;
+    try {
+      await stopGameLoop();
+    } catch (error) {
+      console.error('[Server] Graceful shutdown failed:', error);
+      process.exitCode = 1;
+    } finally {
+      server.stop(true);
+      console.log('[Server] State save attempted; server stopped cleanly.');
+    }
+  })();
+
+  return shutdownPromise;
+};
+
+process.once('SIGINT', () => { void shutdown('SIGINT'); });
+process.once('SIGTERM', () => { void shutdown('SIGTERM'); });
 
 // Finish game initialization while static UI remains available.
 const aiMetadata = await getAiMetadata();
