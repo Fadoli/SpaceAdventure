@@ -54,31 +54,47 @@ async function openMissionModal(missionType, targetCoords) {
     
     // --- Ship Selection Section ---
     html += '<div class="mission-section">';
-    html += '<h4>🚢 Select Ships</h4>';
+    html += '<div class="mission-section-heading"><h4>🚢 Select Ships</h4><span class="mission-section-hint">Support vessels first</span></div>';
     html += '<div class="expedition-ships-list">';
-    
-    for (const shipKey in planet.ships) {
-        const count = planet.ships[shipKey];
-        if (count > 0) {
-            // FILTER: If spying, ONLY show espionage probes
-            if (missionType === MISSION_TYPES.ESPIONAGE && shipKey !== 'espionageProbe') {
-                continue;
-            }
 
+    const supportOrder = ['espionageProbe', 'smallCargo', 'largeCargo', 'recycler'];
+    const availableShips = Object.entries(planet.ships)
+        .filter(([, count]) => count > 0)
+        .filter(([shipKey]) => missionType !== MISSION_TYPES.ESPIONAGE || shipKey === 'espionageProbe')
+        .sort(([a], [b]) => {
+            const aSupport = !SHIPS[a] || SHIPS[a].type !== 'military';
+            const bSupport = !SHIPS[b] || SHIPS[b].type !== 'military';
+            if (aSupport !== bSupport) return aSupport ? -1 : 1;
+            const aOrder = supportOrder.indexOf(a);
+            const bOrder = supportOrder.indexOf(b);
+            if (aOrder !== -1 || bOrder !== -1) return (aOrder === -1 ? 99 : aOrder) - (bOrder === -1 ? 99 : bOrder);
+            return (SHIPS[a]?.name || a).localeCompare(SHIPS[b]?.name || b);
+        });
+
+    const shipGroups = [
+        { key: 'support', label: 'Support & Utility Vessels', note: 'Cargo, scouting, recovery' },
+        { key: 'combat', label: 'Combat Vessels', note: 'Escort and firepower' }
+    ];
+
+    for (const group of shipGroups) {
+        const groupShips = availableShips.filter(([shipKey]) => (group.key === 'combat') === (SHIPS[shipKey]?.type === 'military'));
+        if (groupShips.length === 0) continue;
+
+        html += `<section class="expedition-ship-group" data-group="${group.key}">
+            <div class="expedition-group-heading"><span>${group.label}</span><small>${group.note} · ${groupShips.length} type${groupShips.length === 1 ? '' : 's'}</small></div>`;
+
+        for (const [shipKey, count] of groupShips) {
             const shipName = SHIPS[shipKey]?.name || shipKey.replace(/([A-Z])/g, ' $1').trim();
-            // Pre-selection logic
             let initialValue = 0;
             if (missionType === MISSION_TYPES.HARVEST && shipKey === 'recycler') {
                 initialValue = Math.min(count, 1);
             } else if (missionType === MISSION_TYPES.ESPIONAGE && shipKey === 'espionageProbe') {
                 initialValue = Math.min(count, 1);
-            } else if (missionType === MISSION_TYPES.MARKET_TRADE && (shipKey === 'smallCargo' || shipKey === 'largeCargo')) {
-                initialValue = 0; // User will select
             }
-            
+
             html += `
                 <div class="expedition-ship-item dense">
-                    <span class="ship-name">${shipName}</span>
+                    <div class="ship-name-wrap"><span class="ship-name">${shipName}</span><span class="ship-role">${group.key === 'combat' ? 'COMBAT' : 'SUPPORT'}</span></div>
                     <span class="ship-available">Avail: ${formatNumber(count)}</span>
                     <div class="ship-input">
                         <input type="text" pattern="[0-9kmKMB tqTQ.]*" class="exp-qty-input ship-qty-input" data-ship="${shipKey}" value="${initialValue}">
@@ -87,6 +103,7 @@ async function openMissionModal(missionType, targetCoords) {
                 </div>
             `;
         }
+        html += '</section>';
     }
     html += '</div></div>';
 

@@ -120,28 +120,91 @@
     margin-bottom: 12px;
 }
 
+.mission-section-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mission-section-heading h4 { margin-bottom: 0; }
+
+.mission-section-hint {
+    color: var(--text-secondary);
+    font: 0.68rem/1 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
 .expedition-ships-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-height: 400px;
+    gap: 14px;
+    max-height: 430px;
     overflow-y: auto;
-    padding-right: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    border-radius: 2px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.24);
+    border: 1px solid rgba(0, 242, 255, 0.12);
+    border-radius: 3px;
+}
+
+.expedition-ship-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.expedition-group-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 2px 6px;
+    color: var(--accent-blue);
+    border-bottom: 1px solid rgba(0, 242, 255, 0.18);
+    font: 700 0.72rem/1 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.expedition-group-heading small {
+    color: var(--text-secondary);
+    font: 0.62rem/1 'Share Tech Mono', monospace;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .expedition-ship-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(190px, 1fr) minmax(90px, auto) auto;
+    gap: 14px;
     align-items: center;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 10px 15px;
+    transition: border-color 0.2s, background 0.2s;
 }
 
-.ship-name { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: 700; }
+.expedition-ship-item:hover {
+    background: rgba(0, 242, 255, 0.05);
+    border-color: rgba(0, 242, 255, 0.28);
+}
+
+.ship-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ship-name { font-family: 'Orbitron', sans-serif; font-size: 0.78rem; font-weight: 700; }
+.ship-role {
+    color: var(--accent-blue);
+    border: 1px solid rgba(0, 242, 255, 0.25);
+    padding: 3px 5px;
+    font: 0.58rem/1 'Share Tech Mono', monospace;
+    letter-spacing: 0.5px;
+}
 .ship-available { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); }
 
 .ship-input { display: flex; gap: 8px; align-items: center; }
@@ -172,6 +235,15 @@
 }
 
 .btn-max:hover { background: var(--accent-blue); color: #000; }
+
+@media (max-width: 640px) {
+    .mission-section-heading,
+    .expedition-group-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+    .expedition-ship-item { grid-template-columns: 1fr auto; gap: 8px; padding: 10px; }
+    .ship-available { grid-column: 1; }
+    .ship-input { grid-column: 2; grid-row: 1 / span 2; }
+    .ship-name { font-size: 0.72rem; }
+}
 
 .mission-res-item-dense {
     background: rgba(255, 255, 255, 0.02);
