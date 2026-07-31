@@ -327,10 +327,5 @@
 .building-card .upgrade-btn {
     min-height: 48px;
     background: rgba(0, 242, 255, 0.12) !important;
-}
-
-.building-card .upgrade-btn.btn-success {
-    background: rgba(57, 255, 20, 0.1) !important;
-    color: var(--accent-green) !important;
-    border-color: var(--accent-green) !important;
+    color: var(--accent-blue) !important;
 }

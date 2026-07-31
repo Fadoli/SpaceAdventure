@@ -208,11 +208,6 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
             const isDisabled = !canAfford || shipyardData.shipyardLevel < minLevel;
             if (btn.disabled !== isDisabled) btn.disabled = isDisabled;
             
-            if (!isDisabled) {
-                if (!btn.classList.contains('btn-success')) btn.classList.add('btn-success');
-            } else {
-                btn.classList.remove('btn-success');
-            }
         }
     }
 }
@@ -679,11 +674,6 @@ function updateProductionInfo(type, id, quantity, planet) {
         const isDisabled = !canAfford || currentShipyardData.shipyardLevel < minLevel;
         
         if (btn.disabled !== isDisabled) btn.disabled = isDisabled;
-        if (!isDisabled) {
-            if (!btn.classList.contains('btn-success')) btn.classList.add('btn-success');
-        } else {
-            btn.classList.remove('btn-success');
-        }
     }
 }
 

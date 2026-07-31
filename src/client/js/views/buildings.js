@@ -248,7 +248,7 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
                 if (btn.disabled !== btnDisabled) btn.disabled = btnDisabled;
                 if (btn.title !== btnTooltip) btn.title = btnTooltip;
                 
-                const btnClass = `btn btn-full upgrade-btn ${building.canAfford && building.requirementsMet && !queueFull ? 'btn-success' : ''}`;
+                const btnClass = 'btn btn-full upgrade-btn';
                 if (btn.className !== btnClass) btn.className = btnClass;
             }
 
