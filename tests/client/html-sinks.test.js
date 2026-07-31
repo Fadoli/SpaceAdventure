@@ -26,6 +26,7 @@ it('keeps the details modal text-safe', async () => {
   expect(buildingsSource).toContain('modalTitle.textContent = `Design Options: ${building.name}`');
   expect(buildingsSource).toContain('allowHtml: true');
   expect(researchSource).toContain('table: { headers, rows, allowHtml: true }');
+  expect(researchSource).toContain('/assets/icons/buildings/${baseType}.png');
 });
 
 it('escapes renamed planets in shell and overview renders', async () => {

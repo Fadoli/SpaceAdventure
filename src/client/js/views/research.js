@@ -796,7 +796,7 @@ function renderVariantCard(baseType, variant) {
             <div class="card-header">
                 <div class="header-main">
                     <div class="title-row">
-                        <span class="name">${escapeHtml(name || baseType)}</span>
+                        <span class="name"><img class="entity-art" src="/assets/icons/buildings/${baseType}.png" alt="" loading="lazy"> <span>${escapeHtml(name || baseType)}</span></span>
                     </div>
                     <div class="blueprint-row">
                         <span class="eff-multiplier" style="color: var(--accent-blue); opacity: 0.8; font-size: 0.65rem;">BUILDING MODEL</span>
