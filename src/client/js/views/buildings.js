@@ -524,7 +524,7 @@ export async function showBlueprintSelectionModal(buildingKey, building, planet)
     const modalTitle = document.getElementById('modal-variant-title');
     const modalBody = document.getElementById('modal-variant-body');
     
-    modalTitle.innerHTML = `Design Options: ${building.name}`;
+    modalTitle.textContent = `Design Options: ${building.name}`;
     modal.style.display = 'flex';
     
     const blueprints = building.availableBlueprints || [];
@@ -1084,7 +1084,7 @@ export async function showBuildingDetails(buildingKey) {
     }
 
     renderDetailsModal({
-        title: `${building.icon} ${building.name} <span class="current-level">(Current: Level ${currentLevel})</span>`,
+        title: `${building.icon} ${building.name} (Current: Level ${currentLevel})`,
         description: building.description,
         detailedDescription: building.detailedDescription,
         effects: effects,

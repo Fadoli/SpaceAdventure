@@ -3,6 +3,8 @@
  * Handles rendering of detailed information for buildings, research, ships, etc.
  */
 
+import { escapeHtml } from '../utils.js';
+
 let returnFocus = null;
 
 /**
@@ -28,14 +30,14 @@ export function renderDetailsModal(data) {
     const modalBody = document.getElementById('details-modal-body');
 
     // Set Title
-    modalTitle.innerHTML = data.title;
+    modalTitle.textContent = data.title;
 
     // Clean up any existing footer from previous uses
     const existingFooter = modal.querySelector('.modal-footer');
     if (existingFooter) existingFooter.remove();
 
     // Build Content
-    let html = `<div class="details-description">${data.detailedDescription || data.description}</div>`;
+    let html = `<div class="details-description">${escapeHtml(data.detailedDescription || data.description)}</div>`;
 
     // Render Stats (formerly effects)
     if (data.effects) {
@@ -63,7 +65,7 @@ export function renderDetailsModal(data) {
     if (data.sections && Array.isArray(data.sections)) {
         data.sections.forEach(section => {
             html += `<div class="details-section">
-                <div class="section-title">${section.title.toUpperCase()}</div>`;
+                <div class="section-title">${escapeHtml(section.title).toUpperCase()}</div>`;
             
             if (section.table) {
                 html += `
@@ -71,13 +73,13 @@ export function renderDetailsModal(data) {
                     <table class="stats-table">
                         <thead>
                             <tr>
-                                ${section.table.headers.map(h => `<th>${h}</th>`).join('')}
+                                ${section.table.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
                             ${section.table.rows.map(row => `
                                 <tr>
-                                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                                    ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -97,7 +99,7 @@ export function renderDetailsModal(data) {
                 <table class="stats-table">
                     <thead>
                         <tr>
-                            ${data.table.headers.map(h => `<th>${h}</th>`).join('')}
+                            ${data.table.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
@@ -106,7 +108,7 @@ export function renderDetailsModal(data) {
                             const rowClass = isHighlight ? 'current-level-row' : '';
                             return `
                                 <tr class="${rowClass}">
-                                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                                    ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
                                 </tr>
                             `;
                         }).join('')}

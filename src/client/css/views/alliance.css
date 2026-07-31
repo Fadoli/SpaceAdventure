@@ -157,6 +157,13 @@
     font-size: 0 !important;
 }
 
+.plan-card .upgrade-btn {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .plan-card .design-btn::after {
     content: '\1F680';
     font-size: 1.2rem;

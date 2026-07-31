@@ -303,18 +303,8 @@
 
 ## Current Status
 
-**Project state (July 18, 2026)**: Core gameplay systems are implemented, including combat, galaxy exploration, colonization, fleet missions, combat reports, and espionage.
+**Project state (July 31, 2026)**: Core gameplay is implemented end-to-end, including resource/building/research loops, fleet missions, combat and reports, galaxy exploration, espionage, colonization, alliances, and ranking leaderboards. The current pass focuses on regression safety, mobile layout, rendering safety, and balance validation.
 
-**Next steps**: Continue balance, cross-browser, and mobile testing; then prioritize the remaining AI and production-readiness work.
+**Next steps**: Validate balance with playtest data, finish cross-browser/mobile QA, and then prioritize production deployment, monitoring, and any remaining AI depth.
 
-### Historical Roadmap Snapshot (superseded)
-
-**Phase**: 1 - Foundation & MVP
-**Status**: Documentation Complete ✓
-**Next Steps**: 
-1. Initialize Bun project
-2. Setup TypeScript configuration
-3. Create project structure
-4. Begin authentication system implementation
-
-Last Updated: December 24, 2025
+<!-- Historical snapshot removed; see Current Status above. -->

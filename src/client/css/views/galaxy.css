@@ -436,3 +436,31 @@
     to { transform: scale(1.1); box-shadow: 0 0 15px rgba(220, 38, 38, 1); }
 }
 
+@media (max-width: 600px) {
+    .galaxy-nav-panel {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .nav-item-group {
+        min-width: 0;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .nav-item-label {
+        font-size: 0.65rem;
+    }
+
+    .nav-coord-input {
+        width: 48px;
+        padding: 0 4px;
+    }
+
+    .nav-show-btn {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+}

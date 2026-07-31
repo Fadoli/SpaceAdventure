@@ -162,11 +162,11 @@ export async function createPlayer(userId, username) {
     ships: {},
     defenses: {},
     buildingAllocations: {
-      metalMine: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
-      crystalMine: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
-      deuteriumSynthesizer: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
-      waterExtractor: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 },
-      farm: { power: 1.0, population: 1.0, powerPriority: 3, populationPriority: 3 }
+      metalMine: { power: 1.0, population: 1.0, priority: 3 },
+      crystalMine: { power: 1.0, population: 1.0, priority: 3 },
+      deuteriumSynthesizer: { power: 1.0, population: 1.0, priority: 3 },
+      waterExtractor: { power: 1.0, population: 1.0, priority: 3 },
+      farm: { power: 1.0, population: 1.0, priority: 3 }
     },
     lastUpdate: Date.now(),
     lastActivity: Date.now()

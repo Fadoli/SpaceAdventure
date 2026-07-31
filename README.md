@@ -47,24 +47,23 @@ SpaceAdventure/
 
 ## Core Features
 
-### Phase 1: Foundation (Current)
+### Implemented Systems
 - User authentication and registration
 - Basic resource management (Metal, Crystal, Deuterium, Energy)
 - Building construction system
 - Research system
-- Simple UI for game interaction
-
-### Phase 2: Fleet & Combat
 - Fleet construction
 - PVE combat system
-- AI opponents with different difficulty levels
 - Combat reports
-
-### Phase 3: Advanced Features
 - Multiple planets/colonies
-- Advanced AI strategies
-- Real-time updates
+- Galaxy exploration and espionage
+- Alliance communications and attack planning
 - Ranking system
+
+### Current Focus
+- Balance validation and playtesting
+- Cross-browser and mobile QA
+- Production deployment, monitoring, and deeper AI behavior
 
 ## Getting Started
 

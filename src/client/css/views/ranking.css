@@ -76,7 +76,8 @@
     background: #0c121d;
     border: 1px solid #1e293b;
     border-radius: 4px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     margin-top: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
@@ -192,4 +193,21 @@
     color: white;
     border-color: var(--accent-blue);
     background: rgba(56, 189, 248, 0.15);
+}
+
+@media (max-width: 600px) {
+    .ranking-category-nav,
+    .ranking-nav {
+        flex-wrap: wrap;
+    }
+
+    .ranking-info-row {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ranking-nav .btn {
+        flex: 1 1 110px;
+    }
 }

@@ -279,3 +279,41 @@
 .tooltip-body strong:first-child {
     margin-top: 0;
 }
+
+@media (max-width: 600px) {
+    .fleet-movements-bar {
+        width: calc(100% + 24px);
+        margin-left: -12px;
+        margin-top: -12px;
+    }
+
+    .fleet-header {
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 10px;
+    }
+
+    .header-left-group,
+    .header-right-group {
+        min-width: 0;
+        gap: 8px;
+    }
+
+    .header-left-group {
+        flex: 1 1 100%;
+        justify-content: space-between;
+    }
+
+    .header-right-group {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+
+    .fleet-list {
+        overflow-x: auto;
+    }
+
+    .fleet-row {
+        min-width: 680px;
+    }
+}

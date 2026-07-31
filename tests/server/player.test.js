@@ -50,6 +50,7 @@ describe('Player Management', () => {
     expect(player.planets[0].name).toBe('Homeworld');
     expect(player.resources).toBeUndefined(); // Resources are on planets now
     expect(player.research).toBeDefined();
+    expect(player.planets[0].buildingAllocations.metalMine.priority).toBe(3);
   });
 
   it('should assign unique coordinates to new players', async () => {

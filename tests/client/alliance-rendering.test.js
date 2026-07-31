@@ -1,4 +1,5 @@
 import { expect, it } from 'bun:test';
+import { readFile } from 'node:fs/promises';
 
 globalThis.window ||= {};
 
@@ -25,4 +26,9 @@ it('keeps a chat draft when sending fails', async () => {
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;
   }
+});
+
+it('keeps planner actions contained on narrow cards', async () => {
+  const css = await readFile(new URL('../../src/client/css/views/alliance.css', import.meta.url), 'utf8');
+  expect(css).toContain('.plan-card .upgrade-btn {\n    min-width: 0;\n    overflow: hidden;');
 });
