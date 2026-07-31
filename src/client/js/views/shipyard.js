@@ -289,7 +289,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
             <div class="card-header" title="${ship.description}">
                 <div class="header-main">
                     <div class="title-row">
-                        <span class="name">${ship.icon} ${ship.name}</span>
+                        <span class="name"><img class="entity-art" src="/assets/icons/ships/${shipKey}.png" alt="" loading="lazy"> <span>${ship.name}</span></span>
                     </div>
                     <div class="blueprint-row">
                         <span class="level-indicator">${count} IN DOCK</span>
@@ -406,7 +406,7 @@ function renderDefensesList(planet, shipyardData) {
                     <div class="card-header" title="${defense.description}">
                         <div class="header-main">
                             <div class="title-row">
-                                <span class="name">${defense.icon} ${defense.name}</span>
+                                <span class="name"><img class="entity-art" src="/assets/icons/defenses/${defenseKey}.png" alt="" loading="lazy"> <span>${defense.name}</span></span>
                             </div>
                             <div class="blueprint-row">
                                 <span class="level-indicator">${count} ACTIVE</span>

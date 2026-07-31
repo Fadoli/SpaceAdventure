@@ -236,3 +236,106 @@
     font-size: 1rem;
     opacity: 0.6;
 }
+
+/* UI refresh: clearer hierarchy and consistent action footers */
+.buildings-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    gap: 18px;
+}
+
+.building-card {
+    min-height: 340px;
+    background: linear-gradient(160deg, rgba(16, 24, 38, 0.98), rgba(5, 10, 18, 0.98));
+    border-color: rgba(56, 189, 248, 0.18);
+}
+
+.building-card:hover {
+    transform: translateY(-2px);
+}
+
+.building-header {
+    min-height: 108px;
+    padding: 14px 16px;
+}
+
+.building-body {
+    padding: 16px;
+    gap: 14px;
+}
+
+.diagnostic-section {
+    padding: 16px 12px 12px;
+}
+
+.building-cost {
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.building-actions {
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.action-group {
+    min-height: 48px;
+}
+
+@media (max-width: 600px) {
+    .buildings-grid { grid-template-columns: 1fr; gap: 12px; }
+    .building-card { min-height: 0; }
+    .building-header { min-height: 92px; }
+    .building-cost { gap: 10px; }
+    .upgrade-btn { letter-spacing: 1px !important; }
+}
+
+/* Stronger building identity: operational cards read like control modules */
+.building-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--accent-blue);
+    opacity: 0.45;
+    z-index: 1;
+}
+
+.building-card.in-queue::before { background: var(--accent-yellow); opacity: 1; }
+.building-card.custom-active::before { background: var(--accent-green); opacity: 0.9; }
+
+.building-card .title-row h3 {
+    font-size: 1.05rem;
+    line-height: 1.25;
+}
+
+.building-card .title-row { align-items: center; }
+
+.building-card .level-indicator {
+    letter-spacing: 1px;
+}
+
+.building-card .allocation-badge-container,
+.building-card [id^="queue-badge-"] {
+    min-height: 26px;
+}
+
+.building-card .queue-count-badge {
+    display: inline-flex;
+    padding: 5px 8px;
+    background: rgba(255, 157, 0, 0.12);
+    border: 1px solid rgba(255, 157, 0, 0.35);
+    color: var(--accent-yellow);
+    font: 700 0.72rem/1 'Share Tech Mono', monospace;
+    letter-spacing: 0.4px;
+}
+
+.building-card .upgrade-btn {
+    min-height: 48px;
+    background: rgba(0, 242, 255, 0.12) !important;
+}
+
+.building-card .upgrade-btn.btn-success {
+    background: rgba(57, 255, 20, 0.1) !important;
+    color: var(--accent-green) !important;
+    border-color: var(--accent-green) !important;
+}

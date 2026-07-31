@@ -14,7 +14,11 @@ export function getPublicFilePath(urlPath) {
     return null;
   }
 
-  const filePath = resolve(`.${decodedPath}`);
+  // Keep generated game artwork on a short, stable public URL.
+  const clientPath = decodedPath.startsWith('/assets/')
+    ? `/src/client${decodedPath}`
+    : decodedPath;
+  const filePath = resolve(`.${clientPath}`);
   const isPublic = [CLIENT_ROOT, SHARED_ROOT].some(root => filePath.startsWith(`${root}${sep}`));
   return isPublic ? filePath : null;
 }

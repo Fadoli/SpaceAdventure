@@ -142,7 +142,7 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
                     <div class="header-main">
                         <div class="title-row">
                             <span class="status-led ${isOperational ? 'led-on' : 'led-off'}"></span>
-                            <h3>${building.icon} ${building.name}</h3>
+                            <h3><img class="entity-art" src="/assets/icons/buildings/${key}.png" alt="" loading="lazy"> <span>${building.name}</span></h3>
                         </div>
                         <div class="blueprint-row">
                             <span class="level-indicator">Lvl ${building.currentLevel}</span>

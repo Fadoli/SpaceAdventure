@@ -104,6 +104,25 @@ body::before {
 
 .btn:active { transform: scale(0.98); }
 
+/* Shared generated game art used by building, research, ship, and defense cards. */
+.entity-art {
+    width: 76px;
+    height: 76px;
+    flex: 0 0 76px;
+    object-fit: cover;
+    border: 1px solid rgba(0, 242, 255, 0.38);
+    border-radius: 2px;
+    background: #020817;
+    box-shadow: 0 0 18px rgba(0, 242, 255, 0.18);
+}
+
+.title-row h3,
+.card-header .name {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
 :focus-visible {
     outline: 2px solid var(--accent-blue) !important;
     outline-offset: 2px;

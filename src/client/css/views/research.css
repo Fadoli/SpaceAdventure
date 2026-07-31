@@ -319,3 +319,72 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
 }
+
+/* UI refresh: make research progression the visual focal point */
+.research-container {
+    max-width: 1440px;
+}
+
+.view-header-technical {
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.12);
+}
+
+.research-header-info {
+    background: linear-gradient(110deg, rgba(0, 242, 255, 0.08), rgba(10, 15, 24, 0.75));
+    box-shadow: inset 3px 0 0 rgba(0, 242, 255, 0.3);
+}
+
+.research-queue-section {
+    margin-bottom: 22px;
+    padding: 14px 16px;
+    background: rgba(12, 18, 29, 0.8);
+    border: 1px solid rgba(255, 157, 0, 0.22);
+    border-left: 3px solid var(--accent-yellow);
+}
+
+.tech-list, .research-container .research-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 18px;
+}
+
+.research-container .tech-card,
+.research-container .research-card {
+    min-height: 340px;
+    background: linear-gradient(160deg, rgba(16, 24, 38, 0.98), rgba(5, 10, 18, 0.98));
+    border-color: rgba(56, 189, 248, 0.18);
+}
+
+.research-container .tech-card:hover,
+.research-container .research-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.16);
+}
+
+.research-container .card-body {
+    padding: 16px 18px;
+}
+
+.research-container .card-header {
+    min-height: 104px;
+}
+
+.category-header-technical {
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-left: 3px solid var(--accent-blue);
+}
+
+@media (max-width: 600px) {
+    .view-header-technical { gap: 8px; }
+    .view-header-technical h2 { font-size: 0.95rem; letter-spacing: 2px; }
+    .research-header-info { padding: 14px 16px; }
+    .research-container .tech-card,
+    .research-container .research-card { min-height: 0; }
+    .research-container .card-header { min-height: 92px; }
+    .tech-list, .research-container .research-cards { grid-template-columns: 1fr; gap: 12px; }
+}

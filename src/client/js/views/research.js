@@ -321,7 +321,7 @@ function renderTheoreticalResearch() {
           <div class="card-header" title="${tech.description}">
             <div class="header-main">
               <div class="title-row">
-                <span class="name">${tech.icon} ${tech.name}</span>
+                <span class="name"><img class="entity-art" src="/assets/icons/research/${tech.key}.png" alt="" loading="lazy"> <span>${tech.name}</span></span>
               </div>
               <div class="blueprint-row">
                 <span class="level-indicator">CURRENT LEVEL: ${level}</span>
@@ -521,7 +521,7 @@ async function renderPracticalResearch() {
             <div class="header-main">
               <div class="title-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span class="name">${res.icon} ${res.name.replace(/ (Specialization|Customization)$/, '')}</span>
+                  <span class="name"><img class="entity-art" src="/assets/icons/buildings/${res.baseType}.png" alt="" loading="lazy"> <span>${res.name.replace(/ (Specialization|Customization)$/, '')}</span></span>
                 </div>
                 ${modifierHtml}
               </div>

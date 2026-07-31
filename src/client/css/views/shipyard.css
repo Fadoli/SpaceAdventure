@@ -141,6 +141,147 @@
     background: rgba(56, 189, 248, 0.15);
 }
 
+/* UI refresh: defenses share the shipyard layout but get stronger grouping */
+.defenses-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 18px;
+    padding: 16px;
+}
+
+.defenses-grid .research-card {
+    min-height: 300px;
+    background: linear-gradient(160deg, rgba(16, 24, 38, 0.98), rgba(5, 10, 18, 0.98));
+    border-color: rgba(255, 157, 0, 0.18);
+}
+
+.defenses-grid .research-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 20px rgba(255, 157, 0, 0.14);
+}
+
+.defenses-grid .action-group {
+    background: rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 600px) {
+    .ships-grid, .defenses-grid { grid-template-columns: 1fr; gap: 12px; padding: 10px; }
+    .defenses-grid .research-card { min-height: 0; }
+}
+
+/* Stronger shipyard/defense identity: queue first, actions always visible */
+.shipyard-container .shipyard-section {
+    background: linear-gradient(160deg, rgba(16, 24, 38, 0.96), rgba(5, 10, 18, 0.98));
+    border-color: rgba(0, 242, 255, 0.16);
+}
+
+.shipyard-container .category-header-technical,
+.shipyard-container .queue-header {
+    min-height: 54px;
+    margin-bottom: 0 !important;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 242, 255, 0.045) !important;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.14) !important;
+    border-left: 3px solid var(--accent-blue);
+}
+
+.shipyard-container .queue-header {
+    border-left-color: var(--accent-yellow);
+    background: rgba(255, 157, 0, 0.06) !important;
+    border-bottom-color: rgba(255, 157, 0, 0.2) !important;
+}
+
+.shipyard-container .category-header-technical h3,
+.shipyard-container .queue-header h3 {
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
+}
+
+.shipyard-container .ships-grid,
+.shipyard-container .defenses-grid {
+    padding: 16px;
+}
+
+.shipyard-container .research-card {
+    min-height: 330px;
+    background: linear-gradient(160deg, rgba(16, 24, 38, 0.98), rgba(5, 10, 18, 0.98));
+    border-color: rgba(0, 242, 255, 0.18);
+}
+
+.shipyard-container .research-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--accent-blue);
+    opacity: 0.5;
+}
+
+.shipyard-container .research-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 22px rgba(0, 242, 255, 0.16);
+}
+
+.shipyard-container .card-header {
+    min-height: 104px;
+    padding: 14px 16px;
+}
+
+.shipyard-container .card-header .name {
+    font-size: 0.92rem;
+    line-height: 1.35;
+}
+
+.shipyard-container .ship-quantity,
+.shipyard-container .defense-quantity {
+    flex-basis: 130px;
+    background: rgba(0, 242, 255, 0.05);
+}
+
+.shipyard-container .upgrade-btn:not(:disabled) {
+    background: rgba(0, 242, 255, 0.14);
+    color: var(--accent-blue);
+}
+
+.shipyard-container .locked-message {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 1px;
+}
+
+.shipyard-container .queue-items {
+    gap: 8px;
+    padding: 14px 16px;
+}
+
+.shipyard-container .queue-item {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.shipyard-container .queue-item.active {
+    border-color: rgba(255, 157, 0, 0.4);
+    background: rgba(255, 157, 0, 0.07);
+}
+
+@media (max-width: 800px) {
+    .shipyard-container .queue-item-row { gap: 8px; flex-wrap: wrap; }
+    .shipyard-container .queue-item-row .q-name { flex: 1 1 60%; }
+    .shipyard-container .queue-item-row .progress-bar-mini { order: 5; flex-basis: 100%; }
+}
+
+@media (max-width: 600px) {
+    .entity-art { width: 60px; height: 60px; flex-basis: 60px; }
+    .shipyard-container .card-header { min-height: 88px; }
+}
+
 /* LED blink animation */
 @keyframes led-blink {
     0%, 100% { opacity: 1; }

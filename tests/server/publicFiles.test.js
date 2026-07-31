@@ -7,6 +7,11 @@ describe('public file boundary', () => {
     expect(getPublicFilePath('/src/shared/formulas.js').replaceAll('\\', '/')).toEndWith('src/shared/formulas.js');
   });
 
+  it('maps generated artwork through the /assets alias', () => {
+    expect(getPublicFilePath('/assets/icons/research/armorTech.png').replaceAll('\\', '/'))
+      .toEndWith('src/client/assets/icons/research/armorTech.png');
+  });
+
   it('does not expose private files or encoded traversal', () => {
     expect(getPublicFilePath('/data/users.json')).toBeNull();
     expect(getPublicFilePath('/src/server/index.js')).toBeNull();
