@@ -1091,6 +1091,7 @@ export async function showBuildingDetails(buildingKey) {
         table: {
             headers: headers,
             rows: rows,
+            allowHtml: true,
             highlightRowIndex: rows.findIndex((r, i) => levels[i].level === currentLevel)
         }
     });

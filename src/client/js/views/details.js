@@ -16,6 +16,7 @@ let returnFocus = null;
  * @param {Object} [data.table] - Progression table data
  * @param {string[]} data.table.headers - Array of column headers
  * @param {Array[]} data.table.rows - Array of rows, where each row is an array of cell content
+ * @param {boolean} [data.table.allowHtml] - Whether cells contain trusted UI markup
  * @param {number} [data.table.highlightRowIndex] - Index of row to highlight (e.g. current level)
  * @param {string} [data.footer] - Optional footer text
  */
@@ -108,7 +109,7 @@ export function renderDetailsModal(data) {
                             const rowClass = isHighlight ? 'current-level-row' : '';
                             return `
                                 <tr class="${rowClass}">
-                                    ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
+                                    ${row.map(cell => `<td>${data.table.allowHtml ? cell : escapeHtml(cell)}</td>`).join('')}
                                 </tr>
                             `;
                         }).join('')}
