@@ -135,7 +135,7 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
         const hasBlueprints = (building.availableBlueprints || []).length > 0 || building.currentVariant !== 'base';
 
         buildingHtmls.push(`
-            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''} ${building.currentVariant !== 'base' ? 'custom-active' : ''}" id="building-card-${key}">
+            <div class="building-card ${queueCount > 0 ? 'in-queue' : ''} ${building.currentVariant !== 'base' ? 'custom-active' : ''}" id="building-card-${key}" role="button" tabindex="0" onclick="window.showBuildingDetails('${key}')" onkeydown="if (event.target === this && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); window.showBuildingDetails('${key}'); }">
                 <div class="card-corner-top"></div>
                 
                 <div class="building-header" title="${building.description}">
@@ -147,9 +147,6 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
                         <div class="blueprint-row">
                             <span class="level-indicator">Lvl ${building.currentLevel}</span>
                         </div>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn-info" onclick="window.showBuildingDetails('${key}')" title="View detailed stats">ℹ️</button>
                     </div>
                 </div>
                 
@@ -174,11 +171,11 @@ function renderGridView(buildings, planet, queue, maxQueueSize) {
 
                 <div class="building-actions">
                     <div class="action-group">
-                        <button class="btn upgrade-btn" id="upgrade-btn-${key}" onclick="window.upgradeBuilding('${key}')">
+                        <button class="btn upgrade-btn" id="upgrade-btn-${key}" onclick="event.stopPropagation(); window.upgradeBuilding('${key}')">
                             Upgrade
                         </button>
                         ${hasBlueprints ? `
-                            <button class="btn design-btn" onclick="window.openDesignSelection('${key}')" title="Operational Configuration / Change Blueprint">
+                            <button class="btn design-btn" onclick="event.stopPropagation(); window.openDesignSelection('${key}')" title="Operational Configuration / Change Blueprint">
                                 ⚙️
                             </button>
                         ` : ''}

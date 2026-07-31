@@ -105,28 +105,6 @@
     flex: 1;
 }
 
-.header-actions {
-    flex-shrink: 0;
-    margin-left: 10px;
-}
-
-.btn-info {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    opacity: 0.5;
-    transition: all 0.2s;
-    padding: 0;
-    line-height: 1;
-}
-
-.btn-info:hover {
-    opacity: 1;
-    color: var(--accent-blue);
-    transform: scale(1.1);
-}
-
 /* Card Body */
 .card-body {
     padding: 15px 18px;
@@ -368,7 +346,7 @@
 }
 
 .research-container .card-header {
-    min-height: 104px;
+    min-height: 132px;
 }
 
 .category-header-technical {
@@ -385,6 +363,6 @@
     .research-header-info { padding: 14px 16px; }
     .research-container .tech-card,
     .research-container .research-card { min-height: 0; }
-    .research-container .card-header { min-height: 92px; }
+    .research-container .card-header { min-height: 104px; }
     .tech-list, .research-container .research-cards { grid-template-columns: 1fr; gap: 12px; }
 }

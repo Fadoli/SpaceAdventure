@@ -1,7 +1,7 @@
 // Game formulas and calculations
 import { BUILDINGS } from './buildings.js';
 import { calculateBaseTime } from './time.js';
-import { BUILDING_SPEED_MULTIPLIER, SCALING, CONFIG } from './constants.js';
+import { BUILDING_SPEED_MULTIPLIER, RESEARCH_LAB_SPEED_MULTIPLIER, SCALING, CONFIG } from './constants.js';
 import { getResearchBonus } from './research.js';
 
 /**
@@ -314,7 +314,7 @@ export function calculateTheoreticalResearchCost(baseCost, level, costScaling = 
 export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, speedMultiplier = null) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
-  const scaling = speedMultiplier || BUILDING_SPEED_MULTIPLIER;
+  const scaling = speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
   const labMultiplier = Math.pow(scaling, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
@@ -358,7 +358,7 @@ export function calculatePracticalResearchTime(research, level, labLevel = 1, re
   const actualCost = calculatePracticalResearchCost(research.baseCost, level, allocation, strength);
   const rawDuration = calculateBaseTime({ baseCost: actualCost });
   
-  const scaling = speedMultiplier || BUILDING_SPEED_MULTIPLIER;
+  const scaling = speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
   const labMultiplier = Math.pow(scaling, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   

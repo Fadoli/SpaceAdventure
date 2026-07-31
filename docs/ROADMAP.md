@@ -305,6 +305,8 @@
 
 **Project state (July 31, 2026)**: Core gameplay is implemented end-to-end, including resource/building/research loops, fleet missions, combat and reports, galaxy exploration, espionage, colonization, alliances, and ranking leaderboards. The current pass focuses on regression safety, mobile layout, rendering safety, and balance validation.
 
+**Recent stabilization**: Energy allocation and reported energy consumption now share one formula, implemented views no longer show stale "coming soon" shell copy, building detail tables preserve their trusted formatting instead of exposing raw markup, the Research/Buildings/Defenses views now share a clearer responsive card hierarchy with normalized generated artwork integrated into a larger visual header area through `/assets` and detail cards opened by clicking the surface, research lab timing uses a dedicated `0.80^level` speed curve instead of the global `0.85` fallback, and SIGINT/SIGTERM shutdowns flush state before stopping the server. A default starting colony at position 1 currently runs a tight water/food economy, so its early upgrade pressure remains a playtest tuning item rather than an unmeasured constant change.
+
 **Next steps**: Validate balance with playtest data, finish cross-browser/mobile QA, and then prioritize production deployment, monitoring, and any remaining AI depth.
 
 <!-- Historical snapshot removed; see Current Status above. -->

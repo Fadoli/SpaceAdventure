@@ -316,7 +316,7 @@ function renderTheoreticalResearch() {
             const isDisabled = isQueueFull || !requirementsMet || researchLabLevel === 0;
 
             html += `
-        <div class="research-card" data-tech="${tech.key}">
+        <div class="research-card" data-tech="${tech.key}" role="button" tabindex="0" onclick="window.showResearchDetails('${tech.key}')" onkeydown="if (event.target === this && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); window.showResearchDetails('${tech.key}'); }">
           <div class="card-corner-top"></div>
           <div class="card-header" title="${tech.description}">
             <div class="header-main">
@@ -326,9 +326,6 @@ function renderTheoreticalResearch() {
               <div class="blueprint-row">
                 <span class="level-indicator">CURRENT LEVEL: ${level}</span>
               </div>
-            </div>
-            <div class="header-actions">
-                <button class="btn-info" onclick="window.showResearchDetails('${tech.key}')" title="Technical Data">ℹ️</button>
             </div>
           </div>
           
@@ -353,7 +350,7 @@ function renderTheoreticalResearch() {
 
           <div class="building-actions">
             <div class="action-group">
-                <button class="btn upgrade-btn" style="padding: 12px !important; font-size: 0.8rem !important;" onclick="window.startTheoreticalResearch('${tech.key}')">
+                <button class="btn upgrade-btn" style="padding: 12px !important; font-size: 0.8rem !important;" onclick="event.stopPropagation(); window.startTheoreticalResearch('${tech.key}')">
                     INITIATE RESEARCH LVL ${nextLevelToQueue}
                 </button>
             </div>

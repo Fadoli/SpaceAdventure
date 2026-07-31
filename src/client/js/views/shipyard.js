@@ -284,7 +284,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                    planet.resources.deuterium >= cost.deuterium;
 
     return `
-        <div class="research-card ${isLocked ? 'locked' : ''}" id="variant-${shipKey}">
+        <div class="research-card ${isLocked ? 'locked' : ''}" id="variant-${shipKey}" role="button" tabindex="0" onclick="window.showShipDetails('${shipKey}')" onkeydown="if (event.target === this && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); window.showShipDetails('${shipKey}'); }">
             <div class="card-corner-top"></div>
             <div class="card-header" title="${ship.description}">
                 <div class="header-main">
@@ -294,9 +294,6 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                     <div class="blueprint-row">
                         <span class="level-indicator">${count} IN DOCK</span>
                     </div>
-                </div>
-                <div class="header-actions">
-                    <button class="btn-info" onclick="window.showShipDetails('${shipKey}')" title="Technical Data">ℹ️</button>
                 </div>
             </div>
             <div class="card-body">
@@ -328,11 +325,11 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                     </div>
                 ` : `
                     <div class="action-group">
-                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${shipKey}" placeholder="QTY (e.g. 5m)" data-id="${shipKey}">
+                        <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="ship-quantity" id="qty-${shipKey}" placeholder="QTY (e.g. 5m)" data-id="${shipKey}" onclick="event.stopPropagation()">
                         <button class="btn upgrade-btn" 
                                 id="btn-${shipKey}"
                                 ${!canBuild ? 'disabled' : ''} 
-                                onclick="window.buildShip('${shipKey}', '${ship.name}')">
+                                onclick="event.stopPropagation(); window.buildShip('${shipKey}', '${ship.name}')">
                             BUILD
                         </button>
                     </div>
@@ -401,7 +398,7 @@ function renderDefensesList(planet, shipyardData) {
                            planet.resources.deuterium >= cost.deuterium;
             
             html += `
-                <div class="research-card ${isLocked ? 'locked' : ''}" id="variant-${defenseKey}">
+                <div class="research-card ${isLocked ? 'locked' : ''}" id="variant-${defenseKey}" role="button" tabindex="0" onclick="window.showDefenseDetails('${defenseKey}')" onkeydown="if (event.target === this && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); window.showDefenseDetails('${defenseKey}'); }">
                     <div class="card-corner-top"></div>
                     <div class="card-header" title="${defense.description}">
                         <div class="header-main">
@@ -411,9 +408,6 @@ function renderDefensesList(planet, shipyardData) {
                             <div class="blueprint-row">
                                 <span class="level-indicator">${count} ACTIVE</span>
                             </div>
-                        </div>
-                        <div class="header-actions">
-                            <button class="btn-info" onclick="window.showDefenseDetails('${defenseKey}')" title="Technical Data">ℹ️</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -443,11 +437,11 @@ function renderDefensesList(planet, shipyardData) {
                             </div>
                         ` : `
                             <div class="action-group">
-                                <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY (e.g. 5m)" data-id="${defenseKey}">
+                                <input type="text" inputmode="numeric" pattern="[0-9kmKMB tqTQ.]*" class="defense-quantity" id="qty-${defenseKey}" placeholder="QTY (e.g. 5m)" data-id="${defenseKey}" onclick="event.stopPropagation()">
                                 <button class="btn upgrade-btn" 
                                         id="btn-${defenseKey}"
                                         ${!canBuild ? 'disabled' : ''} 
-                                        onclick="window.buildDefense('${defenseKey}', '${defense.name}')">
+                                        onclick="event.stopPropagation(); window.buildDefense('${defenseKey}', '${defense.name}')">
                                     BUILD
                                 </button>
                             </div>

@@ -26,7 +26,11 @@ import {
   calculateWaterConsumption
 } from '../../src/shared/formulas.js';
 import { BUILDINGS } from '../../src/shared/buildings.js';
-import { SCALING, BUILDING_SPEED_MULTIPLIER } from '../../src/shared/constants.js';
+import {
+  SCALING,
+  BUILDING_SPEED_MULTIPLIER,
+  RESEARCH_LAB_SPEED_MULTIPLIER
+} from '../../src/shared/constants.js';
 
 import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH } from '../../src/shared/research.js';
 import { SHIPS } from '../../src/shared/ships.js';
@@ -168,19 +172,19 @@ describe('calculateResearchTime', () => {
   const research = THEORETICAL_RESEARCH.energyTech; // metal: 200, crystal: 100, deuterium: 50 => baseTime: 500
   it('should calculate base time at level 0', () => {
     const result = calculateResearchTime(research, 0, 1);
-    // At level 0 with lab level 1: time = 500 * 1 * BUILDING_SPEED_MULTIPLIER^1
-    const expected = Math.floor(500 * Math.pow(BUILDING_SPEED_MULTIPLIER, 1));
+    // At level 0 with lab level 1: time = 500 * 1 * RESEARCH_LAB_SPEED_MULTIPLIER^1
+    const expected = Math.floor(500 * Math.pow(RESEARCH_LAB_SPEED_MULTIPLIER, 1));
     expect(result).toBe(expected);
   });
 
   it(`should scale with ${SCALING.RESEARCH_TIME}^level`, () => {
     const result = calculateResearchTime(research, 2, 1);
-    expect(result).toBe(Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 2) * Math.pow(BUILDING_SPEED_MULTIPLIER, 1)));
+    expect(result).toBe(Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 2) * Math.pow(RESEARCH_LAB_SPEED_MULTIPLIER, 1)));
   });
 
   it('should apply lab multiplier', () => {
     const result = calculateResearchTime(research, 1, 5);
-    const expectedTime = Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(BUILDING_SPEED_MULTIPLIER, 5));
+    const expectedTime = Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(RESEARCH_LAB_SPEED_MULTIPLIER, 5));
     expect(result).toBe(expectedTime);
   });
 });

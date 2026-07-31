@@ -227,7 +227,7 @@
 }
 
 .shipyard-container .card-header {
-    min-height: 104px;
+    min-height: 132px;
     padding: 14px 16px;
 }
 
@@ -278,8 +278,10 @@
 }
 
 @media (max-width: 600px) {
-    .entity-art { width: 60px; height: 60px; flex-basis: 60px; }
-    .shipyard-container .card-header { min-height: 88px; }
+    .entity-art { top: -8px; right: -12px; width: 128px; height: 116px; opacity: 0.92; }
+    .building-header .header-main,
+    .card-header .header-main { padding-right: 116px; }
+    .shipyard-container .card-header { min-height: 104px; }
 }
 
 /* LED blink animation */

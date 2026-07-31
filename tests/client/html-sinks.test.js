@@ -33,3 +33,16 @@ it('escapes renamed planets in shell and overview renders', async () => {
   expect(overviewSource).toContain('System Intel: ${escapeHtml(planet.name)}');
   expect(overviewSource).toContain('${escapeHtml(p.name)} [${p.coordinates.join(\':\')}]');
 });
+
+it('opens detail cards without separate info buttons', async () => {
+  const sources = await Promise.all([
+    readFile(new URL('../../src/client/js/views/buildings.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../src/client/js/views/research.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8')
+  ]);
+  expect(sources.every(source => !source.includes('class="btn-info"'))).toBe(true);
+  expect(sources[0]).toContain('onclick="window.showBuildingDetails');
+  expect(sources[1]).toContain('onclick="window.showResearchDetails');
+  expect(sources[2]).toContain('onclick="window.showShipDetails');
+  expect(sources[2]).toContain('onclick="window.showDefenseDetails');
+});

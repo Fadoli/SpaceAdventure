@@ -106,15 +106,59 @@ body::before {
 
 /* Shared generated game art used by building, research, ship, and defense cards. */
 .entity-art {
-    width: 76px;
-    height: 76px;
-    flex: 0 0 76px;
+    position: absolute;
+    top: -12px;
+    right: -20px;
+    width: 180px;
+    height: 150px;
+    flex: none;
     object-fit: cover;
-    border: 1px solid rgba(0, 242, 255, 0.38);
+    border: 0;
     border-radius: 2px;
-    background: #020817;
-    box-shadow: 0 0 18px rgba(0, 242, 255, 0.18);
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.98;
+    pointer-events: none;
+    z-index: 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 100%);
 }
+
+.building-header,
+.card-header {
+    position: relative;
+    overflow: hidden;
+}
+
+.building-header::after,
+.card-header::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 34%;
+    background: radial-gradient(circle at 72% 50%, rgba(0, 242, 255, 0.12), transparent 64%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.building-header .header-main,
+.card-header .header-main {
+    position: relative;
+    z-index: 2;
+    padding-right: 156px;
+}
+
+.building-card,
+.research-card {
+    cursor: pointer;
+}
+
+.building-card button,
+.research-card button,
+.research-card input {
+    cursor: pointer;
+}
+
+.research-card input { cursor: text; }
 
 .title-row h3,
 .card-header .name {

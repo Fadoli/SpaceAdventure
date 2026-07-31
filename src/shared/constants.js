@@ -172,6 +172,7 @@ export const CONFIG = {
 };
 
 export const BUILDING_SPEED_MULTIPLIER = 0.85;
+export const RESEARCH_LAB_SPEED_MULTIPLIER = 0.80;
 
 // Scaling factors for easier fine-tuning
 export const SCALING = {

@@ -163,7 +163,7 @@ export const BUILDINGS = {
       deuterium: 200
     },
     maxLevel: 50,
-    speedMultiplier: 0.85,
+    speedMultiplier: 0.80,
     energyConsumption: 15, // Energy required to operate
     populationRequired: 30, // Population required to maintain
     requirements: {}

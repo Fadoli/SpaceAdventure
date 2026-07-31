@@ -232,11 +232,6 @@
     animation: card-pulse 4s infinite ease-in-out;
 }
 
-.btn-info {
-    font-size: 1rem;
-    opacity: 0.6;
-}
-
 /* UI refresh: clearer hierarchy and consistent action footers */
 .buildings-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
@@ -254,7 +249,7 @@
 }
 
 .building-header {
-    min-height: 108px;
+    min-height: 132px;
     padding: 14px 16px;
 }
 
@@ -284,7 +279,7 @@
 @media (max-width: 600px) {
     .buildings-grid { grid-template-columns: 1fr; gap: 12px; }
     .building-card { min-height: 0; }
-    .building-header { min-height: 92px; }
+    .building-header { min-height: 104px; }
     .building-cost { gap: 10px; }
     .upgrade-btn { letter-spacing: 1px !important; }
 }
