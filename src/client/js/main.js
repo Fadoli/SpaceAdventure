@@ -23,6 +23,7 @@ import { Notifications } from './notifications.js';
 import { showConfirm } from './views/modals.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
 import { gameSocket } from './socket.js';
+import { escapeHtml } from './utils.js';
 
 // State
 let currentUser = null;
@@ -397,7 +398,7 @@ function updateUI(forceFetch = false) {
             const currentSelect = planetSelectContainer.querySelector('select');
             if (!currentSelect || currentSelect.options.length !== gameState.planets.length) {
                 const options = gameState.planets.map(p => 
-                    `<option value="${p.id}" ${p.id === planet.id ? 'selected' : ''}>${p.name}</option>`
+                    `<option value="${p.id}" ${p.id === planet.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
                 ).join('');
                 planetSelectContainer.innerHTML = `<select class="header-planet-select" onchange="window.selectPlanet(this.value)">${options}</select>`;
             } else if (currentSelect.value !== planet.id) {

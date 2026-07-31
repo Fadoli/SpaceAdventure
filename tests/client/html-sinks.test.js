@@ -24,3 +24,11 @@ it('keeps the details modal text-safe', async () => {
   expect(source).toContain('escapeHtml(cell)');
   expect(buildingsSource).toContain('modalTitle.textContent = `Design Options: ${building.name}`');
 });
+
+it('escapes renamed planets in shell and overview renders', async () => {
+  const mainSource = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const overviewSource = await readFile(new URL('../../src/client/js/views/overview.js', import.meta.url), 'utf8');
+  expect(mainSource).toContain('escapeHtml(p.name)}</option>');
+  expect(overviewSource).toContain('System Intel: ${escapeHtml(planet.name)}');
+  expect(overviewSource).toContain('${escapeHtml(p.name)} [${p.coordinates.join(\':\')}]');
+});

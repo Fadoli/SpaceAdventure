@@ -106,7 +106,7 @@ function initializeOverviewStructure(container, planet, allPlanets) {
     if (allPlanets && allPlanets.length > 1) {
         const options = allPlanets.map(p => 
             `<option value="${p.id}" ${p.id === planet.id ? 'selected' : ''}>
-                ${p.name} [${p.coordinates.join(':')}]
+                ${escapeHtml(p.name)} [${p.coordinates.join(':')}]
             </option>`
         ).join('');
         
@@ -122,7 +122,7 @@ function initializeOverviewStructure(container, planet, allPlanets) {
     container.innerHTML = `
         <div id="planet-overview-content" style="display: ${currentOverviewMode === 'planet' ? 'block' : 'none'};">
             <div class="overview-header">
-                <h2>System Intel: ${planet.name}</h2>
+                <h2>System Intel: ${escapeHtml(planet.name)}</h2>
                 ${selectorHtml}
             </div>
 

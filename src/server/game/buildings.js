@@ -740,13 +740,13 @@ export function updatePlanetProduction(planet, player = null) {
     
     // Calculate energy consumption using ACTUAL allocation
     if (building.energyConsumption) {
-      const energyMultiplier = getResourceProductionMultiplier();
-      let baseConsumption = Math.floor(building.energyConsumption * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
-      
-      // Apply research efficiency bonus (never reduce below 50% of base consumption)
-      baseConsumption = Math.floor(baseConsumption * Math.max(0.5, reduction));
-      
       // Energy consumption scales with ACTUAL power allocation
+      const baseConsumption = getBuildingEnergyConsumption(
+        buildingType,
+        level,
+        { [buildingType]: building },
+        energyEfficiencyBonus
+      );
       totalEnergyConsumption += Math.floor(baseConsumption * actualAllocation.power);
     }
     

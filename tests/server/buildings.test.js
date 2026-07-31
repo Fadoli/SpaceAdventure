@@ -3,9 +3,11 @@ import {
   getBuildingCost, 
   getBuildTime, 
   getProduction,
-  getStorageIncrease
+  getStorageIncrease,
+  updatePlanetProduction
 } from '../../src/server/game/buildings.js';
 import { BUILDINGS } from '../../src/shared/buildings.js';
+import { getBuildingEnergyConsumption } from '../../src/shared/formulas.js';
 
 // Mock config module
 import.meta.env.NODE_ENV = 'test';
@@ -38,6 +40,38 @@ describe('Server Buildings - getBuildingCost', () => {
     expect(Number.isInteger(cost.metal)).toBe(true);
     expect(Number.isInteger(cost.crystal)).toBe(true);
     expect(Number.isInteger(cost.deuterium)).toBe(true);
+  });
+});
+
+describe('Server Buildings - Energy Accounting', () => {
+  it('uses the same energy formula for allocation and reported consumption', () => {
+    const planet = {
+      coordinates: [1, 1, 1],
+      resources: { population: 100 },
+      buildings: {
+        metalMine: 1,
+        crystalMine: 0,
+        solarPlant: 1,
+        waterExtractor: 0,
+        farm: 0,
+        housing: 1
+      },
+      buildingAllocations: {
+        metalMine: { power: 1, population: 1, priority: 3 },
+        solarPlant: { power: 1, population: 1, priority: 3 },
+        housing: { power: 1, population: 1, priority: 3 }
+      },
+      storage: {}
+    };
+
+    updatePlanetProduction(planet);
+
+    const expected = Math.floor(
+      getBuildingEnergyConsumption('metalMine', 1, BUILDINGS) * planet.actualAllocations.metalMine.power
+    ) + Math.floor(
+      getBuildingEnergyConsumption('housing', 1, BUILDINGS) * planet.actualAllocations.housing.power
+    );
+    expect(planet.consumption.energy).toBe(expected);
   });
 });
 
