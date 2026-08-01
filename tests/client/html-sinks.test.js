@@ -97,6 +97,8 @@ it('keeps notifications above dynamically-created modals', async () => {
   expect(appEnd).toBeGreaterThan(html.indexOf('<div id="app">'));
   expect(html.indexOf('id="notifications-container"')).toBeGreaterThan(appEnd);
   expect(styles).toContain('z-index: 10000;');
+  expect(styles).toContain('top: 30px;');
+  expect(styles).toContain('top: 12px;');
 });
 
 it('keeps confirmation dialogs above blueprint selection modals', async () => {
