@@ -95,20 +95,24 @@ describe('Building Variants System', () => {
     expect(player.customBuildingVariants).toEqual(before);
   });
 
-  it('applies exponential effects to square-root-scaled focus levels', () => {
+  it('applies mildly dampened exponential effects to blueprint levels', () => {
     const research = PRACTICAL_RESEARCH.metalMine;
     const levels = [1, 10, 50, 100, 500, 1000, 5000];
     const outputMultipliers = levels.map(level =>
       calculateFocusModifiers(research, { output: level }).productionMultiplier
     );
     const level30 = calculateFocusModifiers(research, { output: 30 }).productionMultiplier;
+    const expectedMultiplier = level => Math.pow(1.02, Math.pow(level, 0.999));
 
-    expect(level30).toBeCloseTo(Math.pow(1.02, 30));
+    expect(level30).toBeCloseTo(expectedMultiplier(30));
     expect(outputMultipliers.every((value, index) => index === 0 || value > outputMultipliers[index - 1])).toBe(true);
     expect(outputMultipliers[0]).toBeCloseTo(1.02);
-    expect(outputMultipliers[1]).toBeCloseTo(Math.pow(1.02, 10));
+    expect(outputMultipliers[1]).toBeCloseTo(expectedMultiplier(10));
+    expect(outputMultipliers[1]).toBeLessThan(Math.pow(1.02, 10));
+    expect(outputMultipliers[4]).toBeGreaterThan(1 + (0.02 * 500));
+    expect(outputMultipliers[4]).toBeLessThan(Math.pow(1.02, 500));
     expect(outputMultipliers[6]).toBeGreaterThan(5);
-    expect(outputMultipliers[6]).toBeCloseTo(Math.pow(1.02, 5000));
+    expect(outputMultipliers[6]).toBeCloseTo(expectedMultiplier(5000));
 
     player.practicalResearch.metalMine.experience.output = 96100; // sqrt(96100 / 100) = 31
     expect(() => selectCustomBuildingVariant(player, planet.id, 'metalMine', {

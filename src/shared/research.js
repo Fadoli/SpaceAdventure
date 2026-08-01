@@ -360,6 +360,8 @@ const PRODUCTION_BUILDING_MODIFIERS = {
     }
 };
 
+const BLUEPRINT_LEVEL_EXPONENT = 0.999;
+
 /**
  * Practical research definitions - one per base building/ship type
  * Each tracks which focuses a player has invested in
@@ -675,8 +677,8 @@ export function getCustomVariant(baseType, focusLevels) {
 
 /**
  * Calculate aggregated modifiers with endless, diminishing focus progression.
- * Focus levels already use square-root progression from research experience,
- * so each level keeps the original exponential effect.
+ * Focus levels already use square-root progression from research experience.
+ * Keep the exponential feel while applying only mild sub-exponential damping.
  */
 export function calculateFocusModifiers(research, focusLevels) {
     const modifiers = {
@@ -687,7 +689,7 @@ export function calculateFocusModifiers(research, focusLevels) {
         populationMultiplier: 1
     };
 
-    // Apply exponential modifiers from each focus
+    // Apply mildly dampened exponential modifiers from each focus
     for (const focus in focusLevels) {
         const level = focusLevels[focus];
 
@@ -696,7 +698,8 @@ export function calculateFocusModifiers(research, focusLevels) {
             for (const stat in focusModifiers) {
                 const baseMultiplier = focusModifiers[stat];
                 if (modifiers.hasOwnProperty(stat)) {
-                    const multipliedValue = Math.pow(baseMultiplier, level);
+                    const effectiveLevel = Math.pow(level, BLUEPRINT_LEVEL_EXPONENT);
+                    const multipliedValue = Math.pow(baseMultiplier, effectiveLevel);
                     modifiers[stat] *= multipliedValue;
                 }
             }
