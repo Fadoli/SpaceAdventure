@@ -156,7 +156,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
         // Update In-Dock / Active count
         const levelIndicator = card.querySelector('.level-indicator');
         if (levelIndicator) {
-            const countText = `${count} ${isDefenses ? 'ACTIVE' : 'IN DOCK'}`;
+            const countText = `${formatNumber(count)} ${isDefenses ? 'ACTIVE' : 'IN DOCK'}`;
             if (levelIndicator.textContent !== countText) levelIndicator.textContent = countText;
         }
 
@@ -289,7 +289,7 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
                         <span class="name"><img class="entity-art" src="/assets/icons/ships/${shipKey}.png" alt="" loading="lazy"> <span>${ship.name}</span></span>
                     </div>
                     <div class="blueprint-row">
-                        <span class="level-indicator">${count} IN DOCK</span>
+                        <span class="level-indicator">${formatNumber(count)} IN DOCK</span>
                     </div>
                 </div>
             </div>
@@ -402,7 +402,7 @@ function renderDefensesList(planet, shipyardData) {
                                 <span class="name"><img class="entity-art" src="/assets/icons/defenses/${defenseKey}.png" alt="" loading="lazy"> <span>${defense.name}</span></span>
                             </div>
                             <div class="blueprint-row">
-                                <span class="level-indicator">${count} ACTIVE</span>
+                                <span class="level-indicator">${formatNumber(count)} ACTIVE</span>
                             </div>
                         </div>
                     </div>

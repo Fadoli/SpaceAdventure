@@ -66,3 +66,10 @@ it('updates shipyard folds and queue mutations without polling', async () => {
   expect(source).toContain("appendQueueItem('ships', response)");
   expect(source).toContain("appendQueueItem('defenses', response)");
 });
+
+it('formats ship and defense counts with compact numbers', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  expect(source).toContain('${formatNumber(count)} IN DOCK');
+  expect(source).toContain('${formatNumber(count)} ACTIVE');
+  expect(source).toContain("const countText = `${formatNumber(count)} ${isDefenses ? 'ACTIVE' : 'IN DOCK'}`");
+});
