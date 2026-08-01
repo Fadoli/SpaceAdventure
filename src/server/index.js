@@ -72,9 +72,10 @@ import { calculateAllocationEffectiveness, getBuildingEnergyConsumption } from '
 import { isEmpty } from '../shared/utils.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 import { gzipSync, deflateSync } from 'zlib';
+import { statSync } from 'fs';
 
 import { wsManager } from './game/wsManager.js';
-import { canServeDuringStartup, getPublicFilePath } from './publicFiles.js';
+import { canServeDuringStartup, getPublicFilePath, getStaticCacheHeaders, isStaticFileNotModified } from './publicFiles.js';
 import { applyAdminAssetUpdate } from './adminAssets.js';
 import { ensureTlsConfig } from './tls.js';
 
@@ -250,33 +251,32 @@ async function handleRequest(req) {
       if (file && await file.exists()) {
         // Determine content type based on file extension
         let contentType = 'text/html; charset=utf-8';
-        let cacheTime = 5; // 5 seconds for most files (dev)
         
         if (filePath.endsWith('.js')) {
           contentType = 'application/javascript; charset=utf-8';
-          cacheTime = 5; // 5 seconds for JS (dev)
         } else if (filePath.endsWith('.css')) {
           contentType = 'text/css; charset=utf-8';
-          cacheTime = 5;
         } else if (filePath.endsWith('.json')) {
           contentType = 'application/json; charset=utf-8';
         } else if (filePath.endsWith('.png')) {
           contentType = 'image/png';
-          cacheTime = 604800; // 1 week for images
         } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
           contentType = 'image/jpeg';
-          cacheTime = 604800;
         } else if (filePath.endsWith('.svg')) {
           contentType = 'image/svg+xml';
-          cacheTime = 604800;
         }
-        
+
+        const cacheHeaders = getStaticCacheHeaders(filePath, statSync(filePath));
+        if (isStaticFileNotModified(req, cacheHeaders)) {
+          return new Response(null, { status: 304, headers: cacheHeaders });
+        }
+
         const arrayBuffer = await file.arrayBuffer();
         const { compressedBody, encoding } = compressResponse(req, Buffer.from(arrayBuffer), contentType);
         
         const headers = {
           'Content-Type': contentType,
-          'Cache-Control': `public, max-age=${cacheTime}`
+          ...cacheHeaders
         };
 
         if (encoding) {

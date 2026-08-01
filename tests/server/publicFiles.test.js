@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { canServeDuringStartup, getPublicFilePath } from '../../src/server/publicFiles.js';
+import { canServeDuringStartup, getPublicFilePath, getStaticCacheHeaders, isStaticFileNotModified } from '../../src/server/publicFiles.js';
 
 describe('public file boundary', () => {
   it('serves browser assets', () => {
@@ -22,5 +22,17 @@ describe('public file boundary', () => {
     expect(canServeDuringStartup(new Request('http://localhost/login.html'))).toBe(true);
     expect(canServeDuringStartup(new Request('http://localhost/api/game/state'))).toBe(false);
     expect(canServeDuringStartup(new Request('http://localhost/ws', { headers: { upgrade: 'websocket' } }))).toBe(false);
+  });
+
+  it('provides bounded image caching with revalidation validators', () => {
+    const headers = getStaticCacheHeaders('asset.png', { size: 1024, mtimeMs: 1700000000123 });
+    expect(headers['Cache-Control']).toBe('public, max-age=604800, stale-while-revalidate=86400');
+    expect(headers.ETag).toBe('W/\"400-18bcfe5687b\"');
+    expect(headers['Last-Modified']).toBe('Tue, 14 Nov 2023 22:13:20 GMT');
+
+    expect(isStaticFileNotModified(new Request('http://localhost/asset.png', {
+      headers: { 'If-None-Match': headers.ETag }
+    }), headers)).toBe(true);
+    expect(isStaticFileNotModified(new Request('http://localhost/asset.png'), headers)).toBe(false);
   });
 });
