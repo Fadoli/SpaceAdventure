@@ -68,7 +68,7 @@ import { DEFENSES } from '../shared/defenses.js';
 import { MISSION_TYPES } from '../shared/constants.js';
 import { calculateBaseTime } from '../shared/time.js';
 import { SCALING } from '../shared/constants.js';
-import { calculateAllocationEffectiveness } from '../shared/formulas.js';
+import { calculateAllocationEffectiveness, getBuildingEnergyConsumption } from '../shared/formulas.js';
 import { isEmpty } from '../shared/utils.js';
 import { loadConfig, getBuildQueueSize, getConfig } from './config.js';
 import { gzipSync, deflateSync } from 'zlib';
@@ -783,12 +783,14 @@ async function handleRequest(req) {
         // Calculate energy consumption for next level
         let energyConsumption = 0;
         if (buildingDef.energyConsumption) {
-          const productionMultiplier = 10.0; // From config
           // Energy efficiency from research: data-driven
           const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
-          const reduction = 1 - energyEfficiencyBonus;
-          
-          energyConsumption = Math.floor(buildingDef.energyConsumption * nextLevel * Math.pow(SCALING.BUILDING_ENERGY, nextLevel) * productionMultiplier * Math.max(0.5, reduction));
+          energyConsumption = getBuildingEnergyConsumption(
+            buildingType,
+            nextLevel,
+            { [buildingType]: buildingDef },
+            energyEfficiencyBonus
+          );
         }
         
         // Calculate deuterium consumption for next level
@@ -844,11 +846,14 @@ async function handleRequest(req) {
 
         let actualEnergyConsumption = 0;
         if (buildingDef.energyConsumption && currentLevel > 0) {
-          const energyMultiplier = 10.0;
           const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
-          const reduction = 1 - energyEfficiencyBonus;
-          const baseConsumption = Math.floor(buildingDef.energyConsumption * currentLevel * Math.pow(SCALING.BUILDING_ENERGY, currentLevel) * energyMultiplier * Math.max(0.5, reduction));
-          actualEnergyConsumption = Math.floor(baseConsumption * actualAllocation.power);
+          const baseConsumption = getBuildingEnergyConsumption(
+            buildingType,
+            currentLevel,
+            { [buildingType]: buildingDef },
+            energyEfficiencyBonus
+          );
+          actualEnergyConsumption = Math.round(baseConsumption * actualAllocation.power * 100) / 100;
         }
 
         let actualDeuteriumConsumption = 0;
@@ -867,7 +872,7 @@ async function handleRequest(req) {
         }
 
         const expectedNextEnergyConsumption = buildingDef.energyConsumption ? 
-          Math.floor(energyConsumption * actualAllocation.power) : 0;
+          Math.round(energyConsumption * actualAllocation.power * 100) / 100 : 0;
         
         const expectedNextDeuteriumConsumption = buildingDef.deuteriumConsumption ? 
           Math.floor(deuteriumConsumption * totalEffectiveness) : 0;

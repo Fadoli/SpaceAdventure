@@ -133,7 +133,7 @@ export function formatNumber(num) {
     if (absNum >= 1e6) return sign + (absNum / 1e6).toFixed(2) + 'M';
     if (absNum >= 1e3) return sign + (absNum / 1e3).toFixed(2) + 'K';
     
-    return (num >= 0 ? Math.floor(num) : Math.ceil(num)).toLocaleString();
+    return Number(num.toFixed(2)).toLocaleString();
 }
 
 /**

@@ -8,3 +8,8 @@ it('includes skeleton-owned planet identity in the empire refresh key', async ()
   expect(source).toContain('container.dataset.planetStructure = planetStructure');
   expect(source).not.toContain('container.dataset.planetIds');
 });
+
+it('forces a fresh state after allocation changes', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/allocation.js', import.meta.url), 'utf8');
+  expect(source).toContain('await window.loadGameState(true)');
+});

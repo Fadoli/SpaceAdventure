@@ -66,12 +66,136 @@ describe('Server Buildings - Energy Accounting', () => {
 
     updatePlanetProduction(planet);
 
-    const expected = Math.floor(
+    const expected =
       getBuildingEnergyConsumption('metalMine', 1, BUILDINGS) * planet.actualAllocations.metalMine.power
-    ) + Math.floor(
-      getBuildingEnergyConsumption('housing', 1, BUILDINGS) * planet.actualAllocations.housing.power
-    );
+      + getBuildingEnergyConsumption('housing', 1, BUILDINGS) * planet.actualAllocations.housing.power;
     expect(planet.consumption.energy).toBe(expected);
+  });
+
+  it('reduces planet power usage when a consumer receives less power', () => {
+    const planet = {
+      coordinates: [1, 1, 8],
+      resources: { population: 1000 },
+      buildings: { metalMine: 1, solarPlant: 10 },
+      buildingAllocations: {
+        metalMine: { power: 1, population: 1, priority: 1 },
+        solarPlant: { power: 1, population: 1, priority: 1 }
+      },
+      storage: {}
+    };
+
+    updatePlanetProduction(planet);
+    const fullPowerUsage = planet.energyConsumption;
+
+    planet.buildingAllocations.metalMine.power = 0.25;
+    updatePlanetProduction(planet);
+
+    expect(planet.energyConsumption).toBeLessThan(fullPowerUsage);
+    expect(planet.energyConsumption).toBe(
+      getBuildingEnergyConsumption('metalMine', 1, BUILDINGS) * 0.25
+    );
+  });
+
+  it('keeps a one-percent allocation proportional instead of treating it as full power', () => {
+    const planet = {
+      coordinates: [1, 1, 8],
+      resources: { population: 1000 },
+      buildings: { metalMine: 1, solarPlant: 10 },
+      buildingAllocations: {
+        metalMine: { power: 0.01, population: 1, priority: 1 },
+        solarPlant: { power: 1, population: 1, priority: 1 }
+      },
+      storage: {}
+    };
+
+    updatePlanetProduction(planet);
+
+    expect(planet.actualAllocations.metalMine.power).toBe(0.01);
+    expect(planet.energyConsumption).toBe(
+      getBuildingEnergyConsumption('metalMine', 1, BUILDINGS) * 0.01
+    );
+  });
+
+  it('uses producer power allocation when calculating the power budget', () => {
+    const planet = {
+      coordinates: [1, 1, 8],
+      resources: { population: 1000 },
+      buildings: { metalMine: 1, solarPlant: 1 },
+      buildingAllocations: {
+        metalMine: { power: 1, population: 1, priority: 2 },
+        solarPlant: { power: 1, population: 1, priority: 1 }
+      },
+      storage: {}
+    };
+
+    updatePlanetProduction(planet);
+    const fullPower = planet.energyConsumption;
+    const fullMineAllocation = planet.actualAllocations.metalMine.power;
+
+    planet.buildingAllocations.solarPlant.power = 0;
+    updatePlanetProduction(planet);
+
+    expect(planet.energyConsumption).toBeLessThan(fullPower);
+    expect(planet.actualAllocations.metalMine.power).toBe(0);
+    expect(fullMineAllocation).toBeGreaterThan(0);
+  });
+
+  it('uses the same efficiency-adjusted demand for priority resolution and totals', () => {
+    const planet = {
+      coordinates: [1, 1, 8],
+      resources: { population: 1000 },
+      buildings: { metalMine: 1, solarPlant: 10 },
+      buildingAllocations: {
+        metalMine: { power: 1, population: 1, priority: 1 },
+        solarPlant: { power: 1, population: 1, priority: 1 }
+      },
+      storage: {}
+    };
+    const player = { research: { energyTech: 10 } };
+
+    updatePlanetProduction(planet, player);
+
+    expect(planet.energyConsumption).toBe(
+      getBuildingEnergyConsumption('metalMine', 1, BUILDINGS, 0.1) * planet.actualAllocations.metalMine.power
+    );
+  });
+
+  it('satisfies higher energy priorities before lower priorities', () => {
+    const planet = {
+      coordinates: [1, 1, 8],
+      resources: { population: 1000 },
+      buildings: { metalMine: 1, crystalMine: 1, solarPlant: 1 },
+      buildingAllocations: {
+        metalMine: { power: 1, population: 1, priority: 1 },
+        crystalMine: { power: 1, population: 1, priority: 3 },
+        solarPlant: { power: 1, population: 1, priority: 1 }
+      },
+      storage: {}
+    };
+
+    updatePlanetProduction(planet);
+
+    expect(planet.actualAllocations.metalMine.power).toBeGreaterThan(0);
+    expect(planet.actualAllocations.crystalMine.power).toBe(0);
+  });
+
+  it('applies population priorities before resolving power', () => {
+    const planet = {
+      coordinates: [1, 1, 8],
+      resources: { population: 1 },
+      buildings: { metalMine: 1, crystalMine: 1, solarPlant: 10 },
+      buildingAllocations: {
+        metalMine: { power: 1, population: 1, priority: 1 },
+        crystalMine: { power: 1, population: 1, priority: 3 },
+        solarPlant: { power: 1, population: 1, priority: 1 }
+      },
+      storage: {}
+    };
+
+    updatePlanetProduction(planet);
+
+    expect(planet.actualAllocations.metalMine.population).toBeGreaterThan(0);
+    expect(planet.actualAllocations.crystalMine.population).toBe(0);
   });
 });
 

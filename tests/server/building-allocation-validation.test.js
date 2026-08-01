@@ -31,6 +31,7 @@ it('validates building allocations without changing planet state', () => {
   }
   expect(planet).toEqual(before);
   expect(validateBuildingAllocation(planet, 'metalMine', { power: 0, population: 2 })).toEqual({ power: 0, population: 2, priority: 3 });
+  expect(validateBuildingAllocation(planet, 'metalMine', { power: 0.01, population: 1 })).toEqual({ power: 0.01, population: 1, priority: 3 });
 });
 
 it('rejects malformed building queue positions before loading player state', async () => {

@@ -462,9 +462,10 @@ function calculateTotalEnergyProduction(planet, player = null, allocations = nul
     const production = getProduction(buildingType, level, planet, player);
     
     if (production.energy) {
-      // For energy producers, apply population effectiveness only (they don't consume power)
+      // Energy allocation controls how much of a producer is online too.
+      const powerEff = calculateAllocationEffectiveness(allocation.power * 100) / 100;
       const populationEff = calculateAllocationEffectiveness(allocation.population * 100) / 100;
-      totalEnergy += production.energy * populationEff * bonus;
+      totalEnergy += production.energy * powerEff * populationEff * bonus;
     }
   }
   
@@ -557,6 +558,7 @@ function resolvePopulationAllocation(planet, availablePopulation, player = null)
 function resolveEnergyAllocation(planet, availableEnergy, actualAllocations, player = null) {
   // Collect all buildings with energy demands
   const buildings = [];
+  const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
   
   for (const buildingType in planet.buildings) {
     const level = planet.buildings[buildingType];
@@ -572,7 +574,12 @@ function resolveEnergyAllocation(planet, availableEnergy, actualAllocations, pla
     if (!allocation) continue; // Should have been initialized in population step
     
     // Calculate energy demand based on desired power using effective definition
-    const baseEnergyConsumption = getBuildingEnergyConsumption(buildingType, level, effectiveBuildingsObj);
+    const baseEnergyConsumption = getBuildingEnergyConsumption(
+      buildingType,
+      level,
+      effectiveBuildingsObj,
+      energyEfficiencyBonus
+    );
     const energyDemand = baseEnergyConsumption * allocation.power;
     
     buildings.push({
@@ -583,7 +590,7 @@ function resolveEnergyAllocation(planet, availableEnergy, actualAllocations, pla
   }
   
   // Allocate energy by priority
-  let remainingEnergy = availableEnergy;
+  let remainingEnergy = Math.max(0, availableEnergy);
   for (let priority = 1; priority <= 3; priority++) {
     const buildingsAtPriority = buildings.filter(b => b.priority === priority && b.energyDemand > 0);
     
@@ -747,7 +754,7 @@ export function updatePlanetProduction(planet, player = null) {
         { [buildingType]: building },
         energyEfficiencyBonus
       );
-      totalEnergyConsumption += Math.floor(baseConsumption * actualAllocation.power);
+      totalEnergyConsumption += baseConsumption * actualAllocation.power;
     }
     
     // Calculate water consumption (for farms)
@@ -795,8 +802,8 @@ export function updatePlanetProduction(planet, player = null) {
   planet.consumption.population = totalPopulationRequired;
   
   // Store final totals
-  planet.energyConsumption = totalEnergyConsumption;
-  planet.consumption.energy = totalEnergyConsumption;
+  planet.energyConsumption = Math.round(totalEnergyConsumption * 100) / 100;
+  planet.consumption.energy = planet.energyConsumption;
 
   // Energy balance
   const originalEnergy = planet.production.energy;

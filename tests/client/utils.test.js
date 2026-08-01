@@ -25,6 +25,10 @@ describe('Client Utils', () => {
     it('should format small numbers as is', () => {
       expect(formatNumber(123)).toBe('123');
     });
+
+    it('should preserve fractional small values', () => {
+      expect(formatNumber(1.1)).toBe((1.1).toLocaleString());
+    });
     
     it('should format thousands with K', () => {
       expect(formatNumber(1500)).toBe('1.50K');

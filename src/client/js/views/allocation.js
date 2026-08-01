@@ -4,6 +4,7 @@ import { calculateAllocationEffectiveness, getBuildingEnergyConsumption, getBuil
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { getResearchBonus } from '../../../shared/research.js';
 import { Notifications } from '../notifications.js';
+import { formatNumber } from '../utils.js';
 
 // Track saved allocation state to avoid overwriting user input during updates
 let savedAllocations = {};
@@ -111,7 +112,9 @@ export async function renderAllocation() {
   for (const buildingType of allocatableBuildings) {
     const level = planet.buildings[buildingType] || 0;
     if (level > 0) {
-      const allocation = planet.buildingAllocations?.[buildingType] || { power: 1.0, population: 1.0 };
+      const allocation = planet.actualAllocations?.[buildingType]
+        || planet.buildingAllocations?.[buildingType]
+        || { power: 1.0, population: 1.0 };
       
       // Get effective definition
       const effectiveDef = getEffectiveBuildingDefinition(buildingType, planet, gameState);
@@ -151,11 +154,11 @@ export async function renderAllocation() {
             <div class="bar-fill" style="width: ${Math.min(100, Math.max(0, (consumedPowerTotal / Math.max(1, producedPower)) * 100))}%"></div>
           </div>
           <div class="summary-details">
-            <div class="summary-row"><span>Produced:</span> <span class="text-success">${producedPower.toFixed(0)}</span></div>
-            <div class="summary-row"><span>Consumed (Total):</span> <span class="text-warning">${consumedPowerTotal.toFixed(0)}</span></div>
-            <div class="summary-row sub-row"><span>└─ Buildings:</span> <span>${allocatableEnergyConsumption.toFixed(0)}</span></div>
-            <div class="summary-row sub-row"><span>└─ Other:</span> <span>${otherEnergyConsumption.toFixed(0)}</span></div>
-            <div class="summary-row balance-row"><span>Balance:</span> <span class="${(producedPower - consumedPowerTotal) >= -0.01 ? 'text-success' : 'text-danger'}">${(producedPower - consumedPowerTotal).toFixed(0)}</span></div>
+            <div class="summary-row"><span>Produced:</span> <span class="text-success">${formatNumber(producedPower)}</span></div>
+            <div class="summary-row"><span>Consumed (Total):</span> <span class="text-warning">${formatNumber(consumedPowerTotal)}</span></div>
+            <div class="summary-row sub-row"><span>└─ Buildings:</span> <span>${formatNumber(allocatableEnergyConsumption)}</span></div>
+            <div class="summary-row sub-row"><span>└─ Other:</span> <span>${formatNumber(otherEnergyConsumption)}</span></div>
+            <div class="summary-row balance-row"><span>Balance:</span> <span class="${(producedPower - consumedPowerTotal) >= -0.01 ? 'text-success' : 'text-danger'}">${formatNumber(producedPower - consumedPowerTotal)}</span></div>
           </div>
         </div>
         
@@ -166,9 +169,9 @@ export async function renderAllocation() {
             <div class="bar-fill" style="width: ${Math.min(100, (totalPopulationAllocated / Math.max(1, currentPopulation)) * 100)}%"></div>
           </div>
           <div class="summary-details">
-            <div class="summary-row"><span>Assigned (Base):</span> <span>${totalPopulationAllocated.toFixed(0)}</span></div>
-            <div class="summary-row"><span>Total Available:</span> <span>${currentPopulation.toFixed(0)}</span></div>
-            <div class="summary-row"><span>Max Population:</span> <span class="text-secondary">${maxPopulation.toFixed(0)}</span></div>
+            <div class="summary-row"><span>Assigned (Base):</span> <span>${formatNumber(totalPopulationAllocated)}</span></div>
+            <div class="summary-row"><span>Total Available:</span> <span>${formatNumber(currentPopulation)}</span></div>
+            <div class="summary-row"><span>Max Population:</span> <span class="text-secondary">${formatNumber(maxPopulation)}</span></div>
           </div>
         </div>
       </div>
@@ -256,7 +259,7 @@ export async function renderAllocation() {
             <div class="allocation-label-row">
               <label>⚡ Energy <span class="allocation-display">${(allocation.power * 100).toFixed(0)}%</span></label>
               <div class="requirement-preview">
-                <span class="base-requirement">${energyRequired.toFixed(0)} GW</span>
+                <span class="base-requirement">${formatNumber(energyRequired)} GW</span>
                 <span class="${(powerEffectiveness * 100) >= 100 ? 'text-success' : 'text-danger'}">(${((powerEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((powerEffectiveness * 100) - 100).toFixed(0)}%)</span>
               </div>
             </div>
@@ -268,7 +271,7 @@ export async function renderAllocation() {
             <div class="allocation-label-row">
               <label>👥 Workers <span class="allocation-display">${(allocation.population * 100).toFixed(0)}%</span></label>
               <div class="requirement-preview">
-                <span class="base-requirement">${populationRequired.toFixed(0)} K</span>
+                <span class="base-requirement">${formatNumber(populationRequired)} K</span>
                 <span class="${(populationEffectiveness * 100) >= 100 ? 'text-success' : 'text-danger'}">(${((populationEffectiveness * 100) - 100 >= 0 ? '+' : '')}${((populationEffectiveness * 100) - 100).toFixed(0)}%)</span>
               </div>
             </div>
@@ -345,14 +348,14 @@ export function setupAllocationHandlers() {
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
           const sign = effectivenessPercent >= 100 ? '+' : '';
-          labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${value}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
+          labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${value}%</span> : <span class="base-requirement">${formatNumber(energyRequired)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         } else {
           const basePopulationRequired = getBuildingPopulationRequired(buildingType, level, effectiveBuildingsObj);
           const populationRequired = basePopulationRequired * (value / 100);
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
           const sign = effectivenessPercent >= 100 ? '+' : '';
-          labelRow.innerHTML = `<label>👥 Workers <span class="allocation-display">${value}%</span> : <span class="base-requirement">${populationRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
+          labelRow.innerHTML = `<label>👥 Workers <span class="allocation-display">${value}%</span> : <span class="base-requirement">${formatNumber(populationRequired)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         }
       }
       
@@ -441,7 +444,7 @@ async function applyAllAllocations() {
     
     // Refresh game state and RE-RENDER the allocation view to show actuals
     if (window.loadGameState) {
-        await window.loadGameState();
+        await window.loadGameState(true);
         const html = await renderAllocation();
         const el = document.getElementById('allocation-view');
         if (el) {
@@ -488,7 +491,7 @@ async function undoAllAllocations() {
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
           const sign = effectivenessPercent >= 100 ? '+' : '';
-          labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${(saved.power * 100).toFixed(0)}%</span> : <span class="base-requirement">${energyRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
+          labelRow.innerHTML = `<label>⚡ Energy <span class="allocation-display">${(saved.power * 100).toFixed(0)}%</span> : <span class="base-requirement">${formatNumber(energyRequired)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         }
       }
       
@@ -503,7 +506,7 @@ async function undoAllAllocations() {
           const deltaPercent = (effectivenessPercent - 100).toFixed(0);
           const color = effectivenessPercent >= 100 ? '#5cb85c' : '#d9534f';
           const sign = effectivenessPercent >= 100 ? '+' : '';
-          labelRow.innerHTML = `<label>👥 Workers <span class="allocation-display">${(saved.population * 100).toFixed(0)}%</span> : <span class="base-requirement">${populationRequired.toFixed(0)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
+          labelRow.innerHTML = `<label>👥 Workers <span class="allocation-display">${(saved.population * 100).toFixed(0)}%</span> : <span class="base-requirement">${formatNumber(populationRequired)}</span> <span style="color: ${color}">(${sign}${deltaPercent}%)</span></label>`;
         }
       }
       

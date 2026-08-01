@@ -318,33 +318,28 @@ function switchView(view, updateHistory = true, forceFetch = false) {
 
 // Game State Management
 let lastFetchTime = 0;
-let isFetchingState = false;
-let pendingFetch = null;
+let stateFetchPromise = null;
 
 async function loadGameState(forceFetch = false) {
-    // If already fetching, queue a follow-up if forceFetch is requested
-    if (isFetchingState) {
-        if (forceFetch) pendingFetch = true;
-        return;
+    if (stateFetchPromise) {
+        const result = await stateFetchPromise;
+        return forceFetch ? loadGameState() : result;
     }
 
-    isFetchingState = true;
-    try {
+    const fetchPromise = (async () => {
         gameState = await API.getGameState();
         setGameState(gameState);
         updateUI(forceFetch);
         return true;
-    } catch (error) {
+    })().catch(error => {
         console.error('Failed to load game state:', error);
         return false;
-    } finally {
-        isFetchingState = false;
-        // If another fetch was requested while we were busy, do it now
-        if (pendingFetch) {
-            pendingFetch = false;
-            loadGameState(true);
-        }
-    }
+    });
+
+    stateFetchPromise = fetchPromise.finally(() => {
+        stateFetchPromise = null;
+    });
+    return stateFetchPromise;
 }
 
 window.loadGameState = loadGameState;
