@@ -131,6 +131,20 @@ describe('Fleet Management', () => {
       expect(slowFleet.travelTime).toBeGreaterThan(fastFleet.travelTime * 10);
     });
 
+    it('allows recyclers to harvest expedition debris at position 16', async () => {
+      mockPlayer.planets[0].ships.recycler = 1;
+
+      const fleet = await sendFleet(
+        'user1',
+        'p1',
+        [1, 1, 16],
+        MISSION_TYPES.HARVEST,
+        { recycler: 1 }
+      );
+
+      expect(fleet.targetCoords).toEqual([1, 1, 16]);
+    });
+
     it('should throw if insufficient ships', async () => {
       expect(sendFleet(
         'user1',

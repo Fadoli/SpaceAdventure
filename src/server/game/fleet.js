@@ -44,7 +44,7 @@ function validateQuantities(values, label, isAllowed, required = false) {
  */
 export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null, speedPercent = 1.0) {
     if (!Object.values(MISSION_TYPES).includes(missionType)) throw new Error('Invalid mission type');
-    const maxPosition = missionType === MISSION_TYPES.EXPEDITION ? 16 : 15;
+    const maxPosition = [MISSION_TYPES.EXPEDITION, MISSION_TYPES.HARVEST].includes(missionType) ? 16 : 15;
     if (!Array.isArray(targetCoords) || targetCoords.length !== 3 ||
         !targetCoords.every(Number.isSafeInteger) || targetCoords[0] < 1 || targetCoords[0] > 10 ||
         targetCoords[1] < 1 || targetCoords[1] > 499 || targetCoords[2] < 1 || targetCoords[2] > maxPosition) {
