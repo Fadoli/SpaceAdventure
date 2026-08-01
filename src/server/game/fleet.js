@@ -1230,7 +1230,7 @@ async function executeExpedition(player, fleet) {
         
         // Generate Alien Fleet based on player fleet value
         const alienFleet = {};
-        const alienStrength = fleetValue * (0.3 + Math.random() * 0.5); // 30-80% of player strength
+        const alienStrength = fleetValue * (0.2 + Math.random() * 0.35); // 20-55% of player strength
         
         const alienTypes = Object.keys(ALIEN_SHIPS);
         let remainingStrength = alienStrength;
