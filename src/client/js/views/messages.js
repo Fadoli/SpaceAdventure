@@ -4,6 +4,7 @@ import { isEmpty } from '../../../shared/utils.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { SHIPS, ALIEN_SHIPS } from '../../../shared/ships.js';
+import { DEFENSES } from '../../../shared/defenses.js';
 import { openDetailsModal } from './details.js';
 
 let lastMessagesHash = null;
@@ -267,13 +268,28 @@ export function renderCombatReport(data) {
         `;
     }
 
-    // Turn-by-turn combat log
-    const hasRoundDetails = data.rounds.some(r => Number.isFinite(r.attackerRemaining) || Number.isFinite(r.defenderRemaining));
+    const rounds = Array.isArray(data.rounds) ? data.rounds : [];
+    const finalRound = rounds.at(-1) || {};
+    html += `
+        <div class="report-block">
+            <div class="v-readout-header">BATTLE SUMMARY</div>
+            <div class="bt-readout">
+                <div class="bt-row"><span class="bt-label">ROUNDS</span><span class="bt-value">${formatNumber(rounds.length)}</span></div>
+                <div class="bt-row"><span class="bt-label">ATTACKERS REMAINING</span><span class="bt-value">${formatNumber(finalRound.attackerRemaining || 0)}</span></div>
+                <div class="bt-row"><span class="bt-label">DEFENDERS REMAINING</span><span class="bt-value">${formatNumber(finalRound.defenderRemaining || 0)}</span></div>
+            </div>
+        </div>
+        <details class="combat-details">
+            <summary>VIEW ROUND-BY-ROUND UNIT COUNTS</summary>
+    `;
+
+    // Detailed round log stays collapsed in the normal report.
+    const hasRoundDetails = rounds.some(r => Number.isFinite(r.attackerRemaining) || Number.isFinite(r.defenderRemaining));
     html += `
         <div class="report-block">
             <div class="v-readout-header">ENGAGEMENT LOG</div>
             <div class="bt-readout">
-                ${data.rounds.map(r => hasRoundDetails ? `
+                ${rounds.map(r => hasRoundDetails ? `
                     <div class="combat-round-row">
                         <div class="combat-round-header">ROUND ${r.round}</div>
                         <div class="combat-round-side"><span>ATTACKERS</span><span>${formatNumber(r.attackerShotCount || 0)} shots · ${formatNumber(r.attackerDamage || 0)} dmg · ${formatNumber(r.attackerRemaining ?? 0)} left · -${formatNumber(r.attackerDestroyed || 0)}</span></div>
@@ -287,6 +303,13 @@ export function renderCombatReport(data) {
                 `).join('')}
             </div>
         </div>
+    `;
+
+    html += `
+            <div class="combat-round-details">
+                ${rounds.map(renderCombatRound).join('')}
+            </div>
+        </details>
     `;
 
     // Losses
@@ -353,6 +376,41 @@ export function renderCombatReport(data) {
 
     html += '</div>';
     return html;
+}
+
+function renderCombatRound(round) {
+    const renderSide = (label, units, remaining, destroyed) => `
+        <div class="combat-detail-side">
+            <div class="combat-round-header">${label}</div>
+            ${renderCombatUnitCounts(units)}
+            <div class="combat-round-total">${formatNumber(remaining || 0)} remaining · -${formatNumber(destroyed || 0)}</div>
+        </div>
+    `;
+
+    return `
+        <div class="combat-round-row">
+            <div class="combat-round-header">ROUND ${round.round}</div>
+            <div class="combat-round-metrics">${formatNumber(round.attackerShotCount || 0)} attacker shots · ${formatNumber(round.defenderShotCount || 0)} defender shots · ${formatNumber(round.attackerDamage || 0)} / ${formatNumber(round.defenderDamage || 0)} damage</div>
+            <div class="combat-detail-columns">
+                ${renderSide('ATTACKERS', round.attackerUnits, round.attackerRemaining, round.attackerDestroyed)}
+                ${renderSide('DEFENDERS', round.defenderUnits, round.defenderRemaining, round.defenderDestroyed)}
+            </div>
+        </div>
+    `;
+}
+
+function renderCombatUnitCounts(units) {
+    if (!units) return '<div class="combat-unit-empty">UNIT DETAIL UNAVAILABLE</div>';
+
+    const entries = [];
+    for (const [category, definitions] of [['ships', SHIPS], ['defenses', DEFENSES]]) {
+        for (const [key, count] of Object.entries(units[category] || {})) {
+            const definition = definitions[key] || ALIEN_SHIPS[key];
+            const name = definition?.name || key.replace(/([A-Z])/g, ' $1').trim();
+            entries.push(`<div class="combat-unit-row"><span>${escapeHtml(name)}</span><span>${formatNumber(count)}</span></div>`);
+        }
+    }
+    return entries.join('') || '<div class="combat-unit-empty">NONE</div>';
 }
 
 export function renderEspionageData(data, msgId = null) {

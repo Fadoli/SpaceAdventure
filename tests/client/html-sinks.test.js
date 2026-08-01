@@ -61,10 +61,12 @@ it('opens detail cards without separate info buttons', async () => {
 
 it('updates shipyard folds and queue mutations without polling', async () => {
   const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  const mainSource = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   expect(source).toContain('data-category-content="queue"');
   expect(source).toContain('content.hidden = collapsedSections[categoryId]');
   expect(source).toContain("appendQueueItem('ships', response)");
   expect(source).toContain("appendQueueItem('defenses', response)");
+  expect(mainSource).toContain('if (forceFetch || stateOnly) updateShipyardView');
 });
 
 it('formats ship and defense counts with compact numbers', async () => {
@@ -76,10 +78,12 @@ it('formats ship and defense counts with compact numbers', async () => {
 
 it('scopes shipyard updates to the active view container', async () => {
   const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  const timerSource = await readFile(new URL('../../src/client/js/views/buildings.js', import.meta.url), 'utf8');
   expect(source).toContain('function updateUnitCardsGranular(planet, shipyardData, subView, container)');
   expect(source).toContain('container.querySelector(`#variant-${key}`)');
   expect(source).toContain('container.querySelector(`#cost-${id}`)');
   expect(source).toContain("e.target.closest('#shipyard-view, #defenses-view')");
+  expect(timerSource).toContain("timer.closest('#buildings-view, #shipyard-view, #defenses-view')");
 });
 
 it('renders building details from server level projections', async () => {

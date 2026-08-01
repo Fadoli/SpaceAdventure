@@ -287,6 +287,48 @@
 
 .combat-round-side span:first-child { color: var(--text-primary); }
 
+.combat-details {
+    margin: 0 0 20px;
+    border: 1px solid rgba(56, 189, 248, 0.16);
+    background: rgba(56, 189, 248, 0.03);
+}
+
+.combat-details summary {
+    cursor: pointer;
+    padding: 10px 12px;
+    color: var(--accent-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+}
+
+.combat-details-body { padding: 0 12px; }
+.combat-details .combat-round-row { padding: 12px 0; }
+.combat-round-metrics, .combat-round-total, .combat-unit-empty {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+.combat-detail-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 8px;
+}
+
+.combat-unit-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.74rem;
+    padding: 2px 0;
+}
+
+.combat-unit-row span:last-child { color: var(--accent-green); }
+
 .report-block {
     margin-bottom: 20px;
 }

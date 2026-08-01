@@ -74,6 +74,8 @@ export function simulateGroupCombat(attackers, defenders) {
     roundData.defenderRemaining = defenderRemaining;
     roundData.attackerDestroyed = Math.max(0, attackerCount - attackerRemaining);
     roundData.defenderDestroyed = Math.max(0, defenderCount - defenderRemaining);
+    roundData.attackerUnits = snapshotUnitCounts(attackerGroups);
+    roundData.defenderUnits = snapshotUnitCounts(defenderGroups);
 
     report.rounds.push(roundData);
     
@@ -379,4 +381,13 @@ function consolidateGroups(groups) {
     counts[g.key] = (counts[g.key] || 0) + g.count;
   });
   return counts;
+}
+
+function snapshotUnitCounts(groups) {
+  const units = { ships: {}, defenses: {} };
+  groups.forEach(group => {
+    const category = group.isShip ? units.ships : units.defenses;
+    category[group.key] = (category[group.key] || 0) + group.count;
+  });
+  return units;
 }

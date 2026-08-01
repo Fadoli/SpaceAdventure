@@ -32,7 +32,10 @@ Start the server without auto-reload:
 bun start
 ```
 
-The application will be available at: **<http://localhost:3000>**
+The application will be available at **<https://localhost:1443>**. The first
+startup generates a local self-signed certificate under `data/tls/`; accept
+the browser warning during development. HTTP remains available at
+**<http://localhost:3000>** as a fallback.
 
 ## First Steps
 

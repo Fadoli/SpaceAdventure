@@ -464,10 +464,10 @@ function updateCurrentView(forceFetch = false, stateOnly = false) {
             updateResearchView(gameState, currentPlanetId, forceFetch);
             break;
         case 'shipyard':
-            updateShipyardView(planet, 'ships', forceFetch, stateOnly);
+            if (forceFetch || stateOnly) updateShipyardView(planet, 'ships', forceFetch, stateOnly);
             break;
         case 'defenses':
-            updateShipyardView(planet, 'defenses', forceFetch, stateOnly);
+            if (forceFetch || stateOnly) updateShipyardView(planet, 'defenses', forceFetch, stateOnly);
             break;
         case 'fleet':
             if (gameState) updateFleetView(gameState);

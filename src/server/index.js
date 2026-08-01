@@ -76,6 +76,7 @@ import { gzipSync, deflateSync } from 'zlib';
 import { wsManager } from './game/wsManager.js';
 import { canServeDuringStartup, getPublicFilePath } from './publicFiles.js';
 import { applyAdminAssetUpdate } from './adminAssets.js';
+import { ensureTlsConfig } from './tls.js';
 
 // Load configuration
 await loadConfig();
@@ -83,7 +84,8 @@ await loadConfig();
 // Initialize storage on startup
 await initializeStorage();
 
-const PORT = process.env.PORT || 3000;
+const HTTP_PORT = Number(process.env.PORT || 3000);
+const HTTPS_PORT = Number(process.env.HTTPS_PORT || 1443);
 let serverReady = false;
 
 /**
@@ -2177,37 +2179,50 @@ async function handleRequest(req) {
   }
 }
 
-// Create server
-const server = Bun.serve({
-  port: PORT,
-  async fetch(req) {
-    if (!serverReady && !canServeDuringStartup(req)) {
-      return errorResponse(req, 'Server is starting', 503);
-    }
+function createServer(port, tls = undefined) {
+  let activeServer;
+  activeServer = Bun.serve({
+    port,
+    ...(tls ? { tls } : {}),
+    async fetch(req) {
+      if (!serverReady && !canServeDuringStartup(req)) {
+        return errorResponse(req, 'Server is starting', 503);
+      }
 
-    // 1. Handle WebSocket upgrade requests
-    const upgraded = await wsManager.handleUpgrade(req, server);
-    if (upgraded !== null) return upgraded; // Returns Response (error) or undefined (success)
-    
-    // 2. Handle normal HTTP requests
-    return handleRequest(req);
-  },
-  websocket: {
-    open(ws) {
-      const { userId } = ws.data;
-      wsManager.addConnection(userId, ws);
+      const upgraded = await wsManager.handleUpgrade(req, activeServer);
+      if (upgraded !== null) return upgraded;
+      return handleRequest(req);
     },
-    message(ws, message) {
-      wsManager.handleClientMessage(ws, message);
-    },
-    close(ws) {
-      const { userId } = ws.data;
-      wsManager.removeConnection(userId, ws);
+    websocket: {
+      open(ws) {
+        const { userId } = ws.data;
+        wsManager.addConnection(userId, ws);
+      },
+      message(ws, message) {
+        wsManager.handleClientMessage(ws, message);
+      },
+      close(ws) {
+        const { userId } = ws.data;
+        wsManager.removeConnection(userId, ws);
+      }
     }
-  }
-});
+  });
+  return activeServer;
+}
 
-console.log(`🚀 Space Adventure server running on http://localhost:${PORT}`);
+const tlsConfig = await ensureTlsConfig();
+let httpServer;
+let httpsServer;
+try {
+  httpServer = createServer(HTTP_PORT);
+  httpsServer = createServer(HTTPS_PORT, tlsConfig);
+} catch (error) {
+  httpServer?.stop(true);
+  throw error;
+}
+
+console.log(`🚀 Space Adventure HTTP server running on http://localhost:${HTTP_PORT}`);
+console.log(`🔒 Space Adventure HTTPS/WSS server running on https://localhost:${HTTPS_PORT}`);
 
 let shutdownPromise = null;
 const shutdown = (signal) => {
@@ -2222,8 +2237,9 @@ const shutdown = (signal) => {
       console.error('[Server] Graceful shutdown failed:', error);
       process.exitCode = 1;
     } finally {
-      server.stop(true);
-      console.log('[Server] State save attempted; server stopped cleanly.');
+      httpServer?.stop(true);
+      httpsServer?.stop(true);
+      console.log('[Server] State save attempted; HTTP and HTTPS servers stopped cleanly.');
     }
   })();
 

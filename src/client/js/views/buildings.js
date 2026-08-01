@@ -456,7 +456,8 @@ export function updateTimers() {
         
         // Update Building/Shipyard progress bar
         if (queuePos) {
-            const progressBar = document.getElementById(`build-progress-${queuePos}`);
+            const viewContainer = timer.closest('#buildings-view, #shipyard-view, #defenses-view');
+            const progressBar = viewContainer?.querySelector(`#build-progress-${queuePos}`);
             if (progressBar && startTime && finishTime) {
                 const total = finishTime - startTime;
                 const elapsed = now - startTime;

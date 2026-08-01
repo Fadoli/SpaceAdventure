@@ -148,6 +148,12 @@ describe('Combat Engine', () => {
       expect(round.defenderDestroyed).toBeGreaterThanOrEqual(0);
       expect(round.attackerRemaining + round.attackerDestroyed).toBeLessThanOrEqual(20);
       expect(round.defenderRemaining + round.defenderDestroyed).toBeLessThanOrEqual(20);
+      expect(round.attackerUnits).toBeDefined();
+      expect(round.defenderUnits).toBeDefined();
+      expect(Object.values(round.attackerUnits.ships).reduce((sum, count) => sum + count, 0) +
+        Object.values(round.attackerUnits.defenses).reduce((sum, count) => sum + count, 0)).toBe(round.attackerRemaining);
+      expect(Object.values(round.defenderUnits.ships).reduce((sum, count) => sum + count, 0) +
+        Object.values(round.defenderUnits.defenses).reduce((sum, count) => sum + count, 0)).toBe(round.defenderRemaining);
     }
   });
 
