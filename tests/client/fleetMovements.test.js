@@ -24,6 +24,23 @@ it('escapes hostile fleet owner names', () => {
   expect(html).not.toContain('<img');
 });
 
+it('renders recall controls for outbound fleets but not returning fleets', () => {
+  const now = Date.now();
+  const baseFleet = {
+    id: 'fleet-1',
+    missionType: 'expedition',
+    originCoords: [1, 1, 1],
+    targetCoords: [1, 1, 16],
+    startTime: now,
+    arrivalTime: now + 60_000,
+    ships: { recycler: 1 },
+    resources: {}
+  };
+
+  expect(renderFleetRow(baseFleet)).toContain('window.recallFleet(\'fleet-1\')');
+  expect(renderFleetRow({ ...baseFleet, returning: true })).not.toContain('fleet-recall-btn');
+});
+
 it('keeps collapsed telemetry state in sync', () => {
   const classes = () => {
     const values = new Set();

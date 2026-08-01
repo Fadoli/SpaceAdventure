@@ -147,6 +147,12 @@ export const API = {
     async getFleetDetails(planetId) {
         return await this.request(`/game/planet/${planetId}/fleet`);
     },
+
+    async recallFleet(fleetId) {
+        return await this.request(`/game/fleet/${fleetId}/recall`, {
+            method: 'POST'
+        });
+    },
     
     async getGalaxyView(galaxy, system) {
         return await this.request(`/game/galaxy/${galaxy}/${system}`);

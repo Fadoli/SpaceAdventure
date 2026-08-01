@@ -123,7 +123,7 @@ async function showGameScreen() {
     // Refresh game state when important events happen on server
     let wsRefreshTimeout = null;
     gameSocket.addHandler((type, data) => {
-        const fleetEvents = ['FLEET_ARRIVED', 'FLEET_RETURNED', 'INCOMING_FLEET'];
+        const fleetEvents = ['FLEET_ARRIVED', 'FLEET_RETURNED', 'FLEET_RECALLED', 'INCOMING_FLEET'];
         const structuralEvents = [
             'BUILDING_COMPLETE', 
             'RESEARCH_COMPLETE', 
@@ -572,6 +572,19 @@ window.selectPlanet = function(planetId) {
         currentPlanetId = planet.id;
         updateUrlParams(currentPlanetId, currentView);
         updateUI(true);
+    }
+};
+
+window.recallFleet = async function(fleetId) {
+    const confirmed = await showConfirm('Recall Fleet', 'Recall this fleet and send it back to its origin?');
+    if (!confirmed) return;
+
+    try {
+        await API.recallFleet(fleetId);
+        Notifications.showSuccess('Fleet recalled. It is returning to base.');
+        await loadGameState(true);
+    } catch (error) {
+        Notifications.showError(error.message || 'Unable to recall fleet.');
     }
 };
 

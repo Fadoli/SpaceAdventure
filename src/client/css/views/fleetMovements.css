@@ -79,12 +79,13 @@
 
 /* 2. Structured Operation Rows */
 .fleet-list {
-    max-height: 250px;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
 }
 
 .fleet-list.collapsed {
     max-height: 0;
+    overflow: hidden;
 }
 
 .fleet-row {
@@ -188,6 +189,20 @@
     text-align: right;
     font-size: 0.9rem;
     letter-spacing: 1px;
+}
+
+.fleet-recall-btn {
+    margin-left: 8px;
+    padding: 3px 6px;
+    border: 1px solid var(--accent-yellow);
+    background: rgba(251, 191, 36, 0.08);
+    color: var(--accent-yellow);
+    font: 0.6rem 'Share Tech Mono', monospace;
+    cursor: pointer;
+}
+
+.fleet-recall-btn:hover {
+    background: rgba(251, 191, 36, 0.2);
 }
 
 /* Mission Specific Highlights */

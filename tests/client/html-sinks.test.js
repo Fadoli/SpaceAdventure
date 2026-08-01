@@ -127,3 +127,15 @@ it('documents vehicle engine upgrades in ship and propulsion details', async () 
   expect(research).toContain('Vehicle Engine Upgrades');
   expect(research).toContain('swap.techKey === techKey');
 });
+
+it('keeps fleet movements unbounded and exposes recall handling', async () => {
+  const styles = await readFile(new URL('../../src/client/css/views/fleetMovements.css', import.meta.url), 'utf8');
+  const view = await readFile(new URL('../../src/client/js/views/fleetMovements.js', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const server = await readFile(new URL('../../src/server/index.js', import.meta.url), 'utf8');
+  expect(styles).toContain('max-height: none;');
+  expect(styles).toContain('overflow: visible;');
+  expect(view).toContain('fleet-recall-btn');
+  expect(main).toContain('window.recallFleet');
+  expect(server).toContain('recallFleet(user.id, fleetId)');
+});

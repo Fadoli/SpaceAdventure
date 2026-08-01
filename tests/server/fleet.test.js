@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
-import { sendFleet, processFleets } from '../../src/server/game/fleet.js';
+import { sendFleet, recallFleet, processFleets } from '../../src/server/game/fleet.js';
 import { calculateDistance } from '../../src/shared/formulas.js';
 import { MISSION_TYPES } from '../../src/shared/constants.js';
 import { savePlayers } from '../../src/server/game/player.js';
@@ -179,6 +179,34 @@ describe('Fleet Management', () => {
         .rejects.toThrow('Invalid target coordinates');
 
       expect(origin).toEqual(before);
+    });
+  });
+
+  describe('recallFleet', () => {
+    it('turns an outbound expedition around without executing it', async () => {
+      const now = Date.now();
+      const fleet = {
+        id: 'expedition-1',
+        missionType: MISSION_TYPES.EXPEDITION,
+        ships: { lightFighter: 1 },
+        resources: {},
+        originCoords: [1, 1, 1],
+        targetCoords: [1, 1, 16],
+        startTime: now - 5_000,
+        arrivalTime: now + 5_000,
+        travelTime: 20,
+        returning: false,
+        waiting: true
+      };
+      mockPlayer.fleets = [fleet];
+
+      const recalled = await recallFleet('user1', fleet.id);
+
+      expect(recalled.returning).toBe(true);
+      expect(recalled.waiting).toBe(false);
+      expect(recalled.originCoords).toEqual([1, 1, 16]);
+      expect(recalled.targetCoords).toEqual([1, 1, 1]);
+      expect(recalled.arrivalTime - recalled.startTime).toBe(20_000);
     });
   });
 

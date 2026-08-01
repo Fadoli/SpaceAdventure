@@ -38,3 +38,17 @@ it('preserves the shipyard queue type when cancelling production', async () => {
   await API.cancelShipyardProduction('planet-1', 'queue-1', 'defenses');
   expect(JSON.parse(options.body)).toEqual({ type: 'defenses' });
 });
+
+it('uses the fleet recall route', async () => {
+  let url;
+  let options;
+  globalThis.fetch = async (requestUrl, requestOptions) => {
+    url = requestUrl;
+    options = requestOptions;
+    return new Response(JSON.stringify({ success: true, data: {} }));
+  };
+
+  await API.recallFleet('fleet-1');
+  expect(url).toBe('/api/game/fleet/fleet-1/recall');
+  expect(options.method).toBe('POST');
+});

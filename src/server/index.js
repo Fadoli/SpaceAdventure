@@ -38,7 +38,7 @@ import {
   processCompletedProduction, 
   getShipyardDetails
 } from './game/shipyard.js';
-import { sendFleet } from './game/fleet.js';
+import { sendFleet, recallFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
@@ -1412,6 +1412,19 @@ async function handleRequest(req) {
 
         const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships, resources || {}, stayTime, buyResources, speedPercent);
         return successResponse(req, fleet);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/fleet/:fleetId/recall - Recall a fleet to its origin
+    if (path.match(/^\/api\/game\/fleet\/[^\/]+\/recall$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const fleetId = path.split('/')[4];
+      try {
+        return successResponse(req, await recallFleet(user.id, fleetId));
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }

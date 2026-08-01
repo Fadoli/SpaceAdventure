@@ -190,6 +190,38 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
 }
 
 /**
+ * Recall an active fleet and start its return journey.
+ */
+export async function recallFleet(userId, fleetId) {
+    const player = await getPlayerByUserId(userId);
+    if (!player) throw new Error('Player not found');
+
+    const fleet = (player.fleets || []).find(candidate => candidate.id === fleetId);
+    if (!fleet) throw new Error('Fleet not found');
+    if (fleet.returning) throw new Error('Fleet is already returning');
+
+    const now = Date.now();
+    const outboundTravelTime = Math.max(1, Number(fleet.travelTime) || 1);
+    const elapsedOutboundTime = Math.max(0, (now - fleet.startTime) / 1000);
+    const returnTime = fleet.waiting
+        ? outboundTravelTime
+        : Math.max(1, Math.min(outboundTravelTime, elapsedOutboundTime));
+    const homeCoords = [...fleet.originCoords];
+
+    fleet.originCoords = [...fleet.targetCoords];
+    fleet.targetCoords = homeCoords;
+    fleet.startTime = now;
+    fleet.arrivalTime = now + returnTime * 1000;
+    fleet.travelTime = returnTime;
+    fleet.returning = true;
+    fleet.waiting = false;
+
+    await updatePlayer(userId, player);
+    wsManager.sendToUser(userId, 'FLEET_RECALLED', { userId, fleetId });
+    return fleet;
+}
+
+/**
  * Process all active fleets for a player
  */
 export async function processFleets(player, allPlayers, now = Date.now(), isCatchUp = false) {
