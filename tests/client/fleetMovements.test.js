@@ -38,7 +38,9 @@ it('renders recall controls for outbound fleets but not returning fleets', () =>
   };
 
   expect(renderFleetRow(baseFleet)).toContain('window.recallFleet(\'fleet-1\')');
+  expect(renderFleetRow(baseFleet)).toContain('class="fleet-info-cell action-cell"');
   expect(renderFleetRow({ ...baseFleet, returning: true })).not.toContain('fleet-recall-btn');
+  expect(renderFleetRow({ ...baseFleet, waiting: true })).not.toContain('fleet-recall-btn');
 });
 
 it('keeps collapsed telemetry state in sync', () => {

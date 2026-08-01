@@ -196,7 +196,7 @@ describe('Fleet Management', () => {
         arrivalTime: now + 5_000,
         travelTime: 20,
         returning: false,
-        waiting: true
+        waiting: false
       };
       mockPlayer.fleets = [fleet];
 
@@ -206,7 +206,30 @@ describe('Fleet Management', () => {
       expect(recalled.waiting).toBe(false);
       expect(recalled.originCoords).toEqual([1, 1, 16]);
       expect(recalled.targetCoords).toEqual([1, 1, 1]);
-      expect(recalled.arrivalTime - recalled.startTime).toBe(20_000);
+      expect(recalled.arrivalTime - recalled.startTime).toBeGreaterThanOrEqual(4_900);
+      expect(recalled.arrivalTime - recalled.startTime).toBeLessThan(10_000);
+    });
+
+    it('rejects recalling an expedition already operating at its destination', async () => {
+      const now = Date.now();
+      const fleet = {
+        id: 'operating-expedition-1',
+        missionType: MISSION_TYPES.EXPEDITION,
+        ships: { lightFighter: 1 },
+        resources: {},
+        originCoords: [1, 1, 1],
+        targetCoords: [1, 1, 16],
+        startTime: now - 3_600_000,
+        arrivalTime: now + 3_600_000,
+        travelTime: 20,
+        returning: false,
+        waiting: true
+      };
+      mockPlayer.fleets = [fleet];
+
+      await expect(recallFleet('user1', fleet.id)).rejects.toThrow('Expedition is already operating');
+      expect(fleet.returning).toBe(false);
+      expect(fleet.waiting).toBe(true);
     });
   });
 

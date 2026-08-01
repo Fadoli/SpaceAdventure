@@ -259,6 +259,13 @@ function setupGameListeners() {
 
 function switchView(view, updateHistory = true, forceFetch = false) {
     currentView = view;
+
+    if (view === 'galaxy' && gameState) {
+        const planet = gameState.planets.find(p => p.id === currentPlanetId) || gameState.planets[0];
+        if (planet) {
+            [window.currentGalaxy, window.currentSystem] = planet.coordinates;
+        }
+    }
     
     // Update URL if requested
     if (updateHistory) {

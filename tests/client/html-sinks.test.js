@@ -139,3 +139,9 @@ it('keeps fleet movements unbounded and exposes recall handling', async () => {
   expect(main).toContain('window.recallFleet');
   expect(server).toContain('recallFleet(user.id, fleetId)');
 });
+
+it('resets galaxy navigation to the selected planet system', async () => {
+  const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  expect(source).toContain("if (view === 'galaxy' && gameState)");
+  expect(source).toContain('[window.currentGalaxy, window.currentSystem] = planet.coordinates');
+});

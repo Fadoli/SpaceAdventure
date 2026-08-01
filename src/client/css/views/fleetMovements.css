@@ -90,7 +90,7 @@
 
 .fleet-row {
     display: grid;
-    grid-template-columns: 1.8fr 1.5fr 1.5fr 2fr 100px;
+    grid-template-columns: 1.8fr 1.5fr 1.5fr 2fr 110px 80px;
     align-items: center;
     padding: 6px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
@@ -189,6 +189,10 @@
     text-align: right;
     font-size: 0.9rem;
     letter-spacing: 1px;
+}
+
+.action-cell {
+    justify-content: flex-end;
 }
 
 .fleet-recall-btn {

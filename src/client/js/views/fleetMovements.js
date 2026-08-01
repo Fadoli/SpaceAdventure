@@ -172,7 +172,8 @@ export function renderFleetRow(fleet) {
     const isReturning = fleet.returning;
     const timeRemaining = Math.max(0, Math.floor((fleet.arrivalTime - now) / 1000));
     const isHostile = fleet.isHostile;
-    const recallButton = !isHostile && !isReturning
+    const canRecall = !isHostile && !isReturning && !(fleet.missionType === 'expedition' && fleet.waiting);
+    const recallButton = canRecall
         ? `<button type="button" class="fleet-recall-btn" onclick="event.stopPropagation(); window.recallFleet('${fleet.id}')">RECALL</button>`
         : '';
     
@@ -316,6 +317,9 @@ export function renderFleetRow(fleet) {
             
             <div class="fleet-info-cell timer-cell">
                 <span class="fleet-timer">${formatCountdown(timeRemaining)}</span>
+            </div>
+
+            <div class="fleet-info-cell action-cell">
                 ${recallButton}
             </div>
             

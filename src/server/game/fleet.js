@@ -199,10 +199,15 @@ export async function recallFleet(userId, fleetId) {
     const fleet = (player.fleets || []).find(candidate => candidate.id === fleetId);
     if (!fleet) throw new Error('Fleet not found');
     if (fleet.returning) throw new Error('Fleet is already returning');
+    if (fleet.missionType === MISSION_TYPES.EXPEDITION && fleet.waiting) {
+        throw new Error('Expedition is already operating');
+    }
 
     const now = Date.now();
     const outboundTravelTime = Math.max(1, Number(fleet.travelTime) || 1);
-    const elapsedOutboundTime = Math.max(0, (now - fleet.startTime) / 1000);
+    const elapsedOutboundTime = Number.isFinite(fleet.startTime)
+        ? Math.max(0, (now - fleet.startTime) / 1000)
+        : outboundTravelTime;
     const returnTime = fleet.waiting
         ? outboundTravelTime
         : Math.max(1, Math.min(outboundTravelTime, elapsedOutboundTime));
