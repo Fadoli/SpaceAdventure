@@ -341,6 +341,7 @@ export function getShipyardDetails(planet, player = null) {
     shipyardLevel,
     roboticsLevel,
     naniteLevel,
+    costReductionBonus: getResearchBonus(player?.research, 'globalCostReduction'),
     ships: planet.ships,
     defenses: planet.defenses,
     shipQueue: planet.shipQueue.map(item => ({

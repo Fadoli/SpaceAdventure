@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { buildDefenses, buildShips, cancelProduction } from '../../src/server/game/shipyard.js';
+import { calculateShipCost } from '../../src/shared/ships.js';
+import { calculateDefenseCost } from '../../src/shared/defenses.js';
 
 function makePlanet() {
   return {
@@ -31,6 +33,20 @@ describe('shipyard order validation', () => {
     buildDefenses(planet, null, { rocketLauncher: 1 }, 1);
     expect(planet.shipQueue).toHaveLength(1);
     expect(planet.defenseQueue).toHaveLength(1);
+  });
+
+  it('charges research-reduced costs for ships and defenses', () => {
+    const planet = makePlanet();
+    const player = { userId: 'player-1', research: { resourceEfficiency: 10 } };
+    const shipCost = calculateShipCost('smallCargo', 1, 0.05);
+    const defenseCost = calculateDefenseCost('rocketLauncher', 1, 0.05);
+
+    buildShips(planet, player, { smallCargo: 1 }, 1);
+    buildDefenses(planet, player, { rocketLauncher: 1 }, 1);
+
+    expect(planet.resources.metal).toBe(100_000 - shipCost.metal - defenseCost.metal);
+    expect(planet.resources.crystal).toBe(100_000 - shipCost.crystal - defenseCost.crystal);
+    expect(planet.resources.deuterium).toBe(100_000 - shipCost.deuterium - defenseCost.deuterium);
   });
 
   it('schedules each shipyard queue in order', () => {

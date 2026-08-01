@@ -145,3 +145,12 @@ it('resets galaxy navigation to the selected planet system', async () => {
   expect(source).toContain("if (view === 'galaxy' && gameState)");
   expect(source).toContain('[window.currentGalaxy, window.currentSystem] = planet.coordinates');
 });
+
+it('applies research cost reduction to shipyard UI prices', async () => {
+  const view = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  const server = await readFile(new URL('../../src/server/game/shipyard.js', import.meta.url), 'utf8');
+  expect(view).toContain('currentShipyardData?.costReductionBonus');
+  expect(view).toContain('calculateDefenseCost(id, quantity)');
+  expect(view).toContain('baseCost.metal * quantity * reduction');
+  expect(server).toContain("costReductionBonus: getResearchBonus(player?.research, 'globalCostReduction')");
+});

@@ -75,6 +75,10 @@ function getQueuePreviewData(planet) {
     };
 }
 
+function getCostReductionBonus() {
+    return currentShipyardData?.costReductionBonus || 0;
+}
+
 function renderShipyardShell(container, subView, queueData) {
     const isDefenses = subView === 'defenses';
     container.innerHTML = `
@@ -381,11 +385,12 @@ function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
     `;
 }
 
-function calculateShipCostForDef(shipDef, quantity) {
+function calculateShipCostForDef(shipDef, quantity, costReductionBonus = getCostReductionBonus()) {
+    const reduction = 1 - costReductionBonus;
     return {
-        metal: Math.floor(shipDef.baseCost.metal * quantity),
-        crystal: Math.floor(shipDef.baseCost.crystal * quantity),
-        deuterium: Math.floor(shipDef.baseCost.deuterium * quantity)
+        metal: Math.floor(shipDef.baseCost.metal * quantity * reduction),
+        crystal: Math.floor(shipDef.baseCost.crystal * quantity * reduction),
+        deuterium: Math.floor(shipDef.baseCost.deuterium * quantity * reduction)
     };
 }
 
@@ -701,11 +706,7 @@ function updateProductionInfo(type, id, quantity, planet, container = getActiveS
         def = currentShipyardData.availableDefenses[id];
         if (!def) return;
         
-        cost = {
-            metal: Math.floor(def.baseCost.metal * quantity),
-            crystal: Math.floor(def.baseCost.crystal * quantity),
-            deuterium: Math.floor(def.baseCost.deuterium * quantity)
-        };
+        cost = calculateDefenseCost(id, quantity);
         
         const baseTime = calculateBaseTime(def) * quantity;
         const speedFactor = CONFIG.DEFENSE_BUILD_SPEED || 2500;
@@ -758,11 +759,7 @@ function calculateShipCost(shipKey, quantity) {
     const ship = currentShipyardData.availableShips[shipKey];
     if (!ship) return { metal: 0, crystal: 0, deuterium: 0 };
     
-    return {
-        metal: Math.floor(ship.baseCost.metal * quantity),
-        crystal: Math.floor(ship.baseCost.crystal * quantity),
-        deuterium: Math.floor(ship.baseCost.deuterium * quantity)
-    };
+    return calculateShipCostForDef(ship, quantity);
 }
 
 /**
@@ -772,10 +769,11 @@ function calculateDefenseCost(defenseKey, quantity) {
     const defense = currentShipyardData.availableDefenses[defenseKey];
     if (!defense) return { metal: 0, crystal: 0, deuterium: 0 };
     
+    const reduction = 1 - getCostReductionBonus();
     return {
-        metal: Math.floor(defense.baseCost.metal * quantity),
-        crystal: Math.floor(defense.baseCost.crystal * quantity),
-        deuterium: Math.floor(defense.baseCost.deuterium * quantity)
+        metal: Math.floor(defense.baseCost.metal * quantity * reduction),
+        crystal: Math.floor(defense.baseCost.crystal * quantity * reduction),
+        deuterium: Math.floor(defense.baseCost.deuterium * quantity * reduction)
     };
 }
 
