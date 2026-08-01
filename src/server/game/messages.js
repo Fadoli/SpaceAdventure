@@ -98,7 +98,10 @@ export async function addMessage(userId, messageData) {
   dirtyMessageUsers.add(userId);
 
   // Notify client of new message
-  wsManager.sendToUser(userId, 'NEW_MESSAGE', { count: messages.filter(m => !m.read).length });
+  wsManager.sendToUser(userId, 'NEW_MESSAGE', {
+    count: messages.filter(m => !m.read).length,
+    message: newMessage
+  });
 
   return newMessage;
 }

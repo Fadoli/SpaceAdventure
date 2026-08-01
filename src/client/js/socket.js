@@ -10,6 +10,10 @@ export class GameSocket {
         this.handlers = new Set();
         this.shouldReconnect = true;
         this.reconnectTimer = null;
+        this.keepAliveTimer = null;
+        this.pongTimeoutTimer = null;
+        this.keepAliveInterval = 25000;
+        this.pongTimeout = 10000;
     }
 
     /**
@@ -30,12 +34,18 @@ export class GameSocket {
         this.socket.onopen = () => {
             console.log('[WS] Connected to server');
             this.reconnectAttempts = 0;
+            this.startKeepAlive();
         };
 
         this.socket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
                 console.log('[WS] Received:', message.type, message.data);
+                if (message.type === 'PONG') {
+                    clearTimeout(this.pongTimeoutTimer);
+                    this.pongTimeoutTimer = null;
+                    return;
+                }
                 this.handleMessage(message);
             } catch (error) {
                 console.error('[WS] Failed to parse message:', error);
@@ -44,12 +54,31 @@ export class GameSocket {
 
         this.socket.onclose = (event) => {
             console.log('[WS] Connection closed:', event.code, event.reason);
+            this.stopKeepAlive();
             if (this.shouldReconnect) this.attemptReconnect();
         };
 
         this.socket.onerror = (error) => {
             console.error('[WS] Socket error:', error);
         };
+    }
+
+    startKeepAlive() {
+        this.stopKeepAlive();
+        this.keepAliveTimer = setInterval(() => {
+            if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+
+            this.socket.send(JSON.stringify({ type: 'PING', timestamp: Date.now() }));
+            clearTimeout(this.pongTimeoutTimer);
+            this.pongTimeoutTimer = setTimeout(() => this.socket?.close(4000, 'keepalive timeout'), this.pongTimeout);
+        }, this.keepAliveInterval);
+    }
+
+    stopKeepAlive() {
+        clearInterval(this.keepAliveTimer);
+        clearTimeout(this.pongTimeoutTimer);
+        this.keepAliveTimer = null;
+        this.pongTimeoutTimer = null;
     }
 
     /**
@@ -135,6 +164,7 @@ export class GameSocket {
         this.shouldReconnect = false;
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
+        this.stopKeepAlive();
         if (this.socket) {
             this.socket.close();
             this.socket = null;

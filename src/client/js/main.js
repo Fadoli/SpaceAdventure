@@ -15,7 +15,7 @@ import { updateShipyardView } from './views/shipyard.js';
 import { updateFleetView } from './views/fleet.js';
 import { updateRankingView } from './views/ranking.js';
 import { updateGalaxyView } from './views/galaxy.js';
-import { updateMessagesView, updateUnreadCount } from './views/messages.js';
+import { updateMessagesView, updateUnreadCount, syncNewMessage } from './views/messages.js';
 import { updateAllianceView } from './views/alliance.js';
 import { renderAllocation, setupAllocationHandlers } from './views/allocation.js';
 import { updateFleetMovements } from './views/fleetMovements.js';
@@ -135,13 +135,33 @@ async function showGameScreen() {
         ];
         
         if (type === 'NEW_MESSAGE') {
-            updateUnreadCount();
-            if (currentView === 'messages') updateMessagesView();
+            syncNewMessage(data?.message, data?.count);
             return;
         }
 
         const isFleetEvent = fleetEvents.includes(type);
         const isStructural = structuralEvents.includes(type);
+
+        if (type === 'STATE_SYNC') {
+            if (wsRefreshTimeout) {
+                clearTimeout(wsRefreshTimeout);
+                wsRefreshTimeout = null;
+            }
+
+            if (!gameState || !data?.state) {
+                loadGameState();
+                return;
+            }
+
+            const incomingVersion = Number(data.stateVersion) || 0;
+            const currentVersion = Number(gameState.stateVersion) || 0;
+            if (!data.force && incomingVersion <= currentVersion) return;
+
+            gameState = { ...gameState, ...data.state, stateVersion: incomingVersion };
+            setGameState(gameState);
+            updateUI(false);
+            return;
+        }
 
         if (isFleetEvent || isStructural) {
             if (type === 'SHIPYARD_QUEUE_COMPLETE') {
@@ -151,6 +171,7 @@ async function showGameScreen() {
             // Debounce refresh to avoid 3x fetches on single action
             if (wsRefreshTimeout) clearTimeout(wsRefreshTimeout);
             wsRefreshTimeout = setTimeout(() => {
+                wsRefreshTimeout = null;
                 console.log(`[WS] Debounced refresh triggered by ${type} (structural=${isStructural})`);
                 
                 // For fleet events, we always want to refresh the global state 
@@ -334,8 +355,13 @@ async function loadGameState(forceFetch = false) {
     }
 
     const fetchPromise = (async () => {
-        gameState = await API.getGameState();
-        setGameState(gameState);
+        const nextGameState = await API.getGameState();
+        const currentVersion = Number(gameState?.stateVersion) || 0;
+        const incomingVersion = Number(nextGameState?.stateVersion) || 0;
+        if (incomingVersion >= currentVersion) {
+            gameState = nextGameState;
+            setGameState(gameState);
+        }
         updateUI(forceFetch);
         return true;
     })().catch(error => {

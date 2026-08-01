@@ -7,7 +7,7 @@ import {
   getUserFromSession 
 } from './auth/auth.js';
 import { initializeStorage } from './storage/storage.js';
-import { createPlayer, getPlayerByUserId, updatePlayer, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation, getFriends } from './game/player.js';
+import { createPlayer, getPlayerByUserId, updatePlayer, getPlayerStateVersion, recomputeAllPlanetsOnStartup, getPlayers, renamePlanet, getRankings, getPlayerRankIndex, updatePlayerRelation, getFriends } from './game/player.js';
 import { simulateCombat } from './game/combatEngine.js';
 import { getGalaxyData, updateGhostPlanet } from './game/galaxyData.js';
 import { spawnGhostPlanets, cleanupGhostPlanets } from './game/events.js';
@@ -475,7 +475,7 @@ async function handleRequest(req) {
         }
       }
 
-      const responseData = { ...player, hostileFleets };
+      const responseData = { ...player, stateVersion: getPlayerStateVersion(user.id), hostileFleets };
       
       return successResponse(req, responseData);
     }
@@ -2198,7 +2198,7 @@ const server = Bun.serve({
       wsManager.addConnection(userId, ws);
     },
     message(ws, message) {
-      // Handle incoming messages if needed
+      wsManager.handleClientMessage(ws, message);
     },
     close(ws) {
       const { userId } = ws.data;

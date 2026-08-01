@@ -10,9 +10,27 @@ import { THEORETICAL_RESEARCH } from '../../shared/research.js';
 import { DEFENSES } from '../../shared/defenses.js';
 import { SCALING } from '../../shared/constants.js';
 import { calculateBuildingCost, calculateTheoreticalResearchCost } from '../../shared/formulas.js';
+import { wsManager } from './wsManager.js';
 
 const playersCache = new Map();
 const dirtyPlayers = new Set();
+const playerStateVersions = new Map();
+const pendingStateSyncs = new Map();
+let stateSyncFlushScheduled = false;
+
+function scheduleStateSync(userId, playerData, stateVersion) {
+  pendingStateSyncs.set(userId, { playerData, stateVersion });
+  if (stateSyncFlushScheduled) return;
+
+  stateSyncFlushScheduled = true;
+  setTimeout(() => {
+    stateSyncFlushScheduled = false;
+    for (const [pendingUserId, pending] of pendingStateSyncs) {
+      wsManager.sendStateSync(pendingUserId, pending.playerData, pending.stateVersion);
+    }
+    pendingStateSyncs.clear();
+  }, 0);
+}
 
 /**
  * Find a suitable available planet slot [G, S, P] for a new player or expansion.
@@ -204,7 +222,14 @@ export async function createPlayer(userId, username) {
 export async function updatePlayer(userId, playerData) {
   playersCache.set(userId, playerData);
   dirtyPlayers.add(userId);
+  const stateVersion = (playerStateVersions.get(userId) || 0) + 1;
+  playerStateVersions.set(userId, stateVersion);
+  scheduleStateSync(userId, playerData, stateVersion);
   return playerData;
+}
+
+export function getPlayerStateVersion(userId) {
+  return playerStateVersions.get(userId) || 0;
 }
 
 /**

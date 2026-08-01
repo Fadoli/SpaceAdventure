@@ -1,5 +1,5 @@
 // Game tick system - processes game state periodically
-import { getPlayers, updatePlayer, savePlayers, takeRankingSnapshot, recomputePlayerScores, flushDirtyPlayers } from './player.js';
+import { getPlayers, updatePlayer, getPlayerStateVersion, savePlayers, takeRankingSnapshot, recomputePlayerScores, flushDirtyPlayers } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
 import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
@@ -22,12 +22,14 @@ let lastRankingSnapshotTime = 0;
 let lastRecomputeTime = 0;
 let lastGhostSpawnTime = 0;
 let lastGhostCleanupTime = 0;
+let lastStateSyncTime = 0;
 
 const SAVE_INTERVAL = 30000; // Save every 30 seconds
 const RANKING_SNAPSHOT_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 const RECOMPUTE_INTERVAL = 60 * 60 * 1000; // 1 hour
 const GHOST_SPAWN_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const GHOST_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+const STATE_SYNC_INTERVAL = 30 * 1000;
 let lastProcessedTick = Date.now();
 
 export function getCatchUpTimes(startTime, targetTime) {
@@ -99,6 +101,7 @@ export async function startGameLoop() {
 
   lastSaveTime = now;
   lastRecomputeTime = now;
+  lastStateSyncTime = now;
 
   // 3. Start real-time loop
   gameLoopInterval = setInterval(async () => {
@@ -172,6 +175,8 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
     if (!players) {
       return;
     }
+
+    const shouldSendPeriodicStateSync = !isCatchUp && now - lastStateSyncTime >= STATE_SYNC_INTERVAL;
     
     for (const player of players) {
       let stateChanged = false;
@@ -321,7 +326,17 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       }
 
       if (stateChanged) await updatePlayer(player.userId, player);
+      if (shouldSendPeriodicStateSync && !stateChanged) {
+        wsManager.sendStateSync(
+          player.userId,
+          player,
+          getPlayerStateVersion(player.userId),
+          true
+        );
+      }
     }
+
+    if (shouldSendPeriodicStateSync) lastStateSyncTime = now;
     
     // Save if anything changed and enough time has passed
     // During catch-up, we don't save every tick to disk for performance

@@ -64,6 +64,25 @@ describe('WebSocket Manager', () => {
     expect(mockWs.send).toHaveBeenCalled();
   });
 
+  it('should send versioned state sync messages', () => {
+    const mockWs = { send: mock(() => {}) };
+    wsManager.addConnection('user-state', mockWs);
+
+    wsManager.sendStateSync('user-state', { planets: [] }, 4);
+
+    const message = JSON.parse(mockWs.send.mock.calls[0][0]);
+    expect(message.type).toBe('STATE_SYNC');
+    expect(message.data.state).toEqual({ planets: [] });
+    expect(message.data.stateVersion).toBe(4);
+  });
+
+  it('should answer application-level keepalive pings', () => {
+    const mockWs = { send: mock(() => {}) };
+
+    expect(wsManager.handleClientMessage(mockWs, JSON.stringify({ type: 'PING' }))).toBe(true);
+    expect(JSON.parse(mockWs.send.mock.calls[0][0]).type).toBe('PONG');
+  });
+
   it('should broadcast messages to all connected users', () => {
     const u1 = 'user1';
     const u2 = 'user2';

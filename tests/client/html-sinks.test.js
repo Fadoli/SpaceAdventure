@@ -156,3 +156,22 @@ it('applies research cost reduction to shipyard UI prices', async () => {
   expect(view).toContain('baseCost.metal * quantity * reduction');
   expect(server).toContain("costReductionBonus: getResearchBonus(player?.research, 'globalCostReduction')");
 });
+
+it('applies versioned WebSocket state syncs before using HTTP recovery', async () => {
+  const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const gameLoop = await readFile(new URL('../../src/server/game/gameLoop.js', import.meta.url), 'utf8');
+  expect(source).toContain("if (type === 'STATE_SYNC')");
+  expect(source).toContain('incomingVersion <= currentVersion');
+  expect(source).toContain('data.force');
+  expect(source).toContain('nextGameState?.stateVersion');
+  expect(gameLoop).toContain('STATE_SYNC_INTERVAL');
+  expect(gameLoop).toContain('sendStateSync(');
+});
+
+it('syncs new message contents over WebSocket', async () => {
+  const server = await readFile(new URL('../../src/server/game/messages.js', import.meta.url), 'utf8');
+  const client = await readFile(new URL('../../src/client/js/views/messages.js', import.meta.url), 'utf8');
+  expect(server).toContain('message: newMessage');
+  expect(client).toContain('export function syncNewMessage');
+  expect(client).toContain('updateMessagesView(cachedMessages)');
+});

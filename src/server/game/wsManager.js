@@ -50,6 +50,28 @@ class WebSocketManager {
     return false;
   }
 
+  sendStateSync(userId, state, stateVersion, force = false) {
+    return this.sendToUser(userId, 'STATE_SYNC', { state, stateVersion, force });
+  }
+
+  handleClientMessage(ws, message) {
+    let payload;
+    try {
+      payload = JSON.parse(typeof message === 'string' ? message : new TextDecoder().decode(message));
+    } catch {
+      return false;
+    }
+
+    if (payload?.type !== 'PING') return false;
+    const timestamp = Date.now();
+    try {
+      ws.send(JSON.stringify({ type: 'PONG', data: { timestamp }, timestamp }));
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Broadcast a message to all connected users
    */

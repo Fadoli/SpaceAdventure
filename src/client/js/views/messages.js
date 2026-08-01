@@ -8,17 +8,19 @@ import { openDetailsModal } from './details.js';
 
 let lastMessagesHash = null;
 let currentFilter = 'all';
+let cachedMessages = null;
 const espionageRegistry = new Map();
 
 /**
  * Update messages view
  */
-export async function updateMessagesView() {
+export async function updateMessagesView(nextMessages = null) {
     const container = document.querySelector('#messages-view .messages-container');
     if (!container) return;
 
     try {
-        const messages = await API.getMessages();
+        const messages = Array.isArray(nextMessages) ? nextMessages : await API.getMessages();
+        cachedMessages = messages;
         
         // 1. If container is empty or filter changed, do a full render
         const listEl = container.querySelector('.messages-list');
@@ -462,6 +464,10 @@ window.toggleMessageBody = async function(id) {
             item.classList.remove('unread');
             const status = item.querySelector('.msg-status-tag');
             if (status) status.textContent = 'READ';
+            if (cachedMessages) {
+                const message = cachedMessages.find(message => message.id === id);
+                if (message) message.read = true;
+            }
             
             // Update the badge
             updateUnreadCount();
@@ -686,6 +692,7 @@ window.deleteSingleMessage = async function(id, event) {
     
     try {
         await API.deleteMessage(id);
+        if (cachedMessages) cachedMessages = cachedMessages.filter(message => message.id !== id);
         lastMessagesHash = null; // Force re-render
         updateMessagesView();
         updateUnreadCount();
@@ -700,6 +707,7 @@ window.clearAllMessages = async function() {
     
     try {
         await API.clearMessages();
+        cachedMessages = [];
         lastMessagesHash = null; // Force re-render
         updateMessagesView();
         updateUnreadCount();
@@ -711,10 +719,11 @@ window.clearAllMessages = async function() {
 /**
  * Update the unread message count badge
  */
-export async function updateUnreadCount() {
+export async function updateUnreadCount(count = null) {
     try {
-        const messages = await API.getMessages();
-        const unreadCount = messages.filter(m => !m.read).length;
+        const unreadCount = Number.isFinite(count)
+            ? count
+            : (await API.getMessages()).filter(m => !m.read).length;
         
         const navBtn = document.querySelector('.nav-btn[data-view="messages"]');
         if (!navBtn) return;
@@ -737,5 +746,22 @@ export async function updateUnreadCount() {
     } catch (error) {
         // Silent fail for background updates
         console.warn('Failed to update unread count', error);
+    }
+}
+
+export function syncNewMessage(message, count) {
+    if (Number.isFinite(count)) updateUnreadCount(count);
+    const messagesView = document.getElementById('messages-view');
+    const isMessagesViewActive = messagesView?.classList.contains('active');
+    if (!message) {
+        if (isMessagesViewActive) updateMessagesView();
+        return;
+    }
+
+    if (cachedMessages) {
+        cachedMessages = [message, ...cachedMessages.filter(existing => existing.id !== message.id)].slice(0, 100);
+        if (isMessagesViewActive) updateMessagesView(cachedMessages);
+    } else if (isMessagesViewActive) {
+        updateMessagesView();
     }
 }
