@@ -81,3 +81,11 @@ it('scopes shipyard updates to the active view container', async () => {
   expect(source).toContain('container.querySelector(`#cost-${id}`)');
   expect(source).toContain("e.target.closest('#shipyard-view, #defenses-view')");
 });
+
+it('renders building details from server level projections', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/buildings.js', import.meta.url), 'utf8');
+  expect(source).toContain('const levelProjections = building.levelProjections || []');
+  expect(source).toContain('const projection = levelProjections.find(item => item.level === levelItem)');
+  expect(source).not.toContain('const baseCostEstimate = building.cost ?');
+  expect(source).not.toContain('const baseProductionEstimate = {}');
+});

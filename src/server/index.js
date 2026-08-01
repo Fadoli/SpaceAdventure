@@ -885,6 +885,42 @@ async function handleRequest(req) {
         const energyGain = expectedNextEnergyConsumption - actualEnergyConsumption;
         const deuteriumGain = expectedNextDeuteriumConsumption - actualDeuteriumConsumption;
 
+        // The details modal and upgrade card must use the same server-side formulas.
+        const levelProjections = [];
+        const maxLevel = buildingDef.maxLevel || 50;
+        const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+        for (let level = 1; level <= maxLevel; level++) {
+          const projectedProduction = {};
+          for (const [resource, amount] of Object.entries(getProduction(buildingType, level, planet, player))) {
+            projectedProduction[resource] = Math.floor(amount * totalEffectiveness);
+          }
+
+          const projectedEnergy = buildingDef.energyConsumption
+            ? Math.round(getBuildingEnergyConsumption(
+                buildingType,
+                level,
+                { [buildingType]: buildingDef },
+                energyEfficiencyBonus
+              ) * actualAllocation.power * 100) / 100
+            : 0;
+          const projectedDeuterium = buildingDef.deuteriumConsumption
+            ? Math.floor(
+                buildingDef.deuteriumConsumption * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * 10.0 *
+                Math.max(0.5, 1 - energyEfficiencyBonus) * totalEffectiveness
+              )
+            : 0;
+
+          levelProjections.push({
+            level,
+            cost: getBuildingCost(buildingType, level, planet, player),
+            buildTime: getBuildTime(buildingType, level, roboticsLevel, naniteLevel, planet, player),
+            production: projectedProduction,
+            storage: buildingDef.storage ? getStorageIncrease(buildingType, level, planet, player) : null,
+            energyConsumption: projectedEnergy,
+            deuteriumConsumption: projectedDeuterium
+          });
+        }
+
         // Get all available blueprints for this type
         const availableBlueprints = (player.buildingBlueprints && player.buildingBlueprints[buildingType]) || [];
         
@@ -911,6 +947,7 @@ async function handleRequest(req) {
           energyGain,
           deuteriumGain,
           totalEffectiveness,
+          levelProjections,
           canAfford,
           requirementsMet,
           requirementsList,

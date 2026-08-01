@@ -4,12 +4,11 @@ import { escapeHtml, formatNumber, formatCountdown, formatDuration } from '../ut
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
-import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
+import { RESOURCE_ICONS, SCALING } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { getCustomVariant } from '../../../shared/research.js';
 import { isEmpty } from '../../../shared/utils.js';
-import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
-import { calculateBaseTime } from '../../../shared/time.js';
+import { calculateAllocationEffectiveness } from '../../../shared/formulas.js';
 import { getCurrentPlanetId } from '../main.js';
 
 let currentGameState = null;
@@ -836,62 +835,9 @@ export async function showBuildingDetails(buildingKey) {
     const building = buildingDetails.buildings[buildingKey];
     const currentLevel = building.currentLevel;
     
-    // For the table, we still need to calculate future levels
-    // This could be optimized by having the server provide this data too
     const levels = [];
-    
-    // Estimate base costs from current level costs
-    const scaling = building.costScaling || SCALING.BUILDING_COST;
-    const baseCostEstimate = building.cost ? {
-        metal: Math.round(building.cost.metal / Math.pow(scaling, building.nextLevel)),
-        crystal: Math.round(building.cost.crystal / Math.pow(scaling, building.nextLevel)),
-        deuterium: Math.round(building.cost.deuterium / Math.pow(scaling, building.nextLevel))
-    } : { metal: 0, crystal: 0, deuterium: 0 };
+    const levelProjections = building.levelProjections || [];
 
-    const roboticsLevel = planet?.buildings.roboticsFactory || 0;
-    const naniteLevel = planet?.buildings.naniteFactory || 0;
-    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.buildTime || 1.0;
-    
-    const roboticsDef = BUILDINGS.roboticsFactory;
-    const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || 0.85;
-    
-    // Estimate base building time from current next level build time
-    // This ensures consistency with the server's current build time for the next level
-    const serverBuildTimeForNextLevel = building.buildTime || 0;
-    const baseTimeFromCostEstimate = serverBuildTimeForNextLevel > 0 
-        ? (serverBuildTimeForNextLevel / configMultiplier / Math.pow(roboticsSpeedMultiplier, roboticsLevel) * Math.pow(2, naniteLevel)) / Math.pow(SCALING.BUILDING_TIME, building.nextLevel - 1)
-        : 0;
-    
-    // Estimate base production amounts
-    const baseProductionEstimate = {};
-    const productionMultiplier = 10.0;
-    if (building.production && !isEmpty(building.production)) {
-        for (const resource in building.production) {
-            baseProductionEstimate[resource] = building.production[resource] / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * productionMultiplier);
-        }
-    }
-
-    // Estimate base storage amounts
-    const baseStorageEstimate = {};
-    if (building.storage && !isEmpty(building.storage)) {
-        for (const resource in building.storage) {
-            baseStorageEstimate[resource] = building.storage[resource] / Math.pow(SCALING.BUILDING_STORAGE, building.nextLevel - 1);
-        }
-    }
-
-    // Estimate base consumption amounts
-    let baseEnergyEstimate = 0;
-    const energyMultiplier = 10.0;
-    if (building.energyConsumption > 0) {
-        baseEnergyEstimate = building.energyConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_ENERGY, building.nextLevel) * energyMultiplier);
-    }
-
-    let baseDeuteriumConsEstimate = 0;
-    const deuteriumConsMultiplier = 10.0;
-    if (building.deuteriumConsumption > 0) {
-        baseDeuteriumConsEstimate = building.deuteriumConsumption / (building.nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, building.nextLevel) * deuteriumConsMultiplier);
-    }
-    
     // Generate levels to display
     const levelsToGenerate = [];
     const maxDisplayLevel = building.maxLevel || 50;
@@ -917,46 +863,8 @@ export async function showBuildingDetails(buildingKey) {
             continue;
         }
         
-        const level = levelItem;
-        const scaling = building.costScaling || SCALING.BUILDING_COST;
-        const multiplier = Math.pow(scaling, level);
-        const cost = {
-            metal: Math.floor(baseCostEstimate.metal * multiplier),
-            crystal: Math.floor(baseCostEstimate.crystal * multiplier),
-            deuterium: Math.floor(baseCostEstimate.deuterium * multiplier)
-        };
-        
-        // Use shared formula for build time, but pass our estimated baseTime indirectly
-        const baseTimeForLevel = baseTimeFromCostEstimate * Math.pow(SCALING.BUILDING_TIME, level - 1);
-        const buildTime = Math.max(1, Math.floor((baseTimeForLevel * Math.pow(roboticsSpeedMultiplier, roboticsLevel) / Math.pow(2, naniteLevel)) * configMultiplier));
-        
-        let production = null;
-        if (!isEmpty(baseProductionEstimate)) {
-            production = {};
-            for (const resource in baseProductionEstimate) {
-                production[resource] = Math.floor(baseProductionEstimate[resource] * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * productionMultiplier);
-            }
-        }
-        
-        let storage = null;
-        if (!isEmpty(baseStorageEstimate)) {
-            storage = {};
-            for (const resource in baseStorageEstimate) {
-                storage[resource] = Math.floor(baseStorageEstimate[resource] * Math.pow(SCALING.BUILDING_STORAGE, level - 1));
-            }
-        }
-        
-        let energyConsumption = 0;
-        if (baseEnergyEstimate > 0) {
-            energyConsumption = Math.floor(baseEnergyEstimate * level * Math.pow(SCALING.BUILDING_ENERGY, level) * energyMultiplier);
-        }
-
-        let deuteriumConsumption = 0;
-        if (baseDeuteriumConsEstimate > 0) {
-            deuteriumConsumption = Math.floor(baseDeuteriumConsEstimate * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * deuteriumConsMultiplier);
-        }
-        
-        levels.push({ level, cost, buildTime, production, storage, energyConsumption, deuteriumConsumption });
+        const projection = levelProjections.find(item => item.level === levelItem);
+        if (projection) levels.push(projection);
     }
     
     // Prepare table data
