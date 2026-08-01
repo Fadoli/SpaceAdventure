@@ -180,6 +180,7 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
     
     for (const player of players) {
       let stateChanged = false;
+      let buildingComplete = false;
       // Process each planet
       for (const planet of player.planets) {
         // Update resources based on production
@@ -270,7 +271,7 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       const buildingsUpdated = await processCompletedBuildings(player, now);
       if (buildingsUpdated) {
         stateChanged = true;
-        if (!isCatchUp) wsManager.sendToUser(player.userId, 'BUILDING_COMPLETE', { userId: player.userId });
+        buildingComplete = true;
       }
       
       // Process completed variant switches
@@ -326,6 +327,11 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       }
 
       if (stateChanged) await updatePlayer(player.userId, player);
+      // Publish completion only after the canonical state/version is updated;
+      // clients reacting to this event can then immediately fetch the new queue.
+      if (buildingComplete && !isCatchUp) {
+        wsManager.sendToUser(player.userId, 'BUILDING_COMPLETE', { userId: player.userId });
+      }
       if (shouldSendPeriodicStateSync && !stateChanged) {
         wsManager.sendStateSync(
           player.userId,

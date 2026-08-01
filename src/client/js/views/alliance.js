@@ -199,6 +199,9 @@ async function renderAllianceCommunications(container, alliance, player) {
     `;
 
     container.innerHTML = html;
+    // A different alliance can legitimately have the same message-id shape.
+    // Force the first response to replace the loading state.
+    lastMessagesHash = null;
     
     // Add enter key listener
     const input = document.getElementById('alliance-chat-input');

@@ -19,20 +19,6 @@ let cachedBuildingPlanetId = null;
 let buildingDetailsRequest = null;
 
 /**
- * Set the current game state (called from main)
- */
-function calculateBuildingStateHash(buildings, planet) {
-    const state = {
-        planetId: planet.id,
-        buildings: buildings,
-        resources: planet.resources,
-        buildingAllocations: planet.buildingAllocations,
-        actualAllocations: planet.actualAllocations
-    };
-    return JSON.stringify(state);
-}
-
-/**
  * Calculate a hash of the queue state to detect changes
  */
 function calculateQueueStateHash(queue, planetId = '') {

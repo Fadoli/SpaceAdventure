@@ -444,8 +444,11 @@ async function handleRequest(req) {
         updatePlanetProduction(planet, player);
       }
       
-      // Process any completed buildings
-      const updated = await processCompletedBuildings(player);
+      // Materialize all completed queues before returning the canonical state.
+      let updated = await processCompletedBuildings(player);
+      for (const planet of player.planets) {
+        if (processCompletedProduction(planet)) updated = true;
+      }
       if (updated) {
         await updatePlayer(user.id, player);
       }
@@ -740,7 +743,15 @@ async function handleRequest(req) {
       
       const planet = player.planets.find(p => p.id === planetId);
       
-      // Ensure production is updated and state is repaired
+      // Materialize completed building queues before calculating details so
+      // this endpoint cannot present a stale level or variant.
+      const buildingsUpdated = await processCompletedBuildings(player);
+      const variantsUpdated = await processCompletedVariantSwitches(player);
+      if (buildingsUpdated || variantsUpdated) {
+        await updatePlayer(user.id, player);
+      }
+
+      // Ensure derived production is updated and state is repaired
       updatePlanetProduction(planet, player);
 
       // Calculate building details for each building type

@@ -11,4 +11,11 @@ describe('Game loop catch-up', () => {
   it('does not replay when time has not advanced', () => {
     expect(getCatchUpTimes(1000, 1000)).toEqual([]);
   });
+
+  it('publishes building completion after the canonical player update', async () => {
+    const source = await Bun.file(new URL('../../src/server/game/gameLoop.js', import.meta.url)).text();
+    expect(source.indexOf('if (stateChanged) await updatePlayer')).toBeLessThan(
+      source.indexOf("if (buildingComplete && !isCatchUp)")
+    );
+  });
 });

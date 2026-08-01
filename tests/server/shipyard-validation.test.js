@@ -49,6 +49,20 @@ describe('shipyard order validation', () => {
     expect(planet.resources.deuterium).toBe(100_000 - shipCost.deuterium - defenseCost.deuterium);
   });
 
+  it('refunds the discounted amount actually paid when cancelling', () => {
+    const planet = makePlanet();
+    const player = { userId: 'player-1', research: { resourceEfficiency: 10 } };
+    const charged = calculateShipCost('smallCargo', 1, 0.05);
+
+    buildShips(planet, player, { smallCargo: 1 }, 1);
+    const beforeCancel = { ...planet.resources };
+    cancelProduction(planet, planet.shipQueue[0].id, 'ships');
+
+    expect(planet.resources.metal).toBe(beforeCancel.metal + Math.floor(charged.metal * 0.9));
+    expect(planet.resources.crystal).toBe(beforeCancel.crystal + Math.floor(charged.crystal * 0.9));
+    expect(planet.resources.deuterium).toBe(beforeCancel.deuterium + Math.floor(charged.deuterium * 0.9));
+  });
+
   it('exposes the research time reduction used by production estimates', () => {
     const planet = { id: 'planet-1', buildings: { shipyard: 1 } };
     const player = { research: { modularConstruction: 10 } };

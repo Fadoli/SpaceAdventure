@@ -822,11 +822,14 @@ async function loadAndRenderGalaxy(container, galaxy, system, gameState) {
     const requestId = ++galaxyRequestId;
     try {
         const galaxyData = await API.getGalaxyView(galaxy, system);
-        if (requestId !== galaxyRequestId || currentGalaxy !== galaxy || currentSystem !== system) return;
+        if (requestId !== galaxyRequestId || currentGalaxy !== galaxy || currentSystem !== system ||
+            !container.closest('.view')?.classList.contains('active')) return;
         renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system);
         lastRenderedGalaxy = galaxy;
         lastRenderedSystem = system;
     } catch (error) {
+        if (requestId !== galaxyRequestId || currentGalaxy !== galaxy || currentSystem !== system ||
+            !container.closest('.view')?.classList.contains('active')) return;
         console.error('Failed to load galaxy view:', error);
         container.innerHTML = `<p class="error">Failed to load galaxy: ${escapeHtml(error.message)}</p>`;
     }

@@ -31,6 +31,7 @@ let gameState = null;
 let currentView = 'overview';
 let currentPlanetId = null;
 let lastAllocationPlanetId = null;
+let allocationRenderId = 0;
 let updateInterval = null;
 
 // URL State Management
@@ -52,6 +53,19 @@ function updateUrlParams(planetId, view) {
     }
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({ planetId, view }, '', newUrl);
+}
+
+function renderCurrentAllocation() {
+    const renderId = ++allocationRenderId;
+    const planetId = currentPlanetId;
+    renderAllocation().then(html => {
+        if (renderId !== allocationRenderId || currentView !== 'allocation' || currentPlanetId !== planetId) return;
+        const el = document.getElementById('allocation-view');
+        if (el) {
+            el.innerHTML = html;
+            setupAllocationHandlers();
+        }
+    });
 }
 
 // Initialize app
@@ -166,6 +180,13 @@ async function showGameScreen() {
         if (isFleetEvent || isStructural) {
             if (type === 'SHIPYARD_QUEUE_COMPLETE') {
                 Notifications.showSuccess(`Shipyard production on ${data.planetName || 'planet'} complete!`);
+            }
+
+            // Completion is a user-visible queue transition. Refresh it now;
+            // batching this event leaves a completed row on screen.
+            if (type === 'BUILDING_COMPLETE') {
+                loadGameState(true);
+                return;
             }
 
             // Debounce refresh to avoid 3x fetches on single action
@@ -318,10 +339,7 @@ function switchView(view, updateHistory = true, forceFetch = false) {
         // For allocation view, render it when explicitly switched
         if (view === 'allocation') {
             lastAllocationPlanetId = currentPlanetId;
-            renderAllocation().then(html => {
-                document.getElementById('allocation-view').innerHTML = html;
-                setupAllocationHandlers();
-            });
+            renderCurrentAllocation();
         } else if (view === 'galaxy') {
             // Render galaxy view when explicitly switched
             updateGalaxyView(gameState);
@@ -491,13 +509,7 @@ function updateCurrentView(forceFetch = false, stateOnly = false) {
             // EXCEPT when we switched planets
             if (lastAllocationPlanetId !== currentPlanetId) {
                 lastAllocationPlanetId = currentPlanetId;
-                renderAllocation().then(html => {
-                    const el = document.getElementById('allocation-view');
-                    if (el) {
-                        el.innerHTML = html;
-                        setupAllocationHandlers();
-                    }
-                });
+                renderCurrentAllocation();
             }
             break;
     }
@@ -623,7 +635,9 @@ window.recallFleet = async function(fleetId) {
 };
 
 window.upgradeBuilding = async function(buildingKey) {
-    await buildingUpgrade(buildingKey);
+    // The successful POST is the acknowledgement; refresh immediately instead
+    // of waiting for the best-effort follow-up socket event.
+    await buildingUpgrade(buildingKey, () => loadGameState(true));
 };
 
 window.switchBuildingVariant = async function(buildingKey, toCustom) {
@@ -651,7 +665,7 @@ window.closeCustomVariantModal = async function() {
 };
 
 window.cancelBuilding = async function(queuePosition = 1) {
-    await buildingCancel(queuePosition);
+    await buildingCancel(queuePosition, () => loadGameState(true));
 };
 
 window.showBuildingDetails = function(buildingKey) {

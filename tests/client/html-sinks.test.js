@@ -166,7 +166,8 @@ it('keeps shipyard time reduction consistent between server and UI', async () =>
   const server = await readFile(new URL('../../src/server/game/shipyard.js', import.meta.url), 'utf8');
 
   expect(view).toContain('timeReductionBonus');
-  expect(view).toContain('(1 - getTimeReductionBonus())');
+  expect(view).toContain('calculateSharedShipBuildTime');
+  expect(view).toContain('calculateSharedDefenseBuildTime');
   expect(server).toContain("timeReductionBonus: getResearchBonus(player?.research, 'globalTimeReduction')");
 });
 
@@ -176,6 +177,26 @@ it('guards view responses against stale navigation results', async () => {
     const source = await readFile(new URL(`../../src/client/js/views/${view}.js`, import.meta.url), 'utf8');
     expect(source).toMatch(/requestId|RequestId|buildingDetailsRequest/);
   }
+});
+
+it('does not let stale allocation or galaxy responses overwrite navigation', async () => {
+  const main = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const galaxy = await readFile(new URL('../../src/client/js/views/galaxy.js', import.meta.url), 'utf8');
+  expect(main).toContain('allocationRenderId');
+  expect(main).toContain("currentView !== 'allocation'");
+  expect(galaxy).toContain("classList.contains('active')");
+});
+
+it('refreshes building queues after the accepted mutation response', async () => {
+  const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  expect(source).toContain('buildingUpgrade(buildingKey, () => loadGameState(true))');
+  expect(source).toContain('buildingCancel(queuePosition, () => loadGameState(true))');
+});
+
+it('refreshes immediately when a building completion event arrives', async () => {
+  const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  expect(source).toContain("if (type === 'BUILDING_COMPLETE') {");
+  expect(source).toContain('loadGameState(true);\n                return;');
 });
 
 it('applies versioned WebSocket state syncs before using HTTP recovery', async () => {

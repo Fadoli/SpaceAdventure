@@ -1,17 +1,15 @@
 // Shipyard view logic
 import { API } from '../api.js';
 import { escapeHtml, formatNumber, formatCountdown, formatDuration, parseNumberShorthand } from '../utils.js';
-import { RESOURCE_ICONS, BUILDING_SPEED_MULTIPLIER, CONFIG } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { isEmpty } from '../../../shared/utils.js';
-import { calculateBaseTime } from '../../../shared/time.js';
 import { getCurrentPlanetId } from '../main.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 
-import { renderDetailsModal, closeDetailsModal } from './details.js';
-import { SHIPS } from '../../../shared/ships.js';
-import { DEFENSES } from '../../../shared/defenses.js';
+import { renderDetailsModal } from './details.js';
+import { SHIPS, calculateShipBuildTime as calculateSharedShipBuildTime } from '../../../shared/ships.js';
+import { DEFENSES, calculateDefenseBuildTime as calculateSharedDefenseBuildTime } from '../../../shared/defenses.js';
 import { getTheoreticalResearch } from '../../../shared/research.js';
 
 let currentShipyardData = null;
@@ -47,15 +45,6 @@ function calculateContentHash(shipyardData) {
         ships: shipyardData.ships,
         queue: queue
     });
-}
-
-/**
- * Calculate a hash of the shipyard state to detect changes
- */
-function calculateShipyardStateHash(shipyardData, planet, subView) {
-    // Legacy hash for backward compatibility if needed, 
-    // but we will primarily use the specific ones below
-    return calculateStructuralHash(shipyardData, planet, subView) + calculateContentHash(shipyardData);
 }
 
 let lastContentHash = null;
@@ -275,7 +264,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView, container) {
         if (timeEl) {
             const buildTime = isDefenses 
                 ? calculateDefenseBuildTime(key, quantity, shipyardData.shipyardLevel, shipyardData.naniteLevel)
-                : calculateShipBuildTimeForDef(available[key], quantity, shipyardData.shipyardLevel, shipyardData.naniteLevel);
+                : calculateShipBuildTimeForDef(key, quantity, shipyardData.shipyardLevel, shipyardData.naniteLevel);
             const timeText = `🕐 ${formatDuration(buildTime * 1000)}`;
             if (timeEl.textContent !== timeText) timeEl.textContent = timeText;
         }
@@ -347,7 +336,7 @@ function renderShipsList(planet, shipyardData) {
 function renderShipCard(planet, shipKey, ship, shipyardLevel, isLocked) {
     const count = currentShipyardData.ships[shipKey] || 0; 
     const cost = calculateShipCostForDef(ship, 1);
-    const buildTime = calculateShipBuildTimeForDef(ship, 1, shipyardLevel, currentShipyardData.naniteLevel || 0);
+    const buildTime = calculateShipBuildTimeForDef(shipKey, 1, shipyardLevel, currentShipyardData.naniteLevel || 0);
     
     const canBuild = !isLocked &&
                    planet.resources.metal >= cost.metal &&
@@ -419,19 +408,9 @@ function calculateShipCostForDef(shipDef, quantity, costReductionBonus = getCost
     };
 }
 
-function calculateShipBuildTimeForDef(shipDef, quantity, shipyardLevel, naniteLevel = 0) {
-    const baseTime = calculateBaseTime(shipDef) * quantity;
-    const speedFactor = 2500;
-    const timeInSeconds = (baseTime / speedFactor) * 3600;
-    
-    // Use configurable speedMultiplier from building definition
-    const shipyardDef = BUILDINGS.shipyard;
-    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
-    const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
-    
-    const naniteMultiplier = Math.pow(2, naniteLevel);
+function calculateShipBuildTimeForDef(shipKey, quantity, shipyardLevel, naniteLevel = 0) {
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
-    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * (1 - getTimeReductionBonus()) / naniteMultiplier * configMultiplier));
+    return Math.max(1, Math.floor(calculateSharedShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel, getTimeReductionBonus()) * configMultiplier));
 }
 
 /**
@@ -725,7 +704,7 @@ function updateProductionInfo(type, id, quantity, planet, container = getActiveS
         if (!def) return;
         
         cost = calculateShipCostForDef(def, quantity);
-        buildTime = calculateShipBuildTimeForDef(def, quantity, currentShipyardData.shipyardLevel, currentShipyardData.naniteLevel);
+        buildTime = calculateShipBuildTimeForDef(id, quantity, currentShipyardData.shipyardLevel, currentShipyardData.naniteLevel);
     } else {
         // Defense
         def = currentShipyardData.availableDefenses[id];
@@ -733,19 +712,15 @@ function updateProductionInfo(type, id, quantity, planet, container = getActiveS
         
         cost = calculateDefenseCost(id, quantity);
         
-        const baseTime = calculateBaseTime(def) * quantity;
-        const speedFactor = CONFIG.DEFENSE_BUILD_SPEED || 2500;
-        const timeInSeconds = (baseTime / speedFactor) * 3600;
-        
-        // Use configurable speedMultiplier from building definition
-        const shipyardDef = BUILDINGS.shipyard;
-        const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
-        const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, currentShipyardData.shipyardLevel);
-        
-        const naniteMultiplier = Math.pow(2, currentShipyardData.naniteLevel || 0);
         const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
-        
-        buildTime = Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * (1 - getTimeReductionBonus()) / naniteMultiplier * configMultiplier));
+        buildTime = Math.max(1, Math.floor(calculateSharedDefenseBuildTime(
+            id,
+            quantity,
+            currentShipyardData.shipyardLevel,
+            currentShipyardData.naniteLevel,
+            getTimeReductionBonus(),
+            BUILDINGS.shipyard.speedMultiplier
+        ) * configMultiplier));
     }
     
     // Update UI
@@ -778,16 +753,6 @@ function updateProductionInfo(type, id, quantity, planet, container = getActiveS
 }
 
 /**
- * Calculate ship cost (client-side estimate)
- */
-function calculateShipCost(shipKey, quantity) {
-    const ship = currentShipyardData.availableShips[shipKey];
-    if (!ship) return { metal: 0, crystal: 0, deuterium: 0 };
-    
-    return calculateShipCostForDef(ship, quantity);
-}
-
-/**
  * Calculate defense cost (client-side estimate)
  */
 function calculateDefenseCost(defenseKey, quantity) {
@@ -802,31 +767,6 @@ function calculateDefenseCost(defenseKey, quantity) {
     };
 }
 
-/**
- * Calculate ship build time (client-side estimate)
- */
-function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 0) {
-    const ship = currentShipyardData.availableShips[shipKey];
-    if (!ship) return 0;
-    
-    // Base time related to cost
-    const baseTime = calculateBaseTime(ship) * quantity;
-    
-    // Apply build speed factor (converting cost units to seconds)
-    const speedFactor = CONFIG.SHIP_BUILD_SPEED || 2500;
-    const timeInSeconds = (baseTime / speedFactor) * 3600;
-
-    // Shipyard level speeds up construction (multiplier^n)
-    const shipyardDef = BUILDINGS.shipyard;
-    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
-    const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
-    
-    const naniteMultiplier = Math.pow(2, naniteLevel);
-        const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
-    
-        return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * (1 - getTimeReductionBonus()) / naniteMultiplier * configMultiplier));
-    }
-    
     /**
      * Show ship details modal
      */
@@ -980,23 +920,13 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
  * Calculate defense build time (client-side estimate)
  */
 function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1, naniteLevel = 0) {
-    const defense = currentShipyardData.availableDefenses[defenseKey];
-    if (!defense) return 0;
-    
-    // Base time related to cost
-    const baseTime = calculateBaseTime(defense) * quantity;
-    
-    // Apply build speed factor (converting cost units to seconds)
-    const speedFactor = CONFIG.DEFENSE_BUILD_SPEED || 2500;
-    const timeInSeconds = (baseTime / speedFactor) * 3600;
-
-    // Shipyard level speeds up construction (multiplier^n)
-    const shipyardDef = BUILDINGS.shipyard;
-    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
-    const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
-    
-    const naniteMultiplier = Math.pow(2, naniteLevel);
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
-    
-    return Math.max(1, Math.floor(timeInSeconds * shipyardMultiplier * (1 - getTimeReductionBonus()) / naniteMultiplier * configMultiplier));
+    return Math.max(1, Math.floor(calculateSharedDefenseBuildTime(
+        defenseKey,
+        quantity,
+        shipyardLevel,
+        naniteLevel,
+        getTimeReductionBonus(),
+        BUILDINGS.shipyard.speedMultiplier
+    ) * configMultiplier));
 }

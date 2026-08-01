@@ -1,10 +1,9 @@
 // Shipyard production system
 
-import { getShip, calculateShipCost, calculateShipBuildTime, calculateShipSpeed, SHIPS } from '../../shared/ships.js';
+import { calculateShipCost, calculateShipBuildTime, SHIPS } from '../../shared/ships.js';
 import { DEFENSES, calculateDefenseCost, calculateDefenseBuildTime } from '../../shared/defenses.js';
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
-import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
 import { wsManager } from './wsManager.js';
 
@@ -43,30 +42,14 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
     const quantity = ships[shipKey];
     if (quantity <= 0) continue;
 
-    const shipDef = SHIPS[shipKey];
-
-    // Calculate cost based on the specific definition
-    const baseCost = shipDef.baseCost;
-    const cost = {
-      metal: Math.floor(baseCost.metal * quantity * (1 - costReductionBonus)),
-      crystal: Math.floor(baseCost.crystal * quantity * (1 - costReductionBonus)),
-      deuterium: Math.floor(baseCost.deuterium * quantity * (1 - costReductionBonus))
-    };
+    const cost = calculateShipCost(shipKey, quantity, costReductionBonus);
 
     totalCost.metal += cost.metal;
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    // Calculate build time
-    const baseTime = calculateBaseTime(shipDef) * quantity;
-    const speedFactor = 2500; // units/hr
-    const timeInSeconds = (baseTime / speedFactor) * 3600;
-    const shipyardDef = BUILDINGS.shipyard;
-    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
-    const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
-    const naniteMultiplier = Math.pow(2, naniteLevel);
-    
-    const buildTime = Math.max(1, Math.floor((timeInSeconds * shipyardMultiplier * (1 - timeReductionBonus) / naniteMultiplier)));
+    // Keep the authoritative ship timing formula in shared code.
+    const buildTime = calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus);
     totalBuildTime = Math.max(totalBuildTime, buildTime);
   }
 
@@ -95,6 +78,7 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   const queueItem = {
     id: Math.random().toString(36).substr(2, 9),
     ships,
+    cost: totalCost,
     startTime,
     finishTime,
     buildTime: effectiveBuildTime,
@@ -172,6 +156,7 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   const queueItem = {
     id: Math.random().toString(36).substr(2, 9),
     defenses,
+    cost: totalCost,
     startTime,
     finishTime,
     buildTime: effectiveBuildTime,
@@ -210,24 +195,30 @@ export function cancelProduction(planet, queueId, type = 'ships') {
   // Refund 90% of resources
   const refundMultiplier = 0.9;
 
-  if (item.ships) {
+  const chargedCost = item.cost || { metal: 0, crystal: 0, deuterium: 0 };
+
+  if (!item.cost && item.ships) {
     for (const shipKey in item.ships) {
       const quantity = item.ships[shipKey];
       const cost = calculateShipCost(shipKey, quantity);
-      planet.resources.metal += Math.floor(cost.metal * refundMultiplier);
-      planet.resources.crystal += Math.floor(cost.crystal * refundMultiplier);
-      planet.resources.deuterium += Math.floor(cost.deuterium * refundMultiplier);
+      chargedCost.metal += cost.metal;
+      chargedCost.crystal += cost.crystal;
+      chargedCost.deuterium += cost.deuterium;
     }
   }
 
-  if (item.defenses) {
+  if (!item.cost && item.defenses) {
     for (const defenseKey in item.defenses) {
       const quantity = item.defenses[defenseKey];
       const cost = calculateDefenseCost(defenseKey, quantity);
-      planet.resources.metal += Math.floor(cost.metal * refundMultiplier);
-      planet.resources.crystal += Math.floor(cost.crystal * refundMultiplier);
-      planet.resources.deuterium += Math.floor(cost.deuterium * refundMultiplier);
+      chargedCost.metal += cost.metal;
+      chargedCost.crystal += cost.crystal;
+      chargedCost.deuterium += cost.deuterium;
     }
+  }
+
+  for (const resource of ['metal', 'crystal', 'deuterium']) {
+    planet.resources[resource] += Math.floor((chargedCost[resource] || 0) * refundMultiplier);
   }
 
   // Remove from queue
