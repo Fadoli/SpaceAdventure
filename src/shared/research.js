@@ -360,7 +360,7 @@ const PRODUCTION_BUILDING_MODIFIERS = {
     }
 };
 
-const BLUEPRINT_LEVEL_EXPONENT = 0.999;
+const BLUEPRINT_LEVEL_EXPONENT = 0.98;
 
 /**
  * Practical research definitions - one per base building/ship type

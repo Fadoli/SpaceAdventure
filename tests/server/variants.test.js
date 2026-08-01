@@ -102,7 +102,10 @@ describe('Building Variants System', () => {
       calculateFocusModifiers(research, { output: level }).productionMultiplier
     );
     const level30 = calculateFocusModifiers(research, { output: 30 }).productionMultiplier;
-    const expectedMultiplier = level => Math.pow(1.02, Math.pow(level, 0.999));
+    const expectedMultiplier = level => Math.pow(1.02, Math.pow(level, 0.98));
+    const energyMultipliers = levels.map(level =>
+      calculateFocusModifiers(research, { energy: level }).energyMultiplier
+    );
 
     expect(level30).toBeCloseTo(expectedMultiplier(30));
     expect(outputMultipliers.every((value, index) => index === 0 || value > outputMultipliers[index - 1])).toBe(true);
@@ -113,6 +116,7 @@ describe('Building Variants System', () => {
     expect(outputMultipliers[4]).toBeLessThan(Math.pow(1.02, 500));
     expect(outputMultipliers[6]).toBeGreaterThan(5);
     expect(outputMultipliers[6]).toBeCloseTo(expectedMultiplier(5000));
+    expect(energyMultipliers.every((value, index) => index === 0 || value < energyMultipliers[index - 1])).toBe(true);
 
     player.practicalResearch.metalMine.experience.output = 96100; // sqrt(96100 / 100) = 31
     expect(() => selectCustomBuildingVariant(player, planet.id, 'metalMine', {
