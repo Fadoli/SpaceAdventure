@@ -359,6 +359,7 @@ export const SHIPS = {
 export const ALIEN_SHIPS = {
   alienScout: {
     name: 'Xeno-Scout',
+    baseCost: { metal: 600, crystal: 300, deuterium: 50 },
     icon: '🛸',
     type: 'alien',
     description: 'Highly agile alien reconnaissance vessel.',
@@ -371,6 +372,7 @@ export const ALIEN_SHIPS = {
   },
   alienCorvette: {
     name: 'Xeno-Corvette',
+    baseCost: { metal: 2000, crystal: 1000, deuterium: 400 },
     icon: '👾',
     type: 'alien',
     description: 'Standard alien escort ship with organic hull plating.',
@@ -384,6 +386,7 @@ export const ALIEN_SHIPS = {
   },
   alienFrigate: {
     name: 'Xeno-Frigate',
+    baseCost: { metal: 7000, crystal: 4500, deuterium: 1750 },
     icon: '🐙',
     type: 'alien',
     description: 'Medium alien combatant utilizing plasma-based weaponry.',
@@ -397,6 +400,7 @@ export const ALIEN_SHIPS = {
   },
   alienFlagship: {
     name: 'Ancient Xeno-Flagship',
+    baseCost: { metal: 110000, crystal: 70000, deuterium: 40000 },
     icon: '🔱',
     type: 'alien',
     description: 'Enormous alien capital ship of unknown origin.',

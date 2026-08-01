@@ -192,4 +192,15 @@ describe('Combat Engine', () => {
     expect(report.totalAttackerLossValue).toBeGreaterThan(0);
     expect(report.totalDefenderLossValue).toBeGreaterThan(0);
   });
+
+  it('should value alien expedition losses and debris', () => {
+    const report = simulateCombat(
+      { ships: { dreadnought: 1 } },
+      { ships: { alienScout: 1 } }
+    );
+
+    expect(report.defenderLosses.ships.alienScout).toBe(1);
+    expect(report.totalDefenderLossValue).toBe(950);
+    expect(report.debris.metal + report.debris.crystal).toBeGreaterThan(0);
+  });
 });
