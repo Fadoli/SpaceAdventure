@@ -6,6 +6,7 @@ import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { RESOURCE_ICONS, SCALING, BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
+import { getCustomVariant } from '../../../shared/research.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { calculateAllocationEffectiveness, calculateBuildTime } from '../../../shared/formulas.js';
 import { calculateBaseTime } from '../../../shared/time.js';
@@ -568,13 +569,14 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
     // --- Option 2+: Blueprints ---
     for (const bp of blueprints) {
         const isActive = activeBlueprintId === bp.id;
+        const modifiers = getCustomVariant(buildingKey, bp.focusLevels)?.modifiers || bp.modifiers;
         
         let targetCost = baseCost;
-        if (bp.modifiers && bp.modifiers.costMultiplier !== 1) {
+        if (modifiers && modifiers.costMultiplier !== 1) {
             targetCost = {
-                metal: Math.floor(baseCost.metal * bp.modifiers.costMultiplier),
-                crystal: Math.floor(baseCost.crystal * bp.modifiers.costMultiplier),
-                deuterium: Math.floor(baseCost.deuterium * bp.modifiers.costMultiplier)
+                metal: Math.floor(baseCost.metal * modifiers.costMultiplier),
+                crystal: Math.floor(baseCost.crystal * modifiers.costMultiplier),
+                deuterium: Math.floor(baseCost.deuterium * modifiers.costMultiplier)
             };
         }
 
@@ -590,9 +592,9 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
         };
 
         let modifiersHtml = '';
-        if (bp.modifiers) {
+        if (modifiers) {
             for (const modKey in modifierLabels) {
-                const val = bp.modifiers[modKey];
+                const val = modifiers[modKey];
                 if (val !== undefined && Math.abs(val - 1) > 0.001) {
                     const config = modifierLabels[modKey];
                     const percent = formatNumber((val - 1) * 100);

@@ -6,6 +6,7 @@ import {
 } from '../../src/server/game/buildings.js';
 import { selectCustomBuildingVariant } from '../../src/server/game/researchLogic.js';
 import { BUILDINGS } from '../../src/shared/buildings.js';
+import { PRACTICAL_RESEARCH, calculateFocusModifiers } from '../../src/shared/research.js';
 
 describe('Building Variants System', () => {
   let player;
@@ -94,6 +95,29 @@ describe('Building Variants System', () => {
     expect(player.customBuildingVariants).toEqual(before);
   });
 
+  it('applies exponential effects to square-root-scaled focus levels', () => {
+    const research = PRACTICAL_RESEARCH.metalMine;
+    const levels = [1, 10, 50, 100, 500, 1000, 5000];
+    const outputMultipliers = levels.map(level =>
+      calculateFocusModifiers(research, { output: level }).productionMultiplier
+    );
+    const level30 = calculateFocusModifiers(research, { output: 30 }).productionMultiplier;
+
+    expect(level30).toBeCloseTo(Math.pow(1.02, 30));
+    expect(outputMultipliers.every((value, index) => index === 0 || value > outputMultipliers[index - 1])).toBe(true);
+    expect(outputMultipliers[0]).toBeCloseTo(1.02);
+    expect(outputMultipliers[1]).toBeCloseTo(Math.pow(1.02, 10));
+    expect(outputMultipliers[6]).toBeGreaterThan(5);
+    expect(outputMultipliers[6]).toBeCloseTo(Math.pow(1.02, 5000));
+
+    player.practicalResearch.metalMine.experience.output = 96100; // sqrt(96100 / 100) = 31
+    expect(() => selectCustomBuildingVariant(player, planet.id, 'metalMine', {
+      output: 31,
+      automation: 0,
+      energy: 0
+    })).not.toThrow();
+  });
+
   it('rejects inherited building keys without changing variant state', () => {
     const before = structuredClone(player.customBuildingVariants);
     const prototype = Object.getPrototypeOf(player.customBuildingVariants);
@@ -170,7 +194,7 @@ describe('Building Variants System', () => {
       // The custom variant should have higher production due to the productionMultiplier
       const ratio = customProduction / baseProduction;
       expect(ratio).toBeGreaterThanOrEqual(1.0);
-      expect(ratio).toBeLessThanOrEqual(1.25); // Relaxed constraint for varying test environments
+      expect(ratio).toBeCloseTo(variant.modifiers.productionMultiplier, 1);
     });
 
     it('should handle multiple building variants on same planet', () => {

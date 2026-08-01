@@ -49,6 +49,14 @@ export function validateBlueprintName(name) {
   return trimmed;
 }
 
+function getBlueprintDefinition(baseType, blueprint) {
+  if (blueprint?.focusLevels) {
+    const variant = getCustomVariant(baseType, blueprint.focusLevels);
+    if (variant) return applyCustomization(BUILDINGS[baseType], variant.modifiers);
+  }
+  return blueprint?.customDefinition;
+}
+
 /**
  * Get the effective building definition for a planet (base or custom blueprint)
  */
@@ -61,20 +69,18 @@ export function getEffectiveBuildingDefinition(buildingType, planet = null, play
   
   // Try to find in planet's local blueprint storage first
   if (planet && planet.localBlueprints && planet.localBlueprints[buildingType]) {
-    return planet.localBlueprints[buildingType].customDefinition;
+    return getBlueprintDefinition(buildingType, planet.localBlueprints[buildingType]);
   }
   
   // Try to find by blueprint ID in player's global storage (legacy/fallback)
   if (player && player.buildingBlueprints && player.buildingBlueprints[buildingType]) {
     const blueprint = player.buildingBlueprints[buildingType].find(bp => bp.id === activeVariantId);
-    if (blueprint) {
-      return blueprint.customDefinition;
-    }
+    if (blueprint) return getBlueprintDefinition(buildingType, blueprint);
   }
   
   // Fallback to legacy single variant if ID didn't match (for migration)
   if (activeVariantId === 'custom' && player && player.customBuildingVariants && player.customBuildingVariants[buildingType]) {
-    return player.customBuildingVariants[buildingType].customDefinition;
+    return getBlueprintDefinition(buildingType, player.customBuildingVariants[buildingType]);
   }
   
   return BUILDINGS[buildingType];

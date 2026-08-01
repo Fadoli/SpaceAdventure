@@ -34,6 +34,8 @@ it('formats blueprint modifier percentages with compact numbers', async () => {
   const researchSource = await readFile(new URL('../../src/client/js/views/research.js', import.meta.url), 'utf8');
   expect(buildingsSource).toContain('formatNumber((val - 1) * 100)');
   expect(researchSource).toContain('formatNumber((val - 1) * 100)');
+  expect(buildingsSource).toContain('getCustomVariant(buildingKey, bp.focusLevels)');
+  expect(researchSource).toContain('getCustomVariant(baseType, focusLevels)');
 });
 
 it('escapes renamed planets in shell and overview renders', async () => {

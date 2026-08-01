@@ -334,29 +334,29 @@ export const PRACTICAL_FOCUS_TYPES = {
  */
 const PRODUCTION_BUILDING_MODIFIERS = {
     output: {
-        productionMultiplier: 1.025,     // 1.025^level: +2.5% per focus level
-        timeMultiplier: 0.98,            // 0.98^level: -2% time per focus level (for factories/shipyard/lab)
-        costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level
-        energyMultiplier: 1.025,         // 1.025^level: +2.5% energy per focus level
-        populationMultiplier: 1.01      // 1.01^level: +1% population
+        productionMultiplier: 1.02,      // 2% base effect with diminishing returns
+        timeMultiplier: 0.99,             // 1% base effect with diminishing returns
+        costMultiplier: 1.015,            // 1.5% base effect with diminishing returns
+        energyMultiplier: 1.015,          // 1.5% base effect with diminishing returns
+        populationMultiplier: 1.0075      // 0.75% base effect with diminishing returns
     },
     automation: {
-        populationMultiplier: 0.975,     // 0.975^level: -2.5% workforce per focus level
-        costMultiplier: 1.02,            // 1.02^level: +2% cost per focus level
-        energyMultiplier: 1.025,         // 1.025^level: +2.5% energy per focus level
-        productionMultiplier: 0.998      // 0.998^level: -0.2% production (reduced penalty)
+        populationMultiplier: 0.985,      // 1.5% base effect with diminishing returns
+        costMultiplier: 1.015,            // 1.5% base effect with diminishing returns
+        energyMultiplier: 1.015,          // 1.5% base effect with diminishing returns
+        productionMultiplier: 0.999       // 0.1% base effect with diminishing returns
     },
     energy: {
-        energyMultiplier: 0.975,         // 0.975^level: -2.5% energy consumption per focus level
-        costMultiplier: 1.015,           // 1.015^level: +1.5% cost
-        productionMultiplier: 0.998,      // 0.998^level: -0.2% production
-        populationMultiplier: 1.01      // 1.01^level: +1% workforce
+        energyMultiplier: 0.985,          // 1.5% base effect with diminishing returns
+        costMultiplier: 1.01,             // 1% base effect with diminishing returns
+        productionMultiplier: 0.999,      // 0.1% base effect with diminishing returns
+        populationMultiplier: 1.0075       // 0.75% base effect with diminishing returns
     },
     cost: {
-        costMultiplier: 0.977,           // 0.977^level: -2.3% cost per focus level
-        productionMultiplier: 0.998,     // 0.998^level: -0.2% production (reduced penalty)
-        energyMultiplier: 1.002,         // 1.002^level: minimal energy change
-        populationMultiplier: 1.001      // 1.001^level: minimal population change
+        costMultiplier: 0.985,            // 1.5% base effect with diminishing returns
+        productionMultiplier: 0.999,       // 0.1% base effect with diminishing returns
+        energyMultiplier: 1.001,           // 0.1% base effect with diminishing returns
+        populationMultiplier: 1.001        // 0.1% base effect with diminishing returns
     }
 };
 
@@ -378,7 +378,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 10,
             deuterium: 5
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -394,7 +393,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 10,
             deuterium: 5
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -410,7 +408,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 20,
             deuterium: 10
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -426,7 +423,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 20,
             deuterium: 10
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -442,7 +438,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 50,
             deuterium: 50
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -458,7 +453,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 30,
             deuterium: 20
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -474,7 +468,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 30,
             deuterium: 20
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -490,7 +483,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 50,
             deuterium: 50
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -506,7 +498,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 300,
             deuterium: 200
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -522,7 +513,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 10,
             deuterium: 0
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -538,7 +528,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 10,
             deuterium: 0
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     },
 
@@ -554,7 +543,6 @@ export const PRACTICAL_RESEARCH = {
             crystal: 10,
             deuterium: 0
         },
-        maxLevels: 30,
         focusModifiers: PRODUCTION_BUILDING_MODIFIERS
     }
 };
@@ -686,8 +674,9 @@ export function getCustomVariant(baseType, focusLevels) {
 }
 
 /**
- * Calculate the aggregated modifiers from all focus levels using exponential scaling
- * Result is multiplier: (baseMultiplier^level)
+ * Calculate aggregated modifiers with endless, diminishing focus progression.
+ * Focus levels already use square-root progression from research experience,
+ * so each level keeps the original exponential effect.
  */
 export function calculateFocusModifiers(research, focusLevels) {
     const modifiers = {

@@ -1,6 +1,6 @@
 // Research view - theoretical and practical research management
 import { API } from '../api.js';
-import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical } from '../../../shared/research.js';
+import { getTheoreticalResearch, getPracticalResearch, PRACTICAL_FOCUS_TYPES, getResearchBonus, canResearchTheoretical, getCustomVariant } from '../../../shared/research.js';
 import { escapeHtml, formatNumber, formatDuration, formatCountdown, positionContextMenu } from '../utils.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
@@ -753,6 +753,7 @@ async function renderCustomVariants() {
 
 function renderVariantCard(baseType, variant) {
     const { id, name, focusLevels, modifiers } = variant;
+    const effectiveModifiers = getCustomVariant(baseType, focusLevels)?.modifiers || modifiers;
     
     let focusesHtml = '';
     for (const f in focusLevels) {
@@ -766,7 +767,7 @@ function renderVariantCard(baseType, variant) {
     }
 
     let modifiersHtml = '';
-    if (modifiers) {
+    if (effectiveModifiers) {
         const modifierLabels = {
             productionMultiplier: { label: 'Production', isPos: true },
             costMultiplier: { label: 'Build Cost', isPos: false },
@@ -774,8 +775,8 @@ function renderVariantCard(baseType, variant) {
             populationMultiplier: { label: 'Workforce', isPos: false }
         };
 
-        for (const modKey in modifiers) {
-            const val = modifiers[modKey];
+        for (const modKey in effectiveModifiers) {
+            const val = effectiveModifiers[modKey];
             if (val !== undefined && Math.abs(val - 1) > 0.001) {
                 const config = modifierLabels[modKey];
                 if (!config) continue;
