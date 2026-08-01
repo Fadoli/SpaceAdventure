@@ -263,6 +263,30 @@
 .report-result.winner { color: var(--accent-green); }
 .report-result.loser { color: var(--accent-red); }
 
+.combat-round-row {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+}
+
+.combat-round-row:last-child { border-bottom: 0; }
+
+.combat-round-header {
+    color: var(--accent-blue);
+    margin-bottom: 4px;
+}
+
+.combat-round-side {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.combat-round-side span:first-child { color: var(--text-primary); }
+
 .report-block {
     margin-bottom: 20px;
 }

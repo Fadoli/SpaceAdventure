@@ -68,6 +68,13 @@ export function simulateGroupCombat(attackers, defenders) {
     attackerGroups = attackerGroups.filter(g => g.count > 0);
     defenderGroups = defenderGroups.filter(g => g.count > 0);
 
+    const attackerRemaining = getTotalCount(attackerGroups);
+    const defenderRemaining = getTotalCount(defenderGroups);
+    roundData.attackerRemaining = attackerRemaining;
+    roundData.defenderRemaining = defenderRemaining;
+    roundData.attackerDestroyed = Math.max(0, attackerCount - attackerRemaining);
+    roundData.defenderDestroyed = Math.max(0, defenderCount - defenderRemaining);
+
     report.rounds.push(roundData);
     
     if (attackerGroups.length === 0 || defenderGroups.length === 0) break;

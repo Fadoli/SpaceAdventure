@@ -134,6 +134,23 @@ describe('Combat Engine', () => {
     expect(report.rounds.length).toBeLessThanOrEqual(6);
   });
 
+  it('should record remaining and destroyed units for every combat round', () => {
+    const report = simulateCombat(
+      { ships: { lightFighter: 20 } },
+      { ships: { lightFighter: 20 } }
+    );
+
+    expect(report.rounds.length).toBeGreaterThan(0);
+    for (const round of report.rounds) {
+      expect(round.attackerRemaining).toBeGreaterThanOrEqual(0);
+      expect(round.defenderRemaining).toBeGreaterThanOrEqual(0);
+      expect(round.attackerDestroyed).toBeGreaterThanOrEqual(0);
+      expect(round.defenderDestroyed).toBeGreaterThanOrEqual(0);
+      expect(round.attackerRemaining + round.attackerDestroyed).toBeLessThanOrEqual(20);
+      expect(round.defenderRemaining + round.defenderDestroyed).toBeLessThanOrEqual(20);
+    }
+  });
+
   it('should repair a portion of destroyed defenses after all rounds', () => {
     const attacker = {
       ships: { battleship: 100 }, // Overwhelming force to destroy all defenses

@@ -265,15 +265,22 @@ export function renderCombatReport(data) {
         `;
     }
 
-    // Rounds summary
+    // Turn-by-turn combat log
+    const hasRoundDetails = data.rounds.some(r => Number.isFinite(r.attackerRemaining) || Number.isFinite(r.defenderRemaining));
     html += `
         <div class="report-block">
             <div class="v-readout-header">ENGAGEMENT LOG</div>
             <div class="bt-readout">
-                ${data.rounds.map(r => `
+                ${data.rounds.map(r => hasRoundDetails ? `
+                    <div class="combat-round-row">
+                        <div class="combat-round-header">ROUND ${r.round}</div>
+                        <div class="combat-round-side"><span>ATTACKERS</span><span>${formatNumber(r.attackerShotCount || 0)} shots · ${formatNumber(r.attackerDamage || 0)} dmg · ${formatNumber(r.attackerRemaining ?? 0)} left · -${formatNumber(r.attackerDestroyed || 0)}</span></div>
+                        <div class="combat-round-side"><span>DEFENDERS</span><span>${formatNumber(r.defenderShotCount || 0)} shots · ${formatNumber(r.defenderDamage || 0)} dmg · ${formatNumber(r.defenderRemaining ?? 0)} left · -${formatNumber(r.defenderDestroyed || 0)}</span></div>
+                    </div>
+                ` : `
                     <div class="bt-row">
                         <span class="bt-label">ROUND ${r.round}</span>
-                        <span class="bt-value">A: ${r.attackerShotCount} shots / D: ${r.defenderShotCount} shots</span>
+                        <span class="bt-value">A: ${formatNumber(r.attackerShotCount || 0)} shots / D: ${formatNumber(r.defenderShotCount || 0)} shots</span>
                     </div>
                 `).join('')}
             </div>
