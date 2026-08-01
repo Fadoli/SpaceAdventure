@@ -12,6 +12,7 @@ let messageRefreshInterval = null;
 
 let lastSubView = null;
 let lastAllianceId = null;
+let allianceRequestId = 0;
 
 /**
  * Update alliance view
@@ -19,9 +20,12 @@ let lastAllianceId = null;
 export async function updateAllianceView() {
     const container = document.querySelector('#alliance-view .alliance-container');
     if (!container) return;
+    const requestId = ++allianceRequestId;
+    const isCurrentRequest = () => requestId === allianceRequestId;
 
     try {
         const gameState = await API.getGameState();
+        if (!isCurrentRequest()) return;
         
         // 1. Check if we need a full structural re-render
         // If the container has no meaningful content, force a full render
@@ -33,6 +37,7 @@ export async function updateAllianceView() {
 
         if (gameState.allianceId) {
             const alliance = await API.getAlliance(gameState.allianceId);
+            if (!isCurrentRequest()) return;
             if (currentSubView === 'overview') {
                 if (needsFullRender) renderAllianceDashboard(container, alliance, gameState);
                 stopMessagePolling();
@@ -43,6 +48,7 @@ export async function updateAllianceView() {
                 if (needsFullRender) {
                     await renderAllianceCommunications(container, alliance, gameState);
                 }
+                if (!isCurrentRequest()) return;
                 startMessagePolling();
                 // Messages update independently via their own hash-check
                 await refreshAllianceMessages();
@@ -51,10 +57,12 @@ export async function updateAllianceView() {
             stopMessagePolling();
             if (needsFullRender) {
                 const alliances = await API.getAlliances();
+                if (!isCurrentRequest()) return;
                 renderAllianceSearch(container, alliances);
             }
         }
     } catch (error) {
+        if (!isCurrentRequest()) return;
         console.error('Failed to load alliance data:', error);
         container.innerHTML = `<div class="empty-log-message">> DATA LINK FAILURE: ${escapeHtml(error.message)}</div>`;
         // Reset trackers on error so next retry can force render
@@ -204,13 +212,16 @@ async function renderAllianceCommunications(container, alliance, player) {
 }
 
 let lastMessagesHash = null;
+let allianceMessageRequestId = 0;
 
 async function refreshAllianceMessages() {
     const historyEl = document.getElementById('alliance-chat-history');
     if (!historyEl) return;
+    const requestId = ++allianceMessageRequestId;
 
     try {
         const messages = await API.getAllianceMessages();
+        if (requestId !== allianceMessageRequestId || currentSubView !== 'communications') return;
         
         // 1. Check if anything actually changed
         const currentHash = JSON.stringify(messages.map(m => m.id));
@@ -255,6 +266,7 @@ async function refreshAllianceMessages() {
             historyEl.scrollTop = historyEl.scrollHeight;
         }
     } catch (error) {
+        if (requestId !== allianceMessageRequestId) return;
         console.error('Failed to fetch alliance messages:', error);
     }
 }

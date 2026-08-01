@@ -1044,8 +1044,11 @@ async function handleRequest(req) {
       
       const planet = player.planets.find(p => p.id === planetId);
       
-      // Process any completed production
-      processCompletedProduction(planet);
+      // Process any completed production and publish the mutation so other
+      // views receive the same live fleet state instead of waiting for a tick.
+      if (processCompletedProduction(planet)) {
+        await updatePlayer(user.id, player);
+      }
       
       const shipyardDetails = getShipyardDetails(planet, player);
       
@@ -1221,8 +1224,10 @@ async function handleRequest(req) {
       
       const planet = player.planets.find(p => p.id === planetId);
       
-      // Process any completed production
-      processCompletedProduction(planet);
+      // Keep read-only fleet data consistent with the canonical player state.
+      if (processCompletedProduction(planet)) {
+        await updatePlayer(user.id, player);
+      }
       
       return successResponse(req, {
         ships: planet.ships || {},
@@ -1495,14 +1500,14 @@ async function handleRequest(req) {
       );
 
       const matches = await Promise.all(filtered.map(async p => {
-        const fullPlayer = await getPlayerByUserId(p.userId, true);
-        // Force deep copy to ensure clean JSON serialization
-        const cleanPlanets = JSON.parse(JSON.stringify(fullPlayer.planets || []));
+        // Search the live cache; forceFresh would replace active in-memory state
+        // with the last disk snapshot while the game loop is still running.
+        const cleanPlanets = JSON.parse(JSON.stringify(p.planets || []));
         
         return {
-          userId: fullPlayer.userId,
-          username: fullPlayer.username,
-          research: fullPlayer.research || {},
+          userId: p.userId,
+          username: p.username,
+          research: p.research || {},
           planets: cleanPlanets
         };
       }));

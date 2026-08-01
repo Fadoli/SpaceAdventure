@@ -161,6 +161,23 @@ it('applies research cost reduction to shipyard UI prices', async () => {
   expect(server).toContain("costReductionBonus: getResearchBonus(player?.research, 'globalCostReduction')");
 });
 
+it('keeps shipyard time reduction consistent between server and UI', async () => {
+  const view = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  const server = await readFile(new URL('../../src/server/game/shipyard.js', import.meta.url), 'utf8');
+
+  expect(view).toContain('timeReductionBonus');
+  expect(view).toContain('(1 - getTimeReductionBonus())');
+  expect(server).toContain("timeReductionBonus: getResearchBonus(player?.research, 'globalTimeReduction')");
+});
+
+it('guards view responses against stale navigation results', async () => {
+  const viewFiles = ['buildings', 'research', 'galaxy', 'ranking', 'messages', 'alliance'];
+  for (const view of viewFiles) {
+    const source = await readFile(new URL(`../../src/client/js/views/${view}.js`, import.meta.url), 'utf8');
+    expect(source).toMatch(/requestId|RequestId|buildingDetailsRequest/);
+  }
+});
+
 it('applies versioned WebSocket state syncs before using HTTP recovery', async () => {
   const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   const gameLoop = await readFile(new URL('../../src/server/game/gameLoop.js', import.meta.url), 'utf8');

@@ -12,6 +12,7 @@ let lastRenderedSystem = null;
 let currentGameState = null;
 let currentGalaxy = null;
 let currentSystem = null;
+let galaxyRequestId = 0;
 
 /**
  * Open unified mission modal
@@ -818,8 +819,10 @@ export async function updateGalaxyView(gameState) {
  * Load and render a specific galaxy/system
  */
 async function loadAndRenderGalaxy(container, galaxy, system, gameState) {
+    const requestId = ++galaxyRequestId;
     try {
         const galaxyData = await API.getGalaxyView(galaxy, system);
+        if (requestId !== galaxyRequestId || currentGalaxy !== galaxy || currentSystem !== system) return;
         renderOGameGalaxyTable(container, galaxyData, gameState, galaxy, system);
         lastRenderedGalaxy = galaxy;
         lastRenderedSystem = system;

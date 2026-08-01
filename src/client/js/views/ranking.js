@@ -3,6 +3,7 @@ import { API } from '../api.js';
 import { escapeHtml, formatNumber } from '../utils.js';
 
 let currentCategory = 'total';
+let rankingRequestId = 0;
 
 /**
  * Update ranking view
@@ -12,11 +13,14 @@ export async function updateRankingView(offset = 0, category = null) {
     if (!container) return;
 
     if (category) currentCategory = category;
+    const requestId = ++rankingRequestId;
 
     try {
         const data = await API.getRankings(offset, 100, currentCategory);
+        if (requestId !== rankingRequestId) return;
         renderRankingTable(container, data.rankings, data.totalPlayers, data.offset, data.limit, data.category, data.lastSnapshotTime);
     } catch (error) {
+        if (requestId !== rankingRequestId) return;
         console.error('Failed to load rankings:', error);
         container.innerHTML = `<p class="error">Failed to load rankings: ${escapeHtml(error.message)}</p>`;
     }

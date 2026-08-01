@@ -15,6 +15,8 @@ let currentGameState = null;
 let lastBuildingStateHash = null;
 let lastQueueStateHash = null;
 let cachedBuildingDetails = null;
+let cachedBuildingPlanetId = null;
+let buildingDetailsRequest = null;
 
 /**
  * Set the current game state (called from main)
@@ -33,8 +35,11 @@ function calculateBuildingStateHash(buildings, planet) {
 /**
  * Calculate a hash of the queue state to detect changes
  */
-function calculateQueueStateHash(queue) {
-    return JSON.stringify(queue.map(q => ({ building: q.building, level: q.level, finishTime: q.finishTime })));
+function calculateQueueStateHash(queue, planetId = '') {
+    return JSON.stringify({
+        planetId,
+        queue: queue.map(q => ({ building: q.building, level: q.level, finishTime: q.finishTime }))
+    });
 }
 
 /**
@@ -60,22 +65,38 @@ export async function updateBuildingsView(planet, onStateChange, forceFetch = fa
         queueCount: planet.buildQueue?.length || 0
     });
 
-    const needsFetch = forceFetch || !cachedBuildingDetails || currentStructuralHash !== lastBuildingStateHash;
+    const hasCurrentCache = cachedBuildingDetails && cachedBuildingPlanetId === planet.id;
+    const needsFetch = forceFetch || !hasCurrentCache || currentStructuralHash !== lastBuildingStateHash;
     
     // Fetch building details from server only if needed
     if (needsFetch) {
+        let request = buildingDetailsRequest;
+        if (!request || request.planetId !== planet.id || forceFetch) {
+            request = {
+                planetId: planet.id,
+                promise: API.getBuildingDetails(planet.id)
+            };
+            buildingDetailsRequest = request;
+        }
+
         try {
             // console.log(`[Buildings] Fetching details for ${planet.name} (force=${forceFetch})`);
-            cachedBuildingDetails = await API.getBuildingDetails(planet.id);
+            cachedBuildingDetails = await request.promise;
+            if (request !== buildingDetailsRequest || getCurrentPlanetId() !== planet.id) return;
+            cachedBuildingPlanetId = planet.id;
             lastBuildingStateHash = currentStructuralHash;
         } catch (error) {
+            if (request === buildingDetailsRequest) buildingDetailsRequest = null;
+            if (request !== buildingDetailsRequest && getCurrentPlanetId() !== planet.id) return;
             console.error('Failed to load building details:', error);
-            if (!cachedBuildingDetails) {
+            if (!cachedBuildingDetails || cachedBuildingPlanetId !== planet.id) {
                 buildingsGrid.innerHTML = '<p class="error">Failed to load building information</p>';
                 return;
             }
         }
     }
+
+    if (!cachedBuildingDetails || cachedBuildingPlanetId !== planet.id) return;
     
     const { buildings, queue, maxQueueSize } = cachedBuildingDetails;
     
@@ -88,7 +109,7 @@ export async function updateBuildingsView(planet, onStateChange, forceFetch = fa
     }
     
     // Update queue view independently
-    const currentQueueHash = calculateQueueStateHash(queue);
+    const currentQueueHash = calculateQueueStateHash(queue, planet.id);
     if (currentQueueHash !== lastQueueStateHash) {
         updateQueueView(queue, maxQueueSize, buildings);
         lastQueueStateHash = currentQueueHash;
@@ -828,6 +849,7 @@ export async function showBuildingDetails(buildingKey) {
     let buildingDetails;
     try {
         buildingDetails = await API.getBuildingDetails(planet.id);
+        if (getCurrentPlanetId() !== planet.id) return;
     } catch (error) {
         console.error('Failed to load building details:', error);
         return;

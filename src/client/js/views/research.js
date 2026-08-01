@@ -22,6 +22,7 @@ let lastResearchPlanetId = null;
 let researchData = null;
 let lastResearchStateHash = null;
 let researchQueueVisible = true;
+let researchRequestId = 0;
 
 /**
  * Toggle research queue visibility
@@ -68,8 +69,10 @@ export async function initializeResearch(planet) {
  * Load research data from server
  */
 async function loadResearchData(force = false) {
+    const requestId = ++researchRequestId;
     try {
         const newResearchData = await API.request('/game/research');
+        if (requestId !== researchRequestId) return;
         
         const currentHash = calculateResearchStateHash(newResearchData);
 
@@ -87,6 +90,7 @@ async function loadResearchData(force = false) {
 
         switchTab(subTab, false);
     } catch (error) {
+        if (requestId !== researchRequestId) return;
         console.error('Failed to load research data:', error);
         if (!researchData) researchData = { progress: { theoretical: [], practical: [] }, theoretical: {}, practical: {} };
     }

@@ -1,4 +1,5 @@
 import { expect, test, describe, beforeAll } from "bun:test";
+import { readFile } from "fs/promises";
 import { getPlayerByUserId, createPlayer, getPlayers } from "../../src/server/game/player.js";
 import { initializeStorage } from "../../src/server/storage/storage.js";
 
@@ -52,5 +53,12 @@ describe("Admin Search Data Integrity", () => {
         const serialized = JSON.parse(JSON.stringify(match));
         expect(serialized.planets[0].resources).toBeDefined();
         expect(serialized.planets[0].resources.metal).toBeDefined();
+    });
+
+    test("search reads the live player cache instead of forcing a stale disk reload", async () => {
+        const source = await readFile(new URL("../../src/server/index.js", import.meta.url), "utf8");
+        const searchBlock = source.slice(source.indexOf("/api/admin/players/search"), source.indexOf("/api/admin/players/:userId/assets"));
+        expect(searchBlock).not.toContain("getPlayerByUserId(p.userId, true)");
+        expect(searchBlock).toContain("p.planets");
     });
 });

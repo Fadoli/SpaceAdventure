@@ -10,6 +10,7 @@ import { openDetailsModal } from './details.js';
 let lastMessagesHash = null;
 let currentFilter = 'all';
 let cachedMessages = null;
+let messagesRequestId = 0;
 const espionageRegistry = new Map();
 
 /**
@@ -18,9 +19,11 @@ const espionageRegistry = new Map();
 export async function updateMessagesView(nextMessages = null) {
     const container = document.querySelector('#messages-view .messages-container');
     if (!container) return;
+    const requestId = ++messagesRequestId;
 
     try {
         const messages = Array.isArray(nextMessages) ? nextMessages : await API.getMessages();
+        if (requestId !== messagesRequestId) return;
         cachedMessages = messages;
         
         // 1. If container is empty or filter changed, do a full render
@@ -75,6 +78,7 @@ export async function updateMessagesView(nextMessages = null) {
             });
         }
     } catch (error) {
+        if (requestId !== messagesRequestId) return;
         console.error('Failed to load messages:', error);
         container.innerHTML = `<p class="error">Failed to load messages: ${escapeHtml(error.message)}</p>`;
     }
