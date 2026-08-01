@@ -29,6 +29,13 @@ it('keeps the details modal text-safe', async () => {
   expect(researchSource).toContain('/assets/icons/buildings/${baseType}.png');
 });
 
+it('formats blueprint modifier percentages with compact numbers', async () => {
+  const buildingsSource = await readFile(new URL('../../src/client/js/views/buildings.js', import.meta.url), 'utf8');
+  const researchSource = await readFile(new URL('../../src/client/js/views/research.js', import.meta.url), 'utf8');
+  expect(buildingsSource).toContain('formatNumber((val - 1) * 100)');
+  expect(researchSource).toContain('formatNumber((val - 1) * 100)');
+});
+
 it('escapes renamed planets in shell and overview renders', async () => {
   const mainSource = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   const overviewSource = await readFile(new URL('../../src/client/js/views/overview.js', import.meta.url), 'utf8');

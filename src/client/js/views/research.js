@@ -779,7 +779,7 @@ function renderVariantCard(baseType, variant) {
             if (val !== undefined && Math.abs(val - 1) > 0.001) {
                 const config = modifierLabels[modKey];
                 if (!config) continue;
-                const percent = ((val - 1) * 100).toFixed(1);
+                const percent = formatNumber((val - 1) * 100);
                 const isGood = (val > 1) === config.isPos;
                 modifiersHtml += `
                     <div class="bt-row" style="margin-bottom: 2px;">

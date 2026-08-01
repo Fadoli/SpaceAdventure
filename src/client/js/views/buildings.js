@@ -595,7 +595,7 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
                 const val = bp.modifiers[modKey];
                 if (val !== undefined && Math.abs(val - 1) > 0.001) {
                     const config = modifierLabels[modKey];
-                    const percent = ((val - 1) * 100).toFixed(1);
+                    const percent = formatNumber((val - 1) * 100);
                     const isGood = (val > 1) === config.isPos;
                     modifiersHtml += `<div class="mod-row ${isGood ? 'pos' : 'neg'}">
                         <span class="mod-icon">${config.icon}</span>
