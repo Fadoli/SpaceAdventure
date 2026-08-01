@@ -104,3 +104,26 @@ it('keeps confirmation dialogs above blueprint selection modals', async () => {
   expect(styles).toContain('#input-modal {');
   expect(styles).toContain('z-index: 4000;');
 });
+
+it('renders the existing queue before shipyard details finish loading', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  expect(source).toContain('const queuePreview = getQueuePreviewData(planet)');
+  expect(source).toContain('queueContainer.innerHTML = renderBuildQueue(queuePreview)');
+  expect(source).toContain('if (!isCurrentRequest()) return;');
+});
+
+it('recomputes allocation blueprint effects from focus levels', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/allocation.js', import.meta.url), 'utf8');
+  expect(source).toContain('applyCustomization, getCustomVariant');
+  expect(source).toContain('getCustomVariant(buildingType, blueprint.focusLevels)');
+  expect(source).toContain('applyCustomization(BUILDINGS[buildingType], variant.modifiers)');
+});
+
+it('documents vehicle engine upgrades in ship and propulsion details', async () => {
+  const shipyard = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  const research = await readFile(new URL('../../src/client/js/views/research.js', import.meta.url), 'utf8');
+  expect(shipyard).toContain('Engine Upgrade Path');
+  expect(shipyard).toContain('SHIPS[shipKey]?.engineSwaps');
+  expect(research).toContain('Vehicle Engine Upgrades');
+  expect(research).toContain('swap.techKey === techKey');
+});

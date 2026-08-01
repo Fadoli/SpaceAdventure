@@ -109,7 +109,7 @@ export const THEORETICAL_RESEARCH = {
         category: 'Propulsion',
         icon: '🚀',
         description: 'Enables basic spaceship travel.',
-        detailedDescription: 'The fundamental propulsion system for any interstellar civilization.\n\nCombustion Drives utilize high-efficiency chemical reactions to generate the massive thrust needed to exit a planet\'s gravity well and travel between nearby celestial bodies. While lacking the sheer speed of advanced fusion or hyperspace drives, the Combustion Drive is reliable, cost-effective, and forms the backbone of early transport and trade fleets.\n\nMastering this tech is the first step toward exploring the stars and establishing your first colonies.',
+        detailedDescription: 'The fundamental propulsion system for any interstellar civilization.\n\nCombustion Drives utilize high-efficiency chemical reactions to generate the massive thrust needed to exit a planet\'s gravity well and travel between nearby celestial bodies. Each level increases the speed of ships still using combustion engines. Certain ships can later replace this engine with an impulse drive after reaching the required Impulse Drive level.\n\nMastering this tech is the first step toward exploring the stars and establishing your first colonies.',
         baseCost: {
             metal: 400,
             crystal: 150,
@@ -129,7 +129,7 @@ export const THEORETICAL_RESEARCH = {
         category: 'Propulsion',
         icon: '🌠',
         description: 'Faster interplanetary travel.',
-        detailedDescription: 'Impulse Drives represent a significant leap over basic chemical rockets.\n\nBy utilizing localized fusion reactions to accelerate plasma to relativistic speeds, these drives provide a massive increase in sub-light velocity and maneuverability. Ships equipped with Impulse Drives can cross entire solar systems in a fraction of the time required by combustion-based vessels.\n\nThis technology is vital for rapid response fleets and is a prerequisite for the construction of agile Light Fighters and more capable combat vessels.',
+        detailedDescription: 'Impulse Drives represent a significant leap over basic chemical rockets.\n\nBy utilizing localized fusion reactions to accelerate plasma to relativistic speeds, these drives provide a massive increase in sub-light velocity and maneuverability. Each level increases the speed of ships using impulse engines. Some existing ships can also swap from combustion to impulse engines once they reach their listed research threshold.\n\nThis technology is vital for rapid response fleets and is a prerequisite for the construction of agile Light Fighters and more capable combat vessels.',
         baseCost: {
             metal: 2000,
             crystal: 4000,
@@ -150,7 +150,7 @@ export const THEORETICAL_RESEARCH = {
         category: 'Propulsion',
         icon: '🌌',
         description: 'Enables intergalactic travel.',
-        detailedDescription: 'The pinnacle of propulsion technology.\n\nHyperspace Drives function by creating a localized tear in the fabric of space-time, allowing a ship to enter a "sub-space" dimension where the speed of light is not a barrier. This allows for near-instantaneous travel across vast distances that would otherwise take centuries to cross.\n\nThe Hyperspace Drive is the lifeblood of a sprawling intergalactic empire, enabling the rapid deployment of massive battle-fleets and the efficient coordination of far-flung colonies. It is required for the construction of the most powerful capital ships.',
+        detailedDescription: 'The pinnacle of propulsion technology.\n\nHyperspace Drives function by creating a localized tear in the fabric of space-time, allowing a ship to enter a "sub-space" dimension where the speed of light is not a barrier. Each level increases the speed of ships using hyperspace engines. Selected ships can replace an earlier engine with hyperspace technology after reaching the required research level.\n\nThe Hyperspace Drive is the lifeblood of a sprawling intergalactic empire, enabling the rapid deployment of massive battle-fleets and the efficient coordination of far-flung colonies. It is required for the construction of the most powerful capital ships.',
         baseCost: {
             metal: 10000,
             crystal: 20000,

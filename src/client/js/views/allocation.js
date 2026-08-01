@@ -2,7 +2,7 @@ import { getCurrentPlanet, getGameState } from '../main.js';
 import { API } from '../api.js';
 import { calculateAllocationEffectiveness, getBuildingEnergyConsumption, getBuildingPopulationRequired } from '../../../shared/formulas.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
-import { getResearchBonus } from '../../../shared/research.js';
+import { applyCustomization, getCustomVariant, getResearchBonus } from '../../../shared/research.js';
 import { Notifications } from '../notifications.js';
 import { formatNumber } from '../utils.js';
 
@@ -21,23 +21,29 @@ function getEffectiveBuildingDefinition(buildingType, planet, gameState) {
   
   // Try to find in planet's local blueprint storage first
   if (planet && planet.localBlueprints && planet.localBlueprints[buildingType]) {
-    return planet.localBlueprints[buildingType].customDefinition;
+    return getBlueprintDefinition(buildingType, planet.localBlueprints[buildingType]);
   }
   
   // Try to find by blueprint ID in player's global storage
   if (gameState && gameState.buildingBlueprints && gameState.buildingBlueprints[buildingType]) {
     const blueprint = gameState.buildingBlueprints[buildingType].find(bp => bp.id === activeVariantId);
-    if (blueprint) {
-      return blueprint.customDefinition;
-    }
+    if (blueprint) return getBlueprintDefinition(buildingType, blueprint);
   }
   
   // Fallback to legacy single variant
   if (activeVariantId === 'custom' && gameState && gameState.customBuildingVariants && gameState.customBuildingVariants[buildingType]) {
-    return gameState.customBuildingVariants[buildingType].customDefinition;
+    return getBlueprintDefinition(buildingType, gameState.customBuildingVariants[buildingType]);
   }
   
   return BUILDINGS[buildingType];
+}
+
+function getBlueprintDefinition(buildingType, blueprint) {
+  if (blueprint?.focusLevels) {
+    const variant = getCustomVariant(buildingType, blueprint.focusLevels);
+    if (variant) return applyCustomization(BUILDINGS[buildingType], variant.modifiers);
+  }
+  return blueprint?.customDefinition || BUILDINGS[buildingType];
 }
 
 /**

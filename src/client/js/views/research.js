@@ -15,6 +15,7 @@ import {
 import { BUILDING_SPEED_MULTIPLIER } from '../../../shared/constants.js';
 import { isEmpty } from '../../../shared/utils.js';
 import { getCurrentPlanetId, getCurrentPlanet } from '../main.js';
+import { SHIPS } from '../../../shared/ships.js';
 
 let currentPlanetBuildings = null;
 let lastResearchPlanetId = null;
@@ -1033,13 +1034,33 @@ window.showResearchDetails = function (techKey) {
         rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatDuration(t * 1000)]);
     }
 
+    const engineUpgradeRows = Object.values(SHIPS).flatMap(ship =>
+        (ship.engineSwaps || [])
+            .filter(swap => swap.techKey === techKey)
+            .map(swap => [
+                ship.name,
+                `Level ${swap.requiredLevel}`,
+                `${(ship.driveType || 'unknown').toUpperCase()} → ${swap.driveType.toUpperCase()}`,
+                `${formatNumber(swap.speed)} base speed`
+            ])
+    );
+    const sections = [];
+    if (engineUpgradeRows.length > 0) {
+        sections.push({
+            title: 'Vehicle Engine Upgrades',
+            table: {
+                headers: ['Vehicle', 'Unlock At', 'Engine Change', 'New Base Speed'],
+                rows: engineUpgradeRows
+            }
+        });
+    }
+    sections.push({ title: 'Projected Development Schedule', table: { headers: ['Lvl', 'Requisition', 'Duration'], rows } });
+
     renderDetailsModal({ 
         title: `${res.icon} ${res.name.toUpperCase()}`, 
         description: res.detailedDescription || res.description, 
         effects: stats, 
-        sections: [
-            { title: 'Projected Development Schedule', table: { headers: ['Lvl', 'Requisition', 'Duration'], rows } }
-        ] 
+        sections
     });
 };
 

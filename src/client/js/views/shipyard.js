@@ -12,10 +12,12 @@ import { Notifications } from '../notifications.js';
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { SHIPS } from '../../../shared/ships.js';
 import { DEFENSES } from '../../../shared/defenses.js';
+import { getTheoreticalResearch } from '../../../shared/research.js';
 
 let currentShipyardData = null;
 let collapsedSections = {}; // Track collapsed state
 let lastStructuralHash = null;
+let shipyardRequestId = 0;
 
 /**
  * Calculate structural hash (planet, subview, levels)
@@ -62,17 +64,59 @@ function getActiveShipyardContainer() {
     return document.querySelector('#defenses-view.active, #shipyard-view.active') || document;
 }
 
+function getQueuePreviewData(planet) {
+    return {
+        ships: planet.ships || {},
+        defenses: planet.defenses || {},
+        shipQueue: planet.shipQueue || [],
+        defenseQueue: planet.defenseQueue || [],
+        availableShips: SHIPS,
+        availableDefenses: DEFENSES
+    };
+}
+
+function renderShipyardShell(container, subView, queueData) {
+    const isDefenses = subView === 'defenses';
+    container.innerHTML = `
+        <div class="shipyard-container">
+            <div class="view-header-technical">
+                <h2 id="shipyard-title-lvl">${isDefenses ? 'DEFENSIVE BATTERIES' : 'SHIPYARD OPERATIONS'}</h2>
+                <div class="header-line"></div>
+            </div>
+            <div class="shipyard-content">
+                <div class="shipyard-queue-container">${renderBuildQueue(queueData)}</div>
+                <div class="shipyard-list-container"><p class="shipyard-loading">LOADING UNIT REGISTRY...</p></div>
+            </div>
+        </div>
+    `;
+}
+
 /**
  * Update shipyard view with planet data
  */
 export async function updateShipyardView(planet, subView = 'ships', force = false) {
+    const requestId = ++shipyardRequestId;
+    const isCurrentRequest = () => requestId === shipyardRequestId &&
+        document.getElementById(subView === 'defenses' ? 'defenses-view' : 'shipyard-view')?.classList.contains('active') &&
+        getCurrentPlanetId() === planet.id;
+
     try {
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const container = document.getElementById(containerId);
         if (!container) return;
 
+        // Game state already contains the queue. Show it while the richer details request loads.
+        const queuePreview = getQueuePreviewData(planet);
+        if (!container.querySelector('.shipyard-content')) {
+            renderShipyardShell(container, subView, queuePreview);
+        } else {
+            const queueContainer = container.querySelector('.shipyard-queue-container');
+            if (queueContainer) queueContainer.innerHTML = renderBuildQueue(queuePreview);
+        }
+
         // Fetch data early so it's available for hashes
         const shipyardData = await API.getShipyardDetails(planet.id);
+        if (!isCurrentRequest()) return;
         currentShipyardData = shipyardData;
 
         const structuralHash = calculateStructuralHash(shipyardData, planet, subView);
@@ -125,6 +169,7 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
         }
         
     } catch (error) {
+        if (!isCurrentRequest()) return;
         console.error('Failed to load shipyard details:', error);
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const el = document.getElementById(containerId);
@@ -820,6 +865,22 @@ function calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel = 
                     }
                 });
             }    
+            const engineUpgradeRows = (SHIPS[shipKey]?.engineSwaps || []).map(swap => [
+                getTheoreticalResearch()[swap.techKey]?.name || swap.techKey,
+                `Level ${swap.requiredLevel}`,
+                `${(SHIPS[shipKey].driveType || 'unknown').toUpperCase()} → ${swap.driveType.toUpperCase()}`,
+                `${formatNumber(swap.speed)} base speed`
+            ]);
+            if (engineUpgradeRows.length > 0) {
+                sections.unshift({
+                    title: 'Engine Upgrade Path',
+                    table: {
+                        headers: ['Required Research', 'Unlock At', 'Engine Change', 'New Base Speed'],
+                        rows: engineUpgradeRows
+                    }
+                });
+            }
+
             renderDetailsModal({
                 title: `${ship.icon} ${ship.name}`,
                 description: ship.description,
