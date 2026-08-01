@@ -165,12 +165,32 @@ it('applies versioned WebSocket state syncs before using HTTP recovery', async (
   const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   const gameLoop = await readFile(new URL('../../src/server/game/gameLoop.js', import.meta.url), 'utf8');
   expect(source).toContain("if (type === 'STATE_SYNC')");
+  expect(source).toContain('incomingVersion < currentVersion');
   expect(source).toContain('incomingVersion <= currentVersion');
   expect(source).toContain('data.force');
   expect(source).toContain('updateUI(false, true)');
   expect(source).toContain('nextGameState?.stateVersion');
   expect(gameLoop).toContain('STATE_SYNC_INTERVAL');
   expect(gameLoop).toContain('sendStateSync(');
+});
+
+it('does not poll alliance data from the one-second resource refresh', async () => {
+  const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const updateCurrentView = source.slice(source.indexOf('function updateCurrentView'));
+  const allianceCase = updateCurrentView.slice(
+    updateCurrentView.indexOf("case 'alliance':"),
+    updateCurrentView.indexOf("case 'ranking':")
+  );
+
+  expect(allianceCase).not.toContain('updateAllianceView');
+});
+
+it('renders fleet counts from synchronized game state', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/fleet.js', import.meta.url), 'utf8');
+
+  expect(source).toContain('ships: planet.ships || {}');
+  expect(source).toContain('defenses: planet.defenses || {}');
+  expect(source).not.toContain('API.getFleetDetails');
 });
 
 it('applies state-sync queues directly to the active shipyard', async () => {

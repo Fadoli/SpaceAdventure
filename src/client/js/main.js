@@ -155,7 +155,7 @@ async function showGameScreen() {
 
             const incomingVersion = Number(data.stateVersion) || 0;
             const currentVersion = Number(gameState.stateVersion) || 0;
-            if (!data.force && incomingVersion <= currentVersion) return;
+            if (incomingVersion < currentVersion || (!data.force && incomingVersion <= currentVersion)) return;
 
             gameState = { ...gameState, ...data.state, stateVersion: incomingVersion };
             setGameState(gameState);
@@ -480,7 +480,8 @@ function updateCurrentView(forceFetch = false, stateOnly = false) {
             // Don't auto-update messages view, handled by WebSocket or safety sync
             break;
         case 'alliance':
-            updateAllianceView();
+            // Alliance communications owns its 5-second message polling.
+            // Avoid re-fetching the whole alliance on every resource tick.
             break;
         case 'ranking':
             // Don't auto-update ranking view to save bandwidth and prevent jitter

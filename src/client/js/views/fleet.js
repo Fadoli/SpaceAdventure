@@ -1,5 +1,4 @@
 // Fleet view logic
-import { API } from '../api.js';
 import { escapeHtml, formatNumber } from '../utils.js';
 import { RESOURCE_ICONS } from '../../../shared/constants.js';
 
@@ -28,7 +27,7 @@ function calculateContentHash(fleetData) {
 /**
  * Update fleet view with player data
  */
-export async function updateFleetView(gameState) {
+export function updateFleetView(gameState) {
     const container = document.getElementById('fleet-view');
     if (!container) return;
     
@@ -63,14 +62,12 @@ export async function updateFleetView(gameState) {
     }
 
     try {
-        // Fetch fresh details for each planet
-        const fleetData = await Promise.all(
-            gameState.planets.map(planet => 
-                API.getFleetDetails(planet.id)
-                    .then(fleet => ({ ...fleet, planetName: planet.name, planetId: planet.id }))
-                    .catch(() => ({ ships: {}, defenses: {}, planetName: planet.name, planetId: planet.id }))
-            )
-        );
+        const fleetData = gameState.planets.map(planet => ({
+            ships: planet.ships || {},
+            defenses: planet.defenses || {},
+            planetName: planet.name,
+            planetId: planet.id
+        }));
         
         cachedFleetData = fleetData;
 

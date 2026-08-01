@@ -39,7 +39,7 @@ the browser warning during development. HTTP remains available at
 
 ## First Steps
 
-1. **Open your browser** and navigate to `http://localhost:3000`
+1. **Open your browser** and navigate to `https://localhost:1443`
 2. **Register a new account**:
    - Click the "Register" tab
    - Choose a username (3-20 characters)
