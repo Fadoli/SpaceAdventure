@@ -163,9 +163,17 @@ it('applies versioned WebSocket state syncs before using HTTP recovery', async (
   expect(source).toContain("if (type === 'STATE_SYNC')");
   expect(source).toContain('incomingVersion <= currentVersion');
   expect(source).toContain('data.force');
+  expect(source).toContain('updateUI(false, true)');
   expect(source).toContain('nextGameState?.stateVersion');
   expect(gameLoop).toContain('STATE_SYNC_INTERVAL');
   expect(gameLoop).toContain('sendStateSync(');
+});
+
+it('applies state-sync queues directly to the active shipyard', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  expect(source).toContain('applyPlanetStateToShipyard');
+  expect(source).toContain('stateOnly = false');
+  expect(source).toContain('shipQueue: planet.shipQueue');
 });
 
 it('syncs new message contents over WebSocket', async () => {

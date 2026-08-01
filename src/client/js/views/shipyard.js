@@ -75,6 +75,25 @@ function getQueuePreviewData(planet) {
     };
 }
 
+function applyPlanetStateToShipyard(planet, subView) {
+    if (!currentShipyardData || currentShipyardData.planetId !== planet.id) return false;
+
+    currentShipyardData = {
+        ...currentShipyardData,
+        ships: planet.ships || {},
+        defenses: planet.defenses || {},
+        shipQueue: planet.shipQueue || [],
+        defenseQueue: planet.defenseQueue || []
+    };
+
+    const container = document.getElementById(subView === 'defenses' ? 'defenses-view' : 'shipyard-view');
+    const queueContainer = container?.querySelector('.shipyard-queue-container');
+    if (queueContainer) queueContainer.innerHTML = renderBuildQueue(currentShipyardData);
+    if (container) updateUnitCardsGranular(planet, currentShipyardData, subView, container);
+    lastContentHash = calculateContentHash(currentShipyardData);
+    return true;
+}
+
 function getCostReductionBonus() {
     return currentShipyardData?.costReductionBonus || 0;
 }
@@ -98,13 +117,15 @@ function renderShipyardShell(container, subView, queueData) {
 /**
  * Update shipyard view with planet data
  */
-export async function updateShipyardView(planet, subView = 'ships', force = false) {
+export async function updateShipyardView(planet, subView = 'ships', force = false, stateOnly = false) {
     const requestId = ++shipyardRequestId;
     const isCurrentRequest = () => requestId === shipyardRequestId &&
         document.getElementById(subView === 'defenses' ? 'defenses-view' : 'shipyard-view')?.classList.contains('active') &&
         getCurrentPlanetId() === planet.id;
 
     try {
+        if (stateOnly && applyPlanetStateToShipyard(planet, subView)) return;
+
         const containerId = subView === 'defenses' ? 'defenses-view' : 'shipyard-view';
         const container = document.getElementById(containerId);
         if (!container) return;

@@ -159,7 +159,7 @@ async function showGameScreen() {
 
             gameState = { ...gameState, ...data.state, stateVersion: incomingVersion };
             setGameState(gameState);
-            updateUI(false);
+            updateUI(false, true);
             return;
         }
 
@@ -377,7 +377,7 @@ async function loadGameState(forceFetch = false) {
 
 window.loadGameState = loadGameState;
 
-function updateUI(forceFetch = false) {
+function updateUI(forceFetch = false, stateOnly = false) {
     if (!gameState || !currentUser) return;
     
     // Update fleet movements
@@ -437,11 +437,11 @@ function updateUI(forceFetch = false) {
         if (planetCoordsHeader) planetCoordsHeader.textContent = `[${planet.coordinates.join(':')}]`;
         
         // Update current view
-        updateCurrentView(forceFetch);
+        updateCurrentView(forceFetch, stateOnly);
     }
 }
 
-function updateCurrentView(forceFetch = false) {
+function updateCurrentView(forceFetch = false, stateOnly = false) {
     let planet = null;
     if (currentPlanetId) {
         planet = gameState.planets.find(p => p.id === currentPlanetId);
@@ -464,10 +464,10 @@ function updateCurrentView(forceFetch = false) {
             updateResearchView(gameState, currentPlanetId, forceFetch);
             break;
         case 'shipyard':
-            updateShipyardView(planet, 'ships', forceFetch);
+            updateShipyardView(planet, 'ships', forceFetch, stateOnly);
             break;
         case 'defenses':
-            updateShipyardView(planet, 'defenses', forceFetch);
+            updateShipyardView(planet, 'defenses', forceFetch, stateOnly);
             break;
         case 'fleet':
             if (gameState) updateFleetView(gameState);
