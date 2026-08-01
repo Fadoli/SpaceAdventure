@@ -198,10 +198,10 @@
                 </div>
             </div>
         </div>
-
-        <!-- Notifications -->
-        <div id="notifications-container" class="notifications-container"></div>
     </div>
+
+    <!-- Notifications stay outside app stacking contexts so they can overlay every view and modal. -->
+    <div id="notifications-container" class="notifications-container"></div>
     
     <script type="module" src="/src/client/js/main.js"></script>
 </body>

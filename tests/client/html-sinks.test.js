@@ -89,3 +89,18 @@ it('renders building details from server level projections', async () => {
   expect(source).not.toContain('const baseCostEstimate = building.cost ?');
   expect(source).not.toContain('const baseProductionEstimate = {}');
 });
+
+it('keeps notifications above dynamically-created modals', async () => {
+  const html = await readFile(new URL('../../src/client/index.html', import.meta.url), 'utf8');
+  const styles = await readFile(new URL('../../src/client/css/notifications.css', import.meta.url), 'utf8');
+  const appEnd = html.indexOf('\n    </div>\n\n    <!-- Notifications');
+  expect(appEnd).toBeGreaterThan(html.indexOf('<div id="app">'));
+  expect(html.indexOf('id="notifications-container"')).toBeGreaterThan(appEnd);
+  expect(styles).toContain('z-index: 10000;');
+});
+
+it('keeps confirmation dialogs above blueprint selection modals', async () => {
+  const styles = await readFile(new URL('../../src/client/css/modal.css', import.meta.url), 'utf8');
+  expect(styles).toContain('#input-modal {');
+  expect(styles).toContain('z-index: 4000;');
+});

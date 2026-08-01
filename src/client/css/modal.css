@@ -18,6 +18,11 @@
     display: flex; /* Dynamically added modals should be visible by default */
 }
 
+/* Confirmation dialogs must remain usable when opened from another modal. */
+#input-modal {
+    z-index: 4000;
+}
+
 .modal-content {
     background: #0c121d;
     margin: 0; 
