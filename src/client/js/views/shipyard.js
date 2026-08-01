@@ -117,11 +117,11 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
             if (queueContainer.innerHTML !== queueHtml) queueContainer.innerHTML = queueHtml;
             
             // Update Unit Counts and dynamic data in cards
-            updateUnitCardsGranular(planet, currentShipyardData, subView);
+            updateUnitCardsGranular(planet, currentShipyardData, subView, container);
             lastContentHash = contentHash;
         } else {
             // Nothing structurally or content-wise changed, just update resource affordance
-            updateUnitCardsGranular(planet, currentShipyardData, subView);
+            updateUnitCardsGranular(planet, currentShipyardData, subView, container);
         }
         
     } catch (error) {
@@ -135,13 +135,13 @@ export async function updateShipyardView(planet, subView = 'ships', force = fals
 /**
  * Granularly update ship/defense cards without full re-render
  */
-function updateUnitCardsGranular(planet, shipyardData, subView) {
+function updateUnitCardsGranular(planet, shipyardData, subView, container) {
     const isDefenses = subView === 'defenses';
     const units = isDefenses ? shipyardData.defenses : shipyardData.ships;
     const available = isDefenses ? shipyardData.availableDefenses : shipyardData.availableShips;
     
     // Update shipyard title level if needed
-    const titleEl = document.getElementById('shipyard-title-lvl');
+    const titleEl = container.querySelector('#shipyard-title-lvl');
     if (titleEl) {
         const titleText = isDefenses ? 'DEFENSIVE BATTERIES' : 'SHIPYARD OPERATIONS';
         const expectedHtml = `${titleText} <span style="font-size: 0.8rem; opacity: 0.6; margin-left: 10px;">LVL ${shipyardData.shipyardLevel}</span>`;
@@ -150,7 +150,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
 
     for (const key in available) {
         const count = units[key] || 0;
-        const card = document.getElementById(`variant-${key}`);
+        const card = container.querySelector(`#variant-${key}`);
         if (!card) continue;
 
         // Update In-Dock / Active count
@@ -161,7 +161,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
         }
 
         // Update affordance/costs based on current input quantity
-        const qtyInput = document.getElementById(`qty-${key}`);
+        const qtyInput = container.querySelector(`#qty-${key}`);
         const quantity = qtyInput ? (parseNumberShorthand(qtyInput.value) || 1) : 1;
         
         const cost = isDefenses ? calculateDefenseCost(key, quantity) : calculateShipCostForDef(available[key], quantity);
@@ -169,7 +169,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
                          planet.resources.crystal >= cost.crystal &&
                          planet.resources.deuterium >= cost.deuterium;
         
-        const costEl = document.getElementById(`cost-${key}`);
+        const costEl = container.querySelector(`#cost-${key}`);
         if (costEl) {
             const metalItem = costEl.querySelector('.cost-item:nth-child(1)');
             const crystalItem = costEl.querySelector('.cost-item:nth-child(2)');
@@ -197,7 +197,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
         }
 
         // Update build time for the quantity
-        const timeEl = document.getElementById(`time-${key}`);
+        const timeEl = container.querySelector(`#time-${key}`);
         if (timeEl) {
             const buildTime = isDefenses 
                 ? calculateDefenseBuildTime(key, quantity, shipyardData.shipyardLevel, shipyardData.naniteLevel)
@@ -206,7 +206,7 @@ function updateUnitCardsGranular(planet, shipyardData, subView) {
             if (timeEl.textContent !== timeText) timeEl.textContent = timeText;
         }
         
-        const btn = document.getElementById(`btn-${key}`);
+        const btn = container.querySelector(`#btn-${key}`);
         if (btn) {
             const minLevel = isDefenses ? 1 : (available[key].type === 'military' ? 2 : 1);
             const isDisabled = !canAfford || shipyardData.shipyardLevel < minLevel;
@@ -555,7 +555,7 @@ function attachShipyardListeners(planet, shipyardData) {
     window.buildShip = async function(shipKey, shipName) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
-        const input = document.getElementById(`qty-${shipKey}`);
+        const input = getActiveShipyardContainer().querySelector(`#qty-${shipKey}`);
         const qty = parseNumberShorthand(input.value);
         
         if (qty <= 0) return;
@@ -573,7 +573,7 @@ function attachShipyardListeners(planet, shipyardData) {
     window.buildDefense = async function(defenseKey, defenseName) {
         const planetId = getCurrentPlanetId();
         if (!planetId) return;
-        const input = document.getElementById(`qty-${defenseKey}`);
+        const input = getActiveShipyardContainer().querySelector(`#qty-${defenseKey}`);
         const qty = parseNumberShorthand(input.value);
         
         if (qty <= 0) return;
@@ -632,7 +632,7 @@ function attachShipyardListeners(planet, shipyardData) {
             const qty = parseNumberShorthand(e.target.value) || 1;
             const id = e.target.dataset.id;
             const isShip = e.target.classList.contains('ship-quantity');
-            updateProductionInfo(isShip ? 'ship' : 'defense', id, qty, planet);
+            updateProductionInfo(isShip ? 'ship' : 'defense', id, qty, planet, e.target.closest('#shipyard-view, #defenses-view') || getActiveShipyardContainer());
         });
     });
 }
@@ -640,7 +640,7 @@ function attachShipyardListeners(planet, shipyardData) {
 /**
  * Update cost and time info based on quantity
  */
-function updateProductionInfo(type, id, quantity, planet) {
+function updateProductionInfo(type, id, quantity, planet, container = getActiveShipyardContainer()) {
     if (quantity < 1) quantity = 1;
     
     let cost, buildTime, def;
@@ -678,9 +678,9 @@ function updateProductionInfo(type, id, quantity, planet) {
     }
     
     // Update UI
-    const costEl = document.getElementById(`cost-${id}`);
-    const timeEl = document.getElementById(`time-${id}`);
-    const btn = document.getElementById(`btn-${id}`);
+    const costEl = container.querySelector(`#cost-${id}`);
+    const timeEl = container.querySelector(`#time-${id}`);
+    const btn = container.querySelector(`#btn-${id}`);
     
     if (costEl) {
         costEl.innerHTML = `

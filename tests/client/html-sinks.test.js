@@ -73,3 +73,11 @@ it('formats ship and defense counts with compact numbers', async () => {
   expect(source).toContain('${formatNumber(count)} ACTIVE');
   expect(source).toContain("const countText = `${formatNumber(count)} ${isDefenses ? 'ACTIVE' : 'IN DOCK'}`");
 });
+
+it('scopes shipyard updates to the active view container', async () => {
+  const source = await readFile(new URL('../../src/client/js/views/shipyard.js', import.meta.url), 'utf8');
+  expect(source).toContain('function updateUnitCardsGranular(planet, shipyardData, subView, container)');
+  expect(source).toContain('container.querySelector(`#variant-${key}`)');
+  expect(source).toContain('container.querySelector(`#cost-${id}`)');
+  expect(source).toContain("e.target.closest('#shipyard-view, #defenses-view')");
+});
