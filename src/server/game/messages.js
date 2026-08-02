@@ -9,6 +9,8 @@ const messagesCache = new Map(); // userId -> messages array
 const dirtyMessageUsers = new Set();
 const DATA_DIR = './data';
 
+const isAiUserId = userId => typeof userId === 'string' && userId.startsWith('ai_');
+
 /**
  * Get the filename for a user's messages (JSONL format)
  */
@@ -27,6 +29,8 @@ function getOldMessagesFilename(userId) {
  * Get all messages for a player
  */
 export async function getPlayerMessages(userId) {
+  if (isAiUserId(userId)) return [];
+
   if (messagesCache.has(userId)) {
     return messagesCache.get(userId);
   }
@@ -79,6 +83,8 @@ async function saveMessagesToJsonl(userId, messages) {
  * Add a message to a player's mailbox
  */
 export async function addMessage(userId, messageData) {
+  if (isAiUserId(userId)) return null;
+
   const messages = await getPlayerMessages(userId);
   
   const newMessage = {
