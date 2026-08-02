@@ -5,6 +5,7 @@ import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
 import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateFleetCrew, calculateCargoCapacity, calculateShipSpeed, splitFleetComposition } from '../../../shared/ships.js';
 import { calculateDistance, calculateTravelTime } from '../../../shared/formulas.js';
+import { calculateMaxConcurrentExpeditions, calculateMaxFleetCount } from '../../../shared/research.js';
 import { openDetailsModal } from './details.js';
 
 let lastRenderedGalaxy = null;
@@ -38,6 +39,22 @@ async function openMissionModal(missionType, targetCoords) {
     }
     if (!hasShips) {
         Notifications.showError('No ships available on this planet');
+        return;
+    }
+
+    const maxFleetCount = currentGameState?.maxFleetCount ?? calculateMaxFleetCount(currentGameState?.research);
+    const activeFleetCount = currentGameState?.fleets?.length || 0;
+    const availableFleetSlots = maxFleetCount - activeFleetCount;
+    if (availableFleetSlots < 1) {
+        Notifications.showError(`Fleet command limit reached (${maxFleetCount})`);
+        return;
+    }
+    const maxConcurrentExpeditions = currentGameState?.maxConcurrentExpeditions ?? calculateMaxConcurrentExpeditions(currentGameState?.research);
+    const activeExpeditionCount = currentGameState?.fleets?.filter(fleet => fleet.missionType === MISSION_TYPES.EXPEDITION && !fleet.returning).length || 0;
+    const availableExpeditionSlots = maxConcurrentExpeditions - activeExpeditionCount;
+    const maxSplitCount = Math.min(availableFleetSlots, availableExpeditionSlots);
+    if (missionType === MISSION_TYPES.EXPEDITION && maxSplitCount < 1) {
+        Notifications.showError(`Concurrent expedition limit reached (${maxConcurrentExpeditions})`);
         return;
     }
 
@@ -236,11 +253,14 @@ async function openMissionModal(missionType, targetCoords) {
                     <option value="4">4 Hours (High chance)</option>
                     <option value="8">8 Hours (Very high chance, high risk)</option>
                 </select>
-                <label style="display: block; margin: 12px 0 8px; font-weight: bold; color: var(--accent-blue);">ðŸ§­ Split expedition force:</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 14px 0 8px;">
+                    <label for="exp-split-count" style="font-weight: bold; color: var(--accent-blue);">Expedition fleets:</label>
+                    <span style="font: 0.65rem 'Share Tech Mono', monospace; color: var(--text-secondary);">Active ${activeExpeditionCount}/${maxConcurrentExpeditions}</span>
+                </div>
                 <select id="exp-split-count" class="modal-input" style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; border-radius: 4px;">
-                    ${Array.from({ length: 6 }, (_, index) => `<option value="${index + 1}">${index + 1} expedition${index === 0 ? '' : 's'}</option>`).join('')}
+                    ${Array.from({ length: maxSplitCount }, (_, index) => `<option value="${index + 1}">${index + 1} fleet${index === 0 ? '' : 's'}</option>`).join('')}
                 </select>
-                <p style="font-size: 0.6rem; color: #64748b; margin-top: 8px;">Ships are divided as evenly as possible. Empty groups are skipped.</p>
+                <p style="font-size: 0.6rem; color: #64748b; margin-top: 8px;">Fleet command: ${activeFleetCount}/${maxFleetCount}. Ships are divided as evenly as possible.</p>
             </div>
         `;
     }

@@ -102,7 +102,33 @@ describe('Fleet Management', () => {
       expect(mockPlayer.planets[0].ships.lightFighter).toBe(5); // 10 - 5
     });
 
+    it('enforces the Computer Technology fleet command limit', async () => {
+      await sendFleet('user1', 'p1', [1, 1, 2], MISSION_TYPES.ATTACK, { lightFighter: 1 });
+
+      await expect(sendFleet(
+        'user1', 'p1', [1, 1, 3], MISSION_TYPES.ATTACK, { lightFighter: 1 }
+      )).rejects.toThrow('Fleet command limit reached (1)');
+
+      mockPlayer.research.computerTech = 1;
+      await sendFleet('user1', 'p1', [1, 1, 3], MISSION_TYPES.ATTACK, { lightFighter: 1 });
+      expect(mockPlayer.fleets).toHaveLength(2);
+    });
+
+    it('enforces the Astrophysics concurrent expedition limit', async () => {
+      mockPlayer.research.computerTech = 2;
+      await sendFleet('user1', 'p1', [1, 1, 16], MISSION_TYPES.EXPEDITION, { lightFighter: 1 });
+
+      await expect(sendFleet(
+        'user1', 'p1', [1, 1, 16], MISSION_TYPES.EXPEDITION, { lightFighter: 1 }
+      )).rejects.toThrow('Concurrent expedition limit reached (1)');
+
+      mockPlayer.research.astrophysics = 3;
+      await sendFleet('user1', 'p1', [1, 1, 16], MISSION_TYPES.EXPEDITION, { lightFighter: 1 });
+      expect(mockPlayer.fleets).toHaveLength(2);
+    });
+
     it('should handle ultra-slow speed (0.1%)', async () => {
+      mockPlayer.research.computerTech = 1;
       const slowFleet = await sendFleet(
         'user1',
         'p1',
@@ -184,6 +210,8 @@ describe('Fleet Management', () => {
 
   describe('sendExpeditions', () => {
     it('splits one expedition force into balanced fleets and persists once', async () => {
+      mockPlayer.research.computerTech = 2;
+      mockPlayer.research.astrophysics = 6;
       const fleets = await sendExpeditions(
         'user1', 'p1', [1, 1, 16], { lightFighter: 9 }, 1, 1, 3
       );
@@ -202,8 +230,8 @@ describe('Fleet Management', () => {
       const before = structuredClone(mockPlayer);
 
       await expect(sendExpeditions(
-        'user1', 'p1', [1, 1, 16], { lightFighter: 6 }, 1, 1, 7
-      )).rejects.toThrow('between 1 and 6');
+        'user1', 'p1', [1, 1, 16], { lightFighter: 6 }, 1, 1, 0
+      )).rejects.toThrow('positive integer');
 
       expect(mockPlayer).toEqual(before);
     });

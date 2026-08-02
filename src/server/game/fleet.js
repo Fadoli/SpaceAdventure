@@ -13,7 +13,7 @@ import {
     ALIEN_SHIPS
 } from '../../shared/ships.js';
 import { calculateTravelTime, calculateDistance, calculateMaxPlanets } from '../../shared/formulas.js';
-import { getResearchBonus } from '../../shared/research.js';
+import { calculateMaxConcurrentExpeditions, calculateMaxFleetCount, getResearchBonus } from '../../shared/research.js';
 import { getPlayerByUserId, updatePlayer, getPlayers } from './player.js';
 import { getFleetSpeedMultiplier } from '../config.js';
 import { addMessage } from './messages.js';
@@ -65,6 +65,17 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
 
     const player = await getPlayerByUserId(userId);
     if (!player) throw new Error('Player not found');
+    const maxFleetCount = calculateMaxFleetCount(player.research);
+    if ((player.fleets || []).length >= maxFleetCount) {
+        throw new Error(`Fleet command limit reached (${maxFleetCount})`);
+    }
+    if (missionType === MISSION_TYPES.EXPEDITION) {
+        const maxConcurrentExpeditions = calculateMaxConcurrentExpeditions(player.research);
+        const activeExpeditions = (player.fleets || []).filter(fleet => fleet.missionType === MISSION_TYPES.EXPEDITION && !fleet.returning).length;
+        if (activeExpeditions >= maxConcurrentExpeditions) {
+            throw new Error(`Concurrent expedition limit reached (${maxConcurrentExpeditions})`);
+        }
+    }
 
     const originPlanet = player.planets.find(p => p.id === originPlanetId);
     if (!originPlanet) throw new Error('Origin planet not found');
@@ -193,17 +204,27 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
  * Launch several balanced expeditions as one atomic player mutation.
  */
 export async function sendExpeditions(userId, originPlanetId, targetCoords, ships, stayTime = 0, speedPercent = 1.0, fleetCount = 1) {
-    if (!Number.isSafeInteger(fleetCount) || fleetCount < 1 || fleetCount > 6) {
-        throw new Error('Expedition split count must be between 1 and 6');
+    if (!Number.isSafeInteger(fleetCount) || fleetCount < 1) {
+        throw new Error('Expedition split count must be a positive integer');
     }
 
     const player = await getPlayerByUserId(userId);
     if (!player) throw new Error('Player not found');
     const snapshot = structuredClone(player);
+    const maxConcurrentExpeditions = calculateMaxConcurrentExpeditions(player.research);
+    const activeExpeditions = (player.fleets || []).filter(fleet => fleet.missionType === MISSION_TYPES.EXPEDITION && !fleet.returning).length;
+    if (activeExpeditions + fleetCount > maxConcurrentExpeditions) {
+        throw new Error(`Concurrent expedition limit reached (${maxConcurrentExpeditions})`);
+    }
+    const compositions = splitFleetComposition(ships, fleetCount);
+    const maxFleetCount = calculateMaxFleetCount(player.research);
+    if ((player.fleets || []).length + compositions.length > maxFleetCount) {
+        throw new Error(`Fleet command limit reached (${maxFleetCount})`);
+    }
     const fleets = [];
 
     try {
-        for (const composition of splitFleetComposition(ships, fleetCount)) {
+        for (const composition of compositions) {
             fleets.push(await sendFleet(
                 userId, originPlanetId, targetCoords, MISSION_TYPES.EXPEDITION,
                 composition, {}, stayTime, null, speedPercent, false

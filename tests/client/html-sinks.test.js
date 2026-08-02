@@ -147,6 +147,21 @@ it('keeps fleet movements unbounded and exposes recall handling', async () => {
   expect(server).toContain('recallFleet(user.id, fleetId)');
 });
 
+it('shows and enforces research-based fleet command capacity', async () => {
+  const view = await readFile(new URL('../../src/client/js/views/fleetMovements.js', import.meta.url), 'utf8');
+  const galaxy = await readFile(new URL('../../src/client/js/views/galaxy.js', import.meta.url), 'utf8');
+  const fleet = await readFile(new URL('../../src/server/game/fleet.js', import.meta.url), 'utf8');
+  const server = await readFile(new URL('../../src/server/index.js', import.meta.url), 'utf8');
+  expect(view).toContain('FLEET SLOTS');
+  expect(galaxy).toContain('availableFleetSlots');
+  expect(galaxy).toContain('maxConcurrentExpeditions');
+  expect(galaxy).toContain('maxSplitCount');
+  expect(fleet).toContain('Fleet command limit reached');
+  expect(fleet).toContain('Concurrent expedition limit reached');
+  expect(server).toContain('maxFleetCount: calculateMaxFleetCount(player.research)');
+  expect(server).toContain('maxConcurrentExpeditions: calculateMaxConcurrentExpeditions(player.research)');
+});
+
 it('resets galaxy navigation to the selected planet system', async () => {
   const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   expect(source).toContain("if (view === 'galaxy' && gameState)");

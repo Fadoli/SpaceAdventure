@@ -1,5 +1,6 @@
 import { escapeHtml, formatCountdown, formatTime, formatNumber } from '../utils.js';
 import { isEmpty } from '../../../shared/utils.js';
+import { calculateMaxFleetCount } from '../../../shared/research.js';
 
 // Global toggle handler
 window.toggleFleetMovements = function() {
@@ -85,18 +86,9 @@ export function updateFleetMovements(gameState) {
     const container = document.getElementById('fleet-movements-bar');
     if (!container) return;
     
-    const allFleets = [...(gameState?.fleets || []), ...(gameState?.hostileFleets || [])];
-
-    // If no fleets, clear container
-    if (allFleets.length === 0) {
-        if (container.innerHTML !== '') {
-            container.innerHTML = '';
-            container.classList.remove('active');
-            lastFleetSignature = '';
-        }
-        return;
-    }
-    
+    const ownFleets = gameState?.fleets || [];
+    const allFleets = [...ownFleets, ...(gameState?.hostileFleets || [])];
+    const maxFleetCount = gameState?.maxFleetCount ?? calculateMaxFleetCount(gameState?.research);
     if (!container.classList.contains('active')) container.classList.add('active');
     
     // Sort fleets by arrival time (next event)
@@ -110,6 +102,7 @@ export function updateFleetMovements(gameState) {
     let list = document.getElementById('fleet-list');
     
     const count = sortedFleets.length;
+    const fleetStats = `${ownFleets.length}/${maxFleetCount} FLEET SLOTS · ${count} ACTIVE SIGNATURES`;
     
     // 1. Structural update check
     if (!header || !list || currentSignature !== lastFleetSignature) {
@@ -128,7 +121,7 @@ export function updateFleetMovements(gameState) {
             <button type="button" id="fleet-header" class="fleet-header ${collapseClass}" onclick="window.toggleFleetMovements()" aria-expanded="${!isCollapsed}" aria-controls="fleet-list">
                 <span class="header-left-group">
                     <span class="header-title">FLEET TELEMETRY FEED</span>
-                    <span class="header-stats-tag">${count} ACTIVE SIGNATURES</span>
+                    <span class="header-stats-tag">${fleetStats}</span>
                 </span>
                 <span class="header-right-group">
                     <span class="header-status-text">${statusText}</span>
@@ -146,8 +139,8 @@ export function updateFleetMovements(gameState) {
     } else {
         // 2. Granular Update: Just update timers and header count
         const statsTag = header.querySelector('.header-stats-tag');
-        if (statsTag && statsTag.textContent !== `${count} ACTIVE SIGNATURES`) {
-            statsTag.textContent = `${count} ACTIVE SIGNATURES`;
+        if (statsTag && statsTag.textContent !== fleetStats) {
+            statsTag.textContent = fleetStats;
         }
         
         sortedFleets.forEach(fleet => {

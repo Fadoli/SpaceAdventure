@@ -85,6 +85,10 @@ describe('Fleet Durability and Integrity', () => {
   });
 
   it('should survive concurrent state updates without fleet loss', async () => {
+    const playerWithResearch = await getPlayerByUserId(PLAYER_ID);
+    playerWithResearch.research.computerTech = 2;
+    await savePlayers([playerWithResearch]);
+
     // Launch 3 different fleets
     await sendFleet(PLAYER_ID, 'p1', [1, 1, 2], MISSION_TYPES.ATTACK, { lightFighter: 1 });
     await sendFleet(PLAYER_ID, 'p1', [1, 1, 3], MISSION_TYPES.ATTACK, { lightFighter: 1 });
@@ -108,6 +112,10 @@ describe('Fleet Durability and Integrity', () => {
   });
 
   it('should maintain total ship count during high-volume operations', async () => {
+    const playerWithResearch = await getPlayerByUserId(PLAYER_ID);
+    playerWithResearch.research.computerTech = 19;
+    await savePlayers([playerWithResearch]);
+
     const now = Date.now();
     // Stress test: launch 20 small missions
     for (let i = 0; i < 20; i++) {

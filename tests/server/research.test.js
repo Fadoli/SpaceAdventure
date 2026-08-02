@@ -5,11 +5,25 @@ import {
   calculatePracticalResearchCost,
   calculatePracticalResearchTime
 } from '../../src/shared/formulas.js';
-import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH, canResearchTheoretical } from '../../src/shared/research.js';
+import { THEORETICAL_RESEARCH, PRACTICAL_RESEARCH, canResearchTheoretical, calculateMaxConcurrentExpeditions, calculateMaxFleetCount } from '../../src/shared/research.js';
 import { calculateShipSpeed, SHIPS } from '../../src/shared/ships.js';
 
 const energyTech = THEORETICAL_RESEARCH.energyTech; // baseTime 500
 const metalMineResearch = PRACTICAL_RESEARCH.metalMine; // baseTime 50
+
+describe('Fleet command capacity', () => {
+  it('scales one active fleet slot per Computer Technology level', () => {
+    expect(calculateMaxFleetCount({})).toBe(1);
+    expect(calculateMaxFleetCount({ computerTech: 4 })).toBe(5);
+    expect(calculateMaxFleetCount({ computerTech: { level: 7 } })).toBe(8);
+  });
+
+  it('grants one concurrent expedition slot every three Astrophysics levels', () => {
+    expect(calculateMaxConcurrentExpeditions({})).toBe(1);
+    expect(calculateMaxConcurrentExpeditions({ astrophysics: 3 })).toBe(2);
+    expect(calculateMaxConcurrentExpeditions({ astrophysics: { level: 8 } })).toBe(3);
+  });
+});
 
 describe('Research Availability (canResearchTheoretical)', () => {
   it('should return true if no prerequisites or requirements', () => {

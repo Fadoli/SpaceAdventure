@@ -62,7 +62,7 @@ import {
 } from './game/researchLogic.js';
 import { startGameLoop, stopGameLoop } from './game/gameLoop.js';
 import { BUILDINGS, checkRequirements, getRequirementsList } from '../shared/buildings.js';
-import { getTheoreticalResearch, getResearchBonus } from '../shared/research.js';
+import { calculateMaxConcurrentExpeditions, calculateMaxFleetCount, getTheoreticalResearch, getResearchBonus } from '../shared/research.js';
 import { SHIPS, calculateShipSpeed, getEffectiveDriveType } from '../shared/ships.js';
 import { DEFENSES } from '../shared/defenses.js';
 import { MISSION_TYPES } from '../shared/constants.js';
@@ -480,7 +480,13 @@ async function handleRequest(req) {
         }
       }
 
-      const responseData = { ...player, stateVersion: getPlayerStateVersion(user.id), hostileFleets };
+      const responseData = {
+        ...player,
+        maxFleetCount: calculateMaxFleetCount(player.research),
+        maxConcurrentExpeditions: calculateMaxConcurrentExpeditions(player.research),
+        stateVersion: getPlayerStateVersion(user.id),
+        hostileFleets
+      };
       
       return successResponse(req, responseData);
     }
@@ -1430,8 +1436,8 @@ async function handleRequest(req) {
         }
 
         const requestedSplitCount = splitCount ?? 1;
-        if (!Number.isSafeInteger(requestedSplitCount) || requestedSplitCount < 1 || requestedSplitCount > 6) {
-          return errorResponse(req, 'Expedition split count must be between 1 and 6', 400);
+        if (!Number.isSafeInteger(requestedSplitCount) || requestedSplitCount < 1) {
+          return errorResponse(req, 'Expedition split count must be a positive integer', 400);
         }
         if (missionType !== MISSION_TYPES.EXPEDITION && requestedSplitCount !== 1) {
           return errorResponse(req, 'Only expeditions can be split', 400);

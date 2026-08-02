@@ -191,7 +191,7 @@ export const THEORETICAL_RESEARCH = {
         name: 'Astrophysics',
         category: 'Engineering',
         icon: '🔭',
-        description: 'Unlocks additional galaxy slots and colony expansion.',
+        description: 'Unlocks additional galaxy slots, expedition capacity, and colony expansion.',
         detailedDescription: 'The study of the cosmos and the formation of star systems.\n\nAdvanced knowledge of Astrophysics is required to identify and exploit habitable worlds across the galaxy. This research directly determines the maximum number of planets your empire can colonize and manage effectively.\n\nIt also covers the logistical challenges of maintaining distant outposts, ensuring your colonists have the life-support and communications systems needed to survive in the most remote corners of the universe. Every level expands your reach and your influence.',
         baseCost: {
             metal: 4000,
@@ -569,6 +569,24 @@ export function getResearchBonus(playerResearch, bonusKey) {
         }
     }
     return totalBonus;
+}
+
+/**
+ * Active fleet command slots granted by Computer Technology.
+ */
+export function calculateMaxFleetCount(playerResearch) {
+    const rawLevel = playerResearch?.computerTech;
+    const level = typeof rawLevel === 'object' ? rawLevel?.level : rawLevel;
+    return 1 + Math.max(0, Math.floor(Number.isFinite(Number(level)) ? Number(level) : 0));
+}
+
+/**
+ * Concurrent expedition slots granted by Astrophysics.
+ */
+export function calculateMaxConcurrentExpeditions(playerResearch) {
+    const rawLevel = playerResearch?.astrophysics;
+    const level = typeof rawLevel === 'object' ? rawLevel?.level : rawLevel;
+    return 1 + Math.max(0, Math.floor((Number.isFinite(Number(level)) ? Number(level) : 0) / 3));
 }
 
 /**
