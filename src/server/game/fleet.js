@@ -7,6 +7,7 @@ import {
     calculateFleetCrew, 
     calculateFleetSurvivalNeeds, 
     calculateCargoCapacity, 
+    splitFleetComposition,
     getShip,
     SHIPS as SHIP_DEFINITIONS,
     ALIEN_SHIPS
@@ -42,7 +43,7 @@ function validateQuantities(values, label, isAllowed, required = false) {
 /**
  * Start a new mission
  */
-export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null, speedPercent = 1.0) {
+export async function sendFleet(userId, originPlanetId, targetCoords, missionType, ships, resources = {}, stayTime = 0, buyResources = null, speedPercent = 1.0, persist = true) {
     if (!Object.values(MISSION_TYPES).includes(missionType)) throw new Error('Invalid mission type');
     const maxPosition = [MISSION_TYPES.EXPEDITION, MISSION_TYPES.HARVEST].includes(missionType) ? 16 : 15;
     if (!Array.isArray(targetCoords) || targetCoords.length !== 3 ||
@@ -183,10 +184,38 @@ export async function sendFleet(userId, originPlanetId, targetCoords, missionTyp
     if (!player.fleets) player.fleets = [];
     player.fleets.push(newFleet);
 
-    // Save player state
-    await updatePlayer(player.userId, player);
+    if (persist) await updatePlayer(player.userId, player);
 
     return newFleet;
+}
+
+/**
+ * Launch several balanced expeditions as one atomic player mutation.
+ */
+export async function sendExpeditions(userId, originPlanetId, targetCoords, ships, stayTime = 0, speedPercent = 1.0, fleetCount = 1) {
+    if (!Number.isSafeInteger(fleetCount) || fleetCount < 1 || fleetCount > 6) {
+        throw new Error('Expedition split count must be between 1 and 6');
+    }
+
+    const player = await getPlayerByUserId(userId);
+    if (!player) throw new Error('Player not found');
+    const snapshot = structuredClone(player);
+    const fleets = [];
+
+    try {
+        for (const composition of splitFleetComposition(ships, fleetCount)) {
+            fleets.push(await sendFleet(
+                userId, originPlanetId, targetCoords, MISSION_TYPES.EXPEDITION,
+                composition, {}, stayTime, null, speedPercent, false
+            ));
+        }
+        await updatePlayer(userId, player);
+        return fleets;
+    } catch (error) {
+        for (const key of Object.keys(player)) delete player[key];
+        Object.assign(player, snapshot);
+        throw error;
+    }
 }
 
 /**
@@ -509,10 +538,6 @@ async function executeHarvest(player, fleet) {
     fleet.resources.metal = (fleet.resources.metal || 0) + metalHarvested;
     fleet.resources.crystal = (fleet.resources.crystal || 0) + crystalHarvested;
 
-    // Notify client of resource change (fleet resources changed, will be added to planet on return)
-    // No direct planet change yet, but we send it to trigger any listeners if needed
-    wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', {});
-
     await addMessage(player.userId, {
         from: 'Recycling Service',
         subject: `Harvest Successful: [${fleet.targetCoords.join(':')}]`,
@@ -717,8 +742,15 @@ async function executeAttack(leadAttackerPlayer, leadFleet, allPlayers) {
                     af.fleet.resources[res] = (af.fleet.resources[res] || 0) + share;
                 });
             }
-            wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
         }
+    }
+
+    const affectedPlayers = new Map();
+    for (const participant of alliedFleets) affectedPlayers.set(participant.player.userId, participant.player);
+    for (const participant of defendingFleets) affectedPlayers.set(participant.player.userId, participant.player);
+    if (!isGhost) affectedPlayers.set(targetPlayer.userId, targetPlayer);
+    for (const affectedPlayer of affectedPlayers.values()) {
+        await updatePlayer(affectedPlayer.userId, affectedPlayer);
     }
 
     // 6. Update Debris Field
@@ -801,9 +833,6 @@ async function executeDeployment(player, fleet, allPlayers) {
             }
         }
 
-        // Notify player of resource change
-        wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
-
         // Deliver ships (they STAY here)
         for (const shipKey in fleet.ships) {
             targetPlanet.ships[shipKey] = (targetPlanet.ships[shipKey] || 0) + fleet.ships[shipKey];
@@ -865,8 +894,10 @@ async function executeTransport(player, fleet, allPlayers) {
             }
         }
 
-        // Notify target player of resource change
-        wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
+        if (targetPlayer.userId !== player.userId) {
+            await updatePlayer(targetPlayer.userId, targetPlayer);
+            wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED', { planetId: targetPlanet.id });
+        }
 
         // Clear resources from fleet
         const deliveredResources = { ...fleet.resources };
@@ -989,6 +1020,8 @@ async function executeEspionage(player, fleet, allPlayers) {
             targetPlanet.ships = combatReport.survivingDefenderShips;
             targetPlanet.defenses = combatReport.survivingDefenderDefenses;
             fleet.ships = combatReport.survivingAttackerShips;
+
+            if (!isGhost) await updatePlayer(targetPlayer.userId, targetPlayer);
 
             // Update Debris Field in Galaxy
             if (combatReport.debris.metal > 0 || combatReport.debris.crystal > 0) {
@@ -1152,9 +1185,6 @@ async function executeColonization(player, fleet, allPlayers) {
         username: player.username,
         planetId
     });
-    // Notify client of new planet and changed resources
-    wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planetId });
-
     // Colony ship is consumed
     fleet.ships.colonyShip--;
 
@@ -1405,9 +1435,6 @@ async function executeMarketTrade(player, fleet) {
     tradedKeys.forEach(res => {
         fleet.resources[res] = fleet.buyResources[res] || 0;
     });
-
-    // Notify client of resource change
-    wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', {});
 
     // Verify coordinates exist for the report
     const traderCoords = fleet.targetCoords ? `[${fleet.targetCoords.join(':')}]` : 'Deep Space Station';

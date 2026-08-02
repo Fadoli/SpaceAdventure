@@ -221,6 +221,16 @@ it('refreshes canonical state after accepted fleet and planet mutations', async 
   expect(galaxySource).toContain('if (window.loadGameState) await window.loadGameState(true);');
 });
 
+it('supports balanced expedition splitting in the mission flow', async () => {
+  const galaxySource = await readFile(new URL('../../src/client/js/views/galaxy.js', import.meta.url), 'utf8');
+  const fleetSource = await readFile(new URL('../../src/server/game/fleet.js', import.meta.url), 'utf8');
+  expect(galaxySource).toContain('id="exp-split-count"');
+  expect(galaxySource).toContain('splitFleetComposition(shipsToSend, splitCount)');
+  expect(galaxySource).toContain('splitCount');
+  expect(fleetSource).toContain('export async function sendExpeditions');
+  expect(fleetSource).toContain('if (persist) await updatePlayer');
+});
+
 it('does not poll alliance data from the one-second resource refresh', async () => {
   const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   const updateCurrentView = source.slice(source.indexOf('function updateCurrentView'));

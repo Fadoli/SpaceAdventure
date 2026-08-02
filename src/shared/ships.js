@@ -605,6 +605,22 @@ export function calculateFleetCrew(ships) {
 }
 
 /**
+ * Split a fleet composition into evenly balanced non-empty fleets.
+ */
+export function splitFleetComposition(ships, fleetCount) {
+  const fleets = Array.from({ length: fleetCount }, () => ({}));
+  for (const [shipKey, quantity] of Object.entries(ships)) {
+    const base = Math.floor(quantity / fleetCount);
+    const remainder = quantity % fleetCount;
+    for (let index = 0; index < fleetCount; index++) {
+      const amount = base + (index < remainder ? 1 : 0);
+      if (amount > 0) fleets[index][shipKey] = amount;
+    }
+  }
+  return fleets.filter(fleet => Object.keys(fleet).length > 0);
+}
+
+/**
  * Calculate food and water needed for a fleet based on crew and travel time
  * Formula: crew * timeInHours * consumptionRate
  */

@@ -3,7 +3,7 @@ import { escapeHtml, formatNumber, parseNumberShorthand, positionContextMenu } f
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
 import { MISSION_TYPES } from '../../../shared/constants.js';
-import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateCargoCapacity, calculateShipSpeed } from '../../../shared/ships.js';
+import { SHIPS, calculateFleetFuelCost, calculateFleetSurvivalNeeds, calculateFleetCrew, calculateCargoCapacity, calculateShipSpeed, splitFleetComposition } from '../../../shared/ships.js';
 import { calculateDistance, calculateTravelTime } from '../../../shared/formulas.js';
 import { openDetailsModal } from './details.js';
 
@@ -236,6 +236,11 @@ async function openMissionModal(missionType, targetCoords) {
                     <option value="4">4 Hours (High chance)</option>
                     <option value="8">8 Hours (Very high chance, high risk)</option>
                 </select>
+                <label style="display: block; margin: 12px 0 8px; font-weight: bold; color: var(--accent-blue);">ðŸ§­ Split expedition force:</label>
+                <select id="exp-split-count" class="modal-input" style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; border-radius: 4px;">
+                    ${Array.from({ length: 6 }, (_, index) => `<option value="${index + 1}">${index + 1} expedition${index === 0 ? '' : 's'}</option>`).join('')}
+                </select>
+                <p style="font-size: 0.6rem; color: #64748b; margin-top: 8px;">Ships are divided as evenly as possible. Empty groups are skipped.</p>
             </div>
         `;
     }
@@ -263,7 +268,7 @@ async function openMissionModal(missionType, targetCoords) {
     openDetailsModal();
 
     // Attach listeners
-    document.querySelectorAll('.exp-qty-input, #exp-stay-time').forEach(el => {
+    document.querySelectorAll('.exp-qty-input, #exp-stay-time, #exp-split-count').forEach(el => {
         el.addEventListener('input', window.updateMissionCalculations);
     });
 
@@ -392,22 +397,37 @@ window.updateMissionCalculations = function() {
     const speedSlider = document.getElementById('fleet-speed-range');
     const speedPercent = speedSlider ? (speedSlider.dataset.preciseValue ? parseFloat(speedSlider.dataset.preciseValue) : parseInt(speedSlider.value) / 100) : 1.0;
     
-    const fuelCost = calculateFleetFuelCost(shipsToSend, distance, speedPercent);
-    
-    // Find slowest ship speed for accurate travel time
-    let slowestSpeed = Infinity;
-    for (const shipKey in shipsToSend) {
-        if (shipsToSend[shipKey] > 0) {
+    const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
+    const splitCount = document.getElementById('exp-split-count')
+        ? Math.max(1, parseInt(document.getElementById('exp-split-count').value || '1', 10))
+        : 1;
+    const compositions = document.getElementById('exp-split-count')
+        ? splitFleetComposition(shipsToSend, splitCount)
+        : [shipsToSend];
+    const fleetSpeedMultiplier = window.GAME_CONFIG?.gameSpeed?.fleetSpeed || 1.0;
+    let fuelCost = 0;
+    let travelTimeSeconds = 0;
+    let totalFood = 0;
+    let totalWater = 0;
+    totalCrew = 0;
+
+    for (const composition of compositions) {
+        let slowestSpeed = Infinity;
+        for (const shipKey in composition) {
             const speed = calculateShipSpeed(shipKey, currentGameState?.research || {});
             if (speed < slowestSpeed) slowestSpeed = speed;
         }
-    }
-    if (slowestSpeed === Infinity) slowestSpeed = 100;
+        if (slowestSpeed === Infinity) slowestSpeed = 100;
 
-    // Survival needs calculation using SHARED formula
-    const fleetSpeedMultiplier = window.GAME_CONFIG?.gameSpeed?.fleetSpeed || 1.0;
-    const travelTimeSeconds = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, speedPercent);
-    const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
+        const travelTime = calculateTravelTime(distance, slowestSpeed, fleetSpeedMultiplier, speedPercent);
+        const crew = calculateFleetCrew(composition);
+        const survivalNeeds = calculateFleetSurvivalNeeds(crew, (travelTime * 2) + (stayTime * 3600));
+        fuelCost += calculateFleetFuelCost(composition, distance, speedPercent);
+        totalCrew += crew;
+        totalFood += survivalNeeds.food;
+        totalWater += survivalNeeds.water;
+        travelTimeSeconds = Math.max(travelTimeSeconds, travelTime);
+    }
     
     // Update arrival time field
     const arrivalInput = document.getElementById('arrival-time-input');
@@ -424,18 +444,15 @@ window.updateMissionCalculations = function() {
         if (arrivalInput.value !== newTimeStr) arrivalInput.value = newTimeStr;
     }
 
-    // Total mission duration (travel both ways + stay time for expeditions)
-    const totalDurationSeconds = (travelTimeSeconds * 2) + (stayTime * 3600);
-    const survivalNeeds = calculateFleetSurvivalNeeds(totalCrew, totalDurationSeconds);
-
     const summary = document.getElementById('mission-calc-summary');
     if (summary) {
         summary.innerHTML = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; font-family: 'Share Tech Mono', monospace;">
+                ${compositions.length > 1 ? `<div>🚀 EXPEDITIONS: <strong>${compositions.length}</strong></div>` : ''}
                 <div>👥 CREW: <strong>${totalCrew}</strong></div>
                 <div>🛢️ FUEL: <strong>${formatNumber(fuelCost)}</strong></div>
-                <div>🍞 FOOD: <strong>${formatNumber(survivalNeeds.food)}</strong></div>
-                <div>💦 WATER: <strong>${formatNumber(survivalNeeds.water)}</strong></div>
+                <div>🍞 FOOD: <strong>${formatNumber(totalFood)}</strong></div>
+                <div>💦 WATER: <strong>${formatNumber(totalWater)}</strong></div>
             </div>
         `;
     }
@@ -593,6 +610,9 @@ window.submitMission = async function(missionType, targetCoords) {
     let totalShips = 0;
     const isMarket = missionType === MISSION_TYPES.MARKET_TRADE;
     const stayTime = document.getElementById('exp-stay-time') ? parseInt(document.getElementById('exp-stay-time').value) : 0;
+    const splitCount = missionType === MISSION_TYPES.EXPEDITION
+        ? Math.max(1, parseInt(document.getElementById('exp-split-count')?.value || '1', 10))
+        : 1;
     const speedSlider = document.getElementById('fleet-speed-range');
     const speedPercent = speedSlider ? (speedSlider.dataset.preciseValue ? parseFloat(speedSlider.dataset.preciseValue) : parseInt(speedSlider.value) / 100) : 1.0;
 
@@ -628,7 +648,7 @@ window.submitMission = async function(missionType, targetCoords) {
     }
 
     try {
-        await API.request('/game/galaxy/mission', {
+        const result = await API.request('/game/galaxy/mission', {
             method: 'POST',
             body: JSON.stringify({
                 missionType,
@@ -638,10 +658,14 @@ window.submitMission = async function(missionType, targetCoords) {
                 buyResources: isMarket ? tradeData.buy : null,
                 originPlanetId: planetId,
                 stayTime,
-                speedPercent
+                speedPercent,
+                splitCount
             })
         });
-        Notifications.showSuccess(`${missionType.charAt(0).toUpperCase() + missionType.slice(1)} mission launched!`);
+        const launchedCount = result?.count || 1;
+        Notifications.showSuccess(launchedCount > 1
+            ? `${launchedCount} expeditions launched!`
+            : `${missionType.charAt(0).toUpperCase() + missionType.slice(1)} mission launched!`);
         window.closeDetailsModal();
         if (window.loadGameState) await window.loadGameState();
     } catch (error) {
@@ -682,6 +706,7 @@ window.colonizePlanetFromGalaxy = async function(position) {
             })
         });
         Notifications.showSuccess(`Colony ship dispatched! Arrival in ${Math.round((result.arrivalTime - Date.now()) / 1000)}s`);
+        if (window.loadGameState) await window.loadGameState(true);
     } catch (error) {
         Notifications.showError(`Error: ${error.message}`);
     }

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
-import { sendFleet, recallFleet, processFleets } from '../../src/server/game/fleet.js';
+import { sendFleet, sendExpeditions, recallFleet, processFleets } from '../../src/server/game/fleet.js';
 import { calculateDistance } from '../../src/shared/formulas.js';
 import { MISSION_TYPES } from '../../src/shared/constants.js';
 import { savePlayers } from '../../src/server/game/player.js';
@@ -179,6 +179,33 @@ describe('Fleet Management', () => {
         .rejects.toThrow('Invalid target coordinates');
 
       expect(origin).toEqual(before);
+    });
+  });
+
+  describe('sendExpeditions', () => {
+    it('splits one expedition force into balanced fleets and persists once', async () => {
+      const fleets = await sendExpeditions(
+        'user1', 'p1', [1, 1, 16], { lightFighter: 9 }, 1, 1, 3
+      );
+
+      expect(fleets).toHaveLength(3);
+      expect(fleets.map(fleet => fleet.ships)).toEqual([
+        { lightFighter: 3 },
+        { lightFighter: 3 },
+        { lightFighter: 3 }
+      ]);
+      expect(mockPlayer.fleets).toHaveLength(3);
+      expect(mockPlayer.planets[0].ships.lightFighter).toBe(1);
+    });
+
+    it('rejects invalid split counts without changing the origin', async () => {
+      const before = structuredClone(mockPlayer);
+
+      await expect(sendExpeditions(
+        'user1', 'p1', [1, 1, 16], { lightFighter: 6 }, 1, 1, 7
+      )).rejects.toThrow('between 1 and 6');
+
+      expect(mockPlayer).toEqual(before);
     });
   });
 

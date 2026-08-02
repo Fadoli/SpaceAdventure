@@ -38,7 +38,7 @@ import {
   processCompletedProduction, 
   getShipyardDetails
 } from './game/shipyard.js';
-import { sendFleet, recallFleet } from './game/fleet.js';
+import { sendFleet, sendExpeditions, recallFleet } from './game/fleet.js';
 import { getAiMetadata, createAiPlayer, seedAiPlayers } from './game/aiManager.js';
 import { AI_TYPES } from '../shared/constants.js';
 import { getPlayerMessages, markMessageRead, deleteMessage, clearMessages } from './game/messages.js';
@@ -1139,6 +1139,7 @@ async function handleRequest(req) {
         
         // Save player
         await updatePlayer(user.id, player);
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'shipyard' });
         
         return successResponse(req, result);
       } catch (error) {
@@ -1173,6 +1174,7 @@ async function handleRequest(req) {
         
         // Save player
         await updatePlayer(user.id, player);
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'shipyard' });
         
         return successResponse(req, result);
       } catch (error) {
@@ -1211,7 +1213,6 @@ async function handleRequest(req) {
         await updatePlayer(user.id, player);
         
         // Notify client of changes
-        wsManager.sendToUser(user.id, 'RESOURCES_UPDATED', { planetId });
         wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'shipyard' });
 
         return successResponse(req, result);
@@ -1397,7 +1398,7 @@ async function handleRequest(req) {
       }
 
       const body = await req.json();
-      const { missionType, targetCoords, ships, resources, buyResources, originPlanetId, stayTime, speedPercent } = body;
+      const { missionType, targetCoords, ships, resources, buyResources, originPlanetId, stayTime, speedPercent, splitCount } = body;
 
       if (!missionType || !targetCoords || !ships) {
         return errorResponse(req, 'Missing mission details', 400);
@@ -1426,6 +1427,18 @@ async function handleRequest(req) {
 
         if (!originPlanet) {
           return errorResponse(req, 'No planet found with sufficient ships for this mission', 400);
+        }
+
+        const requestedSplitCount = splitCount ?? 1;
+        if (!Number.isSafeInteger(requestedSplitCount) || requestedSplitCount < 1 || requestedSplitCount > 6) {
+          return errorResponse(req, 'Expedition split count must be between 1 and 6', 400);
+        }
+        if (missionType !== MISSION_TYPES.EXPEDITION && requestedSplitCount !== 1) {
+          return errorResponse(req, 'Only expeditions can be split', 400);
+        }
+        if (missionType === MISSION_TYPES.EXPEDITION && requestedSplitCount > 1) {
+          const fleets = await sendExpeditions(user.id, originPlanet.id, targetCoords, ships, stayTime, speedPercent, requestedSplitCount);
+          return successResponse(req, { fleets, count: fleets.length });
         }
 
         const fleet = await sendFleet(user.id, originPlanet.id, targetCoords, missionType, ships, resources || {}, stayTime, buyResources, speedPercent);
@@ -1673,6 +1686,7 @@ async function handleRequest(req) {
       try {
         const queueItem = startTheoreticalResearch(player, techKey, planetId);
         await updatePlayer(user.id, player);
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
         return successResponse(req, queueItem);
       } catch (error) {
         console.error('Error starting theoretical research:', error);
@@ -1700,6 +1714,7 @@ async function handleRequest(req) {
       try {
         const refund = cancelTheoreticalResearch(player, queueId, planetId);
         await updatePlayer(user.id, player);
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
 
         return successResponse(req, { refund, cancelled: true });
       } catch (error) {
@@ -1736,6 +1751,7 @@ async function handleRequest(req) {
           queueItem = startPracticalResearchWithAllocation(player, researchKey, defaultAllocation, planetId, 0.5);
         }
         await updatePlayer(user.id, player);
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
 
         return successResponse(req, queueItem);
       } catch (error) {
@@ -1764,6 +1780,7 @@ async function handleRequest(req) {
         const refund = cancelPracticalResearch(player, queueId, planetId);
         console.log(`[PRACTICAL_RESEARCH] Cancelled research: ${queueId}, refund:`, refund);
         await updatePlayer(user.id, player);
+        wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
 
         return successResponse(req, { refund, cancelled: true });
       } catch (error) {
