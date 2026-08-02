@@ -393,6 +393,31 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
 }
 
 /**
+ * Remove a completed building before changing its blueprint.
+ */
+export async function demolishBuilding(userId, planetId, buildingType) {
+  const player = await getPlayerByUserId(userId);
+  if (!player) throw new Error('Player not found');
+
+  const planet = player.planets.find(p => p.id === planetId);
+  if (!planet) throw new Error('Planet not found');
+
+  validateBuildingType(buildingType);
+  const level = planet.buildings[buildingType] || 0;
+  if (level === 0) throw new Error('Building is already demolished');
+  if (planet.buildQueue?.some(item => item.building === buildingType)) {
+    throw new Error('Cancel queued upgrades before demolishing this building');
+  }
+
+  planet.buildings[buildingType] = 0;
+  updatePlanetProduction(planet, player);
+  await updatePlayer(userId, player);
+  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
+
+  return { buildingType, demolishedLevel: level };
+}
+
+/**
  * Process completed buildings for all players
  */
 export async function processCompletedBuildings(player, now = Date.now()) {
@@ -1415,6 +1440,13 @@ export async function setActiveBlueprint(userId, planetId, baseType, blueprintId
 
   const planet = player.planets.find(p => p.id === planetId);
   if (!planet) throw new Error('Planet not found');
+
+  if ((planet.buildings[baseType] || 0) > 0) {
+    throw new Error('Demolish the current building before changing its blueprint');
+  }
+  if (planet.buildQueue?.some(item => item.building === baseType)) {
+    throw new Error('Cancel queued upgrades before changing this blueprint');
+  }
 
   if (!planet.activeVariants) planet.activeVariants = {};
   if (!planet.localBlueprints) planet.localBlueprints = {};

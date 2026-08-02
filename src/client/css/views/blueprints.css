@@ -7,6 +7,15 @@
     margin-top: 20px;
 }
 
+.blueprint-demolition-notice {
+    padding: 10px 12px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.08);
+    color: #fde68a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+}
+
 .blueprint-card-select {
     background: #0f1525;
     border: 1px solid #252e46;
@@ -76,6 +85,29 @@
     padding: 10px;
     border-radius: 2px;
     border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.blueprint-preview {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+}
+
+.blueprint-preview strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+}
+
+.blueprint-stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
 }
 
 .mod-row {

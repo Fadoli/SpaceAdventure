@@ -14,6 +14,7 @@ import { spawnGhostPlanets, cleanupGhostPlanets } from './game/events.js';
 import { 
   upgradeBuilding, 
   cancelBuilding, 
+  demolishBuilding,
   processCompletedBuildings, 
   updateBuildingAllocation, 
   updatePlanetAllocations, 
@@ -25,6 +26,7 @@ import {
   updatePlanetProduction, 
   queueVariantSwitch, 
   processCompletedVariantSwitches, 
+  switchBuildingVariant,
   getEffectiveBuildingDefinition,
   createBuildingBlueprint,
   setActiveBlueprint,
@@ -537,6 +539,26 @@ async function handleRequest(req) {
       try {
         const result = await cancelBuilding(user.id, planetId, queuePosition);
         return successResponse(req, result);
+      } catch (error) {
+        return errorResponse(req, error.message, 400);
+      }
+    }
+
+    // POST /api/game/planet/:planetId/building/:buildingType/demolish
+    if (path.match(/^\/api\/game\/planet\/[^/]+\/building\/[^/]+\/demolish$/) && method === 'POST') {
+      const user = await requireAuth(req);
+      if (!user) return errorResponse(req, 'Not authenticated', 401);
+
+      const parts = path.split('/');
+      const planetId = parts[4];
+      const buildingType = parts[6];
+      const player = await getPlayerByUserId(user.id);
+      if (!player || !player.planets.find(p => p.id === planetId)) {
+        return errorResponse(req, 'Unauthorized: You do not own this planet', 403);
+      }
+
+      try {
+        return successResponse(req, await demolishBuilding(user.id, planetId, buildingType));
       } catch (error) {
         return errorResponse(req, error.message, 400);
       }

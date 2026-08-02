@@ -538,16 +538,12 @@ export async function showBlueprintSelectionModal(buildingKey, building, planet)
 
 function renderBlueprintList(container, buildingKey, building, blueprints, planet) {
     const activeBlueprintId = building.currentVariant || 'base';
-    const baseCost = building.baseCost || building.cost;
-    const currentCost = building.cost;
-    
-    let html = '<div class="blueprint-selection-grid">';
-    
+    let html = `<div class="blueprint-demolition-notice">
+        Changing the blueprint requires demolishing the current building. You will rebuild it from level 1 using the selected design.
+    </div><div class="blueprint-selection-grid">`;
+
     // --- Option 1: Base Model ---
     const isBaseActive = activeBlueprintId === 'base';
-    const baseSwitchCost = calculateSwitchCost(currentCost, baseCost);
-    const isBaseRefund = (baseCost.metal + baseCost.crystal + baseCost.deuterium) < 
-                        (currentCost.metal + currentCost.crystal + currentCost.deuterium);
 
     html += `
         <div class="blueprint-card-select ${isBaseActive ? 'active' : ''}">
@@ -560,14 +556,11 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
                 <div class="blueprint-modifiers">
                     <div class="mod-row"><span class="mod-icon">📉</span> <span class="mod-label">No custom modifiers</span></div>
                 </div>
-                <div class="blueprint-switch-cost ${isBaseActive ? 'hidden' : (isBaseRefund ? 'refund' : 'cost')}">
-                    <strong>Switch ${isBaseRefund ? 'Refund' : 'Cost'}:</strong>
-                    <div>⚙️ ${formatNumber(Math.abs(baseSwitchCost.metal))} 💎 ${formatNumber(Math.abs(baseSwitchCost.crystal))}</div>
-                </div>
+                ${renderBlueprintPreview(building, null, buildingKey)}
             </div>
             <div class="blueprint-card-footer">
                 <button class="btn btn-primary btn-full" onclick="window.selectAndActivateBlueprint('${buildingKey}', 'base')" ${isBaseActive ? 'disabled' : ''}>
-                    ${isBaseActive ? 'Current Design' : 'Select Design'}
+                    ${isBaseActive ? 'Current Design' : (building.currentLevel > 0 ? 'Wreck & Select' : 'Select Design')}
                 </button>
             </div>
         </div>
@@ -577,19 +570,6 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
     for (const bp of blueprints) {
         const isActive = activeBlueprintId === bp.id;
         const modifiers = getCustomVariant(buildingKey, bp.focusLevels)?.modifiers || bp.modifiers;
-        
-        let targetCost = baseCost;
-        if (modifiers && modifiers.costMultiplier !== 1) {
-            targetCost = {
-                metal: Math.floor(baseCost.metal * modifiers.costMultiplier),
-                crystal: Math.floor(baseCost.crystal * modifiers.costMultiplier),
-                deuterium: Math.floor(baseCost.deuterium * modifiers.costMultiplier)
-            };
-        }
-
-        const switchCost = calculateSwitchCost(currentCost, targetCost);
-        const isRefund = (targetCost.metal + targetCost.crystal + targetCost.deuterium) < 
-                         (currentCost.metal + currentCost.crystal + currentCost.deuterium);
 
         const modifierLabels = {
             productionMultiplier: { label: 'Production', icon: '📈', isPos: true },
@@ -625,15 +605,12 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
                     <div class="blueprint-modifiers">
                         ${modifiersHtml || '<div class="no-mods">No significant modifiers</div>'}
                     </div>
-                    <div class="blueprint-switch-cost ${isActive ? 'hidden' : (isRefund ? 'refund' : 'cost')}">
-                        <strong>Switch ${isRefund ? 'Refund' : 'Cost'}:</strong>
-                        <div>⚙️ ${formatNumber(Math.abs(switchCost.metal))} 💎 ${formatNumber(Math.abs(switchCost.crystal))}</div>
-                    </div>
+                    ${renderBlueprintPreview(building, bp, buildingKey)}
                 </div>
                 <div class="blueprint-card-footer">
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-primary btn-full" onclick="window.selectAndActivateBlueprint('${buildingKey}', '${bp.id}')" ${isActive ? 'disabled' : ''}>
-                            ${isActive ? 'Current Design' : 'Select Design'}
+                            ${isActive ? 'Current Design' : (building.currentLevel > 0 ? 'Wreck & Select' : 'Select Design')}
                         </button>
                         <button class="btn btn-danger" onclick="window.deleteBlueprintFromSelection('${buildingKey}', '${bp.id}')" title="Delete Blueprint">
                             🗑️
@@ -643,14 +620,46 @@ function renderBlueprintList(container, buildingKey, building, blueprints, plane
             </div>
         `;
     }
-    
+
     html += '</div>';
     container.innerHTML = html;
+}
+
+function renderBlueprintPreview(building, blueprint, buildingKey) {
+    const currentModifiers = building.currentVariant === 'base' ? {} : (building.customVariant?.modifiers || {});
+    const targetModifiers = blueprint
+        ? (getCustomVariant(buildingKey, blueprint.focusLevels)?.modifiers || blueprint.modifiers || {})
+        : {};
+    const rows = Object.entries(building.actualProduction || {}).map(([resource, value]) => {
+        const base = value / (currentModifiers.productionMultiplier || 1);
+        const after = Math.round(base * (targetModifiers.productionMultiplier || 1));
+        return `<div class="blueprint-stat-row"><span>${RESOURCE_ICONS[resource] || ''} ${resource}</span><span>${formatNumber(value)} → ${formatNumber(after)}/h</span></div>`;
+    });
+
+    if (building.actualEnergyConsumption > 0 || targetModifiers.energyMultiplier !== undefined) {
+        const before = building.actualEnergyConsumption || 0;
+        const base = before / (currentModifiers.energyMultiplier || 1);
+        const after = Math.round(base * (targetModifiers.energyMultiplier || 1) * 100) / 100;
+        rows.push(`<div class="blueprint-stat-row"><span>⚡ energy</span><span>${formatNumber(before)} → ${formatNumber(after)}/h</span></div>`);
+    }
+
+    return `<div class="blueprint-preview"><strong>Before → after at level ${building.currentLevel}</strong>${rows.length ? rows.join('') : '<div class="no-mods">No active output</div>'}</div>`;
 }
 
 window.selectAndActivateBlueprint = async function(buildingKey, blueprintId) {
     const planetId = getCurrentPlanetId();
     try {
+        const planet = currentGameState?.planets.find(p => p.id === planetId);
+        const currentLevel = planet?.buildings?.[buildingKey] || 0;
+        if (currentLevel > 0) {
+            const confirmed = await showConfirm(
+                'Demolish building',
+                `Changing this blueprint will demolish the level ${currentLevel} building. You must rebuild it from level 1. Continue?`
+            );
+            if (!confirmed) return;
+            await API.demolishBuilding(planetId, buildingKey);
+        }
+
         await API.request(`/game/planet/${planetId}/building/${buildingKey}/activate-blueprint`, {
             method: 'POST',
             body: JSON.stringify({ blueprintId })

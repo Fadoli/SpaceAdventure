@@ -77,6 +77,12 @@ export const API = {
             body: JSON.stringify({ queuePosition })
         });
     },
+
+    async demolishBuilding(planetId, buildingType) {
+        return await this.request(`/game/planet/${planetId}/building/${buildingType}/demolish`, {
+            method: 'POST'
+        });
+    },
     
     async switchBuildingVariant(planetId, buildingType, toCustom) {
         return await this.request(`/game/planet/${planetId}/building/${buildingType}/variant`, {
