@@ -643,7 +643,7 @@ export function updateResources(planet) {
 
     if (metalProdEl) metalProdEl.textContent = formatProd(production.metal);
     if (crystalProdEl) crystalProdEl.textContent = formatProd(production.crystal);
-    if (deutProdEl) deutProdEl.textContent = formatProd(production.deuterium);
+    if (deutProdEl) deutProdEl.textContent = formatProd((production.deuterium || 0) - (consumption?.deuterium || 0));
     
     const waterAmt = document.getElementById('water-amount');
     const waterProd = document.getElementById('water-production');

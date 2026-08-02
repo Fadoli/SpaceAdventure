@@ -187,6 +187,15 @@ it('keeps shipyard time reduction consistent between server and UI', async () =>
   expect(server).toContain("timeReductionBonus: getResearchBonus(player?.research, 'globalTimeReduction')");
 });
 
+it('updates research completion without replacing the whole research view', async () => {
+  const view = await readFile(new URL('../../src/client/js/views/research.js', import.meta.url), 'utf8');
+  const server = await readFile(new URL('../../src/server/index.js', import.meta.url), 'utf8');
+  expect(view).toContain('refreshResearchViewLocally()');
+  expect(view).toContain('replaceResearchQueue(');
+  expect(view).toContain('updateTheoreticalResearchCards()');
+  expect(server).toContain('processCompletedResearch(player)');
+});
+
 it('guards view responses against stale navigation results', async () => {
   const viewFiles = ['buildings', 'research', 'galaxy', 'ranking', 'messages', 'alliance'];
   for (const view of viewFiles) {

@@ -83,14 +83,16 @@ async function loadResearchData(force = false) {
             return;
         }
 
-        // Get active tab from URL or default to theoretical
-        const urlParams = new URLSearchParams(window.location.search);
-        const subTab = urlParams.get('subtab') || 'theoretical';
-        
+        const hasRenderedView = Boolean(researchData && document.querySelector('.research-container'));
         researchData = newResearchData;
         lastResearchStateHash = currentHash;
 
-        switchTab(subTab, false);
+        if (hasRenderedView) {
+            refreshResearchViewLocally();
+        } else {
+            const urlParams = new URLSearchParams(window.location.search);
+            switchTab(urlParams.get('subtab') || 'theoretical', false);
+        }
     } catch (error) {
         if (requestId !== researchRequestId) return;
         console.error('Failed to load research data:', error);
@@ -241,6 +243,47 @@ function updateTheoreticalResearchButtons() {
 /**
  * Render theoretical research tab
  */
+function renderTheoreticalQueue(queue, maxQueue) {
+    if (queue.length === 0) return '';
+
+    const theoryResearch = getTheoreticalResearch();
+    let html = `
+      <div class="research-queue-section">
+        <div class="card-corner-top"></div>
+        <div class="queue-header" role="button" tabindex="0" aria-expanded="${researchQueueVisible}" aria-controls="theoretical-research-queue" onclick="window.toggleResearchQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleResearchQueueVisibility(); }">
+          <h3>🔬 TECHNOLOGICAL DEVELOPMENT LOG (${queue.length}/${maxQueue})</h3>
+          <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
+        </div>
+        <div id="theoretical-research-queue" class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">`;
+
+    for (const queueItem of queue) {
+        const tech = theoryResearch[queueItem.techKey];
+        if (!tech) continue;
+        const index = queue.indexOf(queueItem);
+        const isActive = index === 0;
+        const elapsed = Date.now() - queueItem.startTime;
+        const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
+        const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
+        const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
+
+        html += `
+          <div class="queue-item ${isActive ? 'active' : ''}">
+            <div class="queue-item-row">
+              <span class="q-pos" style="width: 60px;">${posLabel}</span>
+              <span class="q-name" title="${tech.name}">${tech.name}</span>
+              <span class="q-level">LVL ${queueItem.level}</span>
+              <div class="progress-bar-mini">
+                <div class="progress-fill" id="research-theory-progress-${queueItem.id}" style="width: ${isActive ? percent : 0}%"></div>
+              </div>
+              <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
+              <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Abort Research">✕</button>
+            </div>
+          </div>`;
+    }
+
+    return `${html}</div></div>`;
+}
+
 function renderTheoreticalResearch() {
     const container = document.querySelector('#theoretical-tab .research-content');
     if (!container) return;
@@ -259,43 +302,7 @@ function renderTheoreticalResearch() {
     let html = '<div class="theory-research-list">';
     const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
-    if (queue.length > 0) {
-        html += `
-      <div class="research-queue-section">
-        <div class="card-corner-top"></div>
-        <div class="queue-header" role="button" tabindex="0" aria-expanded="${researchQueueVisible}" aria-controls="theoretical-research-queue" onclick="window.toggleResearchQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleResearchQueueVisibility(); }">
-          <h3>🔬 TECHNOLOGICAL DEVELOPMENT LOG (${queue.length}/${maxQueue})</h3>
-          <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
-        </div>
-        <div id="theoretical-research-queue" class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
-    `;
-        for (const queueItem of queue) {
-            const tech = theoryResearch[queueItem.techKey];
-            if (!tech) continue;
-            const index = queue.indexOf(queueItem);
-            const isActive = index === 0;
-            const elapsed = Date.now() - queueItem.startTime;
-            const duration = queueItem.duration || (queueItem.endTime - queueItem.startTime);
-            const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
-
-            const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
-
-            html += `
-        <div class="queue-item ${isActive ? 'active' : ''}">
-          <div class="queue-item-row">
-            <span class="q-pos" style="width: 60px;">${posLabel}</span>
-            <span class="q-name" title="${tech.name}">${tech.name}</span>
-            <span class="q-level">LVL ${queueItem.level}</span>
-            <div class="progress-bar-mini">
-              <div class="progress-fill" id="research-theory-progress-${queueItem.id}" style="width: ${isActive ? percent : 0}%"></div>
-            </div>
-            <span class="q-time-mini timer" data-finish="${queueItem.endTime}" data-start="${queueItem.startTime}" data-id="${queueItem.id}"></span>
-            <button class="btn-cancel-small" onclick="window.cancelTheoreticalResearch('${queueItem.id}')" title="Abort Research">✕</button>
-          </div>
-        </div>`;
-        }
-        html += '</div></div>';
-    }
+    html += renderTheoreticalQueue(queue, maxQueue);
 
     for (const category in grouped) {
         html += `
@@ -396,6 +403,210 @@ function updateResearchQueueTimers() {
     });
 }
 
+function replaceResearchQueue(selector, queueHtml) {
+    const container = document.querySelector(selector);
+    if (!container) return;
+
+    const currentQueue = container.querySelector('.research-queue-section');
+    if (currentQueue) {
+        if (queueHtml) currentQueue.outerHTML = queueHtml;
+        else currentQueue.remove();
+    } else if (queueHtml) {
+        container.insertAdjacentHTML('afterbegin', queueHtml);
+    }
+}
+
+function updateTheoreticalResearchCards() {
+    const currentPlanet = getCurrentPlanet();
+    if (!currentPlanet || !researchData) return;
+
+    const theoryResearch = getTheoreticalResearch();
+    const playerTech = researchData.theoretical || {};
+    const queue = researchData.progress?.theoretical || [];
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+    const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
+    const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+    const labTimeMultiplier = researchData.researchLabTimeMultiplier || 1;
+
+    for (const techKey in theoryResearch) {
+        const card = document.querySelector(`.research-card[data-tech="${techKey}"]`);
+        const tech = theoryResearch[techKey];
+        if (!card || !tech) continue;
+
+        const techData = playerTech[techKey];
+        const level = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
+        const queuedCount = queue.filter(q => q.techKey === techKey).length;
+        const nextLevelToQueue = level + 1 + queuedCount;
+        const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1, tech.costScaling);
+        const nextLevelTime = calculateTheoreticalResearchTime(tech, nextLevelToQueue - 1, researchLabLevel, researchSpeedBonus, configMultiplier, null, labTimeMultiplier);
+
+        const levelIndicator = card.querySelector('.level-indicator');
+        if (levelIndicator) levelIndicator.textContent = `CURRENT LEVEL: ${level}`;
+
+        const costs = card.querySelector('.tech-costs');
+        if (costs) {
+            const values = [nextLevelCost.metal, nextLevelCost.crystal, nextLevelCost.deuterium || 0];
+            const icons = ['⚙️', '💎', '🛢️'];
+            const existingItems = [...costs.querySelectorAll('.cost-item')];
+            if (values[2] > 0 && !existingItems[2]) {
+                const item = document.createElement('div');
+                item.className = 'cost-item';
+                costs.appendChild(item);
+            } else if (values[2] === 0 && existingItems[2]) {
+                existingItems[2].remove();
+            }
+            [...costs.querySelectorAll('.cost-item')].forEach((item, index) => {
+                item.textContent = `${icons[index]} ${formatNumber(values[index])}`;
+            });
+        }
+
+        const timeline = card.querySelector('.build-time');
+        if (timeline) timeline.textContent = `⏱️ ${formatCountdown(nextLevelTime)}`;
+
+        const footer = card.querySelector('.tech-footer');
+        const badge = footer?.querySelector('.queued-badge');
+        if (queuedCount > 0 && footer) {
+            const queuedBadge = badge || document.createElement('span');
+            queuedBadge.className = 'queued-badge';
+            queuedBadge.textContent = `QUEUED: ${queuedCount}`;
+            if (!badge) footer.appendChild(queuedBadge);
+        } else if (badge) {
+            badge.remove();
+        }
+    }
+}
+
+function getPracticalTree(baseType) {
+    const tree = researchData?.practical?.[baseType];
+    if (tree?.experience) return tree;
+    if (tree && typeof tree === 'object' && 'output' in tree) {
+        return {
+            ...tree,
+            experience: {
+                output: Math.pow(tree.output || 0, 2) * 100,
+                automation: Math.pow(tree.automation || 0, 2) * 100,
+                energy: Math.pow(tree.energy || 0, 2) * 100,
+                cost: Math.pow(tree.cost || 0, 2) * 100
+            }
+        };
+    }
+    return { experience: { output: 0, automation: 0, energy: 0, cost: 0 }, treeBonus: 1.0 };
+}
+
+function updatePracticalResearchCards() {
+    document.querySelectorAll('#practical-tab .research-card[data-research-base]').forEach(card => {
+        const tree = getPracticalTree(card.dataset.researchBase);
+        const exp = tree.experience;
+        for (const focus of ['output', 'automation', 'energy', 'cost']) {
+            const level = Math.floor(Math.sqrt((exp[focus] || 0) / 100));
+            const nextXp = Math.pow(level + 1, 2) * 100;
+            const prevXp = Math.pow(level, 2) * 100;
+            const progress = Math.min(100, ((exp[focus] || 0) - prevXp) / (nextXp - prevXp) * 100);
+
+            const row = card.querySelector(`.xp-row[data-focus="${focus}"]`);
+            if (!row) continue;
+            const levelLabel = row.querySelector('.xp-label span:last-child');
+            const bar = row.querySelector('.xp-bar-fill');
+            if (levelLabel) levelLabel.textContent = `Lvl ${level}`;
+            if (bar) bar.style.width = `${progress}%`;
+            row.title = `${exp[focus] || 0} / ${nextXp} XP`;
+        }
+
+        const breakthroughValues = card.querySelectorAll('.bt-value');
+        if (breakthroughValues[0]) breakthroughValues[0].textContent = tree.currentBreakthroughs || 0;
+        if (breakthroughValues[1]) breakthroughValues[1].textContent = tree.bankedBreakthroughs || 0;
+
+        const modifier = card.querySelector('.xp-modifier-label');
+        if (modifier) {
+            const percent = ((1 + (tree.bankedBreakthroughs || 0) * 0.02 - 1) * 100).toFixed(0);
+            modifier.textContent = `+${percent}% XP`;
+            modifier.title = `Total Bonus: +${percent}% (from ${tree.bankedBreakthroughs || 0} banked breakthroughs)`;
+        }
+
+        const lastResult = tree.lastResult;
+        let resultElement = card.querySelector('.last-result');
+        if (lastResult) {
+            if (!resultElement) {
+                resultElement = document.createElement('div');
+                resultElement.className = 'last-result';
+                resultElement.style.cssText = "color: var(--text-primary); font-size: 0.75rem; margin-top: 5px; font-family: 'Share Tech Mono', monospace; text-transform: uppercase;";
+                card.querySelector('.bt-readout')?.after(resultElement);
+            }
+            resultElement.textContent = `Last run: ${lastResult.type} (+${lastResult.xpGain} XP)`;
+        } else if (resultElement) {
+            resultElement.remove();
+        }
+    });
+}
+
+function updatePracticalResearchButtons() {
+    const queue = researchData?.progress?.practical || [];
+    const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
+    const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
+    const disabled = queue.length >= maxQueue || researchLabLevel === 0;
+
+    document.querySelectorAll('#practical-tab .research-card[data-research-base]').forEach(card => {
+        card.classList.toggle('locked', disabled);
+        const button = card.querySelector('.upgrade-btn');
+        if (button) button.disabled = disabled;
+    });
+}
+
+function refreshResearchViewLocally() {
+    const activeSubtab = document.querySelector('#research-submenu .nav-sub-btn.active')?.dataset.subtab || 'theoretical';
+
+    if (activeSubtab === 'theoretical') {
+        replaceResearchQueue('#theoretical-tab .research-content', renderTheoreticalQueue(researchData?.progress?.theoretical || [], window.GAME_CONFIG?.gameplay?.researchQueueSize || 1));
+        updateTheoreticalResearchCards();
+        updateTheoreticalResearchButtons();
+    } else if (activeSubtab === 'practical') {
+        replaceResearchQueue('#practical-tab .practical-research-view', renderPracticalQueue(researchData?.progress?.practical || [], window.GAME_CONFIG?.gameplay?.researchQueueSize || 1));
+        updatePracticalResearchCards();
+        updatePracticalResearchButtons();
+    } else {
+        void renderCustomVariants();
+    }
+
+    updateResearchQueueTimers();
+}
+
+function renderPracticalQueue(queue, maxQueue) {
+    if (queue.length === 0) return '';
+
+    const practical = getPracticalResearch();
+    let html = `
+        <div class="research-queue-section">
+          <div class="card-corner-top"></div>
+          <div class="queue-header" role="button" tabindex="0" aria-expanded="${researchQueueVisible}" aria-controls="practical-research-queue" onclick="window.toggleResearchQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleResearchQueueVisibility(); }">
+            <h3>🔬 EXPERIMENTAL LOG (${queue.length}/${maxQueue})</h3>
+            <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
+          </div>
+          <div id="practical-research-queue" class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">`;
+
+    for (const q of queue) {
+        const research = Object.values(practical).find(item => item.baseType === q.baseType);
+        if (!research) continue;
+        const index = queue.indexOf(q);
+        const isActive = index === 0;
+        const percent = Math.min(100, Math.max(0, ((Date.now() - q.startTime) / (q.endTime - q.startTime)) * 100));
+        const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
+
+        html += `
+          <div class="queue-item ${isActive ? 'active' : ''}">
+            <div class="queue-item-row">
+              <span class="q-pos" style="width: 60px;">${posLabel}</span>
+              <span class="q-name">${research.name}</span>
+              <span class="q-level">STRENGTH: ${(q.strength * 100).toFixed(0)}%</span>
+              <div class="progress-bar-mini"><div class="progress-fill" id="research-practical-progress-${q.id}" style="width: ${isActive ? percent : 0}%"></div></div>
+              <span class="q-time-mini timer" data-finish="${q.endTime}" data-start="${q.startTime}" data-id="${q.id}"></span>
+              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${q.id}')" title="Abort Experiment">✕</button>
+            </div>
+          </div>`;
+    }
+
+    return `${html}</div></div>`;
+}
+
 async function renderPracticalResearch() {
     const container = document.querySelector('#practical-tab .research-content');
     if (!container) return;
@@ -405,7 +616,6 @@ async function renderPracticalResearch() {
         const available = await API.request(`/game/planet/${planetId}/research/available`);
         
         const practical = getPracticalResearch();
-        const playerPractical = researchData?.practical || {};
         const queue = researchData?.progress?.practical || [];
         const maxQueue = window.GAME_CONFIG?.gameplay?.researchQueueSize || 1;
 
@@ -419,45 +629,7 @@ async function renderPracticalResearch() {
             </div>
         `;
 
-        if (queue.length > 0) {
-            html += `
-        <div class="research-queue-section">
-          <div class="card-corner-top"></div>
-          <div class="queue-header" role="button" tabindex="0" aria-expanded="${researchQueueVisible}" aria-controls="practical-research-queue" onclick="window.toggleResearchQueueVisibility()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.toggleResearchQueueVisibility(); }">
-            <h3>🔬 EXPERIMENTAL LOG (${queue.length}/${maxQueue})</h3>
-            <span class="toggle-icon">${researchQueueVisible ? '🔼' : '🔽'}</span>
-          </div>
-          <div id="practical-research-queue" class="queue-list" style="${researchQueueVisible ? '' : 'display: none;'}">
-      `;
-            for (const q of queue) {
-                let r = null;
-                for (const pk in practical) {
-                    if (practical[pk].baseType === q.baseType) {
-                        r = practical[pk];
-                        break;
-                    }
-                }
-                if (!r) continue;
-                const index = queue.indexOf(q);
-                const isActive = index === 0;
-                const percent = Math.min(100, Math.max(0, ((Date.now() - q.startTime) / (q.endTime - q.startTime)) * 100));
-                
-                const posLabel = index === 0 ? 'ACTUAL' : (index === 1 ? 'NEXT' : `#${index + 1}`);
-
-                html += `
-          <div class="queue-item ${isActive ? 'active' : ''}">
-            <div class="queue-item-row">
-              <span class="q-pos" style="width: 60px;">${posLabel}</span>
-              <span class="q-name">${r.name}</span>
-              <span class="q-level">STRENGTH: ${(q.strength * 100).toFixed(0)}%</span>
-              <div class="progress-bar-mini"><div class="progress-fill" id="research-practical-progress-${q.id}" style="width: ${isActive ? percent : 0}%"></div></div>
-              <span class="q-time-mini timer" data-finish="${q.endTime}" data-start="${q.startTime}" data-id="${q.id}"></span>
-              <button class="btn-cancel-small" onclick="window.cancelPracticalResearch('${q.id}')" title="Abort Experiment">✕</button>
-            </div>
-          </div>`;
-            }
-            html += '</div></div>';
-        }
+        html += renderPracticalQueue(queue, maxQueue);
 
         html += '<div class="research-cards-section"><h3>Available Research Trees</h3><div class="research-cards">';
         for (const key in practical) {
@@ -465,24 +637,7 @@ async function renderPracticalResearch() {
             if (!available[key]) continue;
             
             // Get tree and ensure experience object exists
-            let tree = playerPractical[res.baseType];
-            if (!tree || !tree.experience) {
-                // Handle possible old format (tree was just an object of levels) or missing tree
-                if (tree && !tree.experience && typeof tree === 'object' && 'output' in tree) {
-                    // Convert old format to new format locally for rendering
-                    tree = { 
-                        experience: { 
-                            output: Math.pow(tree.output || 0, 2) * 100, 
-                            automation: Math.pow(tree.automation || 0, 2) * 100, 
-                            energy: Math.pow(tree.energy || 0, 2) * 100, 
-                            cost: Math.pow(tree.cost || 0, 2) * 100 
-                        }, 
-                        treeBonus: 1.0
-                    };
-                } else {
-                    tree = { experience: { output: 0, automation: 0, energy: 0, cost: 0 }, treeBonus: 1.0 };
-                }
-            }
+            const tree = getPracticalTree(res.baseType);
             
             const exp = tree.experience;
             
@@ -520,7 +675,7 @@ async function renderPracticalResearch() {
             </span>`;
 
             html += `
-        <div class="research-card ${isDisabled ? 'locked' : ''}">
+        <div class="research-card ${isDisabled ? 'locked' : ''}" data-research-base="${res.baseType}">
           <div class="card-corner-top"></div>
           <div class="card-header" title="${res.description}">
             <div class="header-main">
@@ -544,7 +699,7 @@ async function renderPracticalResearch() {
                       const progress = Math.min(100, ((currentXp - prevXp) / (nextXp - prevXp)) * 100);
                       
                       return `
-                          <div class="xp-row" title="${currentXp} / ${nextXp} XP">
+                          <div class="xp-row" data-focus="${f}" title="${currentXp} / ${nextXp} XP">
                               <div class="xp-label"><span>${f.toUpperCase()}</span><span>Lvl ${level}</span></div>
                               <div class="xp-bar-container"><div class="xp-bar-fill focus-${f}" style="width: ${progress}%"></div></div>
                           </div>

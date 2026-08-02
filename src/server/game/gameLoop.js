@@ -2,7 +2,7 @@
 import { getPlayers, updatePlayer, getPlayerStateVersion, savePlayers, takeRankingSnapshot, recomputePlayerScores, flushDirtyPlayers } from './player.js';
 import { processCompletedBuildings, updatePlanetProduction, processCompletedVariantSwitches } from './buildings.js';
 import { processCompletedProduction } from './shipyard.js';
-import { completeTheoreticalResearch, completePracticalResearch } from './researchLogic.js';
+import { processCompletedResearch } from './researchLogic.js';
 import { processFleets } from './fleet.js';
 import { calculatePopulationChange } from '../../shared/formulas.js';
 import { getResourceProductionMultiplier } from '../config.js';
@@ -201,6 +201,7 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
           if (planet.consumption) {
             planet.resources.water -= (planet.consumption.water || 0) * hoursElapsed;
             planet.resources.food -= (planet.consumption.food || 0) * hoursElapsed;
+            planet.resources.deuterium -= (planet.consumption.deuterium || 0) * hoursElapsed;
           }
           
           // 2. Apply Production (only if below storage)
@@ -229,6 +230,7 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
               planet.resources.deuterium = planet.storage.deuterium;
             }
           }
+          planet.resources.deuterium = Math.max(0, planet.resources.deuterium);
           
           // Water
           if (planet.resources.water < waterStorage) {
@@ -392,61 +394,6 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
   } catch (error) {
     console.error('Error in game tick:', error);
   }
-}
-
-/**
- * Process completed research items
- */
-async function processCompletedResearch(player, now = Date.now()) {
-  let updated = false;
-  
-  // Check theoretical research - sequential
-  while (player.researchQueue && player.researchQueue.length > 0) {
-    const item = player.researchQueue[0];
-    if (item.endTime <= now) {
-      await completeTheoreticalResearch(player, item.id);
-      
-      // Update activity on the research planet
-      const planet = player.planets.find(p => p.id === item.planetId);
-      if (planet) planet.lastActivity = now;
-
-      // If there's another item in the queue, update its start/end times
-      if (player.researchQueue.length > 0) {
-        const nextItem = player.researchQueue[0];
-        // The next item starts when the previous one finished
-        nextItem.startTime = item.endTime; 
-        nextItem.endTime = nextItem.startTime + nextItem.duration;
-      }
-      updated = true;
-    } else {
-      break; // First item not finished yet
-    }
-  }
-  
-  // Check practical research - sequential
-  while (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) {
-    const item = player.practicalResearchQueue[0];
-    if (item.endTime <= now) {
-      await completePracticalResearch(player, item.id, now);
-      
-      // Update activity on the research planet
-      const planet = player.planets.find(p => p.id === item.planetId);
-      if (planet) planet.lastActivity = now;
-
-      // If there's another item in the queue, update its start/end times
-      if (player.practicalResearchQueue.length > 0) {
-        const nextItem = player.practicalResearchQueue[0];
-        // The next item starts when the previous one finished
-        nextItem.startTime = item.endTime;
-        nextItem.endTime = nextItem.startTime + nextItem.duration;
-      }
-      updated = true;
-    } else {
-      break; // First item not finished yet
-    }
-  }
-  
-  return updated;
 }
 
 /**

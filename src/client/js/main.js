@@ -556,9 +556,13 @@ function startResourceUpdate() {
                 }
                 
                 // Deuterium
-                if (planet.resources.deuterium < planet.storage.deuterium) {
-                    planet.resources.deuterium += planet.production.deuterium * timeDeltaHours;
+                const netDeuterium = (planet.production.deuterium || 0) - (planet.consumption?.deuterium || 0);
+                if (netDeuterium > 0 && planet.resources.deuterium < planet.storage.deuterium) {
+                    planet.resources.deuterium += netDeuterium * timeDeltaHours;
                     if (planet.resources.deuterium > planet.storage.deuterium) planet.resources.deuterium = planet.storage.deuterium;
+                } else if (netDeuterium < 0) {
+                    planet.resources.deuterium += netDeuterium * timeDeltaHours;
+                    if (planet.resources.deuterium < 0) planet.resources.deuterium = 0;
                 }
 
                 // Water

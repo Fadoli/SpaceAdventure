@@ -486,6 +486,47 @@ export function getResearchProgress(player, now = Date.now()) {
   return { theoretical, practical };
 }
 
+/**
+ * Materialize completed research before a request reads or mutates the queue.
+ */
+export async function processCompletedResearch(player, now = Date.now()) {
+  let updated = false;
+
+  while (player.researchQueue && player.researchQueue.length > 0) {
+    const item = player.researchQueue[0];
+    if (item.endTime > now) break;
+
+    await completeTheoreticalResearch(player, item.id);
+    const planet = player.planets.find(p => p.id === item.planetId);
+    if (planet) planet.lastActivity = now;
+
+    if (player.researchQueue.length > 0) {
+      const nextItem = player.researchQueue[0];
+      nextItem.startTime = item.endTime;
+      nextItem.endTime = nextItem.startTime + nextItem.duration;
+    }
+    updated = true;
+  }
+
+  while (player.practicalResearchQueue && player.practicalResearchQueue.length > 0) {
+    const item = player.practicalResearchQueue[0];
+    if (item.endTime > now) break;
+
+    await completePracticalResearch(player, item.id, now);
+    const planet = player.planets.find(p => p.id === item.planetId);
+    if (planet) planet.lastActivity = now;
+
+    if (player.practicalResearchQueue.length > 0) {
+      const nextItem = player.practicalResearchQueue[0];
+      nextItem.startTime = item.endTime;
+      nextItem.endTime = nextItem.startTime + nextItem.duration;
+    }
+    updated = true;
+  }
+
+  return updated;
+}
+
 export function getTheoreticalResearchLevels(player) { return player.research || {}; }
 export function getPracticalResearchProgress(player) { return player.practicalResearch || {}; }
 export function getActiveCustomVariants(player, planetId) { return player.customBuildingVariants || {}; }

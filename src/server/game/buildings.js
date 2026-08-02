@@ -166,6 +166,22 @@ export function getProduction(buildingType, level, planet = null, player = null)
   return production;
 }
 
+export function getBuildingDeuteriumConsumption(buildingType, level, planet = null, player = null, energyEfficiencyBonus = null) {
+  const building = getEffectiveBuildingDefinition(buildingType, planet, player);
+  if (!building?.deuteriumConsumption || level <= 0) return 0;
+
+  const efficiencyBonus = energyEfficiencyBonus ?? getResearchBonus(player?.research, 'buildingEnergyEfficiency');
+  const baseFusionOutput = BUILDINGS.fusionReactor?.production?.energy || 1;
+  const outputMultiplier = buildingType === 'fusionReactor'
+    ? (building.production?.energy ?? baseFusionOutput) / baseFusionOutput
+    : 1;
+
+  return Math.floor(
+    building.deuteriumConsumption * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) *
+    getResourceProductionMultiplier() * outputMultiplier * Math.max(0.5, 1 - efficiencyBonus)
+  );
+}
+
 /**
  * Calculate storage capacity increase for a building level (server-side with config multipliers)
  */
@@ -693,12 +709,14 @@ export function updatePlanetProduction(planet, player = null) {
   
   planet.consumption = {
     energy: 0,
+    deuterium: 0,
     water: 0,
     food: 0,
     population: 0
   };
   
   let totalEnergyConsumption = 0;
+  let totalDeuteriumConsumption = 0;
   let totalWaterConsumption = 0;
   let totalPopulationRequired = 0;
   
@@ -763,6 +781,16 @@ export function updatePlanetProduction(planet, player = null) {
       const baseWaterConsumption = Math.floor(building.waterConsumption * level * Math.pow(SCALING.BUILDING_PRODUCTION, level));
       totalWaterConsumption += Math.floor(baseWaterConsumption * totalEffectiveness * Math.max(0.5, reduction));
     }
+
+    if (building.deuteriumConsumption) {
+      totalDeuteriumConsumption += getBuildingDeuteriumConsumption(
+        buildingType,
+        level,
+        planet,
+        player,
+        energyEfficiencyBonus
+      ) * totalEffectiveness;
+    }
     
     // Calculate population requirements using ACTUAL allocation
     if (building.populationRequired) {
@@ -796,6 +824,7 @@ export function updatePlanetProduction(planet, player = null) {
   // 2. Water (Buildings already added to totalWaterConsumption, now add population need)
   const populationWaterNeed = calculateWaterConsumption(currentPop, CONFIG.WATER_CONSUMPTION_PER_POPULATION);
   planet.consumption.water = totalWaterConsumption + populationWaterNeed;
+  planet.consumption.deuterium = Math.floor(totalDeuteriumConsumption);
   
   // 3. Energy (Buildings already added to totalEnergyConsumption)
   // 4. Workers (Calculated in loop as totalPopulationRequired)

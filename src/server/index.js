@@ -20,6 +20,7 @@ import {
   getBuildingCost, 
   getBuildTime, 
   getProduction, 
+  getBuildingDeuteriumConsumption,
   getStorageIncrease, 
   updatePlanetProduction, 
   queueVariantSwitch, 
@@ -54,6 +55,7 @@ import {
   resetPracticalResearch,
   selectCustomBuildingVariant,
   getResearchProgress,
+  processCompletedResearch,
   getTheoreticalResearchLevels,
   getPracticalResearchProgress,
   getActiveCustomVariants,
@@ -449,6 +451,7 @@ async function handleRequest(req) {
       for (const planet of player.planets) {
         if (processCompletedProduction(planet)) updated = true;
       }
+      if (await processCompletedResearch(player)) updated = true;
       if (updated) {
         await updatePlayer(user.id, player);
       }
@@ -815,11 +818,14 @@ async function handleRequest(req) {
         // Calculate deuterium consumption for next level
         let deuteriumConsumption = 0;
         if (buildingDef.deuteriumConsumption) {
-          const productionMultiplier = 10.0; // From config
-          // Apply same energy efficiency bonus if it's a deuterium consumer (flavor choice)
           const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
-          const reduction = 1 - energyEfficiencyBonus;
-          deuteriumConsumption = Math.floor(buildingDef.deuteriumConsumption * nextLevel * Math.pow(SCALING.BUILDING_PRODUCTION, nextLevel) * productionMultiplier * Math.max(0.5, reduction));
+          deuteriumConsumption = getBuildingDeuteriumConsumption(
+            buildingType,
+            nextLevel,
+            planet,
+            player,
+            energyEfficiencyBonus
+          );
         }
         
         // Check if can afford
@@ -877,11 +883,16 @@ async function handleRequest(req) {
 
         let actualDeuteriumConsumption = 0;
         if (buildingDef.deuteriumConsumption && currentLevel > 0) {
-          const productionMultiplier = 10.0;
           const energyEfficiencyBonus = getResearchBonus(player?.research, 'buildingEnergyEfficiency');
-          const reduction = 1 - energyEfficiencyBonus;
-          const baseConsumption = Math.floor(buildingDef.deuteriumConsumption * currentLevel * Math.pow(SCALING.BUILDING_PRODUCTION, currentLevel) * productionMultiplier * Math.max(0.5, reduction));
-          actualDeuteriumConsumption = Math.floor(baseConsumption * totalEffectiveness);
+          actualDeuteriumConsumption = Math.floor(
+            getBuildingDeuteriumConsumption(
+              buildingType,
+              currentLevel,
+              planet,
+              player,
+              energyEfficiencyBonus
+            ) * totalEffectiveness
+          );
         }
 
         // Calculate expected gains for next level based on CURRENT effectiveness/allocations
@@ -923,10 +934,13 @@ async function handleRequest(req) {
               ) * actualAllocation.power * 100) / 100
             : 0;
           const projectedDeuterium = buildingDef.deuteriumConsumption
-            ? Math.floor(
-                buildingDef.deuteriumConsumption * level * Math.pow(SCALING.BUILDING_PRODUCTION, level) * 10.0 *
-                Math.max(0.5, 1 - energyEfficiencyBonus) * totalEffectiveness
-              )
+            ? Math.floor(getBuildingDeuteriumConsumption(
+                buildingType,
+                level,
+                planet,
+                player,
+                energyEfficiencyBonus
+              ) * totalEffectiveness)
             : 0;
 
           levelProjections.push({
@@ -1617,6 +1631,9 @@ async function handleRequest(req) {
       }
 
       try {
+        if (await processCompletedResearch(player)) {
+          await updatePlayer(user.id, player);
+        }
         const theoretical = getTheoreticalResearchLevels(player);
         const practical = getPracticalResearchProgress(player);
         const progress = getResearchProgress(player);
@@ -1693,6 +1710,9 @@ async function handleRequest(req) {
       const { techKey } = body;
 
       try {
+        if (await processCompletedResearch(player)) {
+          await updatePlayer(user.id, player);
+        }
         const queueItem = startTheoreticalResearch(player, techKey, planetId);
         await updatePlayer(user.id, player);
         wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
@@ -1721,6 +1741,9 @@ async function handleRequest(req) {
       const queueId = parts[7];
 
       try {
+        if (await processCompletedResearch(player)) {
+          await updatePlayer(user.id, player);
+        }
         const refund = cancelTheoreticalResearch(player, queueId, planetId);
         await updatePlayer(user.id, player);
         wsManager.sendToUser(user.id, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
@@ -1750,6 +1773,9 @@ async function handleRequest(req) {
       const { researchKey, allocation, strength } = body;
 
       try {
+        if (await processCompletedResearch(player)) {
+          await updatePlayer(user.id, player);
+        }
         let queueItem;
         if (allocation) {
           // Allocation-based research (customization)
@@ -1786,6 +1812,9 @@ async function handleRequest(req) {
       const queueId = parts[7];
 
       try {
+        if (await processCompletedResearch(player)) {
+          await updatePlayer(user.id, player);
+        }
         const refund = cancelPracticalResearch(player, queueId, planetId);
         console.log(`[PRACTICAL_RESEARCH] Cancelled research: ${queueId}, refund:`, refund);
         await updatePlayer(user.id, player);

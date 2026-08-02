@@ -3,6 +3,7 @@ import {
   getBuildingCost, 
   getBuildTime, 
   getProduction,
+  getBuildingDeuteriumConsumption,
   getStorageIncrease,
   updatePlanetProduction
 } from '../../src/server/game/buildings.js';
@@ -44,6 +45,31 @@ describe('Server Buildings - getBuildingCost', () => {
 });
 
 describe('Server Buildings - Energy Accounting', () => {
+  it('scales fusion deuterium consumption with its effective energy output', () => {
+    const baseConsumption = getBuildingDeuteriumConsumption('fusionReactor', 1);
+    const planet = {
+      activeVariants: { fusionReactor: 'optimized' },
+      localBlueprints: {
+        fusionReactor: {
+          customDefinition: {
+            ...BUILDINGS.fusionReactor,
+            production: { energy: BUILDINGS.fusionReactor.production.energy * 2 }
+          }
+        }
+      }
+    };
+
+    const blueprintConsumption = getBuildingDeuteriumConsumption(
+      'fusionReactor',
+      1,
+      planet,
+      { research: {} }
+    );
+
+    expect(blueprintConsumption).toBeGreaterThan(baseConsumption);
+    expect(blueprintConsumption / baseConsumption).toBeGreaterThan(1.9);
+  });
+
   it('uses the same energy formula for allocation and reported consumption', () => {
     const planet = {
       coordinates: [1, 1, 1],

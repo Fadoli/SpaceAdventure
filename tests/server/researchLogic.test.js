@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { cancelPracticalResearch, cancelTheoreticalResearch, completePracticalResearch, startPracticalResearchWithAllocation, startTheoreticalResearch } from '../../src/server/game/researchLogic.js';
+import { cancelPracticalResearch, cancelTheoreticalResearch, completePracticalResearch, processCompletedResearch, startPracticalResearchWithAllocation, startTheoreticalResearch } from '../../src/server/game/researchLogic.js';
 import { BUILDINGS } from '../../src/shared/buildings.js';
 
 describe('completePracticalResearch Fix', () => {
@@ -87,6 +87,24 @@ describe('practical research input validation', () => {
     const blueprintItem = startTheoreticalResearch(withBlueprint, 'energyTech', 'planet-1');
 
     expect(blueprintItem.duration).toBeLessThan(baseItem.duration);
+  });
+
+  it('materializes completed research before queue consumers read it', async () => {
+    const player = makePlayer();
+    player.researchQueue = [{
+      id: 'completed',
+      techKey: 'energyTech',
+      level: 1,
+      planetId: 'planet-1',
+      startTime: 0,
+      endTime: 1,
+      duration: 1,
+      cost: { metal: 0, crystal: 0, deuterium: 0 }
+    }];
+
+    expect(await processCompletedResearch(player, 2)).toBe(true);
+    expect(player.researchQueue).toHaveLength(0);
+    expect(player.research.energyTech).toBe(1);
   });
 });
 
