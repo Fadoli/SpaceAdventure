@@ -5,6 +5,7 @@ import { DEFENSES, calculateDefenseCost, calculateDefenseBuildTime } from '../..
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
 import { getEffectiveBuildingDefinition } from './buildings.js';
+import { BUILDING_SPEED_MULTIPLIER } from '../../shared/constants.js';
 
 function validateBuildOrder(order, definitions, label) {
   if (!order || typeof order !== 'object' || Array.isArray(order) || Object.keys(order).length === 0) {
@@ -124,7 +125,7 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
+    const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
     const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus, shipyardSpeedMultiplier, blueprintTimeMultiplier);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }

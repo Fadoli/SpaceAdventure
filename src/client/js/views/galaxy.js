@@ -819,7 +819,7 @@ window.navigateToCoords = async function(galaxy, system, position = null) {
 /**
  * Update galaxy view with current system data
  */
-export async function updateGalaxyView(gameState) {
+export async function updateGalaxyView(gameState, force = false) {
     const container = document.getElementById('galaxy-view');
     
     if (!gameState?.planets || gameState.planets.length === 0) {
@@ -852,7 +852,7 @@ export async function updateGalaxyView(gameState) {
     
     // Render if coordinates changed OR if we haven't rendered yet
     // We also force render if the container is empty (e.g. view switch)
-    if (lastRenderedGalaxy !== currentGalaxy || 
+    if (force || lastRenderedGalaxy !== currentGalaxy ||
         lastRenderedSystem !== currentSystem || 
         container.innerHTML.trim() === '') {
         

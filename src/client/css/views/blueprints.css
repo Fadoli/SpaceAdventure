@@ -2,12 +2,13 @@
 
 .blueprint-selection-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
-    gap: 15px;
-    margin-top: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
 }
 
 .blueprint-demolition-notice {
+    margin-bottom: 2px;
     padding: 10px 12px;
     border: 1px solid rgba(251, 191, 36, 0.35);
     background: rgba(251, 191, 36, 0.08);
@@ -30,7 +31,7 @@
 
 .blueprint-card-select:hover {
     border-color: var(--accent-blue);
-    transform: translateY(-4px);
+    transform: translateY(-2px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
@@ -75,6 +76,7 @@
 .blueprint-card-body {
     padding: 15px;
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -110,6 +112,12 @@
     margin-top: 4px;
 }
 
+.blueprint-stat-row span:last-child {
+    color: #e2e8f0;
+    text-align: right;
+    white-space: nowrap;
+}
+
 .mod-row {
     display: flex;
     align-items: center;
@@ -133,38 +141,8 @@
 .mod-row.pos .mod-value { color: var(--accent-green); }
 .mod-row.neg .mod-value { color: var(--accent-red); }
 
-.blueprint-switch-cost {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
-    padding: 10px;
-    border-radius: 2px;
-    margin-top: auto;
-    border: 1px solid transparent;
-}
-
-.blueprint-switch-cost strong {
-    display: block;
-    margin-bottom: 4px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    opacity: 0.8;
-}
-
-.blueprint-switch-cost.cost {
-    background: rgba(244, 63, 94, 0.05);
-    color: #fca5a5;
-    border-color: rgba(244, 63, 94, 0.1);
-}
-
-.blueprint-switch-cost.refund {
-    background: rgba(74, 222, 128, 0.05);
-    color: #86efac;
-    border-color: rgba(74, 222, 128, 0.1);
-}
-
 .blueprint-card-footer {
-    padding: 15px;
+    padding: 12px 15px;
     background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -173,4 +151,16 @@
     width: 40px !important;
     padding: 0 !important;
     flex-shrink: 0;
+}
+
+.blueprint-card-select.active .btn:disabled {
+    color: var(--accent-blue);
+    border-color: rgba(56, 189, 248, 0.35);
+    opacity: 0.8;
+}
+
+@media (max-width: 680px) {
+    .blueprint-selection-grid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -118,7 +118,7 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   const baseTime = calculateBaseTime(building) * Math.pow(SCALING.BUILDING_TIME, level - 1);
   
   const roboticsDef = getEffectiveBuildingDefinition('roboticsFactory', planet, player);
-  const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || 0.85;
+  const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
   
   // Robotics factory speeds up construction (inverse formula: 1 / multiplier^n)
   const roboticsMultiplier = roboticsLevel > 0 ? 1 / Math.pow(roboticsSpeedMultiplier, roboticsLevel) : 1;

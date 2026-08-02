@@ -26,7 +26,7 @@ export function calculateBuildTime(building, level, roboticsLevel = 0, naniteLev
   const time = baseTime * Math.pow(SCALING.BUILDING_TIME, level - 1);
   
   const roboticsDef = BUILDINGS.roboticsFactory;
-  const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || 0.85;
+  const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
   const roboticsMultiplier = roboticsLevel > 0 ? Math.pow(roboticsSpeedMultiplier, roboticsLevel) : 1;
   
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;

@@ -469,7 +469,7 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
 
   // Shipyard level speeds up construction
   const shipyardDef = BUILDINGS.shipyard;
-  const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
+  const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
   const shipyardMultiplier = Math.pow(shipyardSpeedMultiplier, shipyardLevel);
 
   // Nanite factory dramatically speeds up (2x per level)

@@ -122,7 +122,7 @@ describe('Building Efficiency - Time Investment Analysis', () => {
     
     // With robotics, total time should be significantly less
     expect(totalWith).toBeLessThan(totalWithout);
-    expect(totalWith).toBeLessThan(totalWithout * 0.5); // At least 50% faster
+    expect(totalWith).toBeLessThan(totalWithout * 0.6); // At least 40% faster at level 5
   });
 });
 

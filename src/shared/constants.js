@@ -171,8 +171,8 @@ export const CONFIG = {
   DEFENSE_BUILD_SPEED: 2500 // Cost units per hour at base speed
 };
 
-export const BUILDING_SPEED_MULTIPLIER = 0.85;
-export const RESEARCH_LAB_SPEED_MULTIPLIER = 0.80;
+export const BUILDING_SPEED_MULTIPLIER = 0.9;
+export const RESEARCH_LAB_SPEED_MULTIPLIER = 0.9;
 
 // Scaling factors for easier fine-tuning
 export const SCALING = {

@@ -4,7 +4,7 @@ import { escapeHtml, formatNumber, formatCountdown, formatDuration } from '../ut
 import { renderDetailsModal, closeDetailsModal } from './details.js';
 import { showConfirm } from './modals.js';
 import { Notifications } from '../notifications.js';
-import { RESOURCE_ICONS, SCALING } from '../../../shared/constants.js';
+import { BUILDING_SPEED_MULTIPLIER, RESEARCH_LAB_SPEED_MULTIPLIER, RESOURCE_ICONS, SCALING } from '../../../shared/constants.js';
 import { BUILDINGS } from '../../../shared/buildings.js';
 import { getCustomVariant } from '../../../shared/research.js';
 import { isEmpty } from '../../../shared/utils.js';
@@ -302,7 +302,7 @@ function updateBuildingCostsAndAffordance(buildings, planet, queue, maxQueueSize
                     const def = BUILDINGS[key];
                     const speedMult = key === 'naniteFactory' 
                         ? Math.pow(2, building.currentLevel).toFixed(0)
-                        : (1 / Math.pow(def.speedMultiplier || 0.85, building.currentLevel)).toFixed(2);
+                        : (1 / Math.pow(def.speedMultiplier || BUILDING_SPEED_MULTIPLIER, building.currentLevel)).toFixed(2);
                     statsHtml = `<div class="building-special">${speedMap[key].icon} ${speedMap[key].label}: ${speedMult}x speed</div>`;
                 }
             }
@@ -636,7 +636,7 @@ function renderBlueprintPreview(building, blueprint, buildingKey) {
         return `<div class="blueprint-stat-row"><span>${RESOURCE_ICONS[resource] || ''} ${resource}</span><span>${formatNumber(value)} → ${formatNumber(after)}/h</span></div>`;
     });
 
-    if (building.actualEnergyConsumption > 0 || targetModifiers.energyMultiplier !== undefined) {
+    if (building.actualEnergyConsumption > 0) {
         const before = building.actualEnergyConsumption || 0;
         const base = before / (currentModifiers.energyMultiplier || 1);
         const after = Math.round(base * (targetModifiers.energyMultiplier || 1) * 100) / 100;
@@ -934,7 +934,7 @@ export async function showBuildingDetails(buildingKey) {
         } else if (buildingKey === 'roboticsFactory') {
             // Robotics factory - show construction speed multiplier
             const roboticsDef = BUILDINGS.roboticsFactory;
-            const speedMultiplier = roboticsDef.speedMultiplier || 0.85;
+            const speedMultiplier = roboticsDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
             const speedMult = 1 / Math.pow(speedMultiplier, l.level);
             dataCell = `<div>⏱️ ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / ${speedMultiplier}^${l.level})</span></div>`;
         } else if (buildingKey === 'naniteFactory') {
@@ -944,13 +944,13 @@ export async function showBuildingDetails(buildingKey) {
         } else if (buildingKey === 'researchLab') {
             // Research lab - show research speed multiplier
             const labDef = BUILDINGS.researchLab;
-            const speedMultiplier = labDef.speedMultiplier || 0.85;
+            const speedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
             const speedMult = 1 / Math.pow(speedMultiplier, l.level);
             dataCell = `<div>🔬 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / ${speedMultiplier}^${l.level})</span></div>`;
         } else if (buildingKey === 'shipyard') {
             // Shipyard - show production multiplier
             const shipyardDef = BUILDINGS.shipyard;
-            const speedMultiplier = shipyardDef.speedMultiplier || 0.85;
+            const speedMultiplier = shipyardDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
             const speedMult = 1 / Math.pow(speedMultiplier, l.level);
             dataCell = `<div>🚀 ${speedMult.toFixed(2)}x speed<br><span style="font-size: 0.9em;">(1 / ${speedMultiplier}^${l.level})</span></div>`;
         } else {
@@ -979,7 +979,7 @@ export async function showBuildingDetails(buildingKey) {
     let effects = '';
     if (buildingKey === 'roboticsFactory' && currentLevel > 0) {
         const roboticsDef = BUILDINGS.roboticsFactory;
-        const speedMultiplier = roboticsDef.speedMultiplier || 0.85;
+        const speedMultiplier = roboticsDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
         const speedMult = (1 / Math.pow(speedMultiplier, currentLevel)).toFixed(2);
         effects = `
             <div class="building-effects">
@@ -997,7 +997,7 @@ export async function showBuildingDetails(buildingKey) {
         `;
     } else if (buildingKey === 'researchLab' && currentLevel > 0) {
         const labDef = BUILDINGS.researchLab;
-        const speedMultiplier = labDef.speedMultiplier || 0.85;
+        const speedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
         const speedMult = (1 / Math.pow(speedMultiplier, currentLevel)).toFixed(2);
         effects = `
             <div class="building-effects">
@@ -1007,7 +1007,7 @@ export async function showBuildingDetails(buildingKey) {
         `;
     } else if (buildingKey === 'shipyard' && currentLevel > 0) {
         const shipyardDef = BUILDINGS.shipyard;
-        const speedMultiplier = shipyardDef.speedMultiplier || 0.85;
+        const speedMultiplier = shipyardDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
         const speedMult = (1 / Math.pow(speedMultiplier, currentLevel)).toFixed(2);
         effects = `
             <div class="building-effects">

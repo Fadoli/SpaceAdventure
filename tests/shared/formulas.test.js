@@ -84,7 +84,7 @@ describe('calculateBuildTime', () => {
 
   it(`should apply robotics factory multiplier (scaling^level)`, () => {
     const roboticsDef = BUILDINGS.roboticsFactory;
-    const speedMultiplier = roboticsDef.speedMultiplier || 0.85;
+    const speedMultiplier = roboticsDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
     const result = calculateBuildTime(building, 2, 2);
     const expectedTime = Math.floor(1180 * Math.pow(SCALING.BUILDING_TIME, 1) * Math.pow(speedMultiplier, 2));
     expect(result).toBe(expectedTime);
@@ -98,7 +98,7 @@ describe('calculateBuildTime', () => {
 
   it('should apply both multipliers when both are provided', () => {
     const roboticsDef = BUILDINGS.roboticsFactory;
-    const speedMultiplier = roboticsDef.speedMultiplier || 0.85;
+    const speedMultiplier = roboticsDef.speedMultiplier || BUILDING_SPEED_MULTIPLIER;
     const result = calculateBuildTime(building, 2, 1, 1);
     const expectedTime = Math.floor((1180 * Math.pow(SCALING.BUILDING_TIME, 1) * Math.pow(speedMultiplier, 1)) / Math.pow(2, 1));
     expect(result).toBe(expectedTime);
@@ -505,7 +505,7 @@ describe('calculateTheoreticalResearchTime', () => {
   const research = THEORETICAL_RESEARCH.energyTech; // baseTime 500
   it(`should increase by ${SCALING.RESEARCH_TIME}x with each level`, () => {
     const labDef = BUILDINGS.researchLab;
-    const speedMultiplier = labDef.speedMultiplier || 0.85;
+    const speedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
     const result1 = calculateTheoreticalResearchTime(research, 1);
     
     const expectedTime1 = Math.floor(500 * Math.pow(SCALING.RESEARCH_TIME, 1) * Math.pow(speedMultiplier, 1));
@@ -514,7 +514,7 @@ describe('calculateTheoreticalResearchTime', () => {
 
   it(`should reduce time with higher lab level (multiplicative scaling^level)`, () => {
     const labDef = BUILDINGS.researchLab;
-    const speedMultiplier = labDef.speedMultiplier || 0.85;
+    const speedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
     const result1 = calculateTheoreticalResearchTime(research, 1, 1);
     const result2 = calculateTheoreticalResearchTime(research, 1, 5);
     expect(result2).toBeLessThan(result1);
@@ -549,7 +549,7 @@ describe('calculatePracticalResearchTime', () => {
     // Formula: calculateBaseTime(cost) * labMult
     // Cost mult: strength(10^3.5) * alloc(1.05)
     const labDef = BUILDINGS.researchLab;
-    const speedMultiplier = labDef.speedMultiplier || 0.85;
+    const speedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
     const result1 = calculatePracticalResearchTime(research, 1, 1, 0, 1.0, 0.5, { output: 1.0 });
     const strMult = Math.pow(10, 3.5);
     const expectedTime = Math.floor(50 * strMult * 1.05 * speedMultiplier);
@@ -558,7 +558,7 @@ describe('calculatePracticalResearchTime', () => {
 
   it('should be affected by lab level', () => {
     const labDef = BUILDINGS.researchLab;
-    const speedMultiplier = labDef.speedMultiplier || 0.85;
+    const speedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
     const strMult = Math.pow(10, 3.5);
     const result1 = calculatePracticalResearchTime(research, 2, 1, 0, 1.0, 0.5, { output: 1.0 });
     const result2 = calculatePracticalResearchTime(research, 2, 5, 0, 1.0, 0.5, { output: 1.0 });

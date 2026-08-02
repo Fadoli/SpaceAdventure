@@ -166,6 +166,8 @@ it('resets galaxy navigation to the selected planet system', async () => {
   const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
   expect(source).toContain("if (view === 'galaxy' && gameState)");
   expect(source).toContain('[window.currentGalaxy, window.currentSystem] = planet.coordinates');
+  expect(source).toContain('updateGalaxyView(gameState, true)');
+  expect(source).toContain('if (forceFetch)');
 });
 
 it('applies research cost reduction to shipyard UI prices', async () => {

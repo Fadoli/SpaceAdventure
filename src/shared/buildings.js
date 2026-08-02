@@ -121,7 +121,7 @@ export const BUILDINGS = {
   roboticsFactory: {
     name: 'Robotics Factory',
     icon: '🤖',
-    description: 'Produces construction robots that speed up building construction. Each level reduces construction time by 15%.',
+    description: 'Produces construction robots that speed up building construction. Each level reduces construction time by 10%.',
     detailedDescription: 'The Robotics Factory produces and maintains a fleet of automated construction drones.\n\nThese machines work tirelessly, far exceeding human labor in precision and speed.\n\nEach upgrade increases the number and efficiency of drones, significantly reducing the time required for all planetary construction projects.',
     baseCost: {
       metal: 400,
@@ -129,7 +129,7 @@ export const BUILDINGS = {
       deuterium: 200
     },
     maxLevel: 50,
-    speedMultiplier: 0.85,
+    speedMultiplier: 0.9,
     energyConsumption: 25, // Energy required to operate
     populationRequired: 30, // Reduced from 50 to 30 for better balance
     requirements: {}
@@ -146,7 +146,7 @@ export const BUILDINGS = {
       deuterium: 100
     },
     maxLevel: 50,
-    speedMultiplier: 0.85,
+    speedMultiplier: 0.9,
     requirements: {
       roboticsFactory: 2
     }
@@ -163,7 +163,7 @@ export const BUILDINGS = {
       deuterium: 200
     },
     maxLevel: 50,
-    speedMultiplier: 0.80,
+    speedMultiplier: 0.9,
     energyConsumption: 15, // Energy required to operate
     populationRequired: 30, // Population required to maintain
     requirements: {}

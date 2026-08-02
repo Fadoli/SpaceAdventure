@@ -342,7 +342,7 @@ function switchView(view, updateHistory = true, forceFetch = false) {
             renderCurrentAllocation();
         } else if (view === 'galaxy') {
             // Render galaxy view when explicitly switched
-            updateGalaxyView(gameState);
+            updateGalaxyView(gameState, true);
         } else if (view === 'research') {
             // Initialize research view when explicitly switched
             const planet = gameState.planets.find(p => p.id === currentPlanetId) || gameState.planets[0];
@@ -493,8 +493,11 @@ function updateCurrentView(forceFetch = false, stateOnly = false) {
             if (gameState) updateFleetView(gameState);
             break;
         case 'galaxy':
-            // Don't auto-update galaxy view during regular updates
-            // Only render when user explicitly switches to this view
+            // A planet change must move the galaxy cursor and refresh the highlight.
+            if (forceFetch) {
+                [window.currentGalaxy, window.currentSystem] = planet.coordinates;
+                updateGalaxyView(gameState, true);
+            }
             break;
         case 'messages':
             // Don't auto-update messages view, handled by WebSocket or safety sync
