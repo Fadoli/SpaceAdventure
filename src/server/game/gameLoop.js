@@ -180,7 +180,10 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
     
     for (const player of players) {
       let stateChanged = false;
-      let buildingComplete = false;
+      const pendingEvents = [];
+      const queueEvent = (type, data) => {
+        if (!isCatchUp) pendingEvents.push({ userId: player.userId, type, data });
+      };
       // Process each planet
       for (const planet of player.planets) {
         // Update resources based on production
@@ -271,14 +274,14 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       const buildingsUpdated = await processCompletedBuildings(player, now);
       if (buildingsUpdated) {
         stateChanged = true;
-        buildingComplete = true;
+        queueEvent('BUILDING_COMPLETE', { userId: player.userId });
       }
       
       // Process completed variant switches
       const variantSwitchesUpdated = await processCompletedVariantSwitches(player, now);
       if (variantSwitchesUpdated) {
         stateChanged = true;
-        if (!isCatchUp) wsManager.sendToUser(player.userId, 'VARIANT_SWITCH_COMPLETE', { userId: player.userId });
+        queueEvent('VARIANT_SWITCH_COMPLETE', { userId: player.userId });
       }
       
       // Process completed ship and defense production
@@ -286,14 +289,14 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
         const productionUpdated = processCompletedProduction(planet, now);
         if (productionUpdated) {
           stateChanged = true;
-          if (!isCatchUp) wsManager.sendToUser(player.userId, 'PRODUCTION_COMPLETE', { userId: player.userId, planetId: planet.id });
+          queueEvent('PRODUCTION_COMPLETE', { userId: player.userId, planetId: planet.id });
           
           // If queue is now completely empty, send a specific completion event
           const hasShipsInQueue = planet.shipQueue && planet.shipQueue.length > 0;
           const hasDefensesInQueue = planet.defenseQueue && planet.defenseQueue.length > 0;
           
           if (!hasShipsInQueue && !hasDefensesInQueue && !isCatchUp) {
-            wsManager.sendToUser(player.userId, 'SHIPYARD_QUEUE_COMPLETE', { 
+            queueEvent('SHIPYARD_QUEUE_COMPLETE', {
               userId: player.userId, 
               planetId: planet.id,
               planetName: planet.name
@@ -306,13 +309,13 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       const researchUpdated = await processCompletedResearch(player, now);
       if (researchUpdated) {
         stateChanged = true;
-        if (!isCatchUp) wsManager.sendToUser(player.userId, 'RESEARCH_COMPLETE', { userId: player.userId });
+        queueEvent('RESEARCH_COMPLETE', { userId: player.userId });
       }
 
       // Process fleets
       const fleetPasses = isCatchUp ? 3 : 1;
       for (let pass = 0; pass < fleetPasses; pass++) {
-        const fleetsUpdated = await processFleets(player, players, now, isCatchUp);
+        const fleetsUpdated = await processFleets(player, players, now, isCatchUp, pendingEvents);
         if (fleetsUpdated) stateChanged = true;
       }
 
@@ -327,10 +330,10 @@ async function gameTick(now = Date.now(), isCatchUp = false) {
       }
 
       if (stateChanged) await updatePlayer(player.userId, player);
-      // Publish completion only after the canonical state/version is updated;
-      // clients reacting to this event can then immediately fetch the new queue.
-      if (buildingComplete && !isCatchUp) {
-        wsManager.sendToUser(player.userId, 'BUILDING_COMPLETE', { userId: player.userId });
+      // Publish all mutations only after the canonical state/version is
+      // updated; clients can safely refresh from any of these events.
+      for (const event of pendingEvents) {
+        wsManager.sendToUser(event.userId, event.type, event.data);
       }
       if (shouldSendPeriodicStateSync && !stateChanged) {
         wsManager.sendStateSync(

@@ -5,7 +5,6 @@ import { DEFENSES, calculateDefenseCost, calculateDefenseBuildTime } from '../..
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
 import { BUILDINGS } from '../../shared/buildings.js';
-import { wsManager } from './wsManager.js';
 
 function validateBuildOrder(order, definitions, label) {
   if (!order || typeof order !== 'object' || Array.isArray(order) || Object.keys(order).length === 0) {
@@ -65,9 +64,6 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   planet.resources.crystal -= totalCost.crystal;
   planet.resources.deuterium -= totalCost.deuterium;
 
-  // Notify client of resource change
-  if (player) wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planet.id });
-
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
   const effectiveBuildTime = totalBuildTime * configMultiplier;
@@ -86,9 +82,6 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   };
 
   planet.shipQueue.push(queueItem);
-
-  // Notify client of queue change
-  if (player) wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId: planet.id, queueType: 'shipyard' });
 
   // Update queue positions
   planet.shipQueue.forEach((item, index) => {
@@ -143,9 +136,6 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   planet.resources.crystal -= totalCost.crystal;
   planet.resources.deuterium -= totalCost.deuterium;
 
-  // Notify client of resource change
-  if (player) wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId: planet.id });
-
   // Apply config multiplier
   const configMultiplier = getShipBuildTimeMultiplier();
   const effectiveBuildTime = totalBuildTime * configMultiplier;
@@ -164,9 +154,6 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   };
 
   planet.defenseQueue.push(queueItem);
-
-  // Notify client of queue change
-  if (player) wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId: planet.id, queueType: 'shipyard' });
 
   // Update queue positions
   planet.defenseQueue.forEach((item, index) => {

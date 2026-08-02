@@ -67,6 +67,7 @@ it('updates shipyard folds and queue mutations without polling', async () => {
   expect(source).toContain("appendQueueItem('ships', response)");
   expect(source).toContain("appendQueueItem('defenses', response)");
   expect(mainSource).toContain('if (forceFetch || stateOnly) updateShipyardView');
+  expect(mainSource).toContain("view === 'shipyard' || view === 'defenses'");
 });
 
 it('formats ship and defense counts with compact numbers', async () => {
@@ -210,6 +211,14 @@ it('applies versioned WebSocket state syncs before using HTTP recovery', async (
   expect(source).toContain('nextGameState?.stateVersion');
   expect(gameLoop).toContain('STATE_SYNC_INTERVAL');
   expect(gameLoop).toContain('sendStateSync(');
+});
+
+it('refreshes canonical state after accepted fleet and planet mutations', async () => {
+  const mainSource = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const galaxySource = await readFile(new URL('../../src/client/js/views/galaxy.js', import.meta.url), 'utf8');
+  expect(mainSource).toContain('loadGameState(force);');
+  expect(mainSource).toContain('await loadGameState(true);');
+  expect(galaxySource).toContain('if (window.loadGameState) await window.loadGameState(true);');
 });
 
 it('does not poll alliance data from the one-second resource refresh', async () => {

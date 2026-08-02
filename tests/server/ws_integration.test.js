@@ -8,7 +8,15 @@ mock.module('../../src/server/storage/storage.js', () => ({
 }));
 
 // Mock wsManager
-const mockSendToUser = mock(() => true);
+const callbackOrder = [];
+const mockSendToUser = mock(() => {
+  callbackOrder.push('event');
+  return true;
+});
+const mockUpdatePlayer = mock(async () => {
+  callbackOrder.push('update');
+  return true;
+});
 mock.module('../../src/server/game/wsManager.js', () => ({
   wsManager: {
     sendToUser: mockSendToUser
@@ -23,7 +31,7 @@ mock.module('../../src/server/game/player.js', () => ({
     userId: id,
     planets: [{ id: 'p1', coordinates: [1, 1, 1], buildings: {}, resources: { metal: 10000, crystal: 10000, deuterium: 10000 } }]
   }),
-  updatePlayer: async () => true
+  updatePlayer: mockUpdatePlayer
 }));
 
 import { upgradeBuilding } from '../../src/server/game/buildings.js';
@@ -31,7 +39,9 @@ import { upgradeBuilding } from '../../src/server/game/buildings.js';
 describe('WebSocket Integration', () => {
   beforeEach(() => {
     mockStorage = {};
+    callbackOrder.length = 0;
     mockSendToUser.mockClear();
+    mockUpdatePlayer.mockClear();
   });
 
   /*
@@ -65,11 +75,12 @@ describe('WebSocket Integration', () => {
 
     await upgradeBuilding(userId, planetId, buildingType);
 
-    // Should call sendToUser twice: RESOURCES_UPDATED and QUEUE_UPDATED
-    expect(mockSendToUser).toHaveBeenCalledTimes(2);
+    // One queue event is enough; the canonical state sync carries resources.
+    expect(mockSendToUser).toHaveBeenCalledTimes(1);
     
     const types = mockSendToUser.mock.calls.map(c => c[1]);
-    expect(types).toContain('RESOURCES_UPDATED');
     expect(types).toContain('QUEUE_UPDATED');
+    expect(mockUpdatePlayer).toHaveBeenCalledTimes(1);
+    expect(callbackOrder).toEqual(['update', 'event']);
   });
 });

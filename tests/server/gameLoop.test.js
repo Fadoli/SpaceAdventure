@@ -15,7 +15,7 @@ describe('Game loop catch-up', () => {
   it('publishes building completion after the canonical player update', async () => {
     const source = await Bun.file(new URL('../../src/server/game/gameLoop.js', import.meta.url)).text();
     expect(source.indexOf('if (stateChanged) await updatePlayer')).toBeLessThan(
-      source.indexOf("if (buildingComplete && !isCatchUp)")
+      source.indexOf('for (const event of pendingEvents)')
     );
   });
 });

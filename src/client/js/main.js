@@ -354,7 +354,9 @@ function switchView(view, updateHistory = true, forceFetch = false) {
         } else if (view === 'ranking') {
             updateRankingView();
         } else {
-            updateCurrentView(forceFetch);
+            // Shipyard subviews only refresh on navigation or explicit state
+            // events; otherwise the resource tick would poll them every second.
+            updateCurrentView(forceFetch || view === 'shipyard' || view === 'defenses');
         }
     }
 
@@ -654,6 +656,7 @@ window.selectCustomVariant = async function(buildingKey, focusLevels) {
         const buildingsView = await import('./views/buildings.js');
         await API.selectCustomVariant(planetId, buildingKey, focusLevels);
         await buildingsView.closeCustomVariantModal();
+        await loadGameState(true);
     } catch (error) {
         Notifications.showError('Error: ' + error.message);
     }

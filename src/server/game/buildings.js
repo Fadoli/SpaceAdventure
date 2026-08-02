@@ -246,9 +246,6 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
   planet.resources.crystal -= cost.crystal;
   planet.resources.deuterium -= cost.deuterium;
   
-  // Notify client of resource change
-  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId });
-
   // Add to build queue
   if (!planet.buildQueue) {
     planet.buildQueue = [];
@@ -278,11 +275,9 @@ export async function upgradeBuilding(userId, planetId, buildingType) {
 
   planet.buildQueue.push(item);
   
-  // Notify client of queue change
-  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
-
   // Update player
   await updatePlayer(userId, player);
+  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
   
   return {
     building: buildingType,
@@ -333,9 +328,6 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
   planet.resources.crystal += refund.crystal;
   planet.resources.deuterium += refund.deuterium;
   
-  // Notify client of resource change
-  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId });
-
   // Remove from queue
   planet.buildQueue.splice(queueIndex, 1);
   
@@ -374,10 +366,8 @@ export async function cancelBuilding(userId, planetId, queuePosition = 1) {
     item.queuePosition = index + 1;
   });
   
-  // Notify client of queue change
-  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
-
   await updatePlayer(userId, player);
+  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
   
   return { refund };
 }
@@ -1088,9 +1078,6 @@ export async function queueVariantSwitch(userId, planetId, buildingType, toCusto
   planet.resources.crystal += switchCost.crystal;
   planet.resources.deuterium += switchCost.deuterium;
   
-  // Notify client of resource change
-  wsManager.sendToUser(userId, 'RESOURCES_UPDATED', { planetId });
-
   // Initialize variant switch queue if needed
   if (!planet.variantSwitchQueue) {
     planet.variantSwitchQueue = [];
@@ -1123,6 +1110,7 @@ export async function queueVariantSwitch(userId, planetId, buildingType, toCusto
   
   // Update player
   await updatePlayer(userId, player);
+  wsManager.sendToUser(userId, 'QUEUE_UPDATED', { planetId, queueType: 'build' });
   
   return {
     buildingType,

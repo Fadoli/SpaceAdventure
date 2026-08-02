@@ -234,6 +234,15 @@ describe('Fleet Management', () => {
   });
 
   describe('processFleets', () => {
+    it('publishes cross-player arrival mutations through the canonical state store', async () => {
+      const source = await Bun.file(new URL('../../src/server/game/fleet.js', import.meta.url)).text();
+      expect(source).toContain('async function processFleets(player, allPlayers, now = Date.now(), isCatchUp = false, pendingEvents = null)');
+      expect(source.indexOf('await updatePlayer(targetPlayer.userId, targetPlayer);')).toBeLessThan(
+        source.indexOf("wsManager.sendToUser(targetPlayer.userId, 'RESOURCES_UPDATED'")
+      );
+      expect(source).toContain('for (const affectedPlayer of affectedPlayers.values())');
+    });
+
     it('should process fleet return', async () => {
       const now = Date.now();
       // For returning fleet, coordinates are swapped: target is Home
@@ -259,6 +268,29 @@ describe('Fleet Management', () => {
       // Ships should be back: 10 original + 5 from fleet = 15
       expect(mockPlayer.planets[0].ships.lightFighter).toBe(15);
       expect(mockPlayer.planets[0].resources.metal).toBe(10100);
+    });
+
+    it('queues arrival events for publication after the player update', async () => {
+      const now = Date.now();
+      mockPlayer.fleets = [{
+        id: 'f-event',
+        originCoords: [1, 1, 2],
+        targetCoords: [1, 1, 1],
+        missionType: MISSION_TYPES.ATTACK,
+        ships: { lightFighter: 1 },
+        resources: { metal: 100 },
+        arrivalTime: now - 1,
+        returning: true
+      }];
+      const events = [];
+
+      await processFleets(mockPlayer, [mockPlayer], now, false, events);
+
+      expect(events).toEqual([{
+        userId: 'user1',
+        type: 'FLEET_RETURNED',
+        data: { userId: 'user1', fleetId: 'f-event' }
+      }]);
     });
 
     it('should process fleet arrival and turn back (Attack)', async () => {

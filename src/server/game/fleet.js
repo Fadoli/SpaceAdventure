@@ -229,10 +229,15 @@ export async function recallFleet(userId, fleetId) {
 /**
  * Process all active fleets for a player
  */
-export async function processFleets(player, allPlayers, now = Date.now(), isCatchUp = false) {
+export async function processFleets(player, allPlayers, now = Date.now(), isCatchUp = false, pendingEvents = null) {
     if (!player.fleets || player.fleets.length === 0) return false;
 
     let updated = false;
+    const notify = (type, data) => {
+        if (isCatchUp) return;
+        if (pendingEvents) pendingEvents.push({ userId: player.userId, type, data });
+        else wsManager.sendToUser(player.userId, type, data);
+    };
 
     for (let i = player.fleets.length - 1; i >= 0; i--) {
         const fleet = player.fleets[i];
@@ -260,7 +265,7 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
                     if (destroyed) {
                         player.fleets.splice(i, 1);
                         updated = true;
-                        if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
+                        notify('FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
                         continue;
                     }
                 }
@@ -289,14 +294,14 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
                 await handleFleetReturn(player, fleet);
                 player.fleets.splice(i, 1);
                 updated = true;
-                if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_RETURNED', { userId: player.userId, fleetId: fleet.id });
+                notify('FLEET_RETURNED', { userId: player.userId, fleetId: fleet.id });
             } else {
                 // Fleet arrived at target
                 const missionCompleted = await handleFleetArrival(player, fleet, allPlayers);
                 if (missionCompleted) {
                     // Some missions complete immediately (like colonize success)
                     player.fleets.splice(i, 1);
-                    if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
+                    notify('FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: true });
                 } else {
                     // Other missions reverse and return (spy, attack, transport)
                     // For expedition, it stays for a while
@@ -323,7 +328,7 @@ export async function processFleets(player, allPlayers, now = Date.now(), isCatc
                         fleet.originCoords = [...fleet.targetCoords];
                         fleet.targetCoords = origin;
                     }
-                    if (!isCatchUp) wsManager.sendToUser(player.userId, 'FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: false });
+                    notify('FLEET_ARRIVED', { userId: player.userId, fleetId: fleet.id, completed: false });
                 }
                 updated = true;
             }

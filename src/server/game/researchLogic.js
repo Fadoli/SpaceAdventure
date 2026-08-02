@@ -37,7 +37,6 @@ import {
   getConfig
 } from '../config.js';
 import { updatePlayer, getPlayerByUserId } from './player.js';
-import { wsManager } from './wsManager.js';
 
 function closeResearchQueueGap(queue, removedIndex) {
   queue.splice(removedIndex, 1);
@@ -99,9 +98,6 @@ export function startTheoreticalResearch(player, techKey, planetId) {
     planet.resources[resource] -= cost[resource];
   }
   
-  // Notify client of resource change
-  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId });
-
   // Calculate research time
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
@@ -145,9 +141,6 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   
   player.researchQueue.push(item);
 
-  // Notify client of queue change
-  wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
-
   return item;
 }
 
@@ -190,11 +183,6 @@ export function cancelTheoreticalResearch(player, queueItemId, planetId) {
     planet.resources[resource] += refund[resource];
   }
   
-  // Notify client of resource change
-  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId });
-  // Notify client of queue change
-  wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
-
   closeResearchQueueGap(player.researchQueue, index);
   return refund;
 }
@@ -256,9 +244,6 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   
   for (const resource in cost) planet.resources[resource] -= cost[resource];
   
-  // Notify client of resource change
-  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId });
-
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
   const labDef = BUILDINGS.researchLab;
@@ -292,9 +277,6 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   
   if (!player.practicalResearchQueue) player.practicalResearchQueue = [];
   player.practicalResearchQueue.push(item);
-
-  // Notify client of queue change
-  wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
 
   return item;
 }
@@ -396,11 +378,6 @@ export function cancelPracticalResearch(player, queueItemId, planetId) {
     planet.resources[resource] += refund[resource];
   }
   
-  // Notify client of resource change
-  wsManager.sendToUser(player.userId, 'RESOURCES_UPDATED', { planetId });
-  // Notify client of queue change
-  wsManager.sendToUser(player.userId, 'QUEUE_UPDATED', { planetId, queueType: 'research' });
-
   closeResearchQueueGap(player.practicalResearchQueue, index);
   return refund;
 }
