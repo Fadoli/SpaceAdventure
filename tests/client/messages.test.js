@@ -34,11 +34,12 @@ describe('message rendering', () => {
     });
 
     expect(html).toContain('ATTACKERS');
-    expect(html).toContain('9 left');
+    expect(html).toContain('9 remaining');
     expect(html).toContain('-3');
-    expect(html).toContain('100 dmg');
+    expect(html).toContain('100 / 80 damage');
     expect(html).toContain('BATTLE SUMMARY');
     expect(html).toContain('VIEW ROUND-BY-ROUND UNIT COUNTS');
     expect(html).toContain('UNIT DETAIL UNAVAILABLE');
+    expect(html).not.toContain('ENGAGEMENT LOG');
   });
 });
