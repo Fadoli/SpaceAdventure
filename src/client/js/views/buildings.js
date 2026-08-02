@@ -924,7 +924,7 @@ export async function showBuildingDetails(buildingKey) {
                 const icon = RESOURCE_ICONS[resource] || '❓';
                 dataCell += `<div>${icon}+${formatNumber(amount)}</div>`;
             }
-        } else if (l.production) {
+        } else if (l.production && Object.keys(l.production).length > 0) {
             // Production building - show production amounts
             for (const resource in l.production) {
                 const amount = l.production[resource];
