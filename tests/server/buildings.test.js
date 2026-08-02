@@ -236,6 +236,40 @@ describe('Server Buildings - getBuildTime', () => {
     const withBoth = getBuildTime('metalMine', 3, 2, 2);
     expect(withBoth).toBeLessThan(baseTime);
   });
+
+  it('should apply an active robotics blueprint to other buildings', () => {
+    const baseTime = getBuildTime('metalMine', 3, 1, 0);
+    const planet = {
+      buildings: { roboticsFactory: 1 },
+      activeVariants: { roboticsFactory: 'optimized' },
+      localBlueprints: {
+        roboticsFactory: {
+          customDefinition: { ...BUILDINGS.roboticsFactory, timeMultiplier: 0.5 }
+        }
+      }
+    };
+
+    const blueprintTime = getBuildTime('metalMine', 3, 1, 0, planet, { research: {} });
+
+    expect(blueprintTime).toBeLessThan(baseTime);
+  });
+
+  it('should apply an active nanite blueprint to other buildings', () => {
+    const baseTime = getBuildTime('metalMine', 3, 1, 1);
+    const planet = {
+      buildings: { naniteFactory: 1 },
+      activeVariants: { naniteFactory: 'optimized' },
+      localBlueprints: {
+        naniteFactory: {
+          customDefinition: { ...BUILDINGS.naniteFactory, timeMultiplier: 0.5 }
+        }
+      }
+    };
+
+    const blueprintTime = getBuildTime('metalMine', 3, 1, 1, planet, { research: {} });
+
+    expect(blueprintTime).toBeLessThan(baseTime);
+  });
 });
 
 describe('Server Buildings - getProduction', () => {

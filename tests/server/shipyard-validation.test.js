@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { buildDefenses, buildShips, cancelProduction, getShipyardDetails } from '../../src/server/game/shipyard.js';
 import { calculateShipCost } from '../../src/shared/ships.js';
 import { calculateDefenseCost } from '../../src/shared/defenses.js';
+import { BUILDINGS } from '../../src/shared/buildings.js';
 
 function makePlanet() {
   return {
@@ -33,6 +34,35 @@ describe('shipyard order validation', () => {
     buildDefenses(planet, null, { rocketLauncher: 1 }, 1);
     expect(planet.shipQueue).toHaveLength(1);
     expect(planet.defenseQueue).toHaveLength(1);
+  });
+
+  it('applies shipyard blueprints to ship and defense production time', () => {
+    const baseShips = makePlanet();
+    const blueprintShips = makePlanet();
+    blueprintShips.activeVariants = { shipyard: 'optimized' };
+    blueprintShips.localBlueprints = {
+      shipyard: {
+        customDefinition: { ...BUILDINGS.shipyard, timeMultiplier: 0.5 }
+      }
+    };
+
+    const baseShipOrder = buildShips(baseShips, null, { smallCargo: 1 }, 1);
+    const blueprintShipOrder = buildShips(blueprintShips, null, { smallCargo: 1 }, 1);
+
+    const baseDefenses = makePlanet();
+    const blueprintDefenses = makePlanet();
+    blueprintDefenses.activeVariants = { shipyard: 'optimized' };
+    blueprintDefenses.localBlueprints = {
+      shipyard: {
+        customDefinition: { ...BUILDINGS.shipyard, timeMultiplier: 0.5 }
+      }
+    };
+
+    const baseDefenseOrder = buildDefenses(baseDefenses, null, { rocketLauncher: 1 }, 1);
+    const blueprintDefenseOrder = buildDefenses(blueprintDefenses, null, { rocketLauncher: 1 }, 1);
+
+    expect(blueprintShipOrder.buildTime).toBeLessThan(baseShipOrder.buildTime);
+    expect(blueprintDefenseOrder.buildTime).toBeLessThan(baseDefenseOrder.buildTime);
   });
 
   it('charges research-reduced costs for ships and defenses', () => {

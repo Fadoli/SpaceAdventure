@@ -456,7 +456,7 @@ export function calculateShipCost(shipKey, quantity = 1, costReductionBonus = 0)
 /**
  * Calculate build time for ships
  */
-export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1, naniteLevel = 0, timeReductionBonus = 0) {
+export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1, naniteLevel = 0, timeReductionBonus = 0, timeMultiplier = 1) {
   const ship = getShip(shipKey);
   if (!ship) return 0;
 
@@ -476,7 +476,7 @@ export function calculateShipBuildTime(shipKey, quantity = 1, shipyardLevel = 1,
   const naniteMultiplier = naniteLevel > 0 ? Math.pow(2, naniteLevel) : 1;
 
   const reduction = 1 - timeReductionBonus;
-  const totalTime = (timeInSeconds * shipyardMultiplier * reduction) / naniteMultiplier;
+  const totalTime = ((timeInSeconds * shipyardMultiplier * reduction) / naniteMultiplier) * timeMultiplier;
 
   return Math.max(1, Math.floor(totalTime));
 }

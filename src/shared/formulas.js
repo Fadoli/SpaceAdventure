@@ -311,14 +311,14 @@ export function calculateTheoreticalResearchCost(baseCost, level, costScaling = 
  * Calculate theoretical research time at a given level
  * Time increases with each level, affected by research lab level
  */
-export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, speedMultiplier = null) {
+export function calculateTheoreticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, speedMultiplier = null, timeMultiplier = 1) {
   const baseTime = calculateBaseTime(research);
   const time = baseTime * Math.pow(SCALING.RESEARCH_TIME, level);
   const scaling = speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
   const labMultiplier = Math.pow(scaling, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier * configMultiplier));
+  return Math.max(1, Math.floor(time * labMultiplier * techMultiplier * configMultiplier * timeMultiplier));
 }
 
 /**
@@ -353,7 +353,7 @@ export function calculatePracticalResearchCost(baseCost, level, allocation = { o
  * Calculate practical research (customization) time at a given level
  * Derived directly from the calculated resource cost
  */
-export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, strength = 0.5, allocation = { output: 1.0 }, speedMultiplier = null) {
+export function calculatePracticalResearchTime(research, level, labLevel = 1, researchSpeedBonus = 0, configMultiplier = 1.0, strength = 0.5, allocation = { output: 1.0 }, speedMultiplier = null, timeMultiplier = 1) {
   // Derive duration from actual cost
   const actualCost = calculatePracticalResearchCost(research.baseCost, level, allocation, strength);
   const rawDuration = calculateBaseTime({ baseCost: actualCost });
@@ -362,7 +362,7 @@ export function calculatePracticalResearchTime(research, level, labLevel = 1, re
   const labMultiplier = Math.pow(scaling, labLevel);
   const techMultiplier = 1 / (1 + researchSpeedBonus);
   
-  const totalTime = Math.floor(rawDuration * labMultiplier * techMultiplier * configMultiplier);
+  const totalTime = Math.floor(rawDuration * labMultiplier * techMultiplier * configMultiplier * timeMultiplier);
   
   // Apply same constraints as server
   const minTime = 1; // 1 second minimum

@@ -51,7 +51,8 @@ function calculateResearchStateHash(data) {
         practicalQueue: (data.progress?.practical || []).map(q => ({ id: q.id, baseType: q.baseType, strength: q.strength })),
         theoretical: data.theoretical,
         practical: data.practical,
-        blueprints: data.blueprints
+        blueprints: data.blueprints,
+        researchLabTimeMultiplier: data.researchLabTimeMultiplier
     };
     return JSON.stringify(state);
 }
@@ -71,7 +72,8 @@ export async function initializeResearch(planet) {
 async function loadResearchData(force = false) {
     const requestId = ++researchRequestId;
     try {
-        const newResearchData = await API.request('/game/research');
+        const planetId = getCurrentPlanetId();
+        const newResearchData = await API.request(planetId ? `/game/research?planetId=${encodeURIComponent(planetId)}` : '/game/research');
         if (requestId !== researchRequestId) return;
         
         const currentHash = calculateResearchStateHash(newResearchData);
@@ -307,13 +309,14 @@ function renderTheoreticalResearch() {
         const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
         const researchSpeedBonus = getResearchBonus(playerTech, 'globalResearchSpeed');
         const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+        const labTimeMultiplier = researchData?.researchLabTimeMultiplier || 1;
 
         for (const tech of grouped[category]) {
             const techData = playerTech[tech.key];
             const level = typeof techData === 'object' ? (techData.level ?? 0) : (techData ?? 0);
             const queuedCount = queue.filter(q => q.techKey === tech.key).length;
             const nextLevelToQueue = level + 1 + queuedCount;
-            const nextLevelTime = calculateTheoreticalResearchTime(tech, nextLevelToQueue - 1, researchLabLevel, researchSpeedBonus, configMultiplier);
+            const nextLevelTime = calculateTheoreticalResearchTime(tech, nextLevelToQueue - 1, researchLabLevel, researchSpeedBonus, configMultiplier, null, labTimeMultiplier);
             const nextLevelCost = calculateTheoreticalResearchCost(tech.baseCost, nextLevelToQueue - 1, tech.costScaling);
             
             const requirementsMet = canResearchTheoretical(tech.key, playerTech, currentPlanetBuildings);
@@ -709,7 +712,7 @@ window.updateAllocationSliders = function () {
         const breakthroughBonus = bankedBreakthroughs * 0.02;
         const totalResearchSpeedBonus = getResearchBonus(researchData?.theoretical || {}, 'globalResearchSpeed') + breakthroughBonus;
 
-        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, totalResearchSpeedBonus, window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized, allocation);
+        const time = calculatePracticalResearchTime(res, totalFocusLevel, currentPlanetBuildings?.researchLab || 1, totalResearchSpeedBonus, window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0, strNormalized, allocation, null, researchData?.researchLabTimeMultiplier || 1);
         document.getElementById('time-estimate').textContent = formatDuration(time * 1000);
         const btn = document.getElementById('start-research-btn');
         if (btn) { 
@@ -775,6 +778,7 @@ function renderVariantCard(baseType, variant) {
     if (effectiveModifiers) {
         const modifierLabels = {
             productionMultiplier: { label: 'Production', isPos: true },
+            timeMultiplier: { label: 'Operation Time', isPos: false },
             costMultiplier: { label: 'Build Cost', isPos: false },
             energyMultiplier: { label: 'Energy Cons.', isPos: false },
             populationMultiplier: { label: 'Workforce', isPos: false }
@@ -1023,6 +1027,7 @@ window.showResearchDetails = function (techKey) {
     const researchLabLevel = currentPlanetBuildings?.researchLab || 0;
     const researchSpeedBonus = getResearchBonus(researchData.theoretical || {}, 'globalResearchSpeed');
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.researchTime || 1.0;
+    const labTimeMultiplier = researchData?.researchLabTimeMultiplier || 1;
 
     const stats = [];
     if (res.bonuses) { 
@@ -1034,7 +1039,7 @@ window.showResearchDetails = function (techKey) {
     const rows = [];
     for (let i = lv; i < lv + 15; i++) {
         const c = calculateTheoreticalResearchCost(res.baseCost, i, res.costScaling);
-        const t = calculateTheoreticalResearchTime(res, i, researchLabLevel, researchSpeedBonus, configMultiplier);
+        const t = calculateTheoreticalResearchTime(res, i, researchLabLevel, researchSpeedBonus, configMultiplier, null, labTimeMultiplier);
         rows.push([`Level ${i}`, `⚙️${formatNumber(c.metal)} 💎${formatNumber(c.crystal)}`, formatDuration(t * 1000)]);
     }
 

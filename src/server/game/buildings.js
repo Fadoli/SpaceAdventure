@@ -117,7 +117,7 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   
   const baseTime = calculateBaseTime(building) * Math.pow(SCALING.BUILDING_TIME, level - 1);
   
-  const roboticsDef = BUILDINGS.roboticsFactory;
+  const roboticsDef = getEffectiveBuildingDefinition('roboticsFactory', planet, player);
   const roboticsSpeedMultiplier = roboticsDef.speedMultiplier || 0.85;
   
   // Robotics factory speeds up construction (inverse formula: 1 / multiplier^n)
@@ -133,7 +133,11 @@ export function getBuildTime(buildingType, level, roboticsLevel = 0, naniteLevel
   const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
   const reduction = 1 - timeReductionBonus;
   
-  let totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier * reduction;
+  const naniteDef = getEffectiveBuildingDefinition('naniteFactory', planet, player);
+  const globalBlueprintTimeMultiplier =
+    (buildingType === 'roboticsFactory' ? 1 : (roboticsDef.timeMultiplier || 1)) *
+    (buildingType === 'naniteFactory' ? 1 : (naniteDef.timeMultiplier || 1));
+  let totalTime = (baseTime / roboticsMultiplier / naniteMultiplier) * configMultiplier * reduction * globalBlueprintTimeMultiplier;
   
   // Apply practical research time multiplier if it exists in the definition
   if (building.timeMultiplier !== undefined) {

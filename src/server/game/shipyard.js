@@ -4,7 +4,7 @@ import { calculateShipCost, calculateShipBuildTime, SHIPS } from '../../shared/s
 import { DEFENSES, calculateDefenseCost, calculateDefenseBuildTime } from '../../shared/defenses.js';
 import { getResearchBonus } from '../../shared/research.js';
 import { getShipBuildTimeMultiplier } from '../config.js';
-import { BUILDINGS } from '../../shared/buildings.js';
+import { getEffectiveBuildingDefinition } from './buildings.js';
 
 function validateBuildOrder(order, definitions, label) {
   if (!order || typeof order !== 'object' || Array.isArray(order) || Object.keys(order).length === 0) {
@@ -33,6 +33,9 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
   // Research bonuses
   const costReductionBonus = getResearchBonus(player?.research, 'globalCostReduction');
   const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
+  const shipyardDef = getEffectiveBuildingDefinition('shipyard', planet, player);
+  const naniteDef = getEffectiveBuildingDefinition('naniteFactory', planet, player);
+  const blueprintTimeMultiplier = (shipyardDef.timeMultiplier || 1) * (naniteDef.timeMultiplier || 1);
 
   // ships object can now contain either base ship keys or blueprint IDs
   // Format: { "smallCargo": 5, "sbp_12345": 2 }
@@ -48,7 +51,7 @@ export function buildShips(planet, player, ships, shipyardLevel, roboticsLevel =
     totalCost.deuterium += cost.deuterium;
 
     // Keep the authoritative ship timing formula in shared code.
-    const buildTime = calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus);
+    const buildTime = calculateShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus, blueprintTimeMultiplier);
     totalBuildTime = Math.max(totalBuildTime, buildTime);
   }
 
@@ -107,6 +110,9 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
   // Research bonuses
   const costReductionBonus = getResearchBonus(player?.research, 'globalCostReduction');
   const timeReductionBonus = getResearchBonus(player?.research, 'globalTimeReduction');
+  const shipyardDef = getEffectiveBuildingDefinition('shipyard', planet, player);
+  const naniteDef = getEffectiveBuildingDefinition('naniteFactory', planet, player);
+  const blueprintTimeMultiplier = (shipyardDef.timeMultiplier || 1) * (naniteDef.timeMultiplier || 1);
 
   // Validate and calculate costs
   for (const defenseKey in defenses) {
@@ -118,9 +124,8 @@ export function buildDefenses(planet, player, defenses, shipyardLevel = 0, robot
     totalCost.crystal += cost.crystal;
     totalCost.deuterium += cost.deuterium;
 
-    const shipyardDef = BUILDINGS.shipyard;
     const shipyardSpeedMultiplier = shipyardDef.speedMultiplier || 0.85;
-    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus, shipyardSpeedMultiplier);
+    const buildTime = calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel, naniteLevel, timeReductionBonus, shipyardSpeedMultiplier, blueprintTimeMultiplier);
     totalBuildTime = Math.max(totalBuildTime, buildTime); // Take the max since they build in parallel
   }
 
@@ -313,6 +318,8 @@ export function getShipyardDetails(planet, player = null) {
   const shipyardLevel = planet.buildings?.shipyard || 0;
   const roboticsLevel = planet.buildings?.roboticsFactory || 0;
   const naniteLevel = planet.buildings?.naniteFactory || 0;
+  const shipyardDef = getEffectiveBuildingDefinition('shipyard', planet, player);
+  const naniteDef = getEffectiveBuildingDefinition('naniteFactory', planet, player);
 
   return {
     planetId: planet.id,
@@ -321,6 +328,7 @@ export function getShipyardDetails(planet, player = null) {
     naniteLevel,
     costReductionBonus: getResearchBonus(player?.research, 'globalCostReduction'),
     timeReductionBonus: getResearchBonus(player?.research, 'globalTimeReduction'),
+    productionTimeMultiplier: (shipyardDef.timeMultiplier || 1) * (naniteDef.timeMultiplier || 1),
     ships: planet.ships,
     defenses: planet.defenses,
     shipQueue: planet.shipQueue.map(item => ({

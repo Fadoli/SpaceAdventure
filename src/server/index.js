@@ -1623,6 +1623,8 @@ async function handleRequest(req) {
         const history = await getResearchHistory(player.userId);
         const activeVariants = getActiveCustomVariants(player);
         const blueprints = player.buildingBlueprints || {};
+        const researchPlanet = player.planets.find(planet => planet.id === url.searchParams.get('planetId')) || player.planets[0];
+        const researchLab = researchPlanet ? getEffectiveBuildingDefinition('researchLab', researchPlanet, player) : null;
         
         return successResponse(req, {
           theoretical,
@@ -1630,7 +1632,8 @@ async function handleRequest(req) {
           progress,
           history,
           activeVariants,
-          blueprints
+          blueprints,
+          researchLabTimeMultiplier: researchLab?.timeMultiplier || 1
         });
       } catch (error) {
         return errorResponse(req, error.message, 500);

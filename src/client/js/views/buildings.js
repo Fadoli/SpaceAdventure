@@ -769,6 +769,15 @@ function getOutputDifferences(building, variant) {
             icon: '📈'
         });
     }
+
+    if (variant.modifiers.timeMultiplier !== undefined && variant.modifiers.timeMultiplier !== 1) {
+        const change = variant.modifiers.timeMultiplier;
+        diffs.push({
+            label: 'Operation time',
+            change: change,
+            icon: '⏱️'
+        });
+    }
     
     // Energy consumption changes
     if (variant.modifiers.energyMultiplier !== undefined && variant.modifiers.energyMultiplier !== 1) {

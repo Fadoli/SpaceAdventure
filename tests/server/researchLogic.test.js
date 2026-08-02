@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { cancelPracticalResearch, cancelTheoreticalResearch, completePracticalResearch, startPracticalResearchWithAllocation } from '../../src/server/game/researchLogic.js';
+import { cancelPracticalResearch, cancelTheoreticalResearch, completePracticalResearch, startPracticalResearchWithAllocation, startTheoreticalResearch } from '../../src/server/game/researchLogic.js';
+import { BUILDINGS } from '../../src/shared/buildings.js';
 
 describe('completePracticalResearch Fix', () => {
   it('should handle missing experience/history in practicalResearch', async () => {
@@ -64,6 +65,28 @@ describe('practical research input validation', () => {
     const item = startPracticalResearchWithAllocation(player, 'metalMine', { output: 1 }, 'planet-1', 0);
 
     expect(item.strength).toBe(0);
+  });
+
+  it('applies an active research lab blueprint to theoretical research time', () => {
+    const base = { ...makePlayer(), researchQueue: [] };
+    const withBlueprint = {
+      ...makePlayer(),
+      researchQueue: [],
+      planets: [{
+        ...makePlayer().planets[0],
+        activeVariants: { researchLab: 'optimized' },
+        localBlueprints: {
+          researchLab: {
+            customDefinition: { ...BUILDINGS.researchLab, timeMultiplier: 0.5 }
+          }
+        }
+      }]
+    };
+
+    const baseItem = startTheoreticalResearch(base, 'energyTech', 'planet-1');
+    const blueprintItem = startTheoreticalResearch(withBlueprint, 'energyTech', 'planet-1');
+
+    expect(blueprintItem.duration).toBeLessThan(baseItem.duration);
   });
 });
 

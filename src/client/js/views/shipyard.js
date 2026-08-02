@@ -26,7 +26,8 @@ function calculateStructuralHash(shipyardData, planet, subView) {
         subView,
         shipyardLevel: shipyardData.shipyardLevel,
         roboticsLevel: shipyardData.roboticsLevel,
-        naniteLevel: shipyardData.naniteLevel
+        naniteLevel: shipyardData.naniteLevel,
+        productionTimeMultiplier: shipyardData.productionTimeMultiplier
     });
 }
 
@@ -410,7 +411,7 @@ function calculateShipCostForDef(shipDef, quantity, costReductionBonus = getCost
 
 function calculateShipBuildTimeForDef(shipKey, quantity, shipyardLevel, naniteLevel = 0) {
     const configMultiplier = window.GAME_CONFIG?.gameSpeed?.shipBuildTime || 1.0;
-    return Math.max(1, Math.floor(calculateSharedShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel, getTimeReductionBonus()) * configMultiplier));
+    return Math.max(1, Math.floor(calculateSharedShipBuildTime(shipKey, quantity, shipyardLevel, naniteLevel, getTimeReductionBonus(), currentShipyardData?.productionTimeMultiplier || 1) * configMultiplier));
 }
 
 /**
@@ -719,7 +720,8 @@ function updateProductionInfo(type, id, quantity, planet, container = getActiveS
             currentShipyardData.shipyardLevel,
             currentShipyardData.naniteLevel,
             getTimeReductionBonus(),
-            BUILDINGS.shipyard.speedMultiplier
+            BUILDINGS.shipyard.speedMultiplier,
+            currentShipyardData?.productionTimeMultiplier || 1
         ) * configMultiplier));
     }
     
@@ -927,6 +929,7 @@ function calculateDefenseBuildTime(defenseKey, quantity, shipyardLevel = 1, nani
         shipyardLevel,
         naniteLevel,
         getTimeReductionBonus(),
-        BUILDINGS.shipyard.speedMultiplier
+        BUILDINGS.shipyard.speedMultiplier,
+        currentShipyardData?.productionTimeMultiplier || 1
     ) * configMultiplier));
 }

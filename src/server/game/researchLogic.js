@@ -21,6 +21,7 @@ import {
 } from '../../shared/formulas.js';
 import { calculateBaseTime } from '../../shared/time.js';
 import { BUILDINGS } from '../../shared/buildings.js';
+import { getEffectiveBuildingDefinition } from './buildings.js';
 import { RESEARCH_LAB_SPEED_MULTIPLIER } from '../../shared/constants.js';
 import { addResearchHistoryEntry, getResearchHistory } from './researchHistory.js';
 
@@ -102,8 +103,9 @@ export function startTheoreticalResearch(player, techKey, planetId) {
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
   
-  const labDef = BUILDINGS.researchLab;
+  const labDef = getEffectiveBuildingDefinition('researchLab', planet, player);
   const labSpeedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
+  const labTimeMultiplier = labDef.timeMultiplier || 1;
   
   const time = calculateTheoreticalResearchTime(
     tech,
@@ -111,7 +113,8 @@ export function startTheoreticalResearch(player, techKey, planetId) {
     planet.buildings.researchLab || 0,
     researchSpeedBonus,
     configMultiplier,
-    labSpeedMultiplier
+    labSpeedMultiplier,
+    labTimeMultiplier
   );
   
   // Calculate timing
@@ -246,9 +249,10 @@ export function startPracticalResearchWithAllocation(player, researchKey, alloca
   
   const researchSpeedBonus = getResearchBonus(player.research, 'globalResearchSpeed');
   const configMultiplier = getResearchTimeMultiplier();
-  const labDef = BUILDINGS.researchLab;
+  const labDef = getEffectiveBuildingDefinition('researchLab', planet, player);
   const labSpeedMultiplier = labDef.speedMultiplier || RESEARCH_LAB_SPEED_MULTIPLIER;
-  const time = calculatePracticalResearchTime(practicalResearchConfig, totalFocusLevel, planet.buildings.researchLab || 1, researchSpeedBonus, configMultiplier, strength, allocation, labSpeedMultiplier);
+  const labTimeMultiplier = labDef.timeMultiplier || 1;
+  const time = calculatePracticalResearchTime(practicalResearchConfig, totalFocusLevel, planet.buildings.researchLab || 1, researchSpeedBonus, configMultiplier, strength, allocation, labSpeedMultiplier, labTimeMultiplier);
   
   let startTime, endTime;
   if (!player.practicalResearchQueue || player.practicalResearchQueue.length === 0) {
