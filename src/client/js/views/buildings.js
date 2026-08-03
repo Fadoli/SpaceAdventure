@@ -24,7 +24,13 @@ let buildingDetailsRequest = null;
 function calculateQueueStateHash(queue, planetId = '') {
     return JSON.stringify({
         planetId,
-        queue: queue.map(q => ({ building: q.building, level: q.level, finishTime: q.finishTime }))
+        queue: queue.map(q => ({
+            building: q.building,
+            level: q.level,
+            startTime: q.startTime,
+            finishTime: q.finishTime,
+            queuePosition: q.queuePosition
+        }))
     });
 }
 
@@ -48,7 +54,7 @@ export async function updateBuildingsView(planet, onStateChange, forceFetch = fa
         planetId: planet.id,
         buildings: planet.buildings,
         activeVariants: planet.activeVariants,
-        queueCount: planet.buildQueue?.length || 0
+        queue: calculateQueueStateHash(planet.buildQueue || [], planet.id)
     });
 
     const hasCurrentCache = cachedBuildingDetails && cachedBuildingPlanetId === planet.id;
@@ -57,7 +63,7 @@ export async function updateBuildingsView(planet, onStateChange, forceFetch = fa
     // Fetch building details from server only if needed
     if (needsFetch) {
         let request = buildingDetailsRequest;
-        if (!request || request.planetId !== planet.id || forceFetch) {
+        if (!request || request.planetId !== planet.id || forceFetch || needsFetch) {
             request = {
                 planetId: planet.id,
                 promise: API.getBuildingDetails(planet.id)
@@ -667,7 +673,7 @@ window.selectAndActivateBlueprint = async function(buildingKey, blueprintId) {
         
         Notifications.showSuccess('Design switched successfully!');
         window.closeCustomVariantModal();
-        if (window.loadGameState) await window.loadGameState();
+        if (window.loadGameState) await window.loadGameState(true);
     } catch (error) {
         Notifications.showError('Switch failed: ' + error.message);
     }

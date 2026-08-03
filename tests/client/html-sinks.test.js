@@ -216,8 +216,12 @@ it('does not let stale allocation or galaxy responses overwrite navigation', asy
 
 it('refreshes building queues after the accepted mutation response', async () => {
   const source = await readFile(new URL('../../src/client/js/main.js', import.meta.url), 'utf8');
+  const buildings = await readFile(new URL('../../src/client/js/views/buildings.js', import.meta.url), 'utf8');
   expect(source).toContain('buildingUpgrade(buildingKey, () => loadGameState(true))');
   expect(source).toContain('buildingCancel(queuePosition, () => loadGameState(true))');
+  expect(buildings).toContain('queue: calculateQueueStateHash(planet.buildQueue || [], planet.id)');
+  expect(buildings).toContain('forceFetch || needsFetch');
+  expect(buildings).toContain('if (window.loadGameState) await window.loadGameState(true);');
 });
 
 it('refreshes immediately when a building completion event arrives', async () => {
